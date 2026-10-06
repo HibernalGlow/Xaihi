@@ -54,7 +54,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
  * inject 里同时声明 `remote` 与 `remote.<namespace>`）。命令命名空间是客户端装配
  * 现成挂着的（`dsh-api-remotes` 生成物里带 `commands/lib/typert.remote-client.js`）。
  */
-export const inject = ['slots', 'locale', 'theme', 'remote', 'remote.commands']
+export const inject = ['slots', 'locale', 'theme', 'layout', 'remote', 'remote.commands']
 
 /** 插槽框架交给面板组件的属性（框架真源，只取用到的两片）。 */
 type ReceivedProps = PropsLocale<'xaihi.ui'> & PropsRenderSlots<XaihiSlot>
@@ -367,6 +367,65 @@ export function apply(ctx: Context): void {
     renderSlot: (key) => props.renderSlot(key, {}),
     runCommand,
   })))
+
+  // 占位失败绝不许把整个入口带走：入口一 throw，宿主只报 "entry did not activate"，
+  // 真实原因就再也读不到了。所以这里兜住并记进观测面。
+  ctx.effect(() => {
+    try {
+      return claimMainView(ctx)
+    } catch (error) {
+      const target = globalThis as { __XAIHI__?: Record<string, unknown> }
+      target.__XAIHI__ = {
+        ...(target.__XAIHI__ ?? {}),
+        mainClaim: { ok: false, reason: error instanceof Error ? `${error.name}: ${error.message}` : String(error) },
+      }
+      return () => {}
+    }
+  }, 'xaihi-ui: claim the empty main view')
+}
+
+/** 注册发生在 `main` 槽渲染的时候，所以占位只能有界重试；上限是帧数，不是次数猜测。 */
+const CLAIM_ATTEMPTS = 30
+
+/**
+ * 中栏空着的时候把工作台选上。
+ *
+ * DSH 的默认主视图是 Conversation：layout store 的 `activePanelId` 初值为 null，且只在
+ * "已选中的面板从表里消失"时复位成 null（`dsh-client-ui-layout/lib/client.js:388,405`），
+ * 它从不替插件挑一个面板。对话面被关掉之后那个默认位就空着 ⇒ 谁占位得自己说。
+ *
+ * @param ctx - 客户端根上下文。
+ * @returns 取消订阅的清理函数。
+ */
+export function claimMainView(ctx: Context): () => void {
+  const target = globalThis as { __XAIHI__?: Record<string, unknown> }
+  let attempts = 0
+  let frame = 0
+  const claim = (): boolean => {
+    if (ctx.layout.panelInfo.getSnapshot().activePanelId !== null) return true
+    attempts += 1
+    try {
+      ctx.layout.selectPanel(MAIN_PANEL_KEY)
+      target.__XAIHI__ = { ...(target.__XAIHI__ ?? {}), mainClaim: { ok: true, attempts } }
+      return true
+    } catch (error) {
+      // 面板还没进表：下一帧再试，并把最后一次失败原因留在观测面上，别静默吞。
+      target.__XAIHI__ = {
+        ...(target.__XAIHI__ ?? {}),
+        mainClaim: { ok: false, attempts, reason: error instanceof Error ? error.message : String(error) },
+      }
+      return false
+    }
+  }
+  const pump = (): void => {
+    if (claim() || frame >= CLAIM_ATTEMPTS) return
+    frame += 1
+    requestAnimationFrame(pump)
+  }
+  pump()
+  return ctx.layout.panelInfo.subscribe(() => {
+    if (ctx.layout.panelInfo.getSnapshot().activePanelId === null) pump()
+  })
 }
 
 /** 装载器构造入口，导出以便测试直接拿到远程模块后端。 */
