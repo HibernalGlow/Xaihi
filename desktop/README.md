@@ -361,7 +361,7 @@ E/F 段量到的 `createdCount: 0` 就是这么来的。0008 于是只放宽 ope
 另加一条独立减法对照"产品文档 opener 也开不出自家非文档目标"。摘掉 0008 重放 ⇒ 用例表必须判错，
 这条尺的敏感性由 `--check/--verify` 一起管。
 
-活体（J 段六条，`node desktop/live-check.mjs` ⇒ **51 条 OK、rc=0**）：
+活体（J 段六条，`node desktop/live-check.mjs` ⇒ **51 条 OK、rc=0**（补上 K 段之后是 54 条，见下一节））：
 
 - 现场复核前提：`frame.dshDesktop === 'undefined'`（0008 要绕的就是这一格）。
 - 帧里 `window.open(自家文档?node=sleept)` ⇒ `popup="null"` 且原生窗**恰好一个**，
@@ -373,6 +373,21 @@ E/F 段量到的 `createdCount: 0` 就是这么来的。0008 于是只放宽 ope
 节点界面在自己的文档里直接 `window.open` 就够了，不需要新增能力组。0007 那条"产品文档转达"仍有用途
 （产品文档自己发起的面板/工具窗），但**开窗主路径已经不依赖它**。P8 那条上游缺口（发起帧身份）照旧提着，
 只是我们的暴露面比先前记的小了一号。
+
+## K 段：窗到窗那一格补齐（2026-10-07 06:5x）
+
+D 段量的是"节点窗调 IPC 动词开另一个窗"，E 段量的是"主窗停在文档上时 `window.open`"，
+J 段量的是"被嵌帧 `window.open`"——**还差一格是实际最容易走的那条**：
+已经在前台的那个节点窗自己 `window.open` 另一个 node。补上之后 `node desktop/live-check.mjs` ⇒ **54 条 OK、rc=0**：
+
+- 由产品文档转达开第一个窗（`windowId=30`），在那个窗里 `window.open(...?node=xaihi-dissolvef)` ⇒
+  `popup="null"` 且原生窗恰好一个（`windowId=31`），URL 与标题都跟着**新的** node（不是第一个窗的）。
+- 收尾 `ownedLeft=0`。
+
+写这条的时候我又把判据自己写错了一次：起第一个窗的那句按 0005 的形状漏掉了 `documentPath`，
+于是 K 段一开始报的是 0007 故意保留的那条拒绝（`only the Xaihi UI document`）——
+**同一个坑在两条不同的判据上重演**，说明"从产品文档起窗必须带路径"这件事在尺里出现过三次
+（I 段第一次也是它）。它现在已经写在两处判据的注释上，别再靠记忆。
 
 ## 0005 与 0006：主窗只是隐藏时节点窗还能继续开，标题也真带得出 node（2026-10-07 05:3x，home `.scratch/dsh-xaihi-desktop-home3`）
 

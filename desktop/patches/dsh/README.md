@@ -26,10 +26,10 @@
 | 0007 | **已落地**：产品文档可以替**被嵌在自己里面的** Xaihi 帧转达开窗（Electron 44 的 preload 不进子帧，`HandlerDetails` 又没有"哪一帧发起的"，所以 `window.open` 那条路在嵌入形态下量到的是 0 个窗）。带路径时只有主窗这一支被接受，路径必须过壳自己的路由形状；不带路径时行为与 0005 逐字相同 | `main.ts` 的 `xaihiWindowOpen` handler（新增 `isMainDocument && documentPath !== undefined` 分支）+ `ipc.ts` 的 `open(node, documentPath?)` 类型 + `preload-app.ts` 透传 | P5 的续条（原样抄在 `docs/upstream-proposals.md`） |
 | 0008 | **已落地**：被嵌在产品文档里的 Xaihi 帧也能请求开窗 —— `window.open` 的 opener 从"只有自家文档"放宽到"自家文档 或 产品文档根/`index.html`"，目标形状、`node` 单键、超长与解析失败四条守卫一条不松；0004 的去重把"反复弹窗"的上限收成节点数本身 | `apps/desktop/src/xaihi-window-policy.ts` 的 `resolveXaihiDocumentTarget`（`PRODUCT_DOCUMENT_PATHS` + `isProductDocument`）| P8（上游给不了发起帧身份时的最小绕法） |
 
-0001–0008 已落地；活体判据在 `desktop/live-check.mjs`（**51 条全绿**：R 段复位、A 段产品文档面与拒绝分支、
+0001–0008 已落地；活体判据在 `desktop/live-check.mjs`（**54 条全绿**：R 段复位、A 段产品文档面与拒绝分支、
 B 段真 Xaihi 文档进第二窗、C 段按 node 去重与标题、D 段"主窗只是隐藏时节点窗仍能继续开"加守卫没跟着放宽、
 E 段页面自己 `window.open` 走原生窗且弹出窗没长出来、F 段决定 4 的退化读回真上屏（含 iframe 反向对照）、
-H 段产品文档转达开窗 + 三条边界对照、I 段"注入冒充不了官方形状"、J 段面板形态下那一下真能开窗 + 两条对照）。判据都在 `node desktop/sync-dsh.mjs --verify`：
+H 段产品文档转达开窗 + 三条边界对照、I 段"注入冒充不了官方形状"、J 段面板形态下那一下真能开窗 + 两条对照、K 段窗到窗（节点窗自己 window.open 另一个 node））。判据都在 `node desktop/sync-dsh.mjs --verify`：
 0001 查 IPC 通道 + 产物两份文件；0002 查 11 条用例（**拒绝分支才是重点**：路径穿越、跨 host、
 非自家发起者、多带查询键、超长串）+ 0003 三条 profile 用例 + 0004 去重键用例；产物判据现在要
 `lib/main.js` 里同时有 `resolveXaihiDocumentTarget` **和** `xaihiWindowKey`（少一个就是只跑了 tsc 没跑 bundle），

@@ -578,6 +578,50 @@ const J = await evaluateMain(`(async () => {
 })()`)
 console.log('J 段（面板形态下那一下真能开窗）⇒ ' + JSON.stringify(J))
 
+// K 段：节点窗**自己**用 `window.open` 开另一个节点窗 —— 这是"窗里那一下"的实际形状。
+// D 段量的是 IPC 动词（子窗调 `dshDesktop.xaihiWindow.open`），E 段量的是主窗停在文档上时的
+// `window.open`；两者都没覆盖"子窗 → window.open"这一格。
+const K = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 600))
+  const ready = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL('dsh-app://app/')
+  await Promise.race([ready, new Promise((r) => setTimeout(r, 6000))])
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const nodes = manifest.plugins.map((p) => p.manifest.id)
+  const docUrl = 'dsh-app://app' + manifest.ui.documentUrl
+  // 起第一个节点窗要从产品文档走 0007 的转达形状（带自家文档路径）——
+  // 上一版这里又漏了第二个参数，撞的还是 0007 故意保留的那条拒绝（同一类尺写错，第二次）。
+  const first = await app.webContents.executeJavaScript(
+    'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(nodes[0]) + ', '
+    + JSON.stringify(manifest.ui.documentUrl) + ')', true)
+  const child = all().find((w) => w.id === first.windowId)
+  if (child === undefined) return { skipped: '第一个节点窗没开出来' }
+  const targetUrl = docUrl + '?node=' + (nodes[2] ?? nodes[1] ?? nodes[0])
+  const idsBefore = all().map((w) => w.id)
+  const openRes = await child.webContents.executeJavaScript(
+    '(() => { const w = window.open(' + JSON.stringify(targetUrl) + ', "xaihi-child-probe");'
+    + ' return w === null ? "null" : (w ? "object" : String(w)) })()', true)
+  await new Promise((r) => setTimeout(r, 1200))
+  const created = all().filter((w) => !idsBefore.includes(w.id))
+  const createdProbe = created.length === 1 ? { windowId: created[0].id, url: created[0].webContents.getURL(), title: created[0].getTitle() } : null
+  for (const w of all()) {
+    if (w === app) continue
+    if (isOwnedDocWindow(w) || (createdProbe !== null && w.id === createdProbe.windowId) || w.id === first.windowId) w.close()
+  }
+  await new Promise((r) => setTimeout(r, 800))
+  return { nodes, targetUrl, firstWindowId: first.windowId, openRes,
+    createdCount: created.length, createdProbe, ownedLeft: openedWins().length }
+})()`)
+console.log('K 段（节点窗自己 window.open 开另一个节点窗）⇒ ' + JSON.stringify(K))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -669,6 +713,14 @@ need('J: 那个新窗寻址与标题都跟着被点的 node',
 need('J: 对照——同一目标再问一次不叠第二个窗（去重覆盖这条新路）', jj.repeatCreated === 0)
 need('J: 对照——同一帧开自家非文档路径仍不长窗', jj.innerRes === 'null' && jj.innerCreated === 0)
 need('J: 收尾把自家窗清干净', jj.ownedLeft === 0)
+
+const kk = K.ok === true ? K.value : {}
+need('K: 节点窗自己 window.open 另一个 node ⇒ 弹出窗没长出来，原生窗出来一个',
+  kk.openRes === 'null' && kk.createdCount === 1 && kk.createdProbe?.url === kk.targetUrl)
+need('K: 那个窗寻址与标题都跟着新的 node（不是第一个窗的 node）',
+  String(kk.createdProbe?.url).includes('node=' + String(kk.nodes?.[2] ?? kk.nodes?.[1] ?? '~none~'))
+  && String(kk.createdProbe?.title).includes(String(kk.nodes?.[2] ?? kk.nodes?.[1] ?? '~none~')))
+need('K: 收尾把自家窗清干净', kk.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {
