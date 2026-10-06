@@ -72,6 +72,12 @@ vendor 之后本仓会出现两条版本线与两套 workspace 定义。所以�
 - 桌面端 profile 的所有权转到壳仓：`profiles/desktop` 的独占、`args.ts:84-85` 那条 CLI 封禁
   对自家壳不再成立（壳是我们自己的），profile 规则由 Xaihi-Desktop 自己写死并记录。
 - ADR-0009 状态从「待接受」改「接受」，未决的只剩措辞与实现批次。
+- **决定 4 的探测层已经在 SDK 里**：`packages/node-sdk/src/desktop-windows.ts` 的
+  `readXaihiWindowCapability` / `openNodeWindow` 把"有没有那条动词"变成**带原因的可读状态**，
+  三种不支持分得开：`no-shell-surface`（官方桌面端与 `dsh web`）、`stock-shell`（有 `dshDesktop`
+  但没打过 0001）、`not-a-function`（半接）。非法 node 在本地就拦（测试断言 opener **一次都没被调用**），
+  IPC 抛回的原文透传不重写。8 条用例 + 阳性对照：把两种不支持并成一个原因 ⇒ 2 条转红，复原 ⇒ 8/8 绿。
+  剩下的一格是 UI 接线（按钮 + 显示 reason），落点 `packages/ui-host` 此刻仍在大量未提交改动中。
 - 与 ADR-0006 不冲突：0006 定的是"UI 与终端面去现成实现里搬"，0011 定的是"缺的原生能力在哪个仓里补"。
   本仓的动词仍然是搬运与接线。
 - **`docs/roadmap.md` 的本次改动故意没提交**：R8/R9/R14 三行与「明确不做」的措辞已经写进工作树，
