@@ -713,6 +713,46 @@ const M = await evaluateMain(`(async () => {
 })()`)
 console.log('M 段（focus / close / getBounds / setBounds 与登记表边界）⇒ ' + JSON.stringify(M))
 
+// N 段：0011 的协商。三件事分别要证：① 值是对的（mac 这侧 hiddenInset ⇒ captionOwner=system + 有位置）；
+// ② **形状逐字段就是基线那份**（`Xiranite/src/backend/runtime/runtime.ts:86-99` 的七个键），
+//    多一个少一个都算没照基线 —— 界面是按这张表决定画不画自己那套窗控的；
+// ③ 自家文档窗里也能读到同一份（0010 那条发起者闸与它共用）。
+const N = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 600))
+  const ready = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL('dsh-app://app/')
+  await Promise.race([ready, new Promise((r) => setTimeout(r, 6000))])
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const nodes = manifest.plugins.map((p) => p.manifest.id)
+  const docPath = manifest.ui.documentUrl
+  const CAPS = 'Promise.resolve(window.dshDesktop.xaihiWindow.getCapabilities())'
+    + '.then((r) => ({ kind: "ok", value: r }), (e) => ({ kind: "rejected", message: String(e && e.message ? e.message : e) }))'
+  const fromMain = await app.webContents.executeJavaScript(CAPS, true)
+  const opened = await app.webContents.executeJavaScript(
+    'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(nodes[0]) + ', '
+    + JSON.stringify({ documentPath: docPath }) + ')', true)
+  await new Promise((r) => setTimeout(r, 1000))
+  const win = all().find((w) => w.id === opened.windowId)
+  const fromChild = win === undefined ? { kind: 'no-window' } : await win.webContents.executeJavaScript(CAPS, true)
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 700))
+  return {
+    keys: Object.keys(fromMain.value ?? {}).sort(),
+    fromMain, fromChild,
+    platform: process.platform,
+    ownedLeft: openedWins().length,
+  }
+})()`)
+console.log('N 段（能力协商：值、形状、以及自家窗里也读得到）⇒ ' + JSON.stringify(N))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -842,6 +882,29 @@ need('M: close 真的关掉那一个窗，且不多开别的',
 need('M: 关掉之后同一个 id 读不回来（登记表跟着 closed 走）',
   mm.afterClose?.kind === 'rejected' && String(mm.afterClose?.message).includes('unknown window'))
 need('M: 收尾把自家窗清干净', mm.ownedLeft === 0)
+
+// 基线 `WindowCapabilities` 的键（现读 `Xiranite/src/backend/runtime/runtime.ts:86-99` 抄在这里）：
+// 多一个少一个都算没照基线。`captionInset` 只在系统画红绿灯那一档才出现，所以按实际返回补进期望里，
+// 而不是把断言放宽成「包含就行」。
+const BASELINE_CAPABILITY_KEYS = ['captionOwner', 'componentWindows', 'frameless', 'message',
+  'nativeWindowControls', 'supported']
+const nn = N.ok === true ? N.value : {}
+const nval = nn.fromMain?.value ?? {}
+const expectedCapabilityKeys = [...BASELINE_CAPABILITY_KEYS,
+  ...(nval.captionInset === undefined ? [] : ['captionInset'])].sort()
+need('N: 协商返回的就是基线那份键（不多不少，captionInset 只在 system 那一档出现）',
+  nn.fromMain?.kind === 'ok' && JSON.stringify(nn.keys) === JSON.stringify(expectedCapabilityKeys))
+need('N: mac 的 hiddenInset ⇒ captionOwner=system 且位置是建窗那份 16/18',
+  nval.captionOwner === 'system' && nval.captionInset?.x === 16 && nval.captionInset?.y === 18)
+need('N: 能力位说的是实话（native 组件窗、有系统窗控、不是无边框）',
+  nval.supported === true && nval.componentWindows === 'native'
+  && nval.nativeWindowControls === true && nval.frameless === false)
+need('N: 寻址动词条数由真表推（消息里那句要跟着实际那四条）',
+  typeof nval.message === 'string' && nval.message.includes('4 verbs'))
+need('N: 自家文档窗里读到同一份（发起者闸与寻址四条共用）',
+  nn.fromChild?.kind === 'ok' && nn.fromChild?.value?.captionOwner === nval.captionOwner
+  && JSON.stringify(nn.fromChild?.value) === JSON.stringify(nval))
+need('N: 收尾把自家窗清干净', nn.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {

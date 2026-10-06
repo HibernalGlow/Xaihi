@@ -1,0 +1,205 @@
+From e3b76a3e3902492683fd74291847556cb8994f56 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 07:24:49 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20Xaihi=20=E7=AA=97=E7=9A=84=E8=83=BD?=
+ =?utf-8?q?=E5=8A=9B=E5=8D=8F=E5=95=86=20getCapabilities=EF=BC=8C=E5=BD=A2?=
+ =?utf-8?q?=E7=8A=B6=E7=85=A7=E5=9F=BA=E7=BA=BF=20WindowCapabilities?=
+ =?utf-8?q?=EF=BC=88Xaihi=20patch=200011=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/ipc.ts                 |  8 +++++
+ apps/desktop/src/main.ts                | 35 ++++++++++++++++++++--
+ apps/desktop/src/preload-app.ts         |  2 ++
+ apps/desktop/src/xaihi-window-policy.ts | 39 +++++++++++++++++++++++++
+ 4 files changed, 82 insertions(+), 2 deletions(-)
+
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+index cdb0b59..14bbe4a 100644
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -2,6 +2,7 @@
+ 
+ import type { DesktopKeyboardApi, DesktopShortcutsApi } from '@deepseek-ai/dsh-client-shortcuts/protocol'
+ import type { IpcMainInvokeEvent } from 'electron'
++import type { XaihiWindowCapabilities } from './xaihi-window-policy.ts'
+ import type { DesktopBrowserBridge } from '@deepseek-ai/dsh-client-ui-sidebar-browser/types'
+ 
+ /** IPC channel names kept private to the desktop application bundle. */
+@@ -32,6 +33,7 @@ export const DESKTOP_IPC = {
+   windowsAppearance: 'dsh-desktop:windows-appearance',
+   windowsMenu: 'dsh-desktop:windows-menu',
+   xaihiWindowOpen: 'dsh-desktop:xaihi-window-open',
++  xaihiWindowCapabilities: 'dsh-desktop:xaihi-window-capabilities',
+   xaihiWindowFocus: 'dsh-desktop:xaihi-window-focus',
+   xaihiWindowClose: 'dsh-desktop:xaihi-window-close',
+   xaihiWindowGetBounds: 'dsh-desktop:xaihi-window-get-bounds',
+@@ -115,6 +117,12 @@ export interface DshDesktopProductApi {
+      * `.getFrame` / `.setFrame` (`:142-143`) and read the applied bounds back rather than
+      * echoing the request, since a screen can clamp them.
+      */
++    /**
++     * Xaihi patch 0011: 协商。字段逐字照基线的 `WindowCapabilities`
++     * （`Xiranite/src/backend/runtime/runtime.ts:86-99`）—— 界面用它决定**要不要画自己那套窗控**，
++     * 所以值由构造窗口时那份 `titleBarStyle` 推出来，不是两边各猜一次。
++     */
++    getCapabilities(): Promise<XaihiWindowCapabilities>
+     focus(windowId: number): Promise<{ readonly windowId: number }>
+     close(windowId: number): Promise<{ readonly windowId: number }>
+     getBounds(windowId: number): Promise<{ readonly x: number, readonly y: number, readonly width: number, readonly height: number }>
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index fa83b99..17e9ada 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -24,7 +24,7 @@ import {
+   type WebContents,
+ } from 'electron'
+ import { resolveDesktopPaths } from './paths.ts'
+-import { normalizeXaihiWindowBounds, normalizeXaihiWindowSize, resolveXaihiDocumentTarget, xaihiWindowKey, type XaihiWindowSize } from './xaihi-window-policy.ts'
++import { normalizeXaihiWindowBounds, normalizeXaihiWindowSize, resolveXaihiDocumentTarget, xaihiWindowCapabilities, xaihiWindowKey, type XaihiWindowSize } from './xaihi-window-policy.ts'
+ 
+ import { DesktopProjectManager } from './project-manager.ts'
+ import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
+@@ -210,6 +210,9 @@ function platformLoginUrl(authorizeUrl: string): string {
+ // 不参与主窗的 hide-on-close；重复请求聚焦既有的那一个，而不是叠第二个窗。
+ const xaihiDocumentWindows = new Map<string, BrowserWindow>()
+ 
++/** Xaihi patch 0011: 每个自家窗的标题栏形状（'inset' mac 红绿灯在内容里 / 'overlay' Windows 由渲染方画 / 'native' 原生框）。 */
++const xaihiCaptionKinds = new WeakMap<BrowserWindow, 'inset' | 'overlay' | 'native'>()
++
+ /** 这条 WebContents 是不是我们登记的 Xaihi 文档窗（还活着且 URL 仍是自家文档）。 */
+ function xaihiOwnedSender (sender: WebContents): boolean {
+   for (const window of xaihiDocumentWindows.values()) {
+@@ -264,6 +267,10 @@ function openXaihiDocumentWindow (preload: string, target: string, size?: XaihiW
+   return { window, alreadyOpen: false }
+ }
+ 
++// Xaihi patch 0011: 红绿灯的位置只有这一份 —— 建窗与能力协商读的是同一个对象，
++// 不是在两处各抄一遍 16/18（抄两遍早晚会对不上，而对不上的表现是界面画出一套多余的窗控）。
++const DARWIN_TRAFFIC_LIGHT_POSITION = { x: 16, y: 18 }
++
+ function createWindow(preload: string, show = false, primary = false): BrowserWindow {
+   const window = new BrowserWindow({
+     width: 1280,
+@@ -280,7 +287,7 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
+     // needs a transparent window background to show through the page.
+     ...(process.platform === 'darwin' ? {
+       titleBarStyle: 'hiddenInset' as const,
+-      trafficLightPosition: { x: 16, y: 18 },
++      trafficLightPosition: DARWIN_TRAFFIC_LIGHT_POSITION,
+       vibrancy: 'sidebar' as const,
+       // 'active' keeps the vibrancy material stable when the window blurs;
+       // 'followWindow' washes the sidebar out behind an unfocused window.
+@@ -297,6 +304,17 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
+       devTools: true,
+     },
+   })
++  // Xaihi patch 0011: 这份窗的标题栏形状就地记一份，给能力协商用。
++  // 三条分支与上面 options 里那三个 `titleBarStyle` 一一对应（mac hiddenInset /
++  // Windows 主窗 hidden + titleBarOverlay / 其余原生框）。这里**不假装从窗上读回来**：
++  // Electron 44 的 BrowserWindow 只有 `setTitleBarOverlay`，没有 `getTitleBarOverlay`
++  // 也没有 `getTrafficLightPosition`（现读 `electron.d.ts`），所以形状由构造决定、就地记。
++  const captionKind: 'inset' | 'overlay' | 'native' = process.platform === 'darwin'
++    ? 'inset'
++    : process.platform === 'win32' && primary
++      ? 'overlay'
++      : 'native'
++  xaihiCaptionKinds.set(window, captionKind)
+   window.webContents.setWindowOpenHandler(({ url }) => {
+     // Xaihi patch 0002: 页面递来的 URL 先过纯判策；不是自家文档就维持原样（外链交系统浏览器，其余 deny）。
+     const target = resolveXaihiDocumentTarget({ url, openerUrl: window.webContents.getURL() })
+@@ -852,6 +870,19 @@ async function main(): Promise<void> {
+   // （`Xiranite/src/backend/runtime/runtime.ts:139-143`）。四条都在同一张登记表里走，
+   // 且 `setBounds` 回读的是**生效之后**的矩形，不回收调用方给的那份 —— 屏幕会 clamp，
+   // 报回去的必须是界面实际拿到的那一个，否则界面就在一对自己撒谎。
++  // Xaihi patch 0011: 协商。形状逐字段照基线的 `WindowCapabilities`
++  // （`Xiranite/src/backend/runtime/runtime.ts:86-99`），因为界面拿它决定**画不画自己那套窗控** ——
++  // 猜错的表现为两套按钮压在红绿灯上，或干脆没有按钮，都是看得见的错。
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowCapabilities, (event) => {
++    assertXaihiWindowSender(event)
++    const kind = mainWindow === undefined ? 'native' : xaihiCaptionKinds.get(mainWindow) ?? 'native'
++    return xaihiWindowCapabilities(
++      kind,
++      kind === 'inset' ? DARWIN_TRAFFIC_LIGHT_POSITION : undefined,
++      // 条数从真那张通道表推（改天补一条动词，这里跟着变），不写死一个会漂移的数。
++      Object.keys(DESKTOP_IPC).filter((name) => name.startsWith('xaihiWindow') && name !== 'xaihiWindowCapabilities' && name !== 'xaihiWindowOpen').length,
++    )
++  })
+   ipcMain.handle(DESKTOP_IPC.xaihiWindowFocus, (event, windowId: unknown) => {
+     const window = needXaihiWindow(event, windowId)
+     if (window.isMinimized()) window.restore()
+diff --git a/apps/desktop/src/preload-app.ts b/apps/desktop/src/preload-app.ts
+index 2d73a2f..b383abb 100644
+--- a/apps/desktop/src/preload-app.ts
++++ b/apps/desktop/src/preload-app.ts
+@@ -1,6 +1,7 @@
+ /** Origin-scoped boot, native directory selection, host paths of picked files, and update presentation with native confirmation actions. */
+ 
+ import type { DesktopShortcutInput, ShortcutConfigSnapshot, ShortcutSaveResult } from '@deepseek-ai/dsh-client-shortcuts/protocol'
++import type { XaihiWindowCapabilities } from './xaihi-window-policy.ts'
+ import { contextBridge, ipcRenderer, webUtils } from 'electron'
+ import { DESKTOP_IPC, SCHEME, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
+ import { PLATFORM_IPC } from './platform-ipc.ts'
+@@ -18,6 +19,7 @@ function createProductApi(): DshDesktopProductApi {
+     // Xaihi patch: 只在主文档上给，且失败由主进程按同一套守卫判（ADR-0011 决定 4 要求消费端探测式使用）。
+     xaihiWindow: {
+       open: (node: string, options?: { documentPath?: string, width?: number, height?: number }) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowOpen, node, options) as Promise<{ readonly windowId: number, readonly alreadyOpen: boolean }>,
++      getCapabilities: () => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowCapabilities) as Promise<XaihiWindowCapabilities>,
+       focus: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowFocus, windowId) as Promise<{ readonly windowId: number }>,
+       close: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowClose, windowId) as Promise<{ readonly windowId: number }>,
+       getBounds: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowGetBounds, windowId) as Promise<{ readonly x: number, readonly y: number, readonly width: number, readonly height: number }>,
+diff --git a/apps/desktop/src/xaihi-window-policy.ts b/apps/desktop/src/xaihi-window-policy.ts
+index d1a626b..2200022 100644
+--- a/apps/desktop/src/xaihi-window-policy.ts
++++ b/apps/desktop/src/xaihi-window-policy.ts
+@@ -117,6 +117,45 @@ export function normalizeXaihiWindowSize (size: unknown): XaihiWindowSize | unde
+   return { width, height }
+ }
+ 
++/**
++ * Xaihi patch 0011: 能力协商的形状，逐字段照基线
++ * `Xiranite/src/backend/runtime/runtime.ts:86-99` 的 `WindowCapabilities`。
++ *
++ * 为什么这条不是"锦上添花"：基线那份注释写得很直白 —— `captionOwner: 'system'` 意味着
++ * **应用不许在红绿灯上再画一套按钮**（`frameless` 与 `captionInset` 同理是给 `TopBar` /
++ * `FloatingWindowFrame` 决定画不画东西用的）。界面若自己猜这些位，猜错就是一个可见缺陷：
++ * 两套窗控，或者窗控根本没画出来。所以值必须由**构造窗口的那份 options** 推出来，
++ * 而不是在 IPC 那侧写死四个常量（见 `main.ts` 的 `xaihiWindowCapabilities`）。
++ */
++export interface XaihiWindowCapabilities {
++  readonly supported: true
++  readonly nativeWindowControls: boolean
++  readonly frameless: boolean
++  readonly captionOwner: 'system' | 'renderer'
++  /** 只有 `captionOwner` 是 `system` 时才有；来源是 `trafficLightPosition`，不另猜一份数。 */
++  readonly captionInset?: { readonly x: number, readonly y: number }
++  readonly componentWindows: 'native' | 'browser-fallback' | 'browser-popup' | 'unsupported'
++  readonly message: string
++}
++
++/** 一个 Xaihi 文档窗能做什么：0010 那四条寻址动词都在这张表里的窗上可用。 */
++export function xaihiWindowCapabilities (
++  frame: 'inset' | 'overlay' | 'native',
++  captionInset?: { x: number, y: number },
++  addressingVerbs = 0,
++): XaihiWindowCapabilities {
++  return {
++    supported: true,
++    nativeWindowControls: true,
++    frameless: false,
++    // 'overlay' 才是渲染方自己画按钮（Windows 的 titleBarOverlay 就是这个用途）；
++    // mac 的 hiddenInset 与原生框都由系统画 ⇒ 'system'，界面这时**不许**再画一套。
++    captionOwner: frame === 'overlay' ? 'renderer' : 'system',
++    ...(frame === 'inset' && captionInset !== undefined ? { captionInset } : {}),
++    componentWindows: 'native',
++    message: `Xaihi desktop shell: native component windows; ${String(addressingVerbs)} verbs address one window by id`,
++  }
++}
+ /** 一条窗的位置与尺寸；`x`/`y` 是屏幕坐标，可以带符号。 */
+ export interface XaihiWindowBounds extends XaihiWindowSize {
+   readonly x: number
+-- 
+2.55.0
+

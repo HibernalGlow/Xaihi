@@ -28,11 +28,12 @@
 | 0009 | **已落地**：`xaihiWindow.open` 的第二参数改成 input 对象（`{documentPath?, width?, height?}`，形状照基线 `OpenComponentWindowInput`），可带**新建那一次**的尺寸；尺寸由调用方持久化（ADR-0013），壳只做纯校验与上下界，半套尺寸整条拒 | `xaihi-window-policy.ts` 的 `normalizeXaihiWindowSize` + `main.ts` 的 handler 与 `openXaihiDocumentWindow(size?)` + `ipc.ts` 类型 + preload | 基线窗契约的落点（与 P8 同族） |
 
 | 0010 | **已落地**：寻址四条 `focus / close / getBounds / setBounds` —— 只认自家那张 `xaihiDocumentWindows` 表（猜中产品主窗的 id 也报 `unknown window`），发起者闸与开窗共用；`setBounds` 回读**生效后**量出来的矩形，尺寸界复用 0009 那一处 | `ipc.ts` 四条通道 + `main.ts` 的 `xaihiWindowById` / `needXaihiWindow` / 四个 handler + `xaihi-window-policy.ts` 的 `normalizeXaihiWindowBounds` + preload | 基线 `WindowRuntime` 的 `focus / close / getFrame / setFrame`（`Xiranite/src/backend/runtime/runtime.ts:139-143`） |
+| 0011 | **已落地**：`xaihiWindow.getCapabilities()` 逐字段回基线 `WindowCapabilities`；值由建窗那份 `titleBarStyle` 推（mac `hiddenInset`⇒system+位置、Windows `titleBarOverlay`⇒renderer、其余⇒system），红绿灯位置只有 `DARWIN_TRAFFIC_LIGHT_POSITION` 一份 | `xaihi-window-policy.ts` 的 `xaihiWindowCapabilities` + `main.ts` 的 `xaihiCaptionKinds`/handler + `ipc.ts` 通道与类型 + preload | 基线 `WindowRuntime.getCapabilities`（`runtime.ts:135`）与 `WindowCapabilities:86-99` |
 
-0001–0010 已落地；活体判据在 `desktop/live-check.mjs`（**67 条全绿**：R 段复位、A 段产品文档面与拒绝分支、
+0001–0011 已落地；活体判据在 `desktop/live-check.mjs`（**73 条全绿**：R 段复位、A 段产品文档面与拒绝分支、
 B 段真 Xaihi 文档进第二窗、C 段按 node 去重与标题、D 段"主窗只是隐藏时节点窗仍能继续开"加守卫没跟着放宽、
 E 段页面自己 `window.open` 走原生窗且弹出窗没长出来、F 段决定 4 的退化读回真上屏（含 iframe 反向对照）、
-H 段产品文档转达开窗 + 三条边界对照、I 段"注入冒充不了官方形状"、J 段面板形态下那一下真能开窗 + 两条对照、K 段窗到窗（节点窗自己 window.open 另一个 node）、L 段尺寸只作用在新建那一次、M 段寻址四条 + 两条登记表边界对照）。判据都在 `node desktop/sync-dsh.mjs --verify`：
+H 段产品文档转达开窗 + 三条边界对照、I 段"注入冒充不了官方形状"、J 段面板形态下那一下真能开窗 + 两条对照、K 段窗到窗（节点窗自己 window.open 另一个 node）、L 段尺寸只作用在新建那一次、M 段寻址四条 + 两条登记表边界对照、N 段能力协商键集与取值）。判据都在 `node desktop/sync-dsh.mjs --verify`：
 0001 查 IPC 通道 + 产物两份文件；0002 查 11 条用例（**拒绝分支才是重点**：路径穿越、跨 host、
 非自家发起者、多带查询键、超长串）+ 0003 三条 profile 用例 + 0004 去重键用例；产物判据现在要
 `lib/main.js` 里同时有 `resolveXaihiDocumentTarget` **和** `xaihiWindowKey`（少一个就是只跑了 tsc 没跑 bundle），

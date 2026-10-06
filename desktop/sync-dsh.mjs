@@ -211,9 +211,9 @@ if (flag('verify')) {
   // 之所以能直接跑：ipc.ts 的三条 import 全是 `import type`，剥掉类型后不依赖 node_modules。
   const probe = await import('./dsh/apps/desktop/src/ipc.ts')
   const want = 'dsh-desktop:xaihi-window-open'
-  const EXPECTED_CHANNELS = 30
+  const EXPECTED_CHANNELS = 31
   // 0010 那四条通道名要点得出名字：只数条数会漏掉"少一条功能、多一条别的"这种漂移。
-  const commandChannels = ['xaihiWindowFocus', 'xaihiWindowClose', 'xaihiWindowGetBounds', 'xaihiWindowSetBounds']
+  const commandChannels = ['xaihiWindowFocus', 'xaihiWindowClose', 'xaihiWindowGetBounds', 'xaihiWindowSetBounds', 'xaihiWindowCapabilities']
   const missingChannels = commandChannels.filter((name) => probe.DESKTOP_IPC[name] === undefined)
   const gotChannels = Object.keys(probe.DESKTOP_IPC).length
   // 先报现场，再报结论：这条尺红过一次是因为**话术**把"表里少四条"说成"减法对照没落地"，
@@ -222,7 +222,7 @@ if (flag('verify')) {
     + `missing_0010=${missingChannels.length === 0 ? 'none' : missingChannels.join(',')} `
     + `has_open=${probe.DESKTOP_IPC.xaihiWindowOpen === want}`)
   if (missingChannels.length > 0) {
-    fail(`verify: 0010 的通道缺 ⇒ ${missingChannels.join(', ')}（现读 ${String(gotChannels)} 条，期望 ${String(EXPECTED_CHANNELS)} 条）`)
+    fail(`verify: 0010/0011 的通道缺 ⇒ ${missingChannels.join(', ')}（现读 ${String(gotChannels)} 条，期望 ${String(EXPECTED_CHANNELS)} 条）`)
   }
   if (gotChannels !== EXPECTED_CHANNELS) {
     fail(`verify: IPC 面是 ${String(gotChannels)} 条，期望 ${String(EXPECTED_CHANNELS)} 条 ⇒ 某条 patch 被静默跳过，或上游改了 apps/desktop/src/ipc.ts`)
@@ -340,6 +340,22 @@ if (flag('verify')) {
     fail('verify: 0009 的尺寸校验把合法尺寸也拒了（尺是瞎的）')
   }
 
+  // 0011 的协商形状：逐字段照基线，且**没给位置就不许造一个位置出来**。
+  const capsInset = policy.xaihiWindowCapabilities('inset', { x: 16, y: 18 }, 4)
+  const capsOverlay = policy.xaihiWindowCapabilities('overlay', undefined, 4)
+  const capsNoInset = policy.xaihiWindowCapabilities('inset')
+  console.log(`verify: 0011 协商 inset=${capsInset.captionOwner}/${capsInset.captionInset ? '有位置' : '无位置'}`
+    + ` overlay=${capsOverlay.captionOwner}/${capsOverlay.captionInset === undefined ? '无位置(对)' : '有位置(错)'}`
+    + ` 缺位置时=${capsNoInset.captionInset === undefined ? '不编造(对)' : '编造了(错)'}`
+    + ` 寻址条数消息=${JSON.stringify(capsInset.message)}`)
+  if (capsInset.captionOwner !== 'system') fail('verify: 0011 mac 的 hiddenInset 该报 captionOwner=system（否则界面会再画一套窗控）')
+  if (capsInset.captionInset?.x !== 16 || capsInset.captionInset?.y !== 18) fail('verify: 0011 的 captionInset 没跟着 insets 形状走')
+  if (capsOverlay.captionOwner !== 'renderer') fail('verify: 0011 Windows 的 titleBarOverlay 该报 renderer')
+  if (capsOverlay.captionInset !== undefined) fail('verify: 0011 给 overlay 窗编了一个红绿灯位置')
+  if (capsNoInset.captionInset !== undefined) fail('verify: 0011 位置没给也照样报了一个（编数据）')
+  if (capsInset.componentWindows !== 'native' || capsInset.supported !== true) fail('verify: 0011 的基本能力位不对')
+  if (!capsInset.message.includes('4 verbs')) fail('verify: 0011 的寻址条数没进消息（界面读不到真数）')
+
   // 0010 的矩形校验：坐标与尺寸都得是整数，尺寸那一半复用 0009 的上下界（别在两处各写一遍数）。
   const boundsTable = [
     [{ x: 40, y: 60, width: 1000, height: 800 }, { x: 40, y: 60, width: 1000, height: 800 }],
@@ -388,6 +404,7 @@ if (flag('verify')) {
     // 0007 那条分支的判据必须点名"路径自己校验"，否则产品文档转达的那一路悄悄退回旧形状。
     const panelWired = mainJs.includes('document path must match') && mainJs.includes('isMainDocument')
     const commandWired = mainJs.includes('xaihiWindowSetBounds') && mainJs.includes('unknown window')
+    const capsWired = mainJs.includes('nativeWindowControls') && mainJs.includes('xaihiCaptionKinds')
     // 0006 只在这个函数体里查：整个 bundle 里 "page-title-updated" 是上游自己也用的词，
     // 全局搜会得到一个与我的改动无关的绿 —— 减法对照实测就抓到了这一点（摘掉 0006 重建产物，
     // main.js 里仍有 1 处 page-title-updated，来自别的上游模块被打包进来）。
@@ -404,6 +421,7 @@ if (flag('verify')) {
     if (!senderWired) fail('verify: 0005 的发起者判据没进 lib/main.js ⇒ 产物比系列旧')
     if (!panelWired) fail('verify: 0007 的产品文档转达分支没进 lib/main.js ⇒ 产物比系列旧')
     if (!commandWired) fail('verify: 0010 的寻址四条没进 lib/main.js ⇒ 产物比系列旧')
+    if (!capsWired) fail('verify: 0011 的协商那条没进 lib/main.js ⇒ 产物比系列旧')
     if (titleControl) fail('verify: 0006 的判据是瞎的（抹掉那一行还读得到）')
     if (!titleWired) fail('verify: 0006 的标题保护没进 lib/main.js 的 openXaihiDocumentWindow ⇒ 产物比系列旧')
     if (!inMain || !inPreload) fail('verify: 通道没进产物 ⇒ 那条源码改动没被编译，或 patch 被静默跳过')

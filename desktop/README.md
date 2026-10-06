@@ -512,7 +512,7 @@ settings / storage 面，壳不另开一份存储。校验放在纯模块里（`
 | 基线成员（`runtime.ts:134-151`） | 我们这侧 | 证据 |
 |---|---|---|
 | `openComponent(input)` | ✅ `xaihiWindow.open(node, {documentPath, width, height})` | J / K / L 段活体 |
-| `getCapabilities()` | ⚠️ 只有开窗那一格：SDK 的 `readXaihiWindowCapability` 给 `supported` 与三种原因，可对上基线 `componentWindows` 的 `native` / `unsupported` / `browser-popup` 三档（`Xiranite/src/backend/adapters/web.ts:206` 是 `browser-popup`）；`nativeWindowControls`、`frameless`、`captionOwner`、`captionInset` **一位都没答** | 单测 + F / I 段屏上读数 |
+| `getCapabilities()` | ✅ 0011：`xaihiWindow.getCapabilities()` 逐字段回基线那七个键，值由**建窗那份 `titleBarStyle`** 推（不是两处各猜）；非自家壳那一侧仍由 SDK 的 `readXaihiWindowCapability` 报三种原因，对上 `componentWindows` 的 `native / unsupported / browser-popup`（`Xiranite/src/backend/adapters/web.ts:206` 是 `browser-popup`） | N 段活体：键集与基线逐字相同、mac 这侧 `captionOwner=system` + `captionInset={16,18}` |
 | `focus(id)` / `close(id)` | ✅ 0010：`xaihiWindow.focus(windowId)` 与 `.close(windowId)`，只认自家那张登记表里的窗 | M 段活体，含两条边界对照：拿主窗 id 来问也被拒、关掉之后同 id 读不回来 |
 | `getFrame(id)` / `setFrame(frame, id)` | ✅ 0010：`.getBounds(windowId)` 与 `.setBounds(windowId, rect)`，回读的是**生效后**量出来的矩形（屏幕会 clamp，报回去的必须是界面实际拿到的那份） | M 段：`1100x850` 与主进程自己 `getBounds()` 的四元组逐字相同；小数坐标按形状拒 |
 | `controlMain` / `controlComponent` / `openDevTools` / `subscribeFrameChanges` / `startDragging` | ❌ 未提供（0010 补的是寻址四条，不是这几条） | 无 |
@@ -522,6 +522,41 @@ settings / storage 面，壳不另开一份存储。校验放在纯模块里（`
 补齐它们每条都是独立 patch，优先级由落地时真正调用到哪几条决定 —— 现在这条表就是那条尺的对照面。
 （0010 已经把寻址四条补上了；剩下未提供的是 `controlMain / controlComponent / openDevTools /
 subscribeFrameChanges / startDragging` 这五条，见下一节末表。）
+
+## 0011：能力协商 `getCapabilities()`（2026-10-07 07:2x）
+
+这条防的是一个**看得见的错**，不是补全 API。基线那份 `WindowCapabilities`
+（`Xiranite/src/backend/runtime/runtime.ts:86-99`）里 `captionOwner: 'system'` 的注释写得很清楚：
+系统画红绿灯时**应用不许再画一套按钮**；`frameless`、`captionInset` 也是给 `TopBar` /
+`FloatingWindowFrame` 决定画不画东西用的。界面要是自己猜这几位，猜错就是"两套窗控压在红绿灯上"
+或者"根本没有窗控" —— 两种都是屏上缺陷。
+
+所以值由**建窗那份 options 推**，不是两处各写一份：
+- `mac` 的 `hiddenInset` + `trafficLightPosition` ⇒ `captionOwner: 'system'` 且带 `captionInset`；
+  红绿灯位置只有 `DARWIN_TRAFFIC_LIGHT_POSITION` 这一份常量，建窗与上报读同一个对象
+  （先前我在两处各抄了一遍 16/18 —— 那是"早晚对不上"的来路，已改成一处）。
+- Windows 主窗的 `hidden` + `titleBarOverlay` ⇒ `captionOwner: 'renderer'`（那种窗的按钮归渲染方画），
+  且**不给** `captionInset`（没有红绿灯可让位）。
+- 其余平台原生框 ⇒ `'system'`，同样不给位置。
+
+一处诚实说明：这里**没有假装从窗子读回来**。Electron 44 的 `BrowserWindow` 只有
+`setTitleBarOverlay`，既没有 `getTitleBarOverlay` 也没有 `getTrafficLightPosition`
+（现读 `electron.d.ts`），所以形状是"由构造决定 + 就地记一份 `WeakMap`"，
+不是"问窗子要"。上一版我先写了 `window.getTitleBarOverlay?.()` —— 那在 44 上恒为 `undefined`，
+等于把 Windows 那一档永远读成 `native`：一条看起来像推导、实际是常数的假代码，已删。
+
+`--verify` 侧：协商是纯函数，用例钉的是**规则**而不是一个平台的值 —— `inset → system + 有位置`、
+`overlay → renderer + 无位置`、**没给位置就不许造一个位置**、`componentWindows / supported` 基本位、
+以及消息里那句寻址动词条数由真通道表推（`--check` 期望值 30 → 31，缺哪个键名会点名）。
+写这条尺的当场它就抓到我把 `captionOwner` 的规则**整个写反**（`native → system`，
+于是 mac 的 inset 也报成 `renderer`）—— 表现正是"界面会在红绿灯上再画一套"。
+
+实机（N 段六条，`live-check` **73 条 OK、rc=0**）：返回值键集与基线那七个**逐字相同**
+（`captionInset` 只在 `system` 那一档出现，所以期望按实际返回补进键表再比）；
+mac 上 `captionOwner=system`、`captionInset={x:16,y:18}`、`nativeWindowControls=true`、
+`frameless=false`、`componentWindows=native`；消息里那句是 `4 verbs`（由通道表数出来，不是写死的数）；
+**自家文档窗里读到的是同一份**（与 0010 共用那条发起者闸）。
+
 
 ## 0010：寻址四条 —— focus / close / getBounds / setBounds（2026-10-07 07:1x）
 
