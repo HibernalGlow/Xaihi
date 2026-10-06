@@ -518,6 +518,66 @@ const I = await evaluateMain(`(async () => {
 })()`)
 console.log('I 段（注入冒充不了官方形状）⇒ ' + JSON.stringify(I))
 
+// J 段：0008 的那一格 —— **面板形态下那一下真能开窗**。
+// 这条复现的正是 E/F 之前量到的"两条死路"里的一条：被嵌在产品文档里的 Xaihi 帧调
+// `window.open(自家文档)` 时，`HandlerDetails` 只给得到窗的主帧 URL（= 产品文档），
+// 0002 因此判 deny、实测一个新窗都没有（`createdCount: 0`）。0008 把 opener 放宽到
+// "产品文档根或 index.html"，判据就按同一个形状重跑：新窗必须出来，且**只有自家文档目标**才行。
+const J = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 600))
+  const ready = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL('dsh-app://app/')
+  await Promise.race([ready, new Promise((r) => setTimeout(r, 6000))])
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const nodes = manifest.plugins.map((p) => p.manifest.id)
+  const docUrl = 'dsh-app://app' + manifest.ui.documentUrl
+  const frameUrl = docUrl + '?node=' + nodes[0]
+  const targetUrl = docUrl + '?node=' + (nodes[1] ?? nodes[0])
+  const SETUP = "(() => new Promise((res) => { const f = document.createElement('iframe');"
+    + " f.style.cssText = 'position:fixed;left:20px;top:20px;width:420px;height:260px;border:1px solid #888';"
+    + " f.addEventListener('load', () => setTimeout(() => res({ url: f.contentWindow.location.href.slice(0, 70),"
+    + " dshDesktop: typeof f.contentWindow.dshDesktop }), 500), { once: true });"
+    + " f.src = " + JSON.stringify(frameUrl) + "; window.__panelFrame = f; document.body.appendChild(f); }))()"
+  const frame = await app.webContents.executeJavaScript(SETUP, true)
+  const idsBefore = all().map((w) => w.id)
+  const OPEN = "(() => { try { const w = window.__panelFrame.contentWindow.open(" + JSON.stringify(targetUrl)
+    + ", 'xaihi-panel-probe'); return { popup: w === null ? 'null' : (w ? 'object' : String(w)) } }"
+    + " catch (e) { return { error: String(e).slice(0, 80) } } })()"
+  const openRes = await app.webContents.executeJavaScript(OPEN, true)
+  await new Promise((r) => setTimeout(r, 1200))
+  const created = all().filter((w) => !idsBefore.includes(w.id))
+  const createdProbe = created.length === 1 ? { windowId: created[0].id, url: created[0].webContents.getURL(), title: created[0].getTitle() } : null
+  // 对照一：同一个目标再问一次 —— 0004 的去重在这条新路上也必须吃得住，不许叠第二个窗。
+  const ids2 = all().map((w) => w.id)
+  await app.webContents.executeJavaScript(OPEN, true)
+  await new Promise((r) => setTimeout(r, 900))
+  const repeatCreated = all().filter((w) => !ids2.includes(w.id)).length
+  // 对照二：同一帧开**自家非文档路径**仍要被拒（放宽只放到目标形状，不是放到整个 app）。
+  const ids3 = all().map((w) => w.id)
+  const innerRes = await app.webContents.executeJavaScript(
+    "(() => { const w = window.__panelFrame.contentWindow.open('dsh-app://app/index.html');"
+    + " return w === null ? 'null' : 'object' })()", true)
+  await new Promise((r) => setTimeout(r, 700))
+  const innerCreated = all().filter((w) => !ids3.includes(w.id)).length
+  await app.webContents.executeJavaScript('if (window.__panelFrame) window.__panelFrame.remove()', true)
+  for (const w of all()) {
+    if (w === app) continue
+    if (isOwnedDocWindow(w) || (createdProbe !== null && w.id === createdProbe.windowId)) w.close()
+  }
+  await new Promise((r) => setTimeout(r, 800))
+  return { nodes, frameUrl, targetUrl, frame, openRes, createdCount: created.length, createdProbe,
+    repeatCreated, innerRes, innerCreated, ownedLeft: openedWins().length }
+})()`)
+console.log('J 段（面板形态下那一下真能开窗）⇒ ' + JSON.stringify(J))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -598,6 +658,17 @@ need('I: 那个窗本来读到的确实是自家壳（before 半边）',
 need('I: 注入冒充不了官方形状（after 仍是壳的那份，所以这里不许被写成"官方档已验"）',
   ii.injected === 'attached' && ii.after?.verb === 'object' && ii.after?.attr === 'supported')
 need('I: 那一窗到点还是清干净的', ii.ownedLeft === 0)
+
+const jj = J.ok === true ? J.value : {}
+need('J: 被嵌那一帧确实没有壳的动词（0008 要绕的就是这一格）', jj.frame?.dshDesktop === 'undefined')
+need('J: 帧里 window.open 自家文档 ⇒ 弹出窗没长出来，而原生窗出来一个',
+  jj.openRes?.popup === 'null' && jj.createdCount === 1 && jj.createdProbe?.url === jj.targetUrl)
+need('J: 那个新窗寻址与标题都跟着被点的 node',
+  String(jj.createdProbe?.url).includes('node=' + String(jj.nodes?.[1] ?? '~none~'))
+  && String(jj.createdProbe?.title).includes(String(jj.nodes?.[1] ?? '~none~')))
+need('J: 对照——同一目标再问一次不叠第二个窗（去重覆盖这条新路）', jj.repeatCreated === 0)
+need('J: 对照——同一帧开自家非文档路径仍不长窗', jj.innerRes === 'null' && jj.innerCreated === 0)
+need('J: 收尾把自家窗清干净', jj.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {

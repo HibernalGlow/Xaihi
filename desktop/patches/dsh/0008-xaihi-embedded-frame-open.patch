@@ -1,0 +1,76 @@
+From 6daa6c85bf9fc5fc014c92c2473c2b3859c51393 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 06:47:10 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E8=A2=AB=E5=B5=8C=E5=9C=A8=E4=BA=A7?=
+ =?utf-8?q?=E5=93=81=E6=96=87=E6=A1=A3=E9=87=8C=E7=9A=84=20Xaihi=20?=
+ =?utf-8?q?=E5=B8=A7=E5=8F=AF=E4=BB=A5=E8=AF=B7=E6=B1=82=E5=BC=80=E7=AA=97?=
+ =?utf-8?q?=EF=BC=88Xaihi=20patch=200008=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/xaihi-window-policy.ts | 33 ++++++++++++++++++++++---
+ 1 file changed, 29 insertions(+), 4 deletions(-)
+
+diff --git a/apps/desktop/src/xaihi-window-policy.ts b/apps/desktop/src/xaihi-window-policy.ts
+index 6880f76..0af05dc 100644
+--- a/apps/desktop/src/xaihi-window-policy.ts
++++ b/apps/desktop/src/xaihi-window-policy.ts
+@@ -9,6 +9,18 @@ const DOCUMENT_PATH = /^\/xaihi\/ui\/[0-9a-f]{12}\/index\.html$/u
+ const NODE_VALUE = /^[a-z0-9][a-z0-9_-]{0,63}$/u
+ const MAX_URL_LENGTH = 2048
+ 
++/**
++ * 产品文档自己的两个落点（根与 `index.html`）。
++ *
++ * Xaihi patch 0008：被嵌在这份文档里的 Xaihi 帧也要能请求开窗。`setWindowOpenHandler` 里能拿到的
++ * 发起者只有**所在窗的主帧 URL** —— Electron 44 的 `HandlerDetails`
++ * （`url / frameName / features / disposition / referrer / postBody`）**没有"哪一帧发起"这一格**，
++ * 而桌面端的 preload 面也不进子帧。所以那一帧的请求在这里读到的 opener 必然是产品文档本身。
++ * 豁免只放到"opener 是产品文档"这一格：目标仍然必须是自家文档路由，去重（0004）也把
++ * "反复弹窗"的上限收成节点数本身。
++ */
++const PRODUCT_DOCUMENT_PATHS = new Set(['/', '/index.html'])
++
+ /** 一次开窗请求：目标是页面要打开的 URL，发起者是当前这份文档自己的 URL。 */
+ export interface XaihiWindowRequest {
+   readonly url: string
+@@ -28,17 +40,30 @@ function parseOwnDocument(value: string): URL | undefined {
+   return url
+ }
+ 
++function isProductDocument (value: string): boolean {
++  if (value.length === 0 || value.length > MAX_URL_LENGTH) return false
++  let url: URL
++  try {
++    url = new URL(value)
++  } catch {
++    return false
++  }
++  return url.protocol === 'dsh-app:' && url.hostname === 'app' && PRODUCT_DOCUMENT_PATHS.has(url.pathname)
++}
++
+ /**
+- * 只允许"Xaihi 文档开 Xaihi 文档"，且查询串里只收 `node` 这一个键。
++ * 放行两件事：自家文档开自家文档，以及**自家文档开在产品文档里**的那一帧转出来的请求（0008）。
++ * 目标必须命中 `/xaihi/ui/<rev>/index.html` 这条自家路由，查询串里只收 `node` 一个键。
+  * @param request - the target URL plus the requesting document's own URL.
+  * @returns the normalized absolute URL to load, or `undefined` when the caller must deny.
+  */
+ export function resolveXaihiDocumentTarget (request: XaihiWindowRequest): string | undefined {
+   const target = parseOwnDocument(request.url)
+   if (target === undefined) return undefined
+-  // 发起者也必须是同一份 Xaihi 文档：DSH 自己的界面或别处递来的请求都走原来的 deny 分支。
+-  const opener = parseOwnDocument(request.openerUrl)
+-  if (opener === undefined) return undefined
++  // 发起者要么是同一份 Xaihi 文档，要么是产品文档（那一帧就嵌在它里面）。
++  // 别处递来的请求 —— 别的 host、外链、自家非文档路径 —— 一律走原来的 deny 分支。
++  const openerAccepted = parseOwnDocument(request.openerUrl) !== undefined || isProductDocument(request.openerUrl)
++  if (!openerAccepted) return undefined
+   for (const key of target.searchParams.keys()) {
+     if (key !== 'node') return undefined
+   }
+-- 
+2.55.0
+

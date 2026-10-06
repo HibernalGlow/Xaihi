@@ -344,6 +344,36 @@ iframe 反向对照已经量到；**`stock-shell` 那一档此前只有单测**�
 **这条还不等于 R8(a)**：那是"真装官方 DMG、真用应用内插件管理器装 Xaihi"那条腿，前置仍是 R9 的发布包。
 本节证的是**界面在官方形状下说得出那句退化**，形状由产物级实验给出，不是由我读代码推的。
 
+## 0008：面板形态下"那一下"其实不用等桥（2026-10-07 06:4x）
+
+0007 之后还剩一格：被嵌在产品文档里的 Xaihi 帧要开节点窗，得由外层转达，而外层要转达就得先收到请求 ——
+那一步我以为只能加桥动词。**这条前提错了**，而且代价是要在搬来的 `NodeHostCapabilities` 九组之外立第十组。
+
+真实的堵点更窄：帧里调 `window.open(/xaihi/ui/<rev>/index.html?node=X)` 时，`HandlerDetails`
+只给得到**所在窗的主帧 URL**（= 产品文档），0002 的 opener 判据因此判 deny ——
+E/F 段量到的 `createdCount: 0` 就是这么来的。0008 于是只放宽 opener 一格：
+"自家文档 **或** 产品文档根 / `index.html`"。目标路由形状、`node` 单键、超长与解析失败四条守卫照旧，
+而 0004 的去重已经把"反复弹窗"的上限收成节点数本身。
+
+判策是纯模块，所以这一条的尺也在 `--verify` 里：用例 **11 → 15 条** ——
+新增"产品文档 opener ⇒ 放行"两条，以及三条反向（`dsh-app://shell/index.html` 冒充、
+`dsh-app://app/assets/x.js` 自家资源路径、`https://app/index.html` 冒充）；
+另加一条独立减法对照"产品文档 opener 也开不出自家非文档目标"。摘掉 0008 重放 ⇒ 用例表必须判错，
+这条尺的敏感性由 `--check/--verify` 一起管。
+
+活体（J 段六条，`node desktop/live-check.mjs` ⇒ **51 条 OK、rc=0**）：
+
+- 现场复核前提：`frame.dshDesktop === 'undefined'`（0008 要绕的就是这一格）。
+- 帧里 `window.open(自家文档?node=sleept)` ⇒ `popup="null"` 且原生窗**恰好一个**，
+  `url` 逐字等于目标、`title="Xaihi · xaihi-sleept"`。
+- 对照：同一目标再问一次 ⇒ 不叠第二个窗（去重覆盖这条新路）；同一帧开 `dsh-app://app/index.html`
+  ⇒ `null` 且不长窗。
+
+**结论落在契约上**：`SHELL_SERVED_METHODS` 里没有 `openNodeWindow` 不再是开窗这一格的阻塞项 ——
+节点界面在自己的文档里直接 `window.open` 就够了，不需要新增能力组。0007 那条"产品文档转达"仍有用途
+（产品文档自己发起的面板/工具窗），但**开窗主路径已经不依赖它**。P8 那条上游缺口（发起帧身份）照旧提着，
+只是我们的暴露面比先前记的小了一号。
+
 ## 0005 与 0006：主窗只是隐藏时节点窗还能继续开，标题也真带得出 node（2026-10-07 05:3x，home `.scratch/dsh-xaihi-desktop-home3`）
 
 **前提（上游现读，不是我推的）**：主窗的 `close` 被 `preventDefault` 换成隐藏

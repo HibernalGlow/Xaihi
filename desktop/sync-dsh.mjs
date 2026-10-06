@@ -234,17 +234,27 @@ if (flag('verify')) {
     ['路径穿越', { url: 'dsh-app://app/xaihi/ui/0123456789ab/../../etc/index.html', openerUrl: good }, false],
     ['https 外链', { url: 'https://example.com/xaihi/ui/0123456789ab/index.html', openerUrl: good }, false],
     ['同 scheme 别的 host', { url: 'dsh-app://shell/xaihi/ui/0123456789ab/index.html', openerUrl: good }, false],
-    ['发起者不是 Xaihi 文档', { url: `${good}?node=a`, openerUrl: 'dsh-app://app/index.html' }, false],
+    // 0008 把发起者放宽到"产品文档"这一格（被嵌在它里面的 Xaihi 帧只能以它的身份出现）：
+    // 这条用例从"拒"改判成"放行"，配套的三条反向用例保证放宽有边界，不是把 opener 判据整条删掉。
+    ['产品文档 opener 开自家节点（0008）', { url: `${good}?node=a`, openerUrl: 'dsh-app://app/index.html' }, true],
+    ['产品文档根 opener 开自家节点（0008）', { url: `${good}?node=a`, openerUrl: 'dsh-app://app/' }, true],
+    ['别的 host 冒充产品文档', { url: `${good}?node=a`, openerUrl: 'dsh-app://shell/index.html' }, false],
+    ['产品文档的自家资源路径', { url: `${good}?node=a`, openerUrl: 'dsh-app://app/assets/x.js' }, false],
+    ['https 页面冒充产品文档', { url: `${good}?node=a`, openerUrl: 'https://app/index.html' }, false],
     ['多带一个查询键', { url: `${good}?node=a&next=http://evil`, openerUrl: good }, false],
     ['node 含非法字符', { url: `${good}?node=a/../b`, openerUrl: good }, false],
     ['无法解析的串', { url: 'not a url', openerUrl: good }, false],
     ['超长串', { url: `${good}?node=${'a'.repeat(3000)}`, openerUrl: good }, false],
   ]
   const wrong = cases.filter(([name, req, want]) => (policy.resolveXaihiDocumentTarget(req) !== undefined) !== want)
-  console.log(`verify: 0002 判策 ${String(cases.length)} 用例，判错 ${String(wrong.length)}（拒绝分支含路径穿越/跨 host/非自家发起者）`)
+  console.log(`verify: 0002 判策 ${String(cases.length)} 用例，判错 ${String(wrong.length)}（拒绝分支含路径穿越/跨 host/冒充产品文档；0008 的豁免只到产品文档根与 index.html）`)
   if (wrong.length > 0) fail(`verify: 0002 判策与用例表不符 ⇒ ${wrong.map(([n]) => n).join(', ')}`)
   if (policy.resolveXaihiDocumentTarget({ url: 'https://example.com', openerUrl: good }) !== undefined) {
     fail('verify: 0002 的判策是瞎的（外链居然被放行）')
+  }
+  // 0008 的第二条减法对照：产品文档 opener 也**开不出**非自家文档的目标。
+  if (policy.resolveXaihiDocumentTarget({ url: 'dsh-app://app/settings', openerUrl: 'dsh-app://app/' }) !== undefined) {
+    fail('verify: 0008 的豁免过头了（产品文档 opener 居然能开自家非文档路径）')
   }
   // 0003 的判策也是纯函数：给了名字走 profiles/<name>，缺省 desktop，坏形状要抛。
   // paths.ts 要 import @deepseek-ai/dsh-home-paths（workspace 包的构建产物），
