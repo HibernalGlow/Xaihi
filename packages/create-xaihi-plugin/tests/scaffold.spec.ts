@@ -41,7 +41,7 @@ describe('scaffold', () => {
       const written = scaffold(input, dir)
       expect(written).toContain('src/index.ts')
       // 接线件必须齐全：缺任何一个，症状都是"装了但要么没工具要么没面板"
-      for (const required of ['package.json', 'cordis.patch.yml', 'tsdown.config.ts', 'rspack.config.mjs', 'frontend/Panel.tsx', 'frontend/container-entry.ts']) {
+      for (const required of ['package.json', 'cordis.patch.yml', 'tsdown.config.ts', 'rspack.config.mjs', 'frontend/Panel.tsx', 'frontend/container-entry.ts', 'tests/core.spec.ts']) {
         expect(written).toContain(required)
       }
       const entry = await readFile(`${dir}/src/index.ts`, 'utf8')

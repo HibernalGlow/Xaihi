@@ -73,6 +73,7 @@ export function packageJsonOf(input: ScaffoldInput): string {
     scripts: {
       build: 'tsdown && rspack build',
       typecheck: 'tsc --noEmit',
+      'test:unit': 'vitest run',
       clean: 'rm -rf lib dist',
     },
     engines: { node: '^22.19.0 || >=24.0.0' },
@@ -95,6 +96,7 @@ export function packageJsonOf(input: ScaffoldInput): string {
       'react-dom': '^18.3.1',
       tsdown: '^0.22.2',
       typescript: '^6.0.3',
+      vitest: '^4.1.11',
     },
   }
   return `${JSON.stringify(pkg, null, 2)}\n`
@@ -132,6 +134,7 @@ export function filesOf(input: ScaffoldInput): Record<string, string> {
     'frontend/Panel.tsx': `/**\n * ${input.titleEn} 的工作面板。\n *\n * 只导出组件与 Probe：Probe 是宿主校验 React 同一性用的，不是装饰。\n * 面板不建自己的 React root、不写自己的颜色 token、不碰主题。\n */\nimport * as React from 'react'\nimport type { PanelProps } from '@hibernalglow/xaihi-sdk'\n\nexport const Probe = { react: React, version: React.version }\n\nexport default function Panel({ contribution, locale }: PanelProps): React.ReactElement {\n  const title = locale === 'zh' ? contribution.title.zh : contribution.title.en\n  const [value, setValue] = React.useState('')\n  return (\n    <div style={{ padding: 12, display: 'grid', gap: 8 }}>\n      <strong>{title}</strong>\n      <input value={value} onChange={(event) => setValue(event.target.value)} placeholder={locale === 'zh' ? '目标' : 'Target'} />\n      <span style={{ fontSize: 12, opacity: 0.7 }}>{value || (locale === 'zh' ? '（待填）' : '(empty)')}</span>\n    </div>\n  )\n}\n`,
     'locale/en.json': `${JSON.stringify({ meta: { title: `Xaihi ${input.titleEn}`, description: `Xaihi node ${input.titleEn}: actions plus a workspace panel.` } }, null, 2)}\n`,
     'locale/zh.json': `${JSON.stringify({ meta: { title: `Xaihi ${input.titleZh}`, description: `Xaihi 节点「${input.titleZh}」：动作 + 工作台面板。` } }, null, 2)}\n`,
+    'tests/core.spec.ts': `/** 起步测试：定义合法性与"当前实现就是这个"各钉一颗钉子，替换内核时它会红。 */\nimport { readFileSync } from 'node:fs'\nimport { fileURLToPath } from 'node:url'\nimport { describe, expect, it } from 'vitest'\nimport { validateNodeDefinition } from '@hibernalglow/xaihi-sdk'\nimport { run } from '../src/core.ts'\n\ndescribe('${input.name}', () => {\n  it('package.json#xaihi.node 是一份合法的 xaihi.node/v1 定义', () => {\n    const path = fileURLToPath(new URL('../package.json', import.meta.url))\n    const pkg = JSON.parse(readFileSync(path, 'utf8')) as { xaihi?: { node?: unknown } }\n    const result = validateNodeDefinition(pkg.xaihi?.node)\n    expect(result.ok ? true : result.errors).toBe(true)\n  })\n\n  it('run 的当前行为（换成真内核之后，请把这条改成真期望）', () => {\n    expect(run('abc')).toBe('${remote}: abc')\n  })\n})\n`,
     'README.md': `# @hibernalglow/xaihi-${input.name}\n\n脚手架生成的 Xaihi 节点包。四件事各自有出处：\n\n- \`package.json#xaihi\`：贡献清单（\`xaihi.manifest/1\`）与 \`xaihi.node/v1\` 定义\n- \`cordis.patch.yml\`：自带一行（插件即 bundle）\n- \`src/index.ts\`：\`defineNode\` 接线，危险闸门交给 DSH 的 approval 缝\n- \`frontend/\`：自带 UI 产物（\`dist/remoteEntry.js\`），React 由宿主提供\n\n本仓内开发：\`pnpm -r run build\` 之后 \`dsh plugin --profile xaihi add file:$(pwd)\`。\n`,
   }
 }
