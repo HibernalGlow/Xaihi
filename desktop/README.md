@@ -70,6 +70,23 @@ gateway 的 `lib/` 从 0 个 JS 变 2 个）。之后重启壳 ⇒ `node desktop
 判据顺序钉死在这里：**deinit / 全新 clone ⇒ sync ⇒ install ⇒ `pnpm run build` ⇒ 起壳 ⇒ live-check**。
 少任何一步都先怀疑产物不齐，不要去怀疑 patch。
 
+## 官方壳的对照读数（决定 4 的前提不是我说出来的）
+
+把 series 摘干净（`node desktop/sync-dsh.mjs --reset --force` ⇒ `HEAD=639ed015`）、重跑
+`pnpm --filter @deepseek-ai/dsh-desktop run build`（rc=0，产物里 `XAIHI` 命中 **0 次**），
+用同一个 home、不带 `XAIHI_DESKTOP_PROFILE` 起壳，在产品文档里现读：
+
+- `typeof globalThis.dshDesktop = 'object'`、`protocolVersion = 1`，成员恰好 **6 个**：
+  `protocolVersion, browser, deviceInfo, keyboard, shortcuts, updates`；
+- `typeof globalThis.dshDesktop.xaihiWindow = 'undefined'` ⇒ 官方壳确实没有开窗动词
+  （与 `ipc.ts` 那张通道表读出来的结论一致，但这一条是活体）；
+- 把这个真形状喂给 SDK 的 `readXaihiWindowCapability` ⇒ `{supported:false, reason:'stock-shell'}`
+  —— 判的是真实形状而不是 fixture，所以「退化要可读」的前提被量到了，不是被断言出来的。
+
+复现顺序：`--reset` ⇒ 重建 ⇒ 起壳 ⇒ 在产品文档里读上面三行 ⇒ `sync` + 重建恢复
+（实测恢复后 `XAIHI` 命中回到 7 次、`--verify` rc=0）。这条只覆盖"窗能力"那一格，
+**不**等于官方桌面端上 Xaihi 整体可用——R8(a) 的其余读数仍要另外跑。
+
 ## gitlink 规则（这一条今天踩过）
 
 `desktop/dsh` 记在仓库里的指针**必须等于 `UPSTREAM_PIN`**：patch 只活在工作树里，由 `sync-dsh` 重放。
