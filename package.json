@@ -18,6 +18,7 @@
     "check:cliregistry": "node scripts/gen-cli-registry.mjs --self-check && node scripts/gen-cli-registry.mjs --check",
     "test:contract": "vitest run packages/contract/src",
     "check:nodebundle": "node scripts/check-node-bundle.mjs --self-check && node scripts/check-node-bundle.mjs",
+    "measure:tipbuild": "node scripts/tip-build-check.mjs",
     "test": "pnpm check:pins && pnpm check:skills && pnpm check:installable && pnpm check:vocab && pnpm check:vendored && pnpm check:cliregistry && pnpm test:contract && pnpm -r run build && pnpm check:nodebundle && pnpm -r run typecheck && pnpm -r --no-bail run test:unit",
     "dsh": "pnpm exec dsh",
     "host": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh --profile xaihi --no-open",
