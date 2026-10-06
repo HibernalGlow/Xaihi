@@ -43,7 +43,12 @@ export function flagsFromHelp(screen) {
  */
 export function flagsFromUpstream(source) {
   const out = new Set()
-  for (const match of source.matchAll(/['"`]--([A-Za-z][\w-]*)/g)) out.add(match[1])
+  for (const match of source.matchAll(/['"`]--([A-Za-z][\w-]*)/g)) {
+    const name = match[1]
+    // 模板串会留下光秃秃的 `--no-`（上游写 `` `--no-${flag}` ``），那不是一个开关名。
+    if (name === 'no' || /-$/.test(name)) continue
+    out.add(name)
+  }
   return out
 }
 
@@ -205,6 +210,7 @@ if (process.argv.includes('--self-check')) {
     { name: '--json 前面有噪声也能解析 ⇒ 放行', got: judgeJsonRun('WARN x\n{"kept":[]}'), expectKind: 'empty' },
     { name: '从一屏文本里取长开关名', got: Array.from(flagsFromHelp('Options:\n  --source <value>  Inline\n  --json            Print JSON\n')).sort(), expect: ['json', 'source'] },
     { name: '从上游源码里取长开关名', got: Array.from(flagsFromUpstream("const a = ['--source','--preserveOrder'];\nif (flag === '--json') x")).sort(), expect: ['json', 'preserveOrder', 'source'] },
+    { name: '模板串留下的光秃 `--no-` 不算开关名（classf 的第一条假阳性）', got: Array.from(flagsFromUpstream("const neg = `--no-${flag}`;\nconst real = ['--target'];")).sort(), expect: ['target'] },
     { name: '内联开关：文件类与 json/help 不许进来，数值类给 1', got: inlineFlagsFromOptions('Options:\n  --source <value>   Inline source\n  --sourceFile <path> File\n  --limit <number>   Max\n  --json             Print JSON\n  --help, -h         Help\n'), expect: ['--source=alpha', '--limit=1'] },
     { name: '屏上只有文件类开关 ⇒ 退化成裸命令（空表，不是假跑）', got: inlineFlagsFromOptions('Options:\n  --inputFile <path>\n  --outputFile <path>\n'), expect: [] },
     { name: '预演布尔：dryRun/preview 可以主动开，force/yes 不行', got: previewFlagsFromOptions('Options:\n  --dryRun   Preview only\n  --force    Overwrite\n  --yes      Confirm\n  --preview  Show plan\n'), expect: ['--dryRun', '--preview'] },

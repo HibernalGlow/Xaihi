@@ -79,7 +79,46 @@ export const cli: CliCommand = {
 export const program = createProgram()
 
 /** 派发形状对齐 vendored 支撑里的 `runNodeCliFace`（`--help` 短路与无参拒绝都在那儿）。 */
-export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
+/**
+ * 上游拼法的别名表：键是**规范形**（剥掉 `no-`、去掉连字符、小写），值是本包的字段名。
+ *
+ * 为什么必须留这一层：搬运把参数改名成了清单字段名（`--target` → `--targetDir`、
+ * `--items` → `--workItemMode`、`--samea-group-min` → `--sameaGroupMinOccurrences` 等 9 条，
+ * 逐条对得上基线 `packages/nodes/classf/src/cli.ts` 里出现过的长开关）。
+ * 面板读的是字段名，所以字段名是正主；但**上游认过的写法不能变成不认识**——
+ * 搬运是并集，不是子集（写过的脚本、文档里的示例、以及那条尺都会指着这里）。
+ * `--no-<上游名>` 的否定写法保留否定，只换名字（`--no-classify` → `--no-classifyMode`），
+ * 因为三条队列开关的否定形状由 `cli-support.ts` 的 `booleanFlag` 自己给。
+ */
+export const UPSTREAM_CLASSF_FLAGS: Record<string, string> = {
+  crashusource: 'crashuSourcesText',
+  placement: 'placementMode',
+  target: 'targetDir',
+  transfer: 'transferMode',
+  classify: 'classifyMode',
+  existing: 'existingPolicy',
+  items: 'workItemMode',
+  blacklistkeyword: 'blacklistKeywordsText',
+  sameagroupmin: 'sameaGroupMinOccurrences',
+}
+
+/** 把 `--target` / `--target=/x` / `--no-classify` 这类上游写法换成本包字段名的同形写法。 */
+export function applyUpstreamFlagAliases (args: readonly string[]): string[] {
+  return args.map((token) => {
+    const match = /^--([^=\s]+)([\s\S]*)$/.exec(token)
+    if (match === null) return token
+    const body = match[1] ?? ''
+    const suffix = match[2] ?? ''
+    const negated = /^no-/i.test(body)
+    const key = body.replace(/^no-/i, '').replace(/-/g, '').toLowerCase()
+    const mapped = UPSTREAM_CLASSF_FLAGS[key]
+    if (mapped === undefined) return token
+    return `--${negated ? 'no-' : ''}${mapped}${suffix}`
+  })
+}
+
+export async function runProgram (rawArgs = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
+  const args = applyUpstreamFlagAliases(rawArgs)
   await runNodeCliFace({
     args,
     host,
@@ -143,22 +182,22 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
 function actionArgs () {
   return {
     pathsText: { type: 'string', description: 'SameA archive roots, one per line (also --paths-text).' },
-    crashuSourcesText: { type: 'string', description: 'CrashU matching source directories, one per line.' },
-    placementMode: { type: 'string', description: 'local | root (placement).' },
-    targetDir: { type: 'string', description: 'Classification target root (required with placement=root).' },
-    transferMode: { type: 'string', description: 'move | copy.' },
+    crashuSourcesText: { type: 'string', description: 'CrashU matching source directories, one per line (also --crashu-source).' },
+    placementMode: { type: 'string', description: 'local | root (placement) (also --placement).' },
+    targetDir: { type: 'string', description: 'Classification target root (required with placement=root) (also --target).' },
+    transferMode: { type: 'string', description: 'move | copy (also --transfer).' },
     alreadyEnabled: { type: 'boolean', description: 'Enable the already queue.' },
     waitEnabled: { type: 'boolean', description: 'Enable the wait queue.' },
     delEnabled: { type: 'boolean', description: 'Enable the del queue.' },
-    existingPolicy: { type: 'string', description: 'merge | skip.' },
-    workItemMode: { type: 'string', description: 'files | folders | mixed.' },
-    blacklistKeywordsText: { type: 'string', description: 'Blacklisted authors, one per line.' },
-    classifyMode: { type: 'string', description: 'Legacy queue switch: off | auto | only | del (per-stage flags win).' },
+    existingPolicy: { type: 'string', description: 'merge | skip (also --existing).' },
+    workItemMode: { type: 'string', description: 'files | folders | mixed (also --items).' },
+    blacklistKeywordsText: { type: 'string', description: 'Blacklisted authors, one per line (also --blacklist-keyword).' },
+    classifyMode: { type: 'string', description: 'Legacy queue switch: off | auto | only | del (per-stage flags win) (also --classify).' },
     dryRun: { type: 'boolean', description: 'Plan only (kernel default true).' },
     sameaGroupAlreadyEnabled: { type: 'boolean', description: 'Run SameA grouping in the already stage.' },
     sameaGroupWaitEnabled: { type: 'boolean', description: 'Run SameA grouping in the wait stage.' },
     sameaGroupDelEnabled: { type: 'boolean', description: 'Run SameA grouping in the del stage.' },
-    sameaGroupMinOccurrences: { type: 'string', description: 'Minimum files per artist group (1-100).' },
+    sameaGroupMinOccurrences: { type: 'string', description: 'Minimum files per artist group (1-100) (also --samea-group-min).' },
     // ↓ 上游那几条 legacy / SameA 细调 flag（`:96-105`）：定义里没有对应字段
     //   （宿主那侧它们是 `Config`），所以只有 bin 面上能这样给；给了就传进内核。
     similarity: { type: 'string', description: 'CrashU similarity threshold, 0-1 (kernel default 0.8).' },

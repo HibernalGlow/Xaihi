@@ -348,3 +348,27 @@ $ pnpm check:cliregistry → rc=0   $ pnpm check:cliface → rc=0    # 没把邻
 **为什么不接线**：这条尺现在是红的（2 条真发现），塞进根 `test` 会在别人的回归之前先把整条链涂红；
 这两条要先归口（classf 归"补屏"、gifu 归"补参数或申报上游本来没接"）。
 先落在纸上，归口之后进链——与 `check:brand` 当年同一个口径。
+
+## 再再追加：classf 那 10 条已归口（是真缺口，但性质是"改名"不是"没实现"）
+
+现读上游那 17 条长开关对上来的是 **9 条被搬运改名的参数**（`--target`→`--targetDir`、
+`--items`→`--workItemMode`、`--samea-group-min`→`--sameaGroupMinOccurrences`、
+`--crashu-source`→`--crashuSourcesText`、`--placement`/`--transfer`/`--classify`/`--existing`/
+`--blacklist-keyword` 同理）。**开关都实现了**（源码里逐条命中），但上游那个拼法不再被认——
+搬运是并集，不是子集：改了名字等于让写过的脚本和文档里的示例失效。
+本仓已有先例说清该怎么留：`xbandia` 的屏上写着 `export-efu  Alias for export_efu (upstream spelling)`。
+
+落点（`plugins/classf/src/cli.ts`）：`UPSTREAM_CLASSF_FLAGS`（规范形 → 本包字段名）
++ `applyUpstreamFlagAliases(args)` 在 `runProgram` 入口换写，**保留否定**
+（`--no-classify` → `--no-classifyMode`，不能翻成正面），再把 9 条 `(also --x)` 打进描述里
+——屏上不打出来就等于看不见，尺读的也正是屏。`tests/cli-upstream-flags.spec.ts` 六条：
+两种带值写法、否定写法、认识的与未知的原样过去、**别名目标必须本身在屏上**（挡住映射写错字），
+9 条拼法都在屏上，以及一条端到端正反对照——真未知开关必须先被拒（本包支撑打的是
+`Unknown option:`，文件头注释里写的是 `Unknown argument:`，只认一种会把正控判成"没拒"），
+`--target` 必须不被拒。实测：`vitest run tests/cli-upstream-flags.spec.ts` **6 条全过 rc=0**、
+`pnpm --filter @hibernalglow/xaihi-classf typecheck` rc=0、`check-node-bundle --dir plugins/classf` rc=0。
+
+尺那边同时修掉一条我自己的假阳性：上游源码里的模板串 `` `--no-${flag}` `` 会被正则取出
+光秃秃的 `--no-`，看着像"上游有个叫 `no-` 的开关"（classf 因此剩 1 条红）。加了夹具盯住它之后，
+**classf 归零，只剩 gifu 的 `renderer`/`lang`/`theme` 三条**（那三条在我们源码里一条都搜不到，
+是真没接，留给 gifu 那一档归口）。现跑：27 个包、26 张表、真跑 7 条、红 1 条（gifu）。
