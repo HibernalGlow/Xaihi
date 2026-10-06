@@ -1,0 +1,86 @@
+From d6265d653c532b1c447b4d2f680b389604f17e8a Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 05:02:58 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E5=BC=80=E7=AA=97=E8=AF=B7=E6=B1=82?=
+ =?utf-8?q?=E7=9A=84=E5=8F=91=E8=B5=B7=E8=80=85=E6=94=BE=E5=AE=BD=E5=88=B0?=
+ =?utf-8?q?=E4=BB=BB=E4=B8=80=E6=B4=BB=E7=9D=80=E7=9A=84=20Xaihi=20?=
+ =?utf-8?q?=E6=96=87=E6=A1=A3=E7=AA=97=EF=BC=88Xaihi=20patch=200005?=
+ =?utf-8?q?=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+主窗关闭只是隐藏（hide-on-close），此前 xaihiWindowOpen 的守卫主语是主窗，于是节点窗还在前台时再也开不出新窗。同时目标地址改取发起者自己的文档 URL —— 原先从 mainWindow 取，语义在第二个窗里本来就是错的。
+
+四项守卫一条没减：assertDesktopSender(scheme + hostname app)、发起帧必须是该窗主帧、该窗必须在我们登记的 Xaihi 文档窗集合里且 URL 仍是自家文档路径、pathname 必须命中 /xaihi/ui/<12hex>/index.html 正则、node 仍按 NODE_PATTERN。放宽的只有"谁可以问"。
+
+验证：tsc -b apps/desktop rc=0（0 条 TS 错）。活体判据 D 段（隐藏主窗后由节点窗开新窗成功、主窗保持隐藏、把该窗导到非自家路径后再问必须被拒）随本 patch 一起加。
+---
+ apps/desktop/src/main.ts | 32 ++++++++++++++++++++++++++------
+ 1 file changed, 26 insertions(+), 6 deletions(-)
+
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index 9490c2d..d0f8abc 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -21,9 +21,11 @@ import {
+   shell,
+   type IpcMainInvokeEvent,
+   type MenuItemConstructorOptions,
++  type WebContents,
+ } from 'electron'
+ import { resolveDesktopPaths } from './paths.ts'
+ import { resolveXaihiDocumentTarget, xaihiWindowKey } from './xaihi-window-policy.ts'
++
+ import { DesktopProjectManager } from './project-manager.ts'
+ import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
+ import { DesktopPlatformView, PLATFORM_IPC, platformBounds } from './platform-view.ts'
+@@ -208,6 +210,16 @@ function platformLoginUrl(authorizeUrl: string): string {
+ // 不参与主窗的 hide-on-close；重复请求聚焦既有的那一个，而不是叠第二个窗。
+ const xaihiDocumentWindows = new Map<string, BrowserWindow>()
+ 
++/** 这条 WebContents 是不是我们登记的 Xaihi 文档窗（还活着且 URL 仍是自家文档）。 */
++function xaihiOwnedSender (sender: WebContents): boolean {
++  for (const window of xaihiDocumentWindows.values()) {
++    if (window.isDestroyed()) continue
++    if (window.webContents !== sender) continue
++    return new URL(sender.getURL()).pathname.startsWith('/xaihi/ui/')
++  }
++  return false
++}
++
+ export interface XaihiWindowOpening {
+   readonly window: BrowserWindow
+   readonly alreadyOpen: boolean
+@@ -742,14 +754,22 @@ async function main(): Promise<void> {
+   })
+ 
+   // Xaihi patch (ADR-0011 决定 3): 节点各自成窗 = 同一份 Xaihi 文档 + 只换 `node` 查询段。
++  // 发起者可以是主窗或任一活着的 Xaihi 文档窗，目标地址取自发起者自己的 URL：
++  // 主窗关闭只是隐藏，此时只有节点窗还在前台。scheme、hostname、rev 与主帧四项守卫照旧全收。
+   const XAIHI_NODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/u
++  const XAIHI_DOCUMENT_PATH = /^\/xaihi\/ui\/[0-9a-f]{12}\/index\.html$/u
+   ipcMain.handle(DESKTOP_IPC.xaihiWindowOpen, (event, node: unknown) => {
+-    assertProductSender(event)
+-    const primary = mainWindow
+-    if (primary === undefined || primary.isDestroyed()) throw new Error('xaihi desktop: primary document is unavailable')
+-    const url = new URL(primary.webContents.getURL())
+-    if (url.protocol !== `${SCHEME}:` || url.hostname !== 'app'
+-      || !url.pathname.startsWith('/xaihi/ui/') || !url.pathname.endsWith('/index.html')) {
++    assertDesktopSender(event, ['app'])
++    const frame = event.senderFrame
++    if (frame === null || frame !== event.sender.mainFrame) {
++      throw new Error('xaihi desktop: rejected window request from a non-primary frame')
++    }
++    const owned = mainWindow !== undefined && !mainWindow.isDestroyed() && mainWindow.webContents === event.sender
++    if (!owned && !xaihiOwnedSender(event.sender)) {
++      throw new Error('xaihi desktop: rejected window request from an unowned renderer')
++    }
++    const url = new URL(event.sender.getURL())
++    if (url.protocol !== `${SCHEME}:` || url.hostname !== 'app' || !XAIHI_DOCUMENT_PATH.test(url.pathname)) {
+       throw new Error('xaihi desktop: only the Xaihi UI document may open a window')
+     }
+     if (typeof node !== 'string' || !XAIHI_NODE_PATTERN.test(node)) {
+-- 
+2.55.0
+

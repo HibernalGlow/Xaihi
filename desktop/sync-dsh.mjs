@@ -302,8 +302,24 @@ if (flag('verify')) {
     const ghost = mainJs.includes('dsh-desktop:xaihi-window-DOES-NOT-EXIST') || preload.includes('dsh-desktop:xaihi-window-DOES-NOT-EXIST')
     console.log(`verify: 产物 main.js=${String(inMain)} preload-app.cjs=${String(inPreload)} ghost_absent=${String(!ghost)}`)
     const profileWired = mainJs.includes('XAIHI_DESKTOP_PROFILE')
-    console.log(`verify: 0002 已接进 bundle=${String(policyWired)} 0003 已接进 bundle=${String(profileWired)}`)
+    // 0005 放宽的是"谁可以问"，0006 保住的是"窗标题带 node"：两条都必须在产物里点得到名，
+    // 不然 patch .series 绿而壳里跑的是旧的那份（实机栽过一次：系列重放成功但 lib/ 是旧的）。
+    const senderWired = mainJs.includes('function xaihiOwnedSender') && mainJs.includes('unowned renderer')
+    // 0006 只在这个函数体里查：整个 bundle 里 "page-title-updated" 是上游自己也用的词，
+    // 全局搜会得到一个与我的改动无关的绿 —— 减法对照实测就抓到了这一点（摘掉 0006 重建产物，
+    // main.js 里仍有 1 处 page-title-updated，来自别的上游模块被打包进来）。
+    // 词的形状也不可靠：打包器把单引号规范成双引号，所以只搜词本身。
+    const docStart = mainJs.indexOf('function openXaihiDocumentWindow')
+    const docRelEnd = docStart === -1 ? -1 : mainJs.slice(docStart).search(/\n\}/u)
+    const docFn = docStart !== -1 && docRelEnd > 0 ? mainJs.slice(docStart, docStart + docRelEnd) : ''
+    const titleWired = docFn.includes('page-title-updated') && docFn.includes('preventDefault')
+    const titleControl = docFn.replace('page-title-updated', 'page-title-removed-for-control').includes('page-title-updated')
+    console.log(`verify: 0002 已接进 bundle=${String(policyWired)} 0003 已接进 bundle=${String(profileWired)}`
+      + ` 0005 已接进 bundle=${String(senderWired)} 0006 已接进 bundle=${String(titleWired)}`)
     if (!profileWired) fail('verify: 0003 没进 lib/main.js ⇒ 又是只跑 tsc 没跑 bundle')
+    if (!senderWired) fail('verify: 0005 的发起者判据没进 lib/main.js ⇒ 产物比系列旧')
+    if (titleControl) fail('verify: 0006 的判据是瞎的（抹掉那一行还读得到）')
+    if (!titleWired) fail('verify: 0006 的标题保护没进 lib/main.js 的 openXaihiDocumentWindow ⇒ 产物比系列旧')
     if (!inMain || !inPreload) fail('verify: 通道没进产物 ⇒ 那条源码改动没被编译，或 patch 被静默跳过')
     if (!policyWired) fail('verify: 0002 的判策没进 lib/main.js ⇒ 只跑了 tsc 没跑 bundle，产物是半截的')
     if (ghost) fail('verify: 产物判据是瞎的（不存在的通道名也能搜到）')

@@ -19,11 +19,16 @@
 | 0002 | **已落地**：页面递来的 `window.open` 先过一条纯 URL 判策，自家文档才转成原生次级窗 | 新模块 `apps/desktop/src/xaihi-window-policy.ts` + `main.ts:239-242` 的 `setWindowOpenHandler` 接线 | P5 |
 | 0003 | **已落地**：`XAIHI_DESKTOP_PROFILE` 让壳选 profile，缺省仍 `desktop`，形状不合直接抛 | `apps/desktop/src/paths.ts`（`resolveDesktopProfileName`） | P6 第 1 条 |
 
-| 0004 | **已落地**：同一个 node 的窗按寻址键去重（重复请求聚焦既有窗并回报 `alreadyOpen`），换 node 才多开；窗标题带 node 名 | `xaihi-window-policy.ts` 的 `xaihiWindowKey` + `main.ts` 的登记表（两条开窗路汇一处） | 无（我们的产品行为） |
+| 0004 | **已落地**：同一个 node 的窗按寻址键去重（重复请求聚焦既有窗并回报 `alreadyOpen`），换 node 才多开；窗标题带 node 名（标题在运行时才保住要靠 0006） | `xaihi-window-policy.ts` 的 `xaihiWindowKey` + `main.ts` 的登记表（两条开窗路汇一处） | 无（我们的产品行为） |
+| 0005 | **已落地**：`xaihiWindow.open` 的发起者放宽到"任一活着的自家文档窗"，目标 URL 改从发起者自己的文档取；四条形状守卫一条不松 | `main.ts` 的 `xaihiOwnedSender` + 那条 IPC handler（原来是 `assertProductSender`，主语只有主窗） | P5 的续条（官方壳没有"次级窗再开次级窗"这一层） |
+| 0006 | **已落地**：自家文档窗保住带 node 的标题（拦住 `page-title-updated`） | `main.ts` 的 `openXaihiDocumentWindow` | 无（读回面；标题是使用者辨认窗口的唯一线索） |
 
-0001–0004 已落地；活体判据在 `desktop/live-check.mjs`（**18 条全绿**：A 段产品文档面与拒绝分支、B 段真 Xaihi 文档进第二窗、C 段按 node 去重与标题）。判据都在 `node desktop/sync-dsh.mjs --verify`：
+0001–0006 已落地；活体判据在 `desktop/live-check.mjs`（**28 条全绿**：R 段复位、A 段产品文档面与拒绝分支、
+B 段真 Xaihi 文档进第二窗、C 段按 node 去重与标题、D 段"主窗只是隐藏时节点窗仍能继续开"加守卫没跟着放宽）。判据都在 `node desktop/sync-dsh.mjs --verify`：
 0001 查 IPC 通道 + 产物两份文件；0002 查 11 条用例（**拒绝分支才是重点**：路径穿越、跨 host、
 非自家发起者、多带查询键、超长串）+ 0003 三条 profile 用例 + 0004 去重键用例；产物判据现在要
-`lib/main.js` 里同时有 `resolveXaihiDocumentTarget` **和** `xaihiWindowKey`（少一个就是只跑了 tsc 没跑 bundle）。
+`lib/main.js` 里同时有 `resolveXaihiDocumentTarget` **和** `xaihiWindowKey`（少一个就是只跑了 tsc 没跑 bundle），
+0005/0006 各查一处接线（`xaihiOwnedSender` / `openXaihiDocumentWindow` 函数体里的 `page-title-updated`）。
+0006 那条还配减法对照：把那行从函数体切片里抹掉，判据必须变红。
 摘掉 patch 跑 `--verify` ⇒ rc=1（不是空转）。Xaihi 侧的落地位置已经在 `/xaihi/ui` 路由 +
 节点寻址参数上（Xaihi 提交 `0e4b61b`，`packages/core/src/routes.ts:101`）。

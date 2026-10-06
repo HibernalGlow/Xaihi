@@ -261,3 +261,43 @@ client face 建完之后，这一档的判据已经写好，跑的是活体而�
    或者 dev profile 的合法挂载路径；**不许**为了这一格手写 `profiles/desktop` 里的文件。
 
 - 上游 bump ⇒ patch series 重放；重放红就是红，不许 `--3way` 蒙。
+
+## 0005 与 0006：主窗只是隐藏时节点窗还能继续开，标题也真带得出 node（2026-10-07 05:3x，home `.scratch/dsh-xaihi-desktop-home3`）
+
+**前提（上游现读，不是我推的）**：主窗的 `close` 被 `preventDefault` 换成隐藏
+（`apps/desktop/src/main.ts:1145-1153`），而 0001/0002 那条 `xaihiWindowOpen` 的守卫主语是主窗 ⇒
+主窗一隐藏（点关闭就是这个），已经开出去的节点窗再也开不出新窗。0005 把发起者改成
+"任一活着的自家文档窗"（`xaihiOwnedSender`），目标 URL 改从**发起者自己的文档**取，
+四条形状守卫一条不松。
+
+实机读数（`node desktop/live-check.mjs` ⇒ **28 条 OK、0 条 FAIL、rc=0**；D 段就是这一条的证据）：
+
+- 问的那一刻 `mainHiddenWhileAsking=true`；从节点窗 `open(nodes[1])` ⇒
+  `{kind:"opened", windowId:18, alreadyOpen:false}`，`countBefore=3 → countAfter=4`（按 id 差量量，不按总数），
+  新开那窗 `title="Xaihi · xaihi-sleept"`、URL 带 `node=xaihi-sleept`。
+- 把那个窗导到 `dsh-app://app/index.html` 后再问 ⇒ `rejected window request from an unowned renderer`
+  ⇒ 放宽的只有"谁可以问"，不是"问什么都行"。
+- **0006 是 D 段读回来的缺陷**：0004 的 `setTitle` 会被文档自己的 `<title>` 覆盖，
+  第一次实测 `getTitle()` 只剩 `"Xaihi"`（node 名在窗标题上丢了）。修法是自家窗里拦住
+  `page-title-updated`。这不是装饰：使用者辨认"这个窗是哪个 node"只有标题这一个读回面。
+
+这一轮同时抓出三条**尺自己**的假绿，不写下来下次还会再信一次：
+
+1. **只跑 `bundle` 会把上一次的 tsc 产物再打包一遍**。减法对照实测：摘掉 0005/0006 → 重放 4/4 →
+   只 `bundle`（rc=0）⇒ `--verify` 仍报 `0005=true 0006=true`（假绿）；补 `tsc -b .`（rc=0）再 bundle ⇒
+   产物里 `xaihiOwnedSender` 命中数 0、`--verify` **rc=1 并点名 0005**。
+   ⇒ 改完 series 的顺序是 **tsc 然后 bundle**；`--verify` 只保证读的是盘上那份，不保证那份是新的。
+2. **`page-title-updated` 不能在整个 `lib/main.js` 里搜**：上游别的模块也被打进同一个 bundle
+   （摘掉 0006 之后产物里仍有 1 处命中）。尺改成只看 `openXaihiDocumentWindow` 的函数体切片
+   （顶层函数在列 0 收尾），并自带减法对照：把那一行从切片里抹掉 ⇒ 必须读不到。
+3. **主框导航失败会替我按下上游的恢复态**：`did-fail-load` 除 `-3` 一律 `reportFatal → recovery`
+   （`main.ts:1170-1174`）。上一轮 D 段收尾那句 `ERR_FAILED (-2) loading 'dsh-app://app/'`（紧跟一串
+   `close()`）之后，`BrowserWindow.getAllWindows()` 读回**空数组**——那不是"壳神秘坏了"，
+   是判据自己在恢复态上按了一下。⇒ live-check 把主窗导航挪到开头复位段（R），收尾只 `show`/`close`
+   自己开的窗；这一轮 R 段读到 `navigated="loaded"`，窗口消失没再出现。
+
+**留作未解观察，别写成"已验稳定"**：C 段第一步（在 Xaihi 文档里 `fetch('/xaihi/manifest.json')`）
+连续两轮都在第一次 30 s 不落地、第二次立刻读到（`第 1 次不落地（求值超时…），第 2 次 读到了`）。
+壳空闲时同一步连跑三次是 10 / 16 / 28 ms ⇒ 不是路由慢；可疑点是"上一个窗刚 close 完，主窗文档的
+执行上下文还没稳"。现在的处理是基础设施步（读 manifest、导航）允许再读一次且两次读数都打出来，
+**行为步（三次 open、守卫拒绝）不重试**——重试会把"open 自己不落地"这类真缺陷盖掉。

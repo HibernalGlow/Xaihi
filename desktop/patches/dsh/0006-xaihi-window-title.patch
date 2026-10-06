@@ -1,0 +1,31 @@
+From 3c47f8b451e91eb245384e4dfb657cca66d7f3d9 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 05:22:27 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20Xaihi=20=E6=96=87=E6=A1=A3=E7=AA=97?=
+ =?utf-8?q?=E4=BF=9D=E4=BD=8F=E5=B8=A6=20node=20=E7=9A=84=E6=A0=87?=
+ =?utf-8?q?=E9=A2=98=EF=BC=88Xaihi=20patch=200006=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/main.ts | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index d0f8abc..88806f6 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -236,6 +236,9 @@ function openXaihiDocumentWindow (preload: string, target: string): XaihiWindowO
+     return { window: existing, alreadyOpen: true }
+   }
+   const window = createWindow(preload, true, false)
++  // 标题是使用者辨认"这个窗是哪个 node"的唯一读回面；文档自己带 <title>，
++  // 不拦住 page-title-updated 就会把它覆盖成通用标题（实测读回只剩 "Xaihi"）。
++  window.on('page-title-updated', (event) => { event.preventDefault() })
+   window.setTitle(`Xaihi \u00b7 ${key}`)
+   xaihiDocumentWindows.set(key, window)
+   window.on('closed', () => { if (xaihiDocumentWindows.get(key) === window) xaihiDocumentWindows.delete(key) })
+-- 
+2.55.0
+
