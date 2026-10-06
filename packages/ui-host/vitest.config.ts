@@ -1,6 +1,9 @@
 import { fileURLToPath } from 'node:url'
 
 import { defineConfig } from 'vitest/config'
+import { XIRANITE_ALIASES, assertAliasTargets } from './build-aliases.mjs'
+
+assertAliasTargets()
 
 /**
  * 环境是 happy-dom，不是 node：上游 `vite.config.ts` 的测试默认环境逐字就是
@@ -22,7 +25,9 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   resolve: {
     alias: {
-      // 上游 2219 条 `@/` 导入的原样保真，判据见 ADR-0007 事实 1。
+      // `@xiranite/*` 与 `@/` 都按同一张表解析（表本身由 build-aliases.mjs 自检：
+      // 每一条都指得到真源码）。三处共用一张表，改一处就会在另一处红。
+      ...XIRANITE_ALIASES,
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },

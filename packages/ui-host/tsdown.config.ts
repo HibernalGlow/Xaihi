@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { dirname, extname, resolve } from 'node:path'
 import { defineConfig } from 'tsdown'
+import { XIRANITE_ALIASES, assertAliasTargets } from './build-aliases.mjs'
+
+assertAliasTargets()
 
 // 两份产物：宿主半边（Node ESM 到 lib/index.js）与浏览器半边（CJS 握手 bundle 到
 // lib/client.js）。浏览器半边的握手 id 必须等于包名，client-modules 才把产物挂到
@@ -69,6 +72,12 @@ const client = {
   sourcemap: true,
   external: CLIENT_EXTERNALS,
   noExternal: (id: string) => (CLIENT_EXTERNALS.includes(id) ? undefined : true),
+  // 与 tsconfig.ported.json / vitest.config.ts 同一张表（`node packages/ui-host/build-aliases.mjs`
+  // 就是那条同步尺）。浏览器产物把所有非基线依赖内联，所以 `@xiranite/*` 不需要运行时解析。
+  alias: XIRANITE_ALIASES,
+  // 不显式点 browser 条件时，rolldown 会挑到 @module-federation/sdk/dist/node.js（里面是 createRequire + builtinModules），
+  // 于是产物带 require('node:module')，宿主直接拒：client-modules: require("node:module") missed the module table。
+  resolve: { conditionNames: ['browser', 'module', 'import', 'default'] },
   plugins: [viteUrlSuffix],
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
