@@ -1,16 +1,18 @@
-import type { AppNodeEntry } from "@xiranite/contract"
-import type { TimeuCardState } from "./types"
-import { def } from "@xiranite/node-timeu/definition"
-import { Component } from "./Component"
+/**
+ * timeu 的界面连接点（Xaihi 形状）。
+ *
+ * 上游这一族 import 了三样东西：`@xiranite/contract`（类型）、
+ * `@xiranite/node-timeu/definition`（纯数据定义）与 `./core.js`（执行器）。
+ * ADR-0007 决定 4 只允许前两样，而本仓连"纯数据叶子"都不用引包：
+ * `def` 来自注册表嵌进来的 `package.json#xaihi.node`（`scripts/gen-node-registry.mjs`），
+ * 于是"从 barrel 取值把 core 拉进 GUI chunk"这类事故在形状上就不可能。
+ * `core` 一律不带：界面跑动作只走 `/operations`（`host.actions?.run`）。
+ */
 
-// GUI 面不带引擎（ADR-0074 §5）：那份 TS core 只在宿主内的 QuickJS 里求值，浏览器这一侧只登记定义与视图。
-// `entry.core` 没有任何宿主代码路径读它（见 `packages/contract/src/index.ts` 里 `AppNodeEntry.core` 的注释），
-// 值导入 `@xiranite/node-timeu` 的 `core` 只会把 dist/core.js（实测 8,126 字节）那台执行器连同时间戳动作
-// 词表拉进 GUI chunk —— 面里能跑节点逻辑，就是协议之外的第二个执行宿主。
-// 界面要跑动作只走 `/operations`：`./Component.tsx` 经 `host.runner.run ?? host.actions.run`。
-// `def` 取自包的 `./definition` 子路径而不是包根 barrel：包根还 `export * from "./core.js"`，从裸包名
-// 取值会把整份引擎图一并拉进 GUI chunk。那条图边已由 `./definition` 断掉，源码断言守着它不回归。
+import { Component } from './Component'
+import { NODE_MANIFESTS, type AppNodeEntry } from '@/components/modules/packageModules.generated'
+
 export default {
-  def,
+  def: NODE_MANIFESTS.timeu,
   Component,
-} satisfies AppNodeEntry<Record<string, never>, TimeuCardState, Partial<TimeuCardState>>
+} satisfies AppNodeEntry

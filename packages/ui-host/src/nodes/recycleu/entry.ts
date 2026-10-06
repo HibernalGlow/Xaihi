@@ -1,15 +1,18 @@
-import type { AppNodeEntry } from "@xiranite/contract"
-import { def } from "@xiranite/node-recycleu/definition"
-import { Component } from "./Component"
+/**
+ * recycleu 的界面连接点（Xaihi 形状）。
+ *
+ * 上游这一族 import 了三样东西：`@xiranite/contract`（类型）、
+ * `@xiranite/node-recycleu/definition`（纯数据定义）与 `./core.js`（执行器）。
+ * ADR-0007 决定 4 只允许前两样，而本仓连"纯数据叶子"都不用引包：
+ * `def` 来自注册表嵌进来的 `package.json#xaihi.node`（`scripts/gen-node-registry.mjs`），
+ * 于是"从 barrel 取值把 core 拉进 GUI chunk"这类事故在形状上就不可能。
+ * `core` 一律不带：界面跑动作只走 `/operations`（`host.actions?.run`）。
+ */
 
-// GUI 面不带引擎（ADR-0074 §5）：那份 TS core 只在宿主内的 QuickJS 里求值，浏览器这一侧只登记定义与视图。
-// `entry.core` 没有任何宿主代码路径读它（见 `packages/contract/src/index.ts` 里 `AppNodeEntry.core` 的注释），
-// 入口带上 `core` 等于在面进程里放行第二台执行宿主。
-// 界面要跑动作只走 `/operations`：`./Component.tsx` 用 `host.runner.run ?? host.actions.run`。
-// `def` 取自包的 `./definition` 子路径而不是包根 barrel——`packages/nodes/recycleu/src/index.ts` 仍
-// `export * from "./core.js"`，从裸包名取值会把整份引擎图一并拉进 GUI chunk。那条图边已由 `./definition`
-// 断掉，`entry.browser.test.tsx` 里的源码断言守着它不回归。
+import { Component } from './Component'
+import { NODE_MANIFESTS, type AppNodeEntry } from '@/components/modules/packageModules.generated'
+
 export default {
-  def,
+  def: NODE_MANIFESTS.recycleu,
   Component,
-} satisfies AppNodeEntry<Record<string, never>>
+} satisfies AppNodeEntry

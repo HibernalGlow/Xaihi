@@ -1,11 +1,18 @@
-import type { AppNodeEntry } from "@xiranite/contract"
-import type { LogxCardState } from "./types"
-import { def } from "@xiranite/node-logx/definition"
-import { Component } from "./Component"
+/**
+ * logx 的界面连接点（Xaihi 形状）。
+ *
+ * 上游这一族 import 了三样东西：`@xiranite/contract`（类型）、
+ * `@xiranite/node-logx/definition`（纯数据定义）与 `./core.js`（执行器）。
+ * ADR-0007 决定 4 只允许前两样，而本仓连"纯数据叶子"都不用引包：
+ * `def` 来自注册表嵌进来的 `package.json#xaihi.node`（`scripts/gen-node-registry.mjs`），
+ * 于是"从 barrel 取值把 core 拉进 GUI chunk"这类事故在形状上就不可能。
+ * `core` 一律不带：界面跑动作只走 `/operations`（`host.actions?.run`）。
+ */
 
-// GUI 面不带引擎（ADR-0074 §5）：那份 TS core 只在宿主内的 QuickJS 里求值，浏览器这一侧只登记定义与视图。
-// `entry.core` 没有任何宿主代码路径读它（见 `packages/contract/src/index.ts` 里 `AppNodeEntry.core` 的注释），
-// 交出这个对象等于在面里放第二个执行宿主；界面跑动作只走 `/operations`（`./Component` 经 `host.runner`/`host.actions`）。
-// `def` 取自包侧的 definition-only 子路径 `@xiranite/node-logx/definition`（clipm 先落地的形状）；
-// 根 barrel 仍 `export * from "./core.js"`，从它取值就会把整份 core 图连进这个 chunk，那条边已随这条子路径断开。
-export default { def, Component } satisfies AppNodeEntry<Record<string, never>, LogxCardState, Partial<LogxCardState>>
+import { Component } from './Component'
+import { NODE_MANIFESTS, type AppNodeEntry } from '@/components/modules/packageModules.generated'
+
+export default {
+  def: NODE_MANIFESTS.logx,
+  Component,
+} satisfies AppNodeEntry

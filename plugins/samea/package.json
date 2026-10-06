@@ -1,0 +1,520 @@
+{
+  "name": "@hibernalglow/xaihi-samea",
+  "version": "0.0.0",
+  "description": "Xaihi node SameA: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "xsamea": "./lib/cli.js"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-samea",
+    "title": {
+      "zh": "SameA",
+      "en": "SameA"
+    },
+    "ui": {
+      "remote": "samea",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.samea",
+        "title": {
+          "zh": "SameA面板",
+          "en": "SameA panel"
+        },
+        "area": "workspace",
+        "remote": "samea",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "samea",
+      "title": {
+        "zh": "SameA",
+        "en": "SameA"
+      },
+      "description": {
+        "zh": "Extract artist metadata from archive names and organize matching archives.",
+        "en": "Extract artist metadata from archive names and organize matching archives."
+      },
+      "actions": [
+        {
+          "id": "plan",
+          "label": {
+            "zh": "⌕ 规划",
+            "en": "⌕ Plan"
+          }
+        },
+        {
+          "id": "classify",
+          "label": {
+            "zh": "▶ 分类",
+            "en": "▶ Classify"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "命令",
+            "en": "Command"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "plan",
+              "label": {
+                "zh": "⌕ 规划",
+                "en": "⌕ Plan"
+              }
+            },
+            {
+              "value": "classify",
+              "label": {
+                "zh": "▶ 分类",
+                "en": "▶ Classify"
+              }
+            }
+          ],
+          "default": {
+            "text": "plan"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "pathsText",
+          "label": {
+            "zh": "归档根目录",
+            "en": "Archive roots"
+          },
+          "kind": "path-list",
+          "lines": 4,
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "ignorePathBlacklist",
+          "label": {
+            "zh": "忽略路径黑名单",
+            "en": "Ignore path blacklist"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "minOccurrences",
+          "label": {
+            "zh": "最少出现次数",
+            "en": "Minimum occurrences"
+          },
+          "kind": "number",
+          "range": {
+            "min": 1,
+            "max": 100,
+            "step": 1
+          },
+          "default": {
+            "number": 1
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "centralize",
+          "label": {
+            "zh": "集中输出",
+            "en": "Centralize output"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "预演模式",
+            "en": "Dry run"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "artistBlacklist",
+          "label": {
+            "zh": "画师黑名单",
+            "en": "Artist blacklist"
+          },
+          "kind": "multiline",
+          "lines": 5,
+          "default": {
+            "text": "pixiv\ntwitter\nvarious\nanthology\nunknown\ntrash\nartbook"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "pathBlacklist",
+          "label": {
+            "zh": "路径黑名单",
+            "en": "Path blacklist"
+          },
+          "kind": "multiline",
+          "lines": 5,
+          "default": {
+            "text": "[00画师分类]\ntrash\ntemp"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "regexBlacklist",
+          "label": {
+            "zh": "正则黑名单",
+            "en": "Regex blacklist"
+          },
+          "kind": "multiline",
+          "lines": 5,
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "archiveExtensions",
+          "label": {
+            "zh": "归档扩展名",
+            "en": "Archive extensions"
+          },
+          "kind": "multiline",
+          "lines": 4,
+          "default": {
+            "text": ".zip\n.rar\n.7z"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "source",
+          "label": {
+            "zh": "来源与规则",
+            "en": "Sources and rules"
+          },
+          "fieldIds": [
+            "action",
+            "pathsText",
+            "ignorePathBlacklist",
+            "minOccurrences",
+            "centralize",
+            "dryRun",
+            "artistBlacklist",
+            "pathBlacklist",
+            "regexBlacklist",
+            "archiveExtensions"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "pathsText",
+          "slot": "paths",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "ignorePathBlacklist",
+          "slot": "ignorePathBlacklist",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "minOccurrences",
+          "slot": "minOccurrences",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "centralize",
+          "slot": "centralize",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "artistBlacklist",
+          "slot": "artistBlacklist",
+          "transform": "lines"
+        },
+        {
+          "fieldId": "pathBlacklist",
+          "slot": "pathBlacklist",
+          "transform": "lines"
+        },
+        {
+          "fieldId": "regexBlacklist",
+          "slot": "regexBlacklist",
+          "transform": "lines"
+        },
+        {
+          "fieldId": "archiveExtensions",
+          "slot": "archiveExtensions",
+          "transform": "lines"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "classify"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认实时分类",
+          "en": "Confirm live classification"
+        },
+        "body": {
+          "zh": "SameA 将移动就绪的归档文件。",
+          "en": "SameA will move ready archives."
+        },
+        "confirmLabel": {
+          "zh": "确认移动",
+          "en": "Move archives"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "Use SameA before CrashU when archive names contain artist or circle metadata that should become target folders.",
+          "en": "Use SameA before CrashU when archive names contain artist or circle metadata that should become target folders."
+        },
+        "safety": {
+          "defaultMode": "dry-run",
+          "destructive": {
+            "zh": [
+              "classify"
+            ],
+            "en": [
+              "classify"
+            ]
+          },
+          "notes": {
+            "zh": [
+              "Live classification moves archives and reports existing targets as conflicts."
+            ],
+            "en": [
+              "Live classification moves archives and reports existing targets as conflicts."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
