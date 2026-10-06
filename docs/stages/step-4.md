@@ -357,5 +357,56 @@ sleept 的面板换成四个按钮（读状态 / 阻止 25 分钟 / 解除 / 立
    `__XAIHI__.modules = [linedup/Panel, sleept/Panel]`、`__XAIHI__.remote.present = true`。
 3. 门禁 `pnpm test` rc=0：ui-host 从 9 涨到 13 条（新增 `command-result.spec.ts`），全仓 112 条。
 
+## 13 Material You 桥（Step 4.4 的第一层）
+
+### 改了什么
+
+- `packages/ui-host/src/client/theme/material-you.ts`：一个 seed → 一套 `--xaihi-*` 别名的
+  明暗两值。唯一数值来源是 `@material/material-color-utilities@0.4.0` 的 `DynamicScheme`
+  + `MaterialDynamicColors`（与 Xiranite 的 `src/lib/design-theme/md3/color.ts` 同一策略：
+  零硬编码 hex、静态访问器已 `@deprecated` 所以走实例方法）。
+- `apply()` 里一行：`ctx.theme.overrideTokens('xaihi.md3', xaihiMd3Layer())`，挂在
+  `ctx.effect` 上随 fiber 收回；`inject` 补 `theme`。
+- `tests/theme.spec.ts`（6 条）与 `packages/ui-host/vitest.config.ts` 的一处必要内联。
+
+### 为什么只叠别名、不动 `--dsw-*`
+
+壳的每条颜色都写成 `var(--xaihi-*, var(--dsw-alias-*))`。所以这一层缺席时宿主原样回落，
+不会花屏；Xaihi 换风格也不碰 DSH 自己的表面。主题引擎仍然只有一套：明暗模式、切换、
+token 分层全归 `ctx.theme`，我们只是它的一个 override 来源（它的文档原话就是给
+"dynamic packages" 用的）。
+
+### 量出来的三条
+
+1. 0.4.0 的 `DynamicScheme` 收的是 **`sourceColorHct`**，不是 `sourceColorArgb`；
+   构造形状由编译器钉住，猜不得。
+2. `ThemeTokenOverrides = Record<string, {light, dark}>` —— **两个模式都是必填**，
+   所以"只配明色"这种半成品在类型层面就过不去。
+3. 自定义名（`--xaihi-*`）能被 `overrideTokens` 接受并落到元素作用域里
+   ——不在 `documentElement` 上，第一次探针读错了节点，差点把"生效"读成"没生效"。
+4. MCU 0.4.0 的 ESM 产物内部是**无扩展名 import**，Node 加载器解不了：vitest 必须把
+   这个包内联（配置里写了原因），否则任何引到它的 spec 都是 `Cannot find module`。
+
+### 证据
+
+1. 门禁 `pnpm test` rc=0；ui-host 13→19 条，全仓 **121** 条。
+2. 判据不循环：期望值不是再调一次被测函数，而是钉性质 —— 格式全 `#rrggbb`、
+   同 seed 下 light/dark 必须分家（surface 变暗、onSurface 变亮，按 WCAG 相对亮度比）、
+   primary 必须带彩度、**换 seed 必须换值**（阳性对照）、
+   以及一条跨文件覆盖率：`styles.ts` 里出现的每个 `--xaihi-*` 都必须在这一层里有值，
+   这条是唯一能抓住"加了别名忘了配色"的尺。
+3. 实机（隔离宿主，深色模式）：`.xaihi-shell` 的计算值
+   `--xaihi-surface #141218`、`--xaihi-on-surface #e6e0e9`、`--xaihi-primary #cfbcff`、
+   `--xaihi-outline #948e9c`、`--xaihi-secondary-container #4d4465`，
+   `backgroundColor = rgb(20, 18, 24)` —— 与 seed `#6750a4` 的 M3 FIDELITY 深色值一致，
+   说明这一层是真的走到了渲染，不是只存在于类型里。
+
+### 没做
+
+用户可配 seed（需要一个能读回的设置面，不做"只有按钮没有回读"的控件）、OS 壁纸取色
+（依赖已迁的 subprocess 通路，排在后面）、M3 组件观感的 UI Kit（下一批）、
+以及把 `--xaihi-*` 再映射回 `--dsw-*` 的"整体换皮"选项。
+
+
 
 

@@ -18,6 +18,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { Context } from '@deepseek-ai/cordis'
 import type { CommandOutcome } from '@hibernalglow/xaihi-sdk'
@@ -26,6 +27,7 @@ import { LOCALE_NAMESPACE, en, zh, type LocaleKey, type Translate } from './loca
 import { MAIN_PANEL_KEY, registerPanelEntry } from './panel-entry.tsx'
 import { createRemoteLoader } from './loader/remote-modules.ts'
 import { registerStyles } from './styles.ts'
+import { xaihiMd3Layer } from './theme/material-you.ts'
 import { WorkspaceRoot } from './workspace.tsx'
 
 /** Xaihi 声明的插槽，`children` 与 props 类型共用这一份。 */
@@ -51,7 +53,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
  * inject 里同时声明 `remote` 与 `remote.<namespace>`）。命令命名空间是客户端装配
  * 现成挂着的（`dsh-api-remotes` 生成物里带 `commands/lib/typert.remote-client.js`）。
  */
-export const inject = ['slots', 'locale', 'remote', 'remote.commands']
+export const inject = ['slots', 'locale', 'theme', 'remote', 'remote.commands']
 
 /** 插槽框架交给面板组件的属性（框架真源，只取用到的两片）。 */
 type ReceivedProps = PropsLocale<'xaihi.ui'> & PropsRenderSlots<XaihiSlot>
@@ -157,6 +159,8 @@ export function apply(ctx: Context): void {
   recordRemoteShape(ctx)
   ctx.effect(() => ctx.locale.register(LOCALE_NAMESPACE, { zh, en }), 'xaihi-ui: dictionaries')
   ctx.effect(() => registerStyles(), 'xaihi-ui: styles')
+  // Material You 只叠一层别名；明暗模式与切换归 ctx.theme，本包不造第二套引擎。
+  ctx.effect(() => ctx.theme.overrideTokens('xaihi.md3', xaihiMd3Layer()), 'xaihi-ui: material you layer')
 
   // 侧栏那一行由 ui-sidebar 持有：显示标题、响应点击、调用 selectPanel 都是它的事，
   // 本插件只贡献标记与行标题，所以这里既不碰路由也不碰布局。
