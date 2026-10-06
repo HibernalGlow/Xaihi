@@ -1324,3 +1324,27 @@ alpha 发布时按 ADR-0005 写好的形状跑一次："新 profile 只装入口
   `test:unit` rc=0（24 文件 / 216 判据）。
 - 工作树里我未提交的挂载实验（`AlphabetNodeRail` 两行）已撤除，只留已提交状态；
   别人在飞的 hunk 一律没动。
+
+## 批次 H 开工前量到的一条：`kisaki` 不是"还没搬"，是**没有 TS 内核可搬**（2026-10-07 01:15）
+
+台账（`<Xiranite>/docs/xiranite-target-node-manifest.json`）把 `kisaki` 判成 `retain-rewrite`，
+hostRequirements 是 `os-native + external-process + recursive-enumeration + file-io`，
+证据那条点名 `@xiranite/czkawka-native`。但按本仓定的基线（tag `noxide` = `ccf465fe`）实测：
+
+- `find <noxide> -iname '*kisaki*'` ⇒ **零命中**；`packages/nodes/` 里没有 `kisaki/src/core.ts`；
+- 它在**当前工作树**里有界面（`Xiranite/src/nodes/kisaki` 38 个文件），import 全是 `../<兄弟>`，
+  也就是靠 `src/nodes/shared` 那批视图，不是靠一个自己的 TS 内核；
+- noxide 里有 `packages/czkawka-native`：`package.json#name = @xiranite/czkawka-native`，
+  源码只有 `src/{index,native-asset,compatibility}.ts` + `scripts/{build-native,generate-binding-dts}.ts`
+  + `generated/binding.generated.d.ts`，**树内没有一份 `.rs`**（`find packages/czkawka-native -name '*.rs'` 零命中），
+  而且它的构建脚本是 `bun scripts/...`。
+
+⇒ `kisaki` 的引擎是**外部原生件**（czkawka 那一系），不是 JS/TS 内核：
+按 ADR-0004 的非 JS 内核路线，它需要先有一份自己的 ADR 裁定"引擎从哪来、按哪个平台预编译、
+经 `ctx.subprocess` 还是 FFI 装载"，才能进批次；在那之前把它排进搬运队列会做出一个假包
+（没有引擎的壳）。另外它原生的构建入口依赖 `bun`，而我们刚在终端面把裸 `bun` 的依赖整块拆掉了
+（`docs/stages/step-4-terminal-port.md` §八），这条也得在同一份 ADR 里交代。
+
+其余 9 个批次 H 节点都有真 TS 内核（`mvz` 280 / `cleanf` 353 / `classf` 377 / `smartzip` 455 /
+`bandia` 552 / `enginev` 596 / `bitv` 683 / `gifu` 781 / `repacku` 894 行），
+其中前四个已派子代理在搬。
