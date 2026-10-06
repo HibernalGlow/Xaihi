@@ -123,6 +123,30 @@ export function judgeMissingFlags(upstreamFlags, oursFlags) {
   })
 }
 
+/**
+ * 申报差量怎么参与判决——**带过期的放行**，不是白名单。
+ *
+ * 台账（`docs/port/cli-parity-deltas.json`）里每条申报必须写明"为什么现在缺"和"什么时候必须回来"。
+ * 尺这边做三件事：
+ *  1. 申报的开关**仍然缺** ⇒ 放行，但把这条原因打进输出（绿不代表没人看过它）；
+ *  2. 申报的开关里有任一已经出现在屏上 ⇒ `stale`，判红："那条腿接上了，把申报从台账删掉"——
+ *     放行不许变成永久豁免，否则台账会替下一个改名字的人掩盖真相；
+ *  3. 台账里写了一个当前不存在的包 ⇒ 也算 stale，判红（名单过期本身就是一种错）。
+ */
+export function judgeDeclared(missing, entry, knownPackages) {
+  if (entry === undefined) return { declared: [], stale: [] }
+  if (!knownPackages.has(entry.id)) {
+    return { declared: [], stale: [`台账里的 ${entry.id} 已经不存在（或从来没有）⇒ 这条申报是过期名单，删掉它`] }
+  }
+  const stillMissingNames = entry.flags ?? []
+  const resolved = stillMissingNames.filter((flag) => missing.includes(flag))
+  const stale = stillMissingNames.filter((flag) => !missing.includes(flag))
+  if (resolved.length !== stillMissingNames.length) {
+    return { declared: resolved, stale: [...new Set(stale.map((f) => `申报的 --${f} 现在已经在屏上 ⇒ 这条申报过期了，从台账里删掉（或改成只剩还缺的那些）`))] }
+  }
+  return { declared: resolved, stale: [] }
+}
+
 /** 同参数跑两遍必须一字不差。 */
 export function judgeDeterminism(first, second) {
   if (first === second) return ''
@@ -211,6 +235,10 @@ if (process.argv.includes('--self-check')) {
     { name: '从一屏文本里取长开关名', got: Array.from(flagsFromHelp('Options:\n  --source <value>  Inline\n  --json            Print JSON\n')).sort(), expect: ['json', 'source'] },
     { name: '从上游源码里取长开关名', got: Array.from(flagsFromUpstream("const a = ['--source','--preserveOrder'];\nif (flag === '--json') x")).sort(), expect: ['json', 'preserveOrder', 'source'] },
     { name: '模板串留下的光秃 `--no-` 不算开关名（classf 的第一条假阳性）', got: Array.from(flagsFromUpstream("const neg = `--no-${flag}`;\nconst real = ['--target'];")).sort(), expect: ['target'] },
+    { name: '申报三条都还缺 ⇒ declared 收下全部、stale 为空', got: judgeDeclared(['renderer', 'lang', 'theme'], { id: 'gifu', flags: ['renderer', 'lang', 'theme'] }, new Set(['gifu'])).declared, expect: ['renderer', 'lang', 'theme'] },
+    { name: '申报里有一条已经回到屏上 ⇒ 必须判过期（放行不是永久的）', got: judgeDeclared(['lang', 'theme'], { id: 'gifu', flags: ['renderer', 'lang', 'theme'] }, new Set(['gifu'])).stale, expect: ['申报的 --renderer 现在已经在屏上 ⇒ 这条申报过期了，从台账里删掉（或改成只剩还缺的那些）'] },
+    { name: '台账写了不存在的包 ⇒ 也算过期名单', got: judgeDeclared([], { id: 'nosuchpkg', flags: ['x'] }, new Set(['gifu'])).stale, expect: ['台账里的 nosuchpkg 已经不存在（或从来没有）⇒ 这条申报是过期名单，删掉它'] },
+    { name: '没有申报的包 ⇒ declared 空、缺项照报', got: [JSON.stringify(judgeDeclared(['foo'], undefined, new Set(['gifu'])))], expect: ['{"declared":[],"stale":[]}'] },
     { name: '内联开关：文件类与 json/help 不许进来，数值类给 1', got: inlineFlagsFromOptions('Options:\n  --source <value>   Inline source\n  --sourceFile <path> File\n  --limit <number>   Max\n  --json             Print JSON\n  --help, -h         Help\n'), expect: ['--source=alpha', '--limit=1'] },
     { name: '屏上只有文件类开关 ⇒ 退化成裸命令（空表，不是假跑）', got: inlineFlagsFromOptions('Options:\n  --inputFile <path>\n  --outputFile <path>\n'), expect: [] },
     { name: '预演布尔：dryRun/preview 可以主动开，force/yes 不行', got: previewFlagsFromOptions('Options:\n  --dryRun   Preview only\n  --force    Overwrite\n  --yes      Confirm\n  --preview  Show plan\n'), expect: ['--dryRun', '--preview'] },
@@ -251,6 +279,11 @@ const ids = readdirSync(PLUGINS, { withFileTypes: true }).filter((e) => e.isDire
 
 const { dangerFor } = await import('../packages/node-sdk/lib/index.js')
 
+/** 申报差量台账：放行带过期，不是白名单。文件缺失时按"没有申报"处理，尺照样把缺项报红。 */
+const parityDeltas = existsSync(join(ROOT, 'docs/port/cli-parity-deltas.json'))
+  ? JSON.parse(readFileSync(join(ROOT, 'docs/port/cli-parity-deltas.json'), 'utf8'))
+  : { entries: [] }
+
 const failures = []
 const notes = []
 let facesChecked = 0
@@ -284,8 +317,15 @@ for (const id of ids) {
   for (const one of allScreens.values()) for (const flag of flagsFromHelp(one)) ourFlags.add(flag)
   const upstreamFlags = flagsFromUpstream(readFileSync(baselineCli, 'utf8'))
   const missing = judgeMissingFlags(upstreamFlags, ourFlags)
-  if (missing.length > 0) missingList.push(`${id}: 上游那 ${missing.length} 条开关在**任何一屏**都没打出来 ⇒ ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ' …' : ''}`
-    + `\n      这条只证"屏上看不见"，不证"代码里没有"——classf 实测就是源码里写着、屏上不打（可发现性缺口），gifu 才是源码里真没有。`)
+  const declaredVerdict = judgeDeclared(missing, parityDeltas.entries.find((e) => e.id === id), new Set(ids))
+  for (const staleLine of declaredVerdict.stale) failures.push(`${id}: ${staleLine}`)
+  if (missing.length > 0 && declaredVerdict.declared.length !== missing.length) {
+    const shown = missing.filter((f) => !declaredVerdict.declared.includes(f))
+    missingList.push(`${id}: 上游那 ${shown.length} 条开关在**任何一屏**都没打出来 ⇒ ${shown.slice(0, 8).join(', ')}${shown.length > 8 ? ' …' : ''}`
+      + `\n      这条只证"屏上看不见"，不证"代码里没有"——classf 实测就是源码里写着、屏上不打（已归口成别名），gifu 那三条是引导流的开关（见台账）。`)
+  } else if (declaredVerdict.declared.length > 0) {
+    notes.push(`${id}: ${declaredVerdict.declared.length} 条按台账申报放行 ⇒ ${declaredVerdict.declared.join(', ')}（解锁条件写在 docs/port/cli-parity-deltas.json，开关回到屏上这条申报就过期）`)
+  }
 
   const candidates = subs.filter((s) => s !== 'guided' && s !== 'gd' && s !== 'ui')
   if (candidates.length === 0) {

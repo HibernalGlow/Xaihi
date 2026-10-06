@@ -1,0 +1,17 @@
+{
+  "_comment": "check-cli-parity 的申报差量台账。形状与 docs/port/verbatim-deltas.json 同一套纪律：一条申报必须写清'为什么现在缺'与'什么时候必须消失'，尺在缺项被补齐之后要把这条申报判成 stale 并红——不许把放行写成永久白名单。",
+  "entries": [
+    {
+      "id": "gifu",
+      "flags": ["renderer", "lang", "theme"],
+      "reason": "这三条在上游不是业务参数，是终端引导流自己的选择器：基线 packages/nodes/gifu/src/cli.ts:163-187 把 renderer/language/theme 交给 runGuide（TerminalInteractionDefinition 那条路），本包对应的 ui / gd / guided 三个子命令**都标着（未接）**——缺的是那条腿，不是这三个开关。出处：noxide ccf465fe，现读。",
+      "unlock": "TUI 那条腿接上（@opentui 装得上 + ui/gd 从'手写拒绝'换成'探测→可见退化→探测结论上屏'，任务 #12）之后，这三条开关必须回到屏上；回不来就是真缺口。",
+      "declaredAt": "2026-10-07",
+      "evidence": {
+        "upstreamLines": "packages/nodes/gifu/src/cli.ts:163,164,165,172,185,186,187",
+        "ourScreen": "xgifu --help ⇒ ui / gd / guided 三条都带（未接）",
+        "gaugeRun": "node scripts/check-cli-parity.mjs：27 个包 / 26 张表 / 真跑 7 条 / 红 1 条（gifu renderer, lang, theme）"
+      }
+    }
+  ]
+}

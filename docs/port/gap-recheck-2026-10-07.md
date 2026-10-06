@@ -372,3 +372,35 @@ $ pnpm check:cliregistry → rc=0   $ pnpm check:cliface → rc=0    # 没把邻
 光秃秃的 `--no-`，看着像"上游有个叫 `no-` 的开关"（classf 因此剩 1 条红）。加了夹具盯住它之后，
 **classf 归零，只剩 gifu 的 `renderer`/`lang`/`theme` 三条**（那三条在我们源码里一条都搜不到，
 是真没接，留给 gifu 那一档归口）。现跑：27 个包、26 张表、真跑 7 条、红 1 条（gifu）。
+
+## 又又追加：gifu 那三条归口成"带过期的申报"，不是白名单
+
+现读上游 `packages/nodes/gifu/src/cli.ts:163-187`：`renderer` / `language` / `theme` 是交给
+`runGuide(...)` 的**终端引导流选择器**（`defaults.interactionRenderer`、`resolveTerminalLanguage`、
+`listTerminalThemes()`），不是业务参数。而我们那屏上 `ui` / `gd` / `guided` 三条**全标着（未接）**
+⇒ 缺的是那条腿，不是这三个开关；解锁条件是 TUI 接上（`@opentui` 装得上 + 探测→可见退化那条改动），
+届时这三条必须回到屏上。
+
+落点是新台账 `docs/port/cli-parity-deltas.json`，判决函数 `judgeDeclared` 有三条规矩，
+都配了夹具（`--self-check` 现在 **23 条夹具 rc=0**）：
+
+1. 申报的开关**仍然缺** ⇒ 放行，但必须在输出里点名放行的是哪几条（绿不是沉默）；
+2. 申报里有任何一条**已经回到屏上** ⇒ 判 `stale` 并红："这条申报过期了，从台账里删掉"；
+3. 台账里写了当前不存在的包 ⇒ 也算过期名单，红（名单漂了本身就是一种错）。
+
+**第 2 条在真路径上验过，不只是夹具**：临时往台账里塞一条申报 classf 的 `--target`/`--items`
+（这两条本轮刚做成别名、现在**在屏上**），尺立刻红两条并点名过期；把台账复原（逐字节比过 identical、
+`entries: 1`）之后再跑就是 rc=0：
+
+```
+CONTROL_RC=1
+  × classf: classf: 申报的 --target 现在已经在屏上 ⇒ 这条申报过期了，从台账里删掉（或改成只剩还缺的那些）
+  × classf: classf: 申报的 --items 现在已经在屏上 ⇒ …
+=== 复原后 ===
+check-cli-parity: 27 个包，比了 26 张开关表，真跑了 7 条命令；跳过 17 个、3 个包每条动作都被契约判成危险。
+  · gifu: 3 条按台账申报放行 ⇒ renderer, lang, theme（解锁条件写在 docs/port/cli-parity-deltas.json，开关回到屏上这条申报就过期）
+FINAL_RC=0
+```
+
+⇒ 这条尺现在**可以进链**了：全量 rc=0、红项为零、申报项在输出里看得见、并且申报会自己过期。
+接线仍留作下一步的一次独立改动（要动根 `package.json`，那份此刻在别人手上）。
