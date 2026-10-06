@@ -116,6 +116,26 @@ const INCLUDE_DIRS = [
   'nodes/formatv',
   'nodes/classq',
   'nodes/linku',
+  // 批次 F/G/H 剩下的 15 个界面。上一条注释里那个前提今天消掉了：
+  // `entry.ts` 要写的 `NODE_MANIFESTS.<id>` 需要先有**已提交**的 `package.json#xaihi.node`，
+  // 而现读台账差集是"28 个 retain-rewrite 里本仓已成包 27"（只缺 kisaki，它上游本就没有 UI 目录），
+  // 所以这 15 份的清单条目都取得到，不再需要"等包提交"这一档。
+  // 名单按 28 那份台账给，不按"能编"筛 —— 编不过的是缺口，得被构建报出来而不是被名单挡在外面。
+  'nodes/nameu',
+  'nodes/rawfilter',
+  'nodes/encodeb',
+  'nodes/migratef',
+  'nodes/marku',
+  'nodes/trename',
+  'nodes/bandia',
+  'nodes/bitv',
+  'nodes/classf',
+  'nodes/cleanf',
+  'nodes/enginev',
+  'nodes/gifu',
+  'nodes/mvz',
+  'nodes/repacku',
+  'nodes/smartzip',
   'lib',
   'hooks',
   'store',

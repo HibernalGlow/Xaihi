@@ -133,6 +133,81 @@
       "removed": true,
       "upstreamSha": null,
       "ours": null
+    },
+    "nodes/nameu/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "6ba99bacb3f2c9969204ca17bbec616911269dffc35953a5f691a4490344c844"
+    },
+    "nodes/rawfilter/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "9f6a8d267195726618b1a49eeb1ecfb5b6c11d16c731a07f552dde0a845d90ab"
+    },
+    "nodes/encodeb/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "f0ceb92f5bfc027ba83bfb9327e3921176c0e83857e92488abc6570de81451bb"
+    },
+    "nodes/migratef/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "6f21f53f55a8add2866791802fb215df9d6f613a2fb766114c6c5eb934a6ed72"
+    },
+    "nodes/marku/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "411cd4e9d382d486baa89b2d9a57d325304d8c93b3f00c9118457e47f8d855e6"
+    },
+    "nodes/trename/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "ee5da81ff9526c0bba8a046e4985737b7d860e309f26e5b7328f199837fb87fb"
+    },
+    "nodes/bandia/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "ad7543d5adfd5a2c1adf2f98461ce29e9e16762fd3be6a8908cc5b0bf0a84cb6"
+    },
+    "nodes/bitv/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "3ac394608bde3f47231118eafd66623fb3b3d032436a941ba4165058f18a180a"
+    },
+    "nodes/classf/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "b13cda24f0d4b3ce57baca9ebb06faf33b227a9b8751fc05e909f842b414b5f0"
+    },
+    "nodes/cleanf/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "a85ec7976c9d1a59d9e751d005a5adb657f52803767fe53c50371b5b5e452d62"
+    },
+    "nodes/enginev/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "89b7a874748d13275b7fe6d35f3ec9f5b6da19dfbe4c12539cac5ace12d32b03"
+    },
+    "nodes/gifu/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "520e9970648f5f69c417217b89a508b29cd5a3c00c94d2ae7c6a263ebbe29961"
+    },
+    "nodes/mvz/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "9aa996a7d10d3c19d2113698bf1bb38c501da5c92cc8a45a006056ea16174cd1"
+    },
+    "nodes/repacku/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "53397bcf7b638ee05a0097226a460b4c18c00bf803df43c69eec1ee7409e64ad"
+    },
+    "nodes/smartzip/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包或节点 barrel（ADR-0007 决定 4：面里能跑节点逻辑就是协议之外的第二个执行宿主）。上游那份 import @xiranite/contract 与 @xiranite/node-<id> 的 {core, def}，本仓都解析不到也不需要。",
+      "upstreamSha": null,
+      "ours": "3e596587fd6a6b0c3634adc3195ed11a25d9e3123feeb5b2f4164de861e37974"
     }
   }
 }

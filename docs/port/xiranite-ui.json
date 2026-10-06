@@ -485,7 +485,9 @@
       "sha256": "6f345c2cf7ba01b175fe5b978cac761570d919ea50714f288b14c6983b627839",
       "bytes": 11937,
       "dest": "packages/ui-host/src/components/modules/packageModules.generated.ts",
-      "state": "modified"
+      "state": "modified",
+      "localDelta": "注册表在本仓由 scripts/gen-node-registry.mjs 生成（ADR-0007 决定 6 第 2 条：注册是构建期的事）。上游那份是 28 个节点的全集，其中每条 `@/nodes/<id>/entry` 与 `@xiranite/node-<id>/help` 都是静态边，没搬的节点会让整个 bundle 编不出来（实测探针构建 29 条 RESOLVE_ERROR），所以必须与实际存在的节点取交集，且帮助改为从嵌进来的清单推导。",
+      "removed": false
     },
     "components/modules/registry.test.ts": {
       "sha256": "e54bd951bf921f7ea133bcf497ca7cec188ad415dd05c50109be328b7b26ff22",
@@ -1797,7 +1799,9 @@
       "sha256": "3a3fa16b665f4eff602085f1b8f822ce6a56c4fcbce8de7a5496fd66474ac8be",
       "bytes": 17215,
       "dest": "packages/ui-host/src/components/views/settings/settingsNavigation.ts",
-      "state": "modified"
+      "state": "modified",
+      "localDelta": "ADR-0013：`src/config/webview2.ts` 与 `Webview2ExperimentsPanel.tsx` 已登记为\"有意不要\"（removed: true），但这份设置搜索索引还留着指向它们的三行（`import { WEBVIEW2_FLAG_CATALOG }` 与两条生成项），在文档构建里就是 `Cannot find module \"@/config/webview2\"`。摘掉这三行是完成那一次删除，不是新决定：本仓没有可设的 webview2 面，被摘掉的只是搜索索引里的两条条目。",
+      "removed": false
     },
     "components/views/settings/themeMeta.ts": {
       "sha256": "8d0d36dd0c14ee895f27cadbc1e1ffd9fe4f6d6ba4a75df1a5eb4e8d7d84db20",
@@ -2851,6 +2855,250 @@
       "dest": "packages/ui-host/src/lib/xiraniteApiClient.ts",
       "state": "modified"
     },
+    "nodes/bandia/Component.test.tsx": {
+      "sha256": "8ba029418d2ac27315bc0c3b855ba35756a73d728dd4d40a78b7b7c007fd731a",
+      "bytes": 8526,
+      "dest": "packages/ui-host/src/nodes/bandia/Component.test.tsx",
+      "state": "head"
+    },
+    "nodes/bandia/Component.tsx": {
+      "sha256": "6b2c94b9785def04f45f48427cb0c9d6ecd1789b4960918b47e0a726101e3144",
+      "bytes": 34335,
+      "dest": "packages/ui-host/src/nodes/bandia/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/bandia/ResultPanels.tsx": {
+      "sha256": "2a0fccf62a1e412fd641352c7a29b81195ebe67f98c5795df67ff2d2e68b6d0e",
+      "bytes": 15454,
+      "dest": "packages/ui-host/src/nodes/bandia/ResultPanels.tsx",
+      "state": "head"
+    },
+    "nodes/bandia/constants.ts": {
+      "sha256": "8a21d83ac2f7ef33bae7fdd26bfb7589dbc55ccd85215628fb649b5149362dce",
+      "bytes": 967,
+      "dest": "packages/ui-host/src/nodes/bandia/constants.ts",
+      "state": "head"
+    },
+    "nodes/bandia/controls.tsx": {
+      "sha256": "6210573b09cf998a76a2aff7f22888342bcf0816d9c3034075842c5e591ebc5c",
+      "bytes": 17903,
+      "dest": "packages/ui-host/src/nodes/bandia/controls.tsx",
+      "state": "head"
+    },
+    "nodes/bandia/entry.ts": {
+      "sha256": "fb3c27b5f47608f0e1d3b4db95a3ebc012ca6dfc9abf8d2392991fb70dcac383",
+      "bytes": 1163,
+      "dest": "packages/ui-host/src/nodes/bandia/entry.ts",
+      "state": "head"
+    },
+    "nodes/bandia/types.ts": {
+      "sha256": "2df2005aabaf2715198f1265c13c1f04e13a494fe42a79c4279a72dbf950e10a",
+      "bytes": 1167,
+      "dest": "packages/ui-host/src/nodes/bandia/types.ts",
+      "state": "head"
+    },
+    "nodes/bitv/Component.test.tsx": {
+      "sha256": "04976c1a3f92470154a099b4520a0c19f5824ac436c4a3b8bc7ff34e3895ce77",
+      "bytes": 5521,
+      "dest": "packages/ui-host/src/nodes/bitv/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/bitv/Component.tsx": {
+      "sha256": "186f899951b64e5a6187dfa8d76f9c1621a81ebc30760a20b679fa1d554bfa65",
+      "bytes": 27485,
+      "dest": "packages/ui-host/src/nodes/bitv/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/bitv/constants.ts": {
+      "sha256": "64248131a92f701079517e59bd4687dc9972fe217e670e92cb7c6d37f24c101b",
+      "bytes": 1308,
+      "dest": "packages/ui-host/src/nodes/bitv/constants.ts",
+      "state": "head"
+    },
+    "nodes/bitv/entry.ts": {
+      "sha256": "72bab3238071cb2c86a6a3668fd689d8356cd9c68b34d96ce8c39af81963ece7",
+      "bytes": 1253,
+      "dest": "packages/ui-host/src/nodes/bitv/entry.ts",
+      "state": "head"
+    },
+    "nodes/bitv/types.ts": {
+      "sha256": "f0e3f81efcce19d1c15cd308b916bd99a23dd3847670b8f84f3c7175e51ea9d6",
+      "bytes": 744,
+      "dest": "packages/ui-host/src/nodes/bitv/types.ts",
+      "state": "head"
+    },
+    "nodes/classf/BlacklistKeywordsEditor.tsx": {
+      "sha256": "ada02e2ba0f65d0e7b89f14543bd73aa7c05ac024fa3272ea9c52a19ff3a7619",
+      "bytes": 5927,
+      "dest": "packages/ui-host/src/nodes/classf/BlacklistKeywordsEditor.tsx",
+      "state": "modified"
+    },
+    "nodes/classf/ClassfBlacklistQuickAddDialog.tsx": {
+      "sha256": "e28424e3a8a188fc7554c95c4459610d297380cc4686209a0013a4b1b3ea6e44",
+      "bytes": 5543,
+      "dest": "packages/ui-host/src/nodes/classf/ClassfBlacklistQuickAddDialog.tsx",
+      "state": "modified"
+    },
+    "nodes/classf/ClassfDeletionHistoryDialog.tsx": {
+      "sha256": "7858dcc0a299c620cb239068312b726899dbaaa6d6d4d92cc3bfe2bb75e1d005",
+      "bytes": 6067,
+      "dest": "packages/ui-host/src/nodes/classf/ClassfDeletionHistoryDialog.tsx",
+      "state": "head"
+    },
+    "nodes/classf/ClassfPlanTree.tsx": {
+      "sha256": "ff9bf58112d2e3ac513ce8884e04752f5d3d0594b389046ea1c9a7ebcdb6e07c",
+      "bytes": 7953,
+      "dest": "packages/ui-host/src/nodes/classf/ClassfPlanTree.tsx",
+      "state": "head"
+    },
+    "nodes/classf/ClassfQueueControls.tsx": {
+      "sha256": "7d79df1af30fbadd77723fee276dc328055af757497565c8158b9ebcb69fab29",
+      "bytes": 4111,
+      "dest": "packages/ui-host/src/nodes/classf/ClassfQueueControls.tsx",
+      "state": "head"
+    },
+    "nodes/classf/Component.test.tsx": {
+      "sha256": "5304f817277e966e7429eff5a16e27e68cb2f19f44b1eeac01afd46d6926d9de",
+      "bytes": 12890,
+      "dest": "packages/ui-host/src/nodes/classf/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/classf/Component.tsx": {
+      "sha256": "ec9865ca8120cb5b52855bc3ecbdda491ce03435df944e89eed71a36834d3acf",
+      "bytes": 47950,
+      "dest": "packages/ui-host/src/nodes/classf/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/classf/constants.ts": {
+      "sha256": "bca4008e3901a7fa4d9cb366dff910ecd9bb70503b516c1921797450cc22c828",
+      "bytes": 2445,
+      "dest": "packages/ui-host/src/nodes/classf/constants.ts",
+      "state": "head"
+    },
+    "nodes/classf/entry.ts": {
+      "sha256": "e03e32a94d5e42696af66fb83f27b15a8b093e6fe82d17c588d2b5a11be7117d",
+      "bytes": 1267,
+      "dest": "packages/ui-host/src/nodes/classf/entry.ts",
+      "state": "head"
+    },
+    "nodes/classf/planAnalysis.ts": {
+      "sha256": "523a823af0cbdacc88b1c42b7119319d7375ccaba040249e5e4ec0f2b73289f3",
+      "bytes": 1666,
+      "dest": "packages/ui-host/src/nodes/classf/planAnalysis.ts",
+      "state": "head"
+    },
+    "nodes/classf/types.ts": {
+      "sha256": "41e3aa5f9e353bbc58f2752cfc1a7ef279302af4182ae1b9d2eadce33bcfb201",
+      "bytes": 1972,
+      "dest": "packages/ui-host/src/nodes/classf/types.ts",
+      "state": "head"
+    },
+    "nodes/classq/Component.test.tsx": {
+      "sha256": "d0e92bdc9d1290f582067bc4ef5ff356a786c4b914d91764b141417ee783065f",
+      "bytes": 13044,
+      "dest": "packages/ui-host/src/nodes/classq/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/classq/Component.tsx": {
+      "sha256": "46c740d6687173ed2fe81564c887c1aebc6fe60bd757a8cbf7d210859f46317e",
+      "bytes": 57926,
+      "dest": "packages/ui-host/src/nodes/classq/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/classq/constants.ts": {
+      "sha256": "fe179f0d805f4edbbcbec9904b5ebd650e6b59016d6ffc872219134b0c284663",
+      "bytes": 1335,
+      "dest": "packages/ui-host/src/nodes/classq/constants.ts",
+      "state": "head"
+    },
+    "nodes/classq/entry.ts": {
+      "sha256": "6498040f3daf0645bc2ed40b61633b71f6c4ca2004d1e8da144e964136a9183f",
+      "bytes": 1266,
+      "dest": "packages/ui-host/src/nodes/classq/entry.ts",
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition，本仓没有那个包名。",
+      "removed": false
+    },
+    "nodes/classq/types.ts": {
+      "sha256": "f44fe8e742ae26fbb38a41e97dee5ebd6a27266669a9d3e3c7500cc2db9915e1",
+      "bytes": 911,
+      "dest": "packages/ui-host/src/nodes/classq/types.ts",
+      "state": "head"
+    },
+    "nodes/cleanf/Component.test.tsx": {
+      "sha256": "454117d3f1898fee70b72d1fc987dd34844d683ae30899d74645f32a8a8da1f8",
+      "bytes": 8745,
+      "dest": "packages/ui-host/src/nodes/cleanf/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/cleanf/Component.tsx": {
+      "sha256": "13e5ee3c63d59589e35ecc539f1da1e1c0d54c28e90434d5265992a27122a05a",
+      "bytes": 29785,
+      "dest": "packages/ui-host/src/nodes/cleanf/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/cleanf/constants.ts": {
+      "sha256": "13bf94c5e6a710d1eac4bb3b6ad29660d4f78a3eeadfb24f4e81b1e9ba0ead50",
+      "bytes": 1529,
+      "dest": "packages/ui-host/src/nodes/cleanf/constants.ts",
+      "state": "head"
+    },
+    "nodes/cleanf/controls.tsx": {
+      "sha256": "2fecf5046e0c2837167156775e8d3d861ccfc7f4f1b0cf5debf64b5f48743c7a",
+      "bytes": 14104,
+      "dest": "packages/ui-host/src/nodes/cleanf/controls.tsx",
+      "state": "head"
+    },
+    "nodes/cleanf/entry.ts": {
+      "sha256": "4bc6b4a054c76c61eed48fcc2497a7d700e2390f2627adea65aad1f03b84956e",
+      "bytes": 1162,
+      "dest": "packages/ui-host/src/nodes/cleanf/entry.ts",
+      "state": "head"
+    },
+    "nodes/cleanf/types.ts": {
+      "sha256": "0b1c4e8ebc0e6a48c5e3e9f21a72716c3f244aa77d64ff7b392c5db18fbac68f",
+      "bytes": 758,
+      "dest": "packages/ui-host/src/nodes/cleanf/types.ts",
+      "state": "head"
+    },
+    "nodes/crashu/Component.test.tsx": {
+      "sha256": "88e7cc9c345e239a1284acac9bd0a5dd1abfeef2e6aed47f9a20490a97e7ca03",
+      "bytes": 9669,
+      "dest": "packages/ui-host/src/nodes/crashu/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/crashu/Component.tsx": {
+      "sha256": "556f9157f8d4869354b5f7e5ee99488fe1cdc558177905a5a5a38bd84019d09b",
+      "bytes": 32684,
+      "dest": "packages/ui-host/src/nodes/crashu/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/crashu/constants.ts": {
+      "sha256": "d5eeb709b6bb2f7eeeb777dd5e9ae0a0c4adb3714d5f0d0d70816d3ad1b147b9",
+      "bytes": 1868,
+      "dest": "packages/ui-host/src/nodes/crashu/constants.ts",
+      "state": "head"
+    },
+    "nodes/crashu/controls.tsx": {
+      "sha256": "9f363ab88c1349fd62ee3865446fba323e87ee1a32bbbb65898274982dd3c588",
+      "bytes": 28140,
+      "dest": "packages/ui-host/src/nodes/crashu/controls.tsx",
+      "state": "head"
+    },
+    "nodes/crashu/entry.ts": {
+      "sha256": "de5ce40edd7fad0c758405d8189d21bc687cb04bf40868dca25269206e384694",
+      "bytes": 1163,
+      "dest": "packages/ui-host/src/nodes/crashu/entry.ts",
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition，本仓没有那个包名。",
+      "removed": false
+    },
+    "nodes/crashu/types.ts": {
+      "sha256": "a8fd23fd6804061112161d5826b6120da1278710ccea7b1b7db7e2c80fecca96",
+      "bytes": 1079,
+      "dest": "packages/ui-host/src/nodes/crashu/types.ts",
+      "state": "head"
+    },
     "nodes/dissolvef/Component.host.test.tsx": {
       "sha256": "518c8f944c616b896d18f24481fc07f96cfd023e467b39a8a9eda12da82df27e",
       "bytes": 11718,
@@ -2885,12 +3133,104 @@
       "sha256": "04bf2d9e3d390371b08c805a4eca670e6a9d826635286d90d4aff9b1b8dfc2bc",
       "bytes": 1032,
       "dest": "packages/ui-host/src/nodes/dissolvef/entry.ts",
-      "state": "head"
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>，在本仓解析不到。",
+      "removed": false
     },
     "nodes/dissolvef/types.ts": {
       "sha256": "b910cc17be46827cff51ad87fc2825401759f36c7b54f279a428868d7d8feb4c",
       "bytes": 1350,
       "dest": "packages/ui-host/src/nodes/dissolvef/types.ts",
+      "state": "head"
+    },
+    "nodes/encodeb/Component.test.tsx": {
+      "sha256": "184c203d34a732f341bd7aae148e7f65fc6ec1d01b741d29c9a4913576f6f140",
+      "bytes": 9315,
+      "dest": "packages/ui-host/src/nodes/encodeb/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/encodeb/Component.tsx": {
+      "sha256": "451a9da4adce03ae170fbc49e2ccdac0258c23768043893d4449d426e6f09e61",
+      "bytes": 32690,
+      "dest": "packages/ui-host/src/nodes/encodeb/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/encodeb/constants.ts": {
+      "sha256": "28a33d82b4db62205c58f5aaa84153a8db2a4ced2e93b08b1e0539c452ef36c6",
+      "bytes": 4409,
+      "dest": "packages/ui-host/src/nodes/encodeb/constants.ts",
+      "state": "head"
+    },
+    "nodes/encodeb/controls.tsx": {
+      "sha256": "6176231497ff541ba878e60ffc3dcbaf4436df385c4ae96a33dea15af1d97615",
+      "bytes": 12352,
+      "dest": "packages/ui-host/src/nodes/encodeb/controls.tsx",
+      "state": "head"
+    },
+    "nodes/encodeb/entry.ts": {
+      "sha256": "a616276e8698daac3d0125330565a97f6c07be1b70f240fd40d872c5fd0d93c7",
+      "bytes": 989,
+      "dest": "packages/ui-host/src/nodes/encodeb/entry.ts",
+      "state": "head"
+    },
+    "nodes/encodeb/model.ts": {
+      "sha256": "289e0de066cb859b278f644d5dfd99364d295f7c708efa457680e18d6eade447",
+      "bytes": 1047,
+      "dest": "packages/ui-host/src/nodes/encodeb/model.ts",
+      "state": "untracked"
+    },
+    "nodes/encodeb/types.ts": {
+      "sha256": "f07320ac33c2d6ed4aa46cdbaeaca0db0bfbefb20b0aa73b765ea19fdee39d0a",
+      "bytes": 1199,
+      "dest": "packages/ui-host/src/nodes/encodeb/types.ts",
+      "state": "head"
+    },
+    "nodes/enginev/Component.test.tsx": {
+      "sha256": "d6116c8b5308570fd967a377dd8a520075ad0657c65d31a5f11e312e5b780c6e",
+      "bytes": 21751,
+      "dest": "packages/ui-host/src/nodes/enginev/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/enginev/Component.tsx": {
+      "sha256": "7f49f4340409b2802c4323790c0dde7a9dfe8159c5e65d7ab991d33c70556074",
+      "bytes": 47829,
+      "dest": "packages/ui-host/src/nodes/enginev/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/enginev/ResultPanels.tsx": {
+      "sha256": "d5d68a80197eeecd53016ee6e7d5761f74f85490df25fbe89b30a093526500aa",
+      "bytes": 5018,
+      "dest": "packages/ui-host/src/nodes/enginev/ResultPanels.tsx",
+      "state": "head"
+    },
+    "nodes/enginev/WallpaperGallery.tsx": {
+      "sha256": "bac360bbfd5584bee48d3e42b2a4cdc55c2fdef62f388e4061ea571280084fe0",
+      "bytes": 7889,
+      "dest": "packages/ui-host/src/nodes/enginev/WallpaperGallery.tsx",
+      "state": "head"
+    },
+    "nodes/enginev/constants.ts": {
+      "sha256": "7e22e9562d282014d7becc7b32e398d6a6afce52f801b9c77f881666e7836b63",
+      "bytes": 1538,
+      "dest": "packages/ui-host/src/nodes/enginev/constants.ts",
+      "state": "head"
+    },
+    "nodes/enginev/controls.tsx": {
+      "sha256": "400f41c4de4c0ce5ad2240bd8ebd92aebb84451ab2888413dbf3ca28446514f5",
+      "bytes": 19377,
+      "dest": "packages/ui-host/src/nodes/enginev/controls.tsx",
+      "state": "modified"
+    },
+    "nodes/enginev/entry.ts": {
+      "sha256": "4676526345e7210c35707c36670e0682575297a6a095bd8616a4956e3c914ead",
+      "bytes": 3248,
+      "dest": "packages/ui-host/src/nodes/enginev/entry.ts",
+      "state": "head"
+    },
+    "nodes/enginev/types.ts": {
+      "sha256": "57e0d5f20a17ea3aab6a0edaf6b3dc607fa9a094dfd787f67a49e93e011bda07",
+      "bytes": 1359,
+      "dest": "packages/ui-host/src/nodes/enginev/types.ts",
       "state": "head"
     },
     "nodes/findz/ArchiveTable.tsx": {
@@ -2927,7 +3267,9 @@
       "sha256": "8bd614787332dd33d15abfc0a907732727321c13e3f02107bb40dca7dc77db2e",
       "bytes": 1928,
       "dest": "packages/ui-host/src/nodes/findz/entry.ts",
-      "state": "head"
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>，在本仓解析不到。",
+      "removed": false
     },
     "nodes/findz/format.ts": {
       "sha256": "70531b1088b9af406b286e611d39d09a277534882271fe598236c9f85c305069",
@@ -2959,6 +3301,86 @@
       "dest": "packages/ui-host/src/nodes/findz/workspace-layout.ts",
       "state": "head"
     },
+    "nodes/formatv/Component.test.tsx": {
+      "sha256": "7071291ccc8b5716c4750a80d78f361d77c909e8b229e7270384b63361a6c42e",
+      "bytes": 8576,
+      "dest": "packages/ui-host/src/nodes/formatv/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/formatv/Component.tsx": {
+      "sha256": "395df6e1839b19558493a7cdc37f6e499395f6bd7684297266ce1f7cf1979804",
+      "bytes": 29251,
+      "dest": "packages/ui-host/src/nodes/formatv/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/formatv/constants.ts": {
+      "sha256": "544e9a1aa5d097723271179a8eaa54d366d35fe43303aa265748a028947ec08b",
+      "bytes": 1270,
+      "dest": "packages/ui-host/src/nodes/formatv/constants.ts",
+      "state": "head"
+    },
+    "nodes/formatv/controls.tsx": {
+      "sha256": "0611f821e9b00846586c714638e6fd073560e46c98c4555fbca824d0b3b4a806",
+      "bytes": 12195,
+      "dest": "packages/ui-host/src/nodes/formatv/controls.tsx",
+      "state": "head"
+    },
+    "nodes/formatv/entry.ts": {
+      "sha256": "aa4051f3105ac06a8effffced3521ba62fc1c185216bab29d1351d0175e4c90c",
+      "bytes": 1089,
+      "dest": "packages/ui-host/src/nodes/formatv/entry.ts",
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition，本仓没有那个包名。",
+      "removed": false
+    },
+    "nodes/formatv/types.ts": {
+      "sha256": "5111549d4b00ba7fbad7a6ba2dcd0ec47db29942009ae16e988d60010f30b72e",
+      "bytes": 865,
+      "dest": "packages/ui-host/src/nodes/formatv/types.ts",
+      "state": "head"
+    },
+    "nodes/gifu/Component.test.tsx": {
+      "sha256": "719ed3003b23788d1796e985c3e59fac95b168a2e25a7f6e1e10d3994defc929",
+      "bytes": 9950,
+      "dest": "packages/ui-host/src/nodes/gifu/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/gifu/Component.tsx": {
+      "sha256": "4dedb743752695250204e99a61e46f1538260949c522b92885e8d84c4d9cc726",
+      "bytes": 21219,
+      "dest": "packages/ui-host/src/nodes/gifu/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/gifu/constants.ts": {
+      "sha256": "d9d1395f9fce312a81ad31127db805b5dd813759aa9a2d660faed913763797c5",
+      "bytes": 1504,
+      "dest": "packages/ui-host/src/nodes/gifu/constants.ts",
+      "state": "head"
+    },
+    "nodes/gifu/controls.tsx": {
+      "sha256": "0c6ddf6db76ba30bb17f55067d70626528f91f699c74ac7815aa74d497a9b50c",
+      "bytes": 14316,
+      "dest": "packages/ui-host/src/nodes/gifu/controls.tsx",
+      "state": "head"
+    },
+    "nodes/gifu/entry.ts": {
+      "sha256": "d62ec71e277107fadb0d8afb441bc5c62932a7028b9a21ab82b33d22d1f09c90",
+      "bytes": 1161,
+      "dest": "packages/ui-host/src/nodes/gifu/entry.ts",
+      "state": "head"
+    },
+    "nodes/gifu/results.tsx": {
+      "sha256": "ed087114f7b36ee1ddbc50f125edb5e62a49878faf6ee31f3608f3df8afd9653",
+      "bytes": 7264,
+      "dest": "packages/ui-host/src/nodes/gifu/results.tsx",
+      "state": "head"
+    },
+    "nodes/gifu/types.ts": {
+      "sha256": "e06acba2c1fcd5186b3c5b9f90428fd0e3d78159f3f098f9bc14f76f24b781fd",
+      "bytes": 1008,
+      "dest": "packages/ui-host/src/nodes/gifu/types.ts",
+      "state": "head"
+    },
     "nodes/linedup/Component.host.test.tsx": {
       "sha256": "c525bec8843d28a1033fa1c89aec828214ea3632450812aa4feefd67b3e26c0f",
       "bytes": 11266,
@@ -2987,7 +3409,9 @@
       "sha256": "39431abb014de517645dacf884b9ee435c5150a76b818f31ef4614e593a77141",
       "bytes": 931,
       "dest": "packages/ui-host/src/nodes/linedup/entry.ts",
-      "state": "head"
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>，在本仓解析不到。",
+      "removed": false
     },
     "nodes/linedup/model.ts": {
       "sha256": "846cc137fdf97894d57acda2afac99125d0bf31d273b0ee4d656d9db2b4c0064",
@@ -2999,6 +3423,50 @@
       "sha256": "fcdba933037d31dc094a54ca2b9b98da79fbd3ab4fc399098471895c9c1bba70",
       "bytes": 632,
       "dest": "packages/ui-host/src/nodes/linedup/types.ts",
+      "state": "head"
+    },
+    "nodes/linku/Component.test.tsx": {
+      "sha256": "96972efe685f2974036ec50df1f169e2e205018448d52b286d5dfdcb0ffd1964",
+      "bytes": 11323,
+      "dest": "packages/ui-host/src/nodes/linku/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/linku/Component.tsx": {
+      "sha256": "46d1ea939e604c47bf0fafb5b70bf483a883d6ee14d688895f764cf4d8e9d45c",
+      "bytes": 29526,
+      "dest": "packages/ui-host/src/nodes/linku/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/linku/ResultPanels.tsx": {
+      "sha256": "527cfd7abb838f137f6ad01e6dd1dccd5c21c9032b59fb4643a00fbd45294b86",
+      "bytes": 10948,
+      "dest": "packages/ui-host/src/nodes/linku/ResultPanels.tsx",
+      "state": "head"
+    },
+    "nodes/linku/constants.ts": {
+      "sha256": "4f4367466bb21b9d4fc1d0b9638fdc76f08d2ad2f3fdb61529b78c2b042fb6fa",
+      "bytes": 2051,
+      "dest": "packages/ui-host/src/nodes/linku/constants.ts",
+      "state": "head"
+    },
+    "nodes/linku/controls.tsx": {
+      "sha256": "65a289f585477358b7951229a3595f95991d572303544ef5af41369eb6ceebef",
+      "bytes": 10121,
+      "dest": "packages/ui-host/src/nodes/linku/controls.tsx",
+      "state": "modified"
+    },
+    "nodes/linku/entry.ts": {
+      "sha256": "913c5780ab4e0d75aeeef7302437390d72218186cf51a39904daeb3513245dfe",
+      "bytes": 927,
+      "dest": "packages/ui-host/src/nodes/linku/entry.ts",
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition，本仓没有那个包名。",
+      "removed": false
+    },
+    "nodes/linku/types.ts": {
+      "sha256": "95317e37867a49a767eb420316d55782912370445add04931f1050a05f4ab2d0",
+      "bytes": 835,
+      "dest": "packages/ui-host/src/nodes/linku/types.ts",
       "state": "head"
     },
     "nodes/logx/Component.test.tsx": {
@@ -3023,12 +3491,254 @@
       "sha256": "6be4d59bf078215eac1fa963f0c2e80f6358f306327cc9dbf4271d0f94869d11",
       "bytes": 1004,
       "dest": "packages/ui-host/src/nodes/logx/entry.ts",
-      "state": "head"
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition 与 ./core.js，两者在本仓都解析不到。",
+      "removed": false
     },
     "nodes/logx/types.ts": {
       "sha256": "ff1a911435e54506d1b6eb33247b5c5e45e5a752cfcc4ea67b12aa9aff72ce40",
       "bytes": 578,
       "dest": "packages/ui-host/src/nodes/logx/types.ts",
+      "state": "head"
+    },
+    "nodes/marku/Component.test.tsx": {
+      "sha256": "07f26b35ef3cb5379f785876ccade5ac596e40e705169a00529a28d06c86cab8",
+      "bytes": 8992,
+      "dest": "packages/ui-host/src/nodes/marku/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/marku/Component.tsx": {
+      "sha256": "ee297133a2a2983b8ef38233e7765aa1c30c305be12917a08112a5ce18bf9019",
+      "bytes": 10632,
+      "dest": "packages/ui-host/src/nodes/marku/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/marku/WorkflowEditor.tsx": {
+      "sha256": "153f88afa92abb189e5e492f3610a046fbd8c8b1c56c044c4bffe5dde0480ff0",
+      "bytes": 13717,
+      "dest": "packages/ui-host/src/nodes/marku/WorkflowEditor.tsx",
+      "state": "head"
+    },
+    "nodes/marku/WorkflowInspector.tsx": {
+      "sha256": "ffa9ee958c13e077f629da004037549d4eb882bd20dce602c363428436d8533e",
+      "bytes": 4588,
+      "dest": "packages/ui-host/src/nodes/marku/WorkflowInspector.tsx",
+      "state": "head"
+    },
+    "nodes/marku/WorkflowPanel.tsx": {
+      "sha256": "c0994373738d55e0b929e081120002f6c0d6501c5a74ef41d2614dc73a6a3fbf",
+      "bytes": 15501,
+      "dest": "packages/ui-host/src/nodes/marku/WorkflowPanel.tsx",
+      "state": "modified"
+    },
+    "nodes/marku/WorkflowResults.tsx": {
+      "sha256": "019fc4db99d9390e282e15cfb7fd4d70e868193c8ed194c3c81e95824d798a62",
+      "bytes": 9359,
+      "dest": "packages/ui-host/src/nodes/marku/WorkflowResults.tsx",
+      "state": "head"
+    },
+    "nodes/marku/constants.ts": {
+      "sha256": "0bd46c797c334574a403bd81ce1928e0416ea3552abe229d1afc96da3b908783",
+      "bytes": 1951,
+      "dest": "packages/ui-host/src/nodes/marku/constants.ts",
+      "state": "head"
+    },
+    "nodes/marku/controls.tsx": {
+      "sha256": "62cf87e67c80117d1e306bb00f1c6f3ae512138c22479f2fa453f72fccf8dfa3",
+      "bytes": 18939,
+      "dest": "packages/ui-host/src/nodes/marku/controls.tsx",
+      "state": "head"
+    },
+    "nodes/marku/entry.ts": {
+      "sha256": "464a3a73dab87f55363e384a1c66b6b104738117bcd7ce1fb3379d96c14f41ad",
+      "bytes": 927,
+      "dest": "packages/ui-host/src/nodes/marku/entry.ts",
+      "state": "head"
+    },
+    "nodes/marku/model.ts": {
+      "sha256": "6261669129925d739c3b78edea44977f2b8a36e8c4d2907de0830ef07c34921f",
+      "bytes": 3089,
+      "dest": "packages/ui-host/src/nodes/marku/model.ts",
+      "state": "head"
+    },
+    "nodes/marku/normal-views.tsx": {
+      "sha256": "e314fd0f3f2097cf1d15a84271bfd1fc0038364469cd28d4c2e8b9a388f92e37",
+      "bytes": 13918,
+      "dest": "packages/ui-host/src/nodes/marku/normal-views.tsx",
+      "state": "modified"
+    },
+    "nodes/marku/types.ts": {
+      "sha256": "242bec4fd735711204d5e25805a3c0c067f7b341361958acb3b875a330877de2",
+      "bytes": 1694,
+      "dest": "packages/ui-host/src/nodes/marku/types.ts",
+      "state": "head"
+    },
+    "nodes/marku/workflow-editor-primitives.ts": {
+      "sha256": "0a1e95ac8841e3abd22fec585e1b5b1f76b5fff069358add7a4b33947a5064fc",
+      "bytes": 2422,
+      "dest": "packages/ui-host/src/nodes/marku/workflow-editor-primitives.ts",
+      "state": "head"
+    },
+    "nodes/marku/workflow-result-projection.test.ts": {
+      "sha256": "2c414473a1845b22118c737477f0295430075d6c432b845b260050fd1fcacacd",
+      "bytes": 3512,
+      "dest": "packages/ui-host/src/nodes/marku/workflow-result-projection.test.ts",
+      "state": "modified"
+    },
+    "nodes/marku/workflow-result-projection.ts": {
+      "sha256": "630b07b819e7d81624e3d51615e57af3e95866c6356621ec1d70d477b4dda60f",
+      "bytes": 4485,
+      "dest": "packages/ui-host/src/nodes/marku/workflow-result-projection.ts",
+      "state": "head"
+    },
+    "nodes/marku/workflow-state.test.ts": {
+      "sha256": "62cbcbd9f8db8f93537902525f0d920e930d079dcb72ebf05ae68ec0a072c7a3",
+      "bytes": 6913,
+      "dest": "packages/ui-host/src/nodes/marku/workflow-state.test.ts",
+      "state": "head"
+    },
+    "nodes/marku/workflow-state.ts": {
+      "sha256": "0bb393feb55c4d2e5963faccb54e395435b89966b48f95d0474498c3b7f5c142",
+      "bytes": 9993,
+      "dest": "packages/ui-host/src/nodes/marku/workflow-state.ts",
+      "state": "head"
+    },
+    "nodes/migratef/Component.test.tsx": {
+      "sha256": "acac9e3ef92f1fe6031b432394c8cf4641506f2c5f3c26fee0deb68a4a60feb6",
+      "bytes": 10421,
+      "dest": "packages/ui-host/src/nodes/migratef/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/migratef/Component.tsx": {
+      "sha256": "e9892c239dd52cfcec49cc4b5db416d529d017c8812bfa8aa04b473e7e2c934c",
+      "bytes": 23927,
+      "dest": "packages/ui-host/src/nodes/migratef/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/migratef/constants.ts": {
+      "sha256": "befb54a12de5be47c7b7832b1c027830c0a729dae65e016b491787577070d3f8",
+      "bytes": 1294,
+      "dest": "packages/ui-host/src/nodes/migratef/constants.ts",
+      "state": "head"
+    },
+    "nodes/migratef/controls.tsx": {
+      "sha256": "6814f9a997cf51849129b3333389925cd4c80faa3dee6ed5ba595409e504fabc",
+      "bytes": 17198,
+      "dest": "packages/ui-host/src/nodes/migratef/controls.tsx",
+      "state": "head"
+    },
+    "nodes/migratef/entry.ts": {
+      "sha256": "89600dd4b2eaa6268ae9613b6763430b29d031e6d5e5e29f9cb455d0b6a28b8a",
+      "bytes": 933,
+      "dest": "packages/ui-host/src/nodes/migratef/entry.ts",
+      "state": "head"
+    },
+    "nodes/migratef/types.ts": {
+      "sha256": "4641abdf46fe51d05c6f34a63a03be8f666c813c4620f741969d6d3d733dda26",
+      "bytes": 923,
+      "dest": "packages/ui-host/src/nodes/migratef/types.ts",
+      "state": "head"
+    },
+    "nodes/mvz/Component.test.tsx": {
+      "sha256": "66407b9868cb4fe1a70b9b973f2967aa1fde9817a47dd3cae0dfb284bd34e505",
+      "bytes": 9397,
+      "dest": "packages/ui-host/src/nodes/mvz/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/mvz/Component.tsx": {
+      "sha256": "772b473ddecc2b464a02ebfc7be563532a397ae5e56f852351702d1ce8b813a2",
+      "bytes": 29081,
+      "dest": "packages/ui-host/src/nodes/mvz/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/mvz/constants.ts": {
+      "sha256": "f7c7c9b4b1b67a1b98a7e887729a9f83de2f614f7d024011aa0abcd0a254bf00",
+      "bytes": 1129,
+      "dest": "packages/ui-host/src/nodes/mvz/constants.ts",
+      "state": "head"
+    },
+    "nodes/mvz/controls.tsx": {
+      "sha256": "be6b6b0fa1d02c0d8316789b22f23c088b287184956b6418cc37f1aff5756a43",
+      "bytes": 17936,
+      "dest": "packages/ui-host/src/nodes/mvz/controls.tsx",
+      "state": "head"
+    },
+    "nodes/mvz/entry.ts": {
+      "sha256": "4901e4d13de635e7adc1a5fff3d17e20f7c65010f9ebadd198dd9a2ac902bd29",
+      "bytes": 932,
+      "dest": "packages/ui-host/src/nodes/mvz/entry.ts",
+      "state": "head"
+    },
+    "nodes/mvz/types.ts": {
+      "sha256": "d36ee2fb76f7a0c8c7c49b0d4bb3509580d1abe316b8409d2d3ce9dbeff86680",
+      "bytes": 878,
+      "dest": "packages/ui-host/src/nodes/mvz/types.ts",
+      "state": "head"
+    },
+    "nodes/nameu/Component.test.tsx": {
+      "sha256": "b3a133cebfb355010086f59c795d4d4bfb3aeb01cf7198f1510264c5275d7d3b",
+      "bytes": 9921,
+      "dest": "packages/ui-host/src/nodes/nameu/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/nameu/Component.tsx": {
+      "sha256": "af805c81be8ba3c8fb252f15249d4cc6b441aa76b888818594d7c188c9b31222",
+      "bytes": 31434,
+      "dest": "packages/ui-host/src/nodes/nameu/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/nameu/constants.ts": {
+      "sha256": "bf293bf8343423257215f1f02d7bab4cbf64b05047c9d5f86062f8f0c058c730",
+      "bytes": 1210,
+      "dest": "packages/ui-host/src/nodes/nameu/constants.ts",
+      "state": "head"
+    },
+    "nodes/nameu/entry.ts": {
+      "sha256": "65653213f6683983ceeb5e2f57e117e7ed106e721dfdb7870f9323adef7c6453",
+      "bytes": 1096,
+      "dest": "packages/ui-host/src/nodes/nameu/entry.ts",
+      "state": "head"
+    },
+    "nodes/nameu/types.ts": {
+      "sha256": "fda2a1b94dedd5cd8b41143e85897d5d40858c0942c217361cad29a42fddddf9",
+      "bytes": 891,
+      "dest": "packages/ui-host/src/nodes/nameu/types.ts",
+      "state": "head"
+    },
+    "nodes/rawfilter/Component.test.tsx": {
+      "sha256": "34ca83143da50d6c0222880bf42ae0806809357edde6f04e24bdb06473f5525a",
+      "bytes": 12300,
+      "dest": "packages/ui-host/src/nodes/rawfilter/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/rawfilter/Component.tsx": {
+      "sha256": "34a7eaecd5e177f3c82bd3d606557cbfa197f811ee3eca28379f3d37a2a23ad0",
+      "bytes": 25940,
+      "dest": "packages/ui-host/src/nodes/rawfilter/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/rawfilter/constants.ts": {
+      "sha256": "d6f5b82be28a46dba54a00e3c7071e751ff3ff5dc62c414bc8c2af9a5ba9b175",
+      "bytes": 1139,
+      "dest": "packages/ui-host/src/nodes/rawfilter/constants.ts",
+      "state": "head"
+    },
+    "nodes/rawfilter/controls.tsx": {
+      "sha256": "e6b2f731771c94dd6dfe5f57e77783327176d4517c7caf1467bd76a736578ce1",
+      "bytes": 13152,
+      "dest": "packages/ui-host/src/nodes/rawfilter/controls.tsx",
+      "state": "head"
+    },
+    "nodes/rawfilter/entry.ts": {
+      "sha256": "ca8a7d6cdec1125fda5c9536a014b2e5b8bfd10e538481d1491df696ca9523f3",
+      "bytes": 1003,
+      "dest": "packages/ui-host/src/nodes/rawfilter/entry.ts",
+      "state": "head"
+    },
+    "nodes/rawfilter/types.ts": {
+      "sha256": "253a535d98a8881f79726ce2537dbaf4cf0d241fd6fbfecfd36b968428c60f08",
+      "bytes": 871,
+      "dest": "packages/ui-host/src/nodes/rawfilter/types.ts",
       "state": "head"
     },
     "nodes/recycleu/Component.test.tsx": {
@@ -3059,12 +3769,56 @@
       "sha256": "82e2deaee9f1bffe520acab3d6871c20589656418eddb40dead86660d61aff6f",
       "bytes": 1020,
       "dest": "packages/ui-host/src/nodes/recycleu/entry.ts",
-      "state": "head"
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition 与 ./core.js，两者在本仓都解析不到。",
+      "removed": false
     },
     "nodes/recycleu/types.ts": {
       "sha256": "3bc1d5c34ed9559426bee00656d9c3889b86086461fb9945ddd18ffeda4e5196",
       "bytes": 647,
       "dest": "packages/ui-host/src/nodes/recycleu/types.ts",
+      "state": "head"
+    },
+    "nodes/repacku/Component.test.tsx": {
+      "sha256": "cd5cf5fad8a79cc5967b137a48ac6b4100252b738057a66046b3162a5bb568b0",
+      "bytes": 11233,
+      "dest": "packages/ui-host/src/nodes/repacku/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/repacku/Component.tsx": {
+      "sha256": "2494bbee714c850daaf813ab6e3a9c7de39f915d20aba2e5d1d5f35e682bf4e0",
+      "bytes": 33923,
+      "dest": "packages/ui-host/src/nodes/repacku/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/repacku/FileTreePreview.tsx": {
+      "sha256": "c99580fc6f9056c19d0c23a38ceb50062f5709b45e30c22024f8e829a0ef79eb",
+      "bytes": 2776,
+      "dest": "packages/ui-host/src/nodes/repacku/FileTreePreview.tsx",
+      "state": "head"
+    },
+    "nodes/repacku/constants.ts": {
+      "sha256": "3460af5ed0b4885635321d42225c2d3b851bc357de1f226c4ec9f9f4e2b024f8",
+      "bytes": 1159,
+      "dest": "packages/ui-host/src/nodes/repacku/constants.ts",
+      "state": "head"
+    },
+    "nodes/repacku/controls.tsx": {
+      "sha256": "85a256c307c8ac8dc6af6ca10a436a77729ae68137be25724c69433b92fddc0c",
+      "bytes": 12285,
+      "dest": "packages/ui-host/src/nodes/repacku/controls.tsx",
+      "state": "head"
+    },
+    "nodes/repacku/entry.ts": {
+      "sha256": "b963f27830c6570aba265ce791c4c32311180dd65730212d1ec28573a5c03689",
+      "bytes": 999,
+      "dest": "packages/ui-host/src/nodes/repacku/entry.ts",
+      "state": "head"
+    },
+    "nodes/repacku/types.ts": {
+      "sha256": "0076faeaac0143b14fb42d8e297b5c7966fa8a367ddfc5a8738c93cdcb185268",
+      "bytes": 649,
+      "dest": "packages/ui-host/src/nodes/repacku/types.ts",
       "state": "head"
     },
     "nodes/samea/Component.test.tsx": {
@@ -3083,7 +3837,9 @@
       "sha256": "1f0f3531a95008707975009a3704eb9c7263e8d03f6109ce72acbd4220d94da2",
       "bytes": 1189,
       "dest": "packages/ui-host/src/nodes/samea/entry.ts",
-      "state": "head"
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition 与 ./core.js，两者在本仓都解析不到。",
+      "removed": false
     },
     "nodes/samea/types.ts": {
       "sha256": "dde9457fffce606dafc0c6f424219dfaa6daf073e28929c6a86d9ce2e5508de6",
@@ -3353,12 +4109,56 @@
       "sha256": "095d2c55333c0468542860a53b60bc8a04026c34ee87b6e08bf1298c99cd641f",
       "bytes": 1353,
       "dest": "packages/ui-host/src/nodes/sleept/entry.ts",
-      "state": "modified"
+      "state": "modified",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>，在本仓解析不到。",
+      "removed": false
     },
     "nodes/sleept/types.ts": {
       "sha256": "e696b9e77c6dd1dd983412866ab5f62bf4c9d64a2e904442f5b607e90fd107b4",
       "bytes": 1376,
       "dest": "packages/ui-host/src/nodes/sleept/types.ts",
+      "state": "head"
+    },
+    "nodes/smartzip/Component.test.tsx": {
+      "sha256": "2f139bd5a854ee43af23b9e57818cc2b19edb088f54359bf2ca8eef96a11ec56",
+      "bytes": 14285,
+      "dest": "packages/ui-host/src/nodes/smartzip/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/smartzip/Component.tsx": {
+      "sha256": "98266c133f47e87c7f75330ad14d28af4de14e4cad5f138338ca4732e2639327",
+      "bytes": 24838,
+      "dest": "packages/ui-host/src/nodes/smartzip/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/smartzip/constants.ts": {
+      "sha256": "14839cde7c0bab62c45ff900ec067ba6742d1a651a6f782b93085d528e261bf2",
+      "bytes": 2063,
+      "dest": "packages/ui-host/src/nodes/smartzip/constants.ts",
+      "state": "head"
+    },
+    "nodes/smartzip/controls.tsx": {
+      "sha256": "ca67498c9a8d15df6120aeab266f594da1362e124eae2e9e3e31d67c1763b097",
+      "bytes": 18455,
+      "dest": "packages/ui-host/src/nodes/smartzip/controls.tsx",
+      "state": "head"
+    },
+    "nodes/smartzip/entry.ts": {
+      "sha256": "0dbbd1b0075b1be3c2020089a1664c89a2679d791bce59be00ad58070c9f8c82",
+      "bytes": 1210,
+      "dest": "packages/ui-host/src/nodes/smartzip/entry.ts",
+      "state": "head"
+    },
+    "nodes/smartzip/results.tsx": {
+      "sha256": "53197d86bbb623e2139d20e6128b6998ebcca5c89d84e3fcb0ab90d608ce781e",
+      "bytes": 17657,
+      "dest": "packages/ui-host/src/nodes/smartzip/results.tsx",
+      "state": "head"
+    },
+    "nodes/smartzip/types.ts": {
+      "sha256": "f6de288fa53df1675390e29da70360163373ad3c808551bbc2fe0bfbab6dbf14",
+      "bytes": 853,
+      "dest": "packages/ui-host/src/nodes/smartzip/types.ts",
       "state": "head"
     },
     "nodes/timeu/Component.test.tsx": {
@@ -3383,12 +4183,74 @@
       "sha256": "590d932aceda3167803f8fc7b6a07f369a297152703a66c0d5f0b3537079ac1a",
       "bytes": 1197,
       "dest": "packages/ui-host/src/nodes/timeu/entry.ts",
-      "state": "head"
+      "state": "head",
+      "localDelta": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition 与 ./core.js，两者在本仓都解析不到。",
+      "removed": false
     },
     "nodes/timeu/types.ts": {
       "sha256": "3af13a3d45ce3eda455c0331ca09dca2d09d9ce5b4d84d560bdd744f0fb77286",
       "bytes": 803,
       "dest": "packages/ui-host/src/nodes/timeu/types.ts",
+      "state": "head"
+    },
+    "nodes/trename/Component.test.tsx": {
+      "sha256": "c7cf350b233d8a25470fbfff1f29bff74905267de62a668091bed6aff71a73f8",
+      "bytes": 12858,
+      "dest": "packages/ui-host/src/nodes/trename/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/trename/Component.tsx": {
+      "sha256": "da30c1b67c69155182946728b99c49dacd5103b8f41bda20b5864140e962d0c0",
+      "bytes": 34587,
+      "dest": "packages/ui-host/src/nodes/trename/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/trename/FileTreePanel.tsx": {
+      "sha256": "29c86cd3872784e8c241e04b9f9ea10ab3b0d3d8ce718e70999dc5c2c6e7b603",
+      "bytes": 2469,
+      "dest": "packages/ui-host/src/nodes/trename/FileTreePanel.tsx",
+      "state": "head"
+    },
+    "nodes/trename/JsonEditorDialog.tsx": {
+      "sha256": "be4117bac18ab49c6a5aa14cfd0c4739c7e6a60ab58e78febad4d5b11c3a637a",
+      "bytes": 2642,
+      "dest": "packages/ui-host/src/nodes/trename/JsonEditorDialog.tsx",
+      "state": "head"
+    },
+    "nodes/trename/ResultPanels.tsx": {
+      "sha256": "1beaeedd7c98ffe0079208a66c1413220fd008159e8be2874242794bf1de4aa1",
+      "bytes": 13354,
+      "dest": "packages/ui-host/src/nodes/trename/ResultPanels.tsx",
+      "state": "head"
+    },
+    "nodes/trename/constants.ts": {
+      "sha256": "e114d5b578de42e93cc3a095c5e5aa58212ed4b4385c294dcaff85305b62da78",
+      "bytes": 848,
+      "dest": "packages/ui-host/src/nodes/trename/constants.ts",
+      "state": "head"
+    },
+    "nodes/trename/controls.tsx": {
+      "sha256": "6248de26cdf9b3e4184d0ce28cd704b12c105f91575c016a136237a4ed0299f4",
+      "bytes": 14695,
+      "dest": "packages/ui-host/src/nodes/trename/controls.tsx",
+      "state": "head"
+    },
+    "nodes/trename/entry.ts": {
+      "sha256": "a0d1c978150ef44e3b3b89b7bfc663b97c8cf647842865361021fb995409e5c0",
+      "bytes": 1254,
+      "dest": "packages/ui-host/src/nodes/trename/entry.ts",
+      "state": "head"
+    },
+    "nodes/trename/treeModel.ts": {
+      "sha256": "f40b884c653d2d761ed5933bd272d4003d82fad36fab605837a8e7b94e749bbb",
+      "bytes": 5437,
+      "dest": "packages/ui-host/src/nodes/trename/treeModel.ts",
+      "state": "head"
+    },
+    "nodes/trename/types.ts": {
+      "sha256": "84c69c7fe576263c1bb14a5bfc02766d4cd91fd1a1ce5d3c27a415a32973b26b",
+      "bytes": 1235,
+      "dest": "packages/ui-host/src/nodes/trename/types.ts",
       "state": "head"
     },
     "plugins/__fixtures__/esm-remote-entry-b.js": {
