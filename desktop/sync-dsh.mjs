@@ -292,6 +292,9 @@ if (flag('verify')) {
   if (keyWrong.length > 0) fail(`verify: 0004 的键与用例不符 ⇒ ${String(keyWrong)}`)
 
   // 0009 的尺寸校验也是纯函数：正控（合法尺寸必须放行，且逐字保留）与反控（半套/小数/字符串/越界一律拒）。
+  if (typeof policy.normalizeXaihiWindowSize !== 'function') {
+    fail('verify: 0009 的尺寸校验函数不在 apps/desktop/src/xaihi-window-policy.ts 里 ⇒ 那条 patch 被静默跳过或上游改了这模块')
+  }
   const sizeTable = [
     [{ width: 1280, height: 820 }, { width: 1280, height: 820 }],
     [{ width: 520, height: 600 }, { width: 520, height: 600 }],
