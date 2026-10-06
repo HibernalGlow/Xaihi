@@ -316,3 +316,24 @@ cd /Users/glow/Base/Code/Freya/Xaihi && \
   跑了的与本轮有关的只有：`vitest run`、`--filter … test:unit`、`--filter … typecheck`、
   根 `typecheck`、`node packages/ui-host/build-aliases.mjs`。
 - 全仓 `pnpm test` 没跑（AGENTS.md：并行 lane 在飞时结果不可归因，且任务禁止）。
+
+## 更正"最省事的那一条"：代理估的 12→16 / 52→82 偏低，而且我第一次复现探错了对象（2026-10-07 04:10）
+
+上面那条"补上 rspack 那两行解析规则就能救回 30 份"的推断，我实测下来**成因对、剂量错**，
+并且我自己先做一次假阴性才看清楚：
+
+- 第一次探针：把 `packages/shared/node_modules` 软链到**仓库根** `node_modules` ⇒ 读数与基线完全一样
+  （31 failed / 12 passed、同一个 `Failed to resolve import "zod"`）。
+  原因很直白：pnpm 的仓库根 `node_modules` 里没有 `zod`（`ls node_modules | rg -c '^zod$'` ⇒ 0 行），
+  那次链接什么也没给进去。**如果我当时收手，就会把"根因不是缺 node_modules"写进台账——那是错的。**
+- 第二次探针：链到 `packages/ui-host/node_modules`（`zod` 在那儿，计数 1）⇒ 同一份临时配置读数变成
+  **Test Files 25 failed | 18 passed (43)、Tests 283 failed | 119 passed (402)**。
+  ⇒ 缺的确实是"每个包自己的 `node_modules`"，Vite 侧 `dedupe`/`server.fs.allow`/`deps.inline`
+  四种写法全部读数不变（我先试的那四种），所以这不是配置能治的。
+- 剂量：救回的是 **18 份文件 / 119 条断言**（代理估 16/82），并且**同时暴露 283 条真红断言**
+  ——那 283 条才是这件事的真实成本：它们此前被"文件收不起来"这件事完全遮住。
+
+两次探针之后都清了：`find packages plugins -maxdepth 2 -name node_modules -type l` ⇒ 0 条，
+`but status` 里没有 node_modules 相关条目，`packages/ui-host` 回到 38 文件 / 300 条 rc=0。
+ durable 的解法仍然是任务 #3 / #25 那一步（把 shared/logging/contract/cli-runtime 换成本仓包名、
+ 进 workspace、让 pnpm 自己装），**不要**在 vitest 配置里养第二套解析规则。
