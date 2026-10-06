@@ -118,3 +118,14 @@ Rust 在仓库根的 `native/` 那一层：
 ⇒ 批次仍然不开，但开批的门槛从"能不能编"缩成了**两个具体决定**：
 mac 那份 `.node` 的 dav1d 怎么带（打进包 + `@rpath`，还是关 feature 走可见退化），
 以及缓存目录与删除动作的归口。**这一个是工程决定、一个是使用者决定，都写进了任务里。**
+
+**2026-10-07 追加：第一条不再是决定，是测量。**
+`docs/stages/kisaki-engine-measurements.md` §5 现读了上游那份产物的装载形状
+（`@rpath/libdav1d.7.dylib` + `LC_RPATH=@loader_path`，dav1d 自己只依赖 libSystem），
+并把那两个文件搬到新目录各真装载一次：只放 `.node` 必须红（`Library not loaded`，
+且 dyld 不会退回 `/opt/homebrew` 去找），放那一对必须绿（`require OK`）。
+代价有数：mac +825,360 B、Windows +727,341 B（noxide 那侧 `native/vendor/dav1d-windows-x64.zip`
+就是同一纪律的 Windows 形态）。⇒ 本 ADR 采纳**带着发**，这不是新机制而是搬运上游既有形状；
+决定 3 里"按平台预编译随包分发"那句在 mac 上的那一步由这里补齐，不需要额外裁定。
+**剩下挡批次的只有使用者那两句话**：删除动作归 `trash` 还是 `recycleu`，
+以及引擎缓存目录（旧品牌 + 绕开 storage domain）怎么处置。

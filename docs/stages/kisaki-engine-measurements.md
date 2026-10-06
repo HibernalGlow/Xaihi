@@ -297,3 +297,72 @@ node harness/symbols.cjs artifacts/darwin-arm64/xiranite-czkawka.darwin-arm64.no
 `=12.0.2` 的放宽构建、win32 那档 zip 的装载（本机没有 Windows）。
 本机工具链读数：`cargo 1.98.1 (Homebrew)`、`rustc 1.98.1`、**`node v26.10.0`（`process.versions.napi = 10`，
 不是任务书里记的 v24）**、`pkg-config` 见 `libavif 1.4.2` / `dav1d 1.5.4`（`/opt/homebrew`）。
+
+## 5 测量 3（2026-10-07）· dav1d 那一半不是工程问题，是"带不带"的一句话
+
+§1.4 留的那个口子（"要么打进包并把 install name 改成 `@rpath`，要么关 `libavif`"）**在本机可测，
+所以不该留在纸上等人猜**。而且答案就在使用者自己的仓里：那条路他已经走过一次。
+
+### 5.1 读上游那份产物的装载形状（现读，不推测）
+
+`/Users/glow/Base/Code/Freya/Xiranite/native/artifacts/darwin-arm64/`（`master` 那一侧，
+**只取它的打包机制，不取实现**——ADR-0006 说的"实现只从 tag `noxide` 搬"没被违反）：
+
+```
+libdav1d.7.dylib                             825,360 B   ← 与 .node 同目录带着
+xiranite-czkawka.darwin-arm64.node        21,319,296 B
+findz.dylib                                 9,745,874 B
+```
+
+`otool -L` 那份 `.node`：非系统依赖只有两条，一条是 cargo-napi 的中间 dylib（绝对路径，
+记的是 `/Users/glow/Projects/Xiranite/native/target/release/deps/…`，正是记忆里
+"搬仓后生成物记旧绝对路径"那一类），另一条是 **`@rpath/libdav1d.7.dylib`**；
+`otool -l` 里 `LC_RPATH` 有一条 **`path @loader_path`**。
+`otool -L` 那份 `libdav1d.7.dylib`：自己的 install name 还是 brew 的绝对路径，
+但依赖只有 `/usr/lib/libSystem.B.dylib` ⇒ **它没有传递链，带一个文件就够**。
+（本机 brew 现值：`dav1d 1.5.4`、`libavif 1.4.2`，与 §4 的工具链读数同一份。）
+
+noxide 那侧（我们真正的搬运来源）同一条纪律的 Windows 形态在磁盘上：
+`native/vendor/dav1d-windows-x64.zip` **727,341 B**，`native/prebuilt/win32-x64/` 里
+`czkawka.win32-x64.zip` / `arcthumb…` / `findz…` 三个 zip 加一份 `manifest.json`
+⇒ "平台包带着 dav1d 一起发"不是新发明，是上游既有做法的另一种载体。
+
+### 5.2 A/B：把那两个文件搬到一个新目录里真装载一次
+
+复制到 `.scratch/kisaki-rpath-probe/{alone,pair}`（`alone` 只放 `.node`，`pair` 放上那对），
+`node -e "require(...)"` 两侧各跑一次，然后**把这份 41 MB 的临时目录删掉**（已删，`test -e` 为空）：
+
+```
+== alone ==
+require FAILED: dlopen(…/alone/xiranite-czkawka.darwin-arm64.node, 0x0001): Library not loaded: @rpath/libdav1d.7.dylib
+== pair ==
+require OK; exports= 14
+```
+
+这两条合起来才是判据：`alone` 必须红 ⇒ 依赖是真的，且 dyld **不会**退回去在 `/opt/homebrew` 里找它
+（引用写的是 `@rpath/…`，只经 `LC_RPATH=@loader_path` 解析）；
+`pair` 必须绿 ⇒ 那两个文件搬到新位置仍然自足，**不需要**改 dylib 自己的 install name
+（带过去的那份里面写的还是 brew 的绝对路径，装载照样成功——它只是自己的名字，不是被引用时用的键）。
+
+⇒ 本机的 `require` 走的是 `dlopen`，`exports=14` 与 §2.1 那份符号清单同一档，
+没有触发任何扫描动作（只装载，不调用）。
+
+### 5.3 于是决定 (a) 变成一句话的事，代价有数
+
+带：**mac 每平台包 +825,360 B、Windows +727,341 B**，工程动作只有"构建时把 dylib 放到产物旁边 +
+`-C link-arg=-Wl,-rpath,@loader_path` 那一类"，机制已被 §5.2 证可达；
+avif 能解，不需要退化面。
+不带：省 0.8 MB，但 `.avif` 那条路必须**在界面上读得回来**（ADR-0011 决定 4 的降级铁律），
+那就还要多做一条"这个文件我没解"的可见状态。
+
+我的建议是按上游既有形状带着（这条是"搬运"而不是"选设计"），但**批次仍不开**——
+挡着的是另外两件事，都不是测量能替我拍的：**删除动作归 `trash` 还是 `recycleu`**，
+以及引擎那份缓存目录（`~/Library/Caches/pl.Qarmin.xiranite/…`，既带旧品牌又绕开
+DSH 的 storage domain，按 ADR-0010 属于落盘名/数据迁移那一类）。
+
+### 5.4 这一节没跑的
+
+Windows 侧那个 zip 的装载（本机没有 Windows；PTEROSAUR 那台是跑 Rust 用的，
+napi 的 `.node` 装载证据要另开一次）；`--no-default-features` 关掉 `libavif` 的对照构建
+（要证"不带会怎样"的话需要它，本轮没做，所以上面只写代价不写症状）；
+`cargo test`（同 §4 的自留项）。
