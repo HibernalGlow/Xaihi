@@ -1646,3 +1646,84 @@ pnpm run typecheck                      rc=1  10 条 TS 错，全部落在 src/b
 把**下一个参数**当替换文本（我那句 `-rln` 被解析成"把匹配替换成 `ln`"），
 于是打印出来的文件名成了 `modules/ln.ts` 这种不存在的东西——标识符是被工具改写的，
 不是仓库里的名字；要准确文本就 Read（本仓 `docs/` 里那条"rg 输出会把标识符换成 n"是同一个坑的另一副面孔）。
+
+## 28 个 retain-rewrite 节点：现在只差 `kisaki`，以及我把保真尺放宽一档之后量回来的教训（2026-10-07 03:11）
+
+### 现状板（按台账现读，不靠叙述）
+
+`python3` 读 `<Xiranite>/docs/xiranite-target-node-manifest.json` 里 `disposition == "retain-rewrite"`
+的 28 个 id，与 `ls plugins/` 的差集：
+
+```
+retain-rewrite: 28  本仓 plugins/: 27
+还缺: ['kisaki']
+多出（不在 28 名单里）: 无
+```
+
+`kisaki` 卡在 `docs/adr/0015-*.md` 末尾那三条待测项（mac 编一次能不能过、`12.0.0-api5` 的 ABI 含义、
+删除动作归它的 `trash` 还是归已接线的 `recycleu`），前两条已派子代理去量。
+成包 ≠ 全绿：`check-verbatim` 现读 27 个包里 **绿 21、申报 5、红 1**（红的那条是并发 lane 的 `findz`），
+终端面 `check-cli-face` 26 个 bin 全绿，`check-node-bundle` 全绿。
+
+### 我把"逐字搬"从一份文件扩到"每一份文件"，然后把它撤回来
+
+`sleept` 这次补搬带进来 `interaction.ts`（本仓 318 行 vs 基线 280）与 `i18n.ts`（179 vs 164），
+代理叙述都写"逐字"，而尺**只比 `core.ts`**——这句话当时只证了一个文件。于是我改生成品：
+`censusFiles(pluginsDir, baselineDir)` 按基线 `packages/nodes/<id>/src/*.ts` 全数列出，
+两侧都在就比、基线有而本仓没有就红。跑出来的真实读数是：
+
+```
+check-verbatim: 覆盖 272 份基线源文件（比对 272、绿 32、申报 4、无内核 0、红 236）
+红按文件名分布：index.ts 27 · help.ts 27 · core.test.ts 27 · cli.ts 27 · interaction.ts 26 ·
+               platform.ts 23 · cli.visual.test.ts 22 · cli.test.ts 22 · platform.test.ts 10 · …
+```
+
+**这一档不是"原来藏了 236 条债"，是我那条规则本身错了**，两类系统性的假红：
+
+1. `*.test.ts` 共 **86 条**（`core.test.ts` / `cli.test.ts` / `cli.visual.test.ts` / `platform.test.ts` …）：
+   基线把测试放在 `src/` 里，本仓的约定是 `tests/<name>.spec.ts`。它们不是"没搬"，是**换了位置**，
+   用"两侧同名才比"的规则去看就全是假红。
+2. `index.ts` / `help.ts` / `cli.ts` 各 27 条：这三个名字在本仓是**我们自己的组合层**
+   （`index.ts` 是 `defineNode` 接线、`help.ts` 是终端帮助载荷、`cli.ts` 是本仓的 CLI 面），
+   和上游同名文件不是同一份东西。"两侧都有就要求逐字相等"在这里没有依据。
+
+所以撤回到 `core.ts` 一档（`git show HEAD:scripts/check-verbatim.mjs` 原样复原，
+`--self-check` 13 条夹具仍 rc=0，全量回到"覆盖 27 个包、绿 21、申报 4、红 2"）。
+留在台账里的是那条**真**抓到的洞——`sleept/src/core.ts` 没搬（这一条就是靠新判据第一次报红的），
+现已随 `kns` 补上。没留的是那 236 条假红：一把需要使用者先记住"哪 86 条是测试搬家、
+哪 81 条是同名不同物"的尺，比一把窄的尺更坏，因为它教会所有人忽略它。
+
+真要做"每一份内核文件都被量"，缺的不是勇气而是一个**按包申报的内核文件名单**
+（`core.ts` 恒比；`interaction.ts` / `platform.ts` 这类要逐包声明"这份在本仓是移植的还是重写的"），
+这一档挂在任务 #22 上，没做完之前 `check-verbatim` 保持窄口径。
+
+## 03:44 收口读数：门禁全绿的那七条、还红的那一条、以及三条卡在人手里的
+
+现跑（仓库内 worktree，真实 rc）：
+
+| 门禁 | rc | 读数 |
+|---|---|---|
+| `check:pins` | 0 | 全部 `@deepseek-ai/*` 精确 `0.2.0-rc.2` |
+| `check:installable` | 0 | **30 个 bundle 包**都能被 `file:` 安装，例外 1 个 |
+| `check:cliregistry` | 0 | 26 条，逐条来自 `plugins/*/package.json` 的 `bin` + `./cli` + `./help` |
+| `check:noderegistry` | 0 | 27 个界面目录 → 27 条注册（今天下午还是 12） |
+| `check:cliface` | 0 | 注册表 26 个 bin 逐个 `--help` 真跑得起来 |
+| `check:nodebundle` | 0 | 节点包产物里没有未声明的裸名 import |
+| `check:vocab` / `check:vendored` / `check:skills` | 0 | — |
+| `pnpm -r --no-bail run test:unit` | 0 | 全仓每一档 unit 套件（含 node-sdk 89、ui-host 265+） |
+| `check-verbatim`（**未接**进 `test`） | 1 | 覆盖 27 个包、绿 21、申报 5、红 **1** |
+
+红的那一条是 `findz`，它 `src/core.ts` 与基线差在把 `getFindzWorkerClient` 那条 value-import
+改成了 `import type`（并发 lane 在飞的包，不是我的判据错，也不该由我替它收敛）。
+`check-verbatim` 因此仍然不进 `test`：接线时机是它绿到只剩"别人在飞"的那一档，
+而不是靠 skip 或白名单把它抹绿（本仓明令禁止的那个形状）。
+
+三条卡在人手里的（不是卡在读数）：
+① **任务 #24**——界面叶子与 `core.ts` 现在有两份同名实现（值相同、会漂）；
+收敛要动被逐字钉住的内核并补 `--declare`，要么整体做要么不做。
+② **任务 #23**——`kisaki` 的 mac 产物挂着绝对路径的 `libdav1d.7.dylib`（要带 dylib 改 `@rpath`，
+还是关 `libavif` 走可见退化），以及删除动作归它的 Rust `trash` 还是归已接线的 `recycleu`
+（顺带：引擎实测会往 `~/Library/Caches/pl.Qarmin.xiranite/` 写缓存，旧品牌 + 绕过 DSH storage）。
+③ **共享清单那一轮**——`@xyflow/react`（marku 的工作流编辑器）与 `csv-parse`（classf 的
+deletion-history 叶子）都只能在并发 lane 重做 lockfile 的那一次一起进；
+在那之前这两个界面按"缺依赖"记红，不自己装、不编一个解析器顶上。
