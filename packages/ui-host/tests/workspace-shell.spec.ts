@@ -1,12 +1,18 @@
 /**
  * 外壳的来源判据。
  *
- * 这一刀的要求是"用搬运来的 DOM 与类名，但数据源是我们自己的"。两半都要有尺：
- * 类名用没用到（外观是不是搬来的）、以及**有没有偷偷把 Xiranite 的状态机或第二套
- * 主题引擎起起来**（那是这条改动的红线）。
+ * 规则的边界（2026-10-07 使用者拍板，见 docs/stages/step-4.md §27）：
+ * "不搬 Xiranite 的 store 与主题引擎"这条**只约束 DSH↔Xaihi 那一刀**，
+ * 不是整仓禁令。ADR-0009 之后工作台本体跑在 Xaihi 自己的文档里，那一面按现状
+ * 会起搬运来的 `WorkspaceProvider`（`src/App.tsx:55`）——那是另一笔账，
+ * 由本文件末尾的"文档侧台账"钉住，不许被这条禁词判据假装看不见。
  *
- * 阳性对照：把 `@/store/workspaceStore` 或 `presetThemeRootClass` 写回外壳，第二条判据
- * 必须变红；把外壳的类名换成手写 CSS 类，第一条必须变红。
+ * 所以这里量两半：类名/组件是不是搬来的（外观出处），以及 **DSH 那一面**有没有
+ * 偷偷起第二套栈（红线）。
+ *
+ * 阳性对照：把 `@/store/workspaceStore` 或 `presetThemeRootClass` 写回 DSH 那一面，
+ * 禁词判据必须变红；把外壳的类名换成手写 CSS 类，第一条必须变红；
+ * 文档侧哪天不再起 provider，最后那条台账必须变红。
  *
  * @module xaihi-ui/tests/workspace-shell
  */
@@ -22,6 +28,8 @@ const stripComments = (source: string): string =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 
 const SHELL = stripComments(readFileSync(join(process.cwd(), 'src', 'client', 'workspace.tsx'), 'utf8'))
+const read = (...parts: string[]): string =>
+  stripComments(readFileSync(join(process.cwd(), ...parts), 'utf8'))
 
 describe('工作台外壳的来源', () => {
   it('用的是搬运来的组件，不是自己写一遍同形控件', () => {

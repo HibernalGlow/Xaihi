@@ -1361,3 +1361,37 @@ hostRequirements 是 `os-native + external-process + recursive-enumeration + fil
 
 13 + 11 + 2 + 1 + 1 = 28。`plugins/hello` 仍留在分支头里（它的删除是并发 lane 那一刀），
 这条与"干净检出 `pnpm install --frozen-lockfile` 报 `importers["plugins/hello"]`"是同一件事，收口时一起清。
+
+## 27 边界拍板：「不搬第二套栈」只约束 DSH↔Xaihi 那一刀
+
+状态：使用者 2026-10-07 拍板（原话："要 ADR-0009 原样，把目标第 2 条改写成只禁第二套栈"）。
+待办：把本节的边界条款并入 `docs/adr/0009-plugin-ui-react-ownership.md`——
+该文件此刻在别人手上（未提交 hunk），所以先记在这里，不挤别人的 hunk。
+
+### 改写了什么
+
+原来那句"不搬它的 store 和主题引擎"是**整仓口径**，与 ADR-0009 的落点冲突：
+文档侧渲染的是搬运来的 `App`，而 `src/App.tsx:55` 就是 `<WorkspaceProvider>`。
+现在改成：**这条禁令只管 DSH↔Xaihi 那一刀**——即宿主面板里的那一面
+（`src/client/workspace.tsx` / `src/client/surface.tsx`）不许起第二套状态机、
+第二套主题引擎、第二套本地化栈。Xaihi 自己的文档内部怎么组织，是 ADR-0009 的事，
+另立台账、另算账，不许被这条尺假装看不见，也不许拿它当"整仓已经干净"的证据。
+
+### 落到尺上
+
+- `tests/workspace-shell.spec.ts` 的禁词判据范围**明确写成 DSH 那一面**，
+  文件头同时记这条边界与拍板原话；
+- 同一文件末尾的「文档侧（ADR-0009）现状台账」断言文档入口确实起 provider——
+  哪天文档侧换成我们自己的数据源、不再起 provider，这条会红，
+  那时才把禁词判据扩到 `src/document/**`；
+- 另两条尺不受影响：`build-css.mjs` 的 canary（17/17，含 `src/client/workspace.tsx`
+  的 `bg-background` / `text-muted-foreground` / `border-border`）与
+  `scripts/check-client-bundle.mjs` 的产物形状尺（单文件、无 Node 专用 require、无多余 `.cjs`）。
+
+### 实测
+
+- `pnpm --filter @hibernalglow/xaihi-ui exec vitest run tests/workspace-shell.spec.ts` rc=0（7 条）。
+- `pnpm --filter @hibernalglow/xaihi-ui build` rc=0；`canary 17/17`、`check-client-bundle OK`。
+- 包内全套 `test:unit`：24 文件里 23 过、218 判据里 217 过。唯一红的是
+  `tests/shell-caps.spec.ts > runner 组的退化原因点名 P1` —— 那是那侧新落的
+  `src/client/shell-caps.ts` 与它的测试，本轮没碰，按仓内纪律只报不改。
