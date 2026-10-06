@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { dirname, extname, resolve } from 'node:path'
 import { defineConfig } from 'tsdown'
 
 // 两份产物：宿主半边（Node ESM 到 lib/index.js）与浏览器半边（CJS 握手 bundle 到
@@ -28,6 +30,34 @@ const lib = {
   fixedExtension: false,
 }
 
+/**
+ * Vite 的 `?url` 后缀在本包构建里没人实现。搬运树把它原样带进来一处
+ * （`src/components/workspace/FlowCanvasView.tsx:37` 的 tldraw 中文语言包），
+ * 于是 `pnpm build` 以 UNLOADABLE_DEPENDENCY 红。
+ *
+ * 这里补在构建层而不是改组件：本包没有 Vite，但搬运来的代码会持续带进这类写法，
+ * 一行插件管住整类。行为抄 Vite 对小资源的默认——直接内联成 data URL，
+ * 不伪造地址：内容就是那份文件本身。
+ */
+const VITE_URL_SUFFIX = '?url'
+const PACKAGE_ROOT = dirname(new URL('.', import.meta.url).pathname)
+const MIME_BY_EXT: Record<string, string> = {
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.txt': 'text/plain',
+}
+
+const viteUrlSuffix = {
+  name: 'xaihi-vite-url-suffix',
+  load(id: string) {
+    if (!id.endsWith(VITE_URL_SUFFIX)) return null
+    const file = id.slice(0, -VITE_URL_SUFFIX.length)
+    const bytes = readFileSync(resolve(PACKAGE_ROOT, file))
+    const mime = MIME_BY_EXT[extname(file).toLowerCase()] ?? 'application/octet-stream'
+    return `export default ${JSON.stringify(`data:${mime};base64,${bytes.toString('base64')}`)}`
+  },
+}
+
 const client = {
   name: '@hibernalglow/xaihi-ui/client',
   entry: { client: 'src/client/index.ts' },
@@ -39,6 +69,7 @@ const client = {
   sourcemap: true,
   external: CLIENT_EXTERNALS,
   noExternal: (id: string) => (CLIENT_EXTERNALS.includes(id) ? undefined : true),
+  plugins: [viteUrlSuffix],
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
   },

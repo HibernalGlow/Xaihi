@@ -101,13 +101,14 @@ function collectRemotes(document: WorkspaceDocument): Record<string, string> {
 
 function Workspace({ t, locale, renderSlot, runCommand, document, loader }: WorkspaceProps): React.ReactElement {
   const panels = React.useMemo(() => flatten(document), [document])
-  // 目标形态是挂搬运来的 `WorkspaceLayout` 本体（不需要 WorkspaceProvider：
-  // `useWorkspaceShallowSelector` 读的是模块级 store；主题引擎也不会被起——
-  // `presetThemeRootClass` 的表已收到只剩 wuling 一项，而生成 CSS 里 `theme-wuling` 规则数为 0）。
-  // 现在挂不动，卡在两处 Vite 专属语法被原样搬了进来：
-  //   src/components/workspace/FlowCanvasView.tsx:37  import zhCnTranslationUrl from "@/assets/tldraw-zh-cn.json?url"
-  // 本包构建是 tsdown，不认 `?url` 后缀 ⇒ `pnpm build` 以 UNLOADABLE_DEPENDENCY 红。
-  // 那条 import 属于搬运那一侧，我不替他们改；改完把这行换回 <WorkspaceLayout /> 即可。
+  // 目标形态是挂搬运来的 `WorkspaceLayout` 本体（实测它不需要 WorkspaceProvider：
+  // useWorkspaceShallowSelector 读模块级 store；主题表也已空到只剩 wuling 一枚死类名）。
+  // 本轮把 Vite `?url` 在构建层补掉之后，剩下的拦路是导入图本身：
+  //   WorkspaceLayout → TopBar → views/ThemeSettings → settings/RuntimeSection.tsx:21
+  //   → ./NodeMemoryProtectionSettings（本仓还没有这个文件）
+  // 而从上游把那个文件搬过来实测会再拖出 @/backend/localBackendControl 与 @xiranite/{shared,api,contract}
+  // —— 那是我们判定不搬的后端控制层。所以要么那侧把 settings 子树接完，要么把它从 TopBar 的图里切掉；
+  // 两者都不是我这一版该替他们做的决定。切/接之后把下面这行换成 <WorkspaceLayout /> 即可。
   return <PanelFallback t={t} locale={locale} panels={panels} document={document} loader={loader} renderSlot={renderSlot} runCommand={runCommand} />
 }
 
