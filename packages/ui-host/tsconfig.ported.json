@@ -103,6 +103,9 @@
       "@xiranite/node-bandia/exec": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/exec.ts"
       ],
+      "@xiranite/node-bandia/path-mappings": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/path-mappings.ts"
+      ],
       "@xiranite/node-bitv/cli-support": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/cli-support.ts"
       ],
@@ -114,6 +117,9 @@
       ],
       "@xiranite/node-bitv/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/core.ts"
+      ],
+      "@xiranite/node-bitv/defaults": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/defaults.ts"
       ],
       "@xiranite/node-classf/blacklist": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/blacklist.ts"
@@ -166,6 +172,9 @@
       "@xiranite/node-cleanf/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/core.ts"
       ],
+      "@xiranite/node-cleanf/paths": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/paths.ts"
+      ],
       "@xiranite/node-crashu/cli-support": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/crashu/src/cli-support.ts"
       ],
@@ -210,6 +219,12 @@
       ],
       "@xiranite/node-enginev/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/core.ts"
+      ],
+      "@xiranite/node-enginev/defaults": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/defaults.ts"
+      ],
+      "@xiranite/node-enginev/filter": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/filter.ts"
       ],
       "@xiranite/node-findz/command": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/command.ts"
@@ -318,6 +333,9 @@
       ],
       "@xiranite/node-migratef/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/migratef/src/core.ts"
+      ],
+      "@xiranite/node-mvz/archive-entries": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/archive-entries.ts"
       ],
       "@xiranite/node-mvz/cli-support": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/cli-support.ts"
