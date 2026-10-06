@@ -1,21 +1,61 @@
 /**
- * 发现流程的集成测试：走真的 createRequire + 真的目录。
+ * 发现流程的集成测试：走真的 createRequire + 真的 node_modules 布局。
  *
- * 存在的理由是一条真踩过的坑：把 `require()` 当 `require.resolve()` 用时，单测里
- * 注入的假 locator 察觉不到，症状却是"工作台显示没有节点"这种假信号。这里用
- * profile 形状的 node_modules 夹具，把 specifier → 路径 → 清单 → 产物 URL 整条链
- * 一次跑通；把 `.resolve` 改回直接 require 就会红。
+ * 存在的理由是一条真踩过的坑：把 `require()` 当 `require.resolve()` 用时，注入假
+ * locator 的单测察觉不到，症状却是"工作台显示没有节点"这种假信号。
+ *
+ * 夹具在临时目录里现造，不提交进仓：`node_modules/` 被 .gitignore 排除，任何提交进来
+ * 的 node_modules 布局都会在干净检出里凭空消失（这条测试就死过一次）。
  *
  * @module xaihi-core/tests/discover
  */
 
-import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { collect, discover, type DiscoverContext } from '../src/index.ts'
 
-const profileRoot = fileURLToPath(new URL('./fixtures/profile/', import.meta.url))
-
 interface EntryLike { options: { id: string; name: string; disabled?: boolean } }
+
+let profileRoot = ''
+let tempDir = ''
+
+const demoManifest = {
+  schema: 'xaihi.manifest/1',
+  id: 'xaihi-demo',
+  title: { zh: '夹具节点', en: 'Fixture node' },
+  ui: { remote: 'demo', entry: './remoteEntry.js' },
+  panels: [{
+    id: 'xaihi.workspace.demo',
+    title: { zh: '夹具面板', en: 'Demo panel' },
+    area: 'workspace',
+    remote: 'demo',
+    export: 'Panel',
+  }],
+}
+
+beforeAll(async () => {
+  const created = await mkdtemp(`${tmpdir()}/xaihi-profile-`)
+  // macOS 的 tmpdir 是符号链接路径，不先 realpath 断言路径比较会在 /private/var 上失配。
+  tempDir = await realpath(created)
+  profileRoot = `${tempDir}/`
+  const demo = `${tempDir}/node_modules/@fixture/xaihi-demo`
+  await mkdir(demo, { recursive: true })
+  await mkdir(`${tempDir}/node_modules/@fixture/plain-dep`, { recursive: true })
+  await writeFile(`${demo}/remoteEntry.js`, 'export const container = 1\n')
+  await writeFile(`${demo}/package.json`, JSON.stringify({
+    name: '@fixture/xaihi-demo',
+    version: '0.0.0',
+    type: 'module',
+    main: 'remoteEntry.js',
+    xaihi: demoManifest,
+  }, null, 2))
+  await writeFile(`${tempDir}/node_modules/@fixture/plain-dep/package.json`, '{"name":"@fixture/plain-dep","version":"0.0.0"}\n')
+})
+
+afterAll(async () => {
+  if (tempDir !== '') await rm(tempDir, { recursive: true, force: true })
+})
 
 /** 构造只带 loader 与 baseUrl 的最小宿主上下文。 */
 function fakeContext(rows: EntryLike[]): DiscoverContext {
@@ -30,7 +70,7 @@ function fakeContext(rows: EntryLike[]): DiscoverContext {
 const row = (name: string, disabled = false): EntryLike => ({ options: { id: name.split('/').pop() ?? name, name, disabled } })
 
 describe('discover', () => {
-  it('从 profile 的 node_modules 定位到 xaihi 包并给出产物 URL', () => {
+  it('从 profile 的 node_modules 定位到 xaihi 包并给出产物目录与 rev', () => {
     const result = discover(fakeContext([row('@fixture/xaihi-demo'), row('@fixture/plain-dep')]))
     const demo = result.located.find((entry) => entry.specifier === '@fixture/xaihi-demo')
     expect(demo?.hasXaihi).toBe(true)

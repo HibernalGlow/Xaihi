@@ -6,19 +6,22 @@ on:
   pull_request:
 
 jobs:
-  build:
+  workspace:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.7.0
+          version: 12.6.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+      # 干净检出：lib/ 与 dist/ 都不在版本控制里，产物必须由这一步重新生成。
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm test:unit
-      - run: pnpm build
-      - run: pnpm smoke
+      - run: pnpm check:pins
+      # 顺序是有意的：typecheck 与 test:unit 都要读 node-sdk 的 d.ts，
+      # 而 purity / bundle 两条闸门断言的是产物本身，所以 build 必须在它们前面。
+      - run: pnpm -r run build
+      - run: pnpm -r run typecheck
+      - run: pnpm -r --no-bail run test:unit

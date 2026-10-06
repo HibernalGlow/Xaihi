@@ -2,6 +2,7 @@
   "name": "xaihi-workspace",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@12.6.0",
   "description": "Xaihi: a workspace extension framework and domain node ecosystem for DeepSeek Harness.",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
