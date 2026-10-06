@@ -1,6 +1,6 @@
 # ADR-0015 · kisaki 的原生引擎（czkawka 改名而来的那一份 Rust）怎么交付
 
-- 状态：接受（工程裁定；**批次仍被三条待测项挡着**，见 §还差的三条）
+- 状态：接受（工程裁定；三条待测项已于 03:19 量完，批次现在卡在**两个决定**上，见文末）
 - 日期：2026-10-07
 - 相关：批次 H `kisaki`（台账 `hostRequirements: ["os-native","external-process","recursive-enumeration","file-io"]`）、
   使用者 2026-10-07 裁定「kisaki 就是 czkawka 的改名，ocean / folia 不要」、
@@ -86,11 +86,35 @@ Rust 在仓库根的 `native/` 那一层：
   - `binding.generated.d.ts` 的再生成还挂在 bun 脚本上，要先把它改成 `node`；
   - 安装体积：zip 12.9 MB 那一档是**压缩后**的产物大小，装进 profile 的体积要实测再写进文档。
 
-## 还差的三条（这三条没量完之前，kisaki 不排进批次）
+## 那三条待测项已量完（2026-10-07 03:19，读数与命令在 `docs/stages/kisaki-engine-measurements.md`）
 
-1. **mac 编译一次能不能过**（`cargo build -p …-node` 在本机 arm64 + Homebrew 工具链），
-   以及产物被 DSH 子进程装载后**真的跑出一条扫描事件**。没有这条，双平台兼容就只是愿望。
-2. **`czkawka_core = "=12.0.0"` 升到 12.x 后续版还是不是同一条 ABI**（`-api5` 后缀的含义要落到
-   `binding.generated.d.ts` 的符号清单上，而不是靠版本号猜）。
-3. **删除动作归谁**：kisaki 的 Rust 侧带 `trash`，本仓 recycleu 已有可恢复删除通路；
-   两套并存就是"第二个执行宿主"那一类问题的翻版，需要使用者一句话定归口。
+1. **mac 编得动，但那份产物不是自足的**：`cargo build --release -p xiranite-czkawka-node` **rc=0（5m09s）**，
+   `libavif` feature 原样带着（rustc 命令行里有 `--cfg feature="libavif"`），产物 21,443,856 字节
+   （gz 9,055,058 / xz 5,560,296；对照 win32 那份 zip 是 12,888,672）。子进程边界这一条也过了：
+   addon 只在 `spawn` 出来的子 Node 里装载，真跑一次扫描返回 2 组重复且 blake3 相符，子进程 rc=0，
+   父进程 `addonLoadedInParent:false`；扫描中途 `SIGKILL` 子进程 ⇒ 父进程 rc=0；
+   子进程里 `process.abort()` ⇒ SIGABRT 而父进程无碍。**这条决定 2 成立**（注意：那是 `spawn(node)` 的代理，
+   不是 `ctx.subprocess` 真兑现）。
+   **但** `otool -L` 现读那份 `.node` 挂着绝对路径 `/opt/homebrew/opt/dav1d/lib/libdav1d.7.dylib`，
+   把这条改成不存在的路径再装载 ⇒ `ERR_DLOPEN_FAILED`（阳性对照跑过）。链条是
+   `libavif → image → dav1d-sys`。所以决定 3 里"按平台预编译随包分发"在 mac 上**还差一步**：
+   要么把 `libdav1d.7.dylib` 一起打进平台包并把 install name 改成 `@rpath`，要么出一个关掉 `libavif` 的
+   mac 变体（那条尚未测，代价是 AVIF 相似图这一档能力按可见退化处理）。
+   另一条相关的坑：基线装载器里的 `prependNativeLibraryPath` 在 win32 是空操作 ⇒ 装载入口修不了 mac 的库路径。
+2. **`12.0.0-api5` 是"引擎版本 + 我们自己那层桥的计数"，不是 napi 的 ABI 号**：
+   它在 `build-native-assets.ts:126` 打包时按 `${sourceVersion}-api${API_VERSION}` 拼出来，
+   `API_VERSION: u32 = 5` 写在 `capabilities.rs:8`；反证是 10.0.0 → 12.0.0 期间引擎大版本变了而它一直是 `-api5`
+   （`upgrade-plan:79`），而 napi 这边是 8/10。运行期**没有任何代码解析这个后缀**
+   （`@xiranite/native-loader` 只把它当缓存目录名），做版本比对的 `compatibility.ts` 有 **零个生产调用者**
+   （13 处命中全是自身/测试/再导出）。所以真正的 ABI 耦合是**符号清单**：Rust 侧 14 条、TS 侧 `.d.ts` 14 条、
+   运行期 census 14 条，27 个接口、无 class。决定 5 的"ABI 不匹配要可见失败"因此**不能靠这个后缀**，
+   得靠装载时的符号清单比对——这条要落到我们的装载入口实现里。
+3. **删除归口仍未拍**（这条是使用者的一句话，不是测量）。而且量出一条新的：引擎会往
+   `~/Library/Caches/pl.Qarmin.xiranite/cache_duplicates_Blake3_prehash_120.bin` 写缓存
+   （`set_config_cache_path("xiranite","xiranite")`，本次跑真落盘了，本机现有这个目录）——
+   既带旧品牌又绕过 DSH 的 storage domain。按 ADR-0010 这属于"落盘文件名 = 数据迁移"那一类，
+   改之前要问；按 ADR-0013 耐久数据该走 storage domain（域名 `xaihi_*`）。
+
+⇒ 批次仍然不开，但开批的门槛从"能不能编"缩成了**两个具体决定**：
+mac 那份 `.node` 的 dav1d 怎么带（打进包 + `@rpath`，还是关 feature 走可见退化），
+以及缓存目录与删除动作的归口。**这一个是工程决定、一个是使用者决定，都写进了任务里。**
