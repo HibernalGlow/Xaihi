@@ -18,6 +18,12 @@
  *   node scripts/check-node-bundle.mjs              # 判全部已构建的节点包
  *   node scripts/check-node-bundle.mjs --self-check # 阳性对照：这把尺必须能看见违规
  *   node scripts/check-node-bundle.mjs --dir <路径>  # 只量一个包（自检的夹具走这条）
+ *   node scripts/check-node-bundle.mjs --only gifu  # 按包名筛（可逗号接多个）
+ *
+ * `--only` 这条是给并发用的：全仓跑会把别人正在重编的包算成"没有产物"，
+ * 那种红不是本包的事。早先这面旗**根本没接**（写了也当没看见），
+ * 于是两条代理各自报过一次"`--only smartzip` rc=0"，实际量的是 27 个包——
+ * 一把会忽略旗子的尺比一把红的尺更危险，所以它现在既筛，也在筛不到任何包时报话。
  */
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
@@ -115,10 +121,29 @@ if (process.argv.includes('--self-check')) {
   process.exit(0)
 }
 
-const only = process.argv.indexOf('--dir')
-const targets = only >= 0
-  ? [resolve(process.argv[only + 1])]
-  : readdirSync(PLUGINS, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => join(PLUGINS, entry.name))
+const dirFlag = process.argv.indexOf('--dir')
+const onlyFlag = process.argv.indexOf('--only')
+if (dirFlag >= 0 && onlyFlag >= 0) {
+  console.error('  × `--dir` 与 `--only` 二选一：同时给就不知道以哪个为准（这条尺不猜）。')
+  process.exit(1)
+}
+const allPackages = () =>
+  readdirSync(PLUGINS, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => join(PLUGINS, entry.name))
+const targets = dirFlag >= 0
+  ? [resolve(process.argv[dirFlag + 1])]
+  : onlyFlag >= 0
+    ? (() => {
+      const wanted = process.argv[onlyFlag + 1].split(',').map((name) => name.trim()).filter((name) => name !== '')
+      const picked = allPackages().filter((dir) => wanted.includes(dir.split('/').pop()))
+      const missed = wanted.filter((name) => !picked.some((dir) => dir.endsWith(`/${name}`)))
+      if (picked.length === 0) {
+        console.error(`  × --only ${wanted.join(',')}：plugins/ 下没有这些包目录 ⇒ 一把筛空了的尺不该报绿`)
+        process.exit(1)
+      }
+      if (missed.length > 0) console.log(`  · --only 里没找到的包名：${missed.join(' ')}（其余 ${picked.length} 个照常量）`)
+      return picked
+    })()
+    : allPackages()
 
 const all = targets.flatMap(checkPackage)
 console.log(`check-node-bundle: 比对 ${targets.length} 个节点包的产物`)

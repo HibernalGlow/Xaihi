@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "note": "",
+  "deltas": {
+    "plugins/linku/src/core.ts": {
+      "reason": "parseLinkRecords: noUncheckedIndexedAccess 让 `const [rawKey, ...rest] = line.split(\"=\")` 的 rawKey 在类型上为 string | undefined（数组解构首元素），基线的 rawKey.trim() 会类型报错。加 ?? \"\" 只收窄类型不改判定：line.includes(\"=\") 已保证至少有一段，最坏空串，空串 trim 后对不上任何键名，与上游一样被跳过。全文件其余内容与基线逐字符相等（已用归一化 diff 反证：仅此一处，撤销后即等价）。",
+      "ours": "ea9f52b541ed3992e8682eba17114cee594420ea087d9c3e759b072d62a58439",
+      "declaredAt": "2026-10-06T18:48"
+    },
+    "plugins/logx/src/core.ts": {
+      "reason": "normalizeLogxInput 的返回类型：基线写派生式 Required<Omit<LogxInput,7 个文本键>> & Pick<LogxInput,7 个文本键>，本仓把同一组 11 个成员摊开手写成 export interface NormalizedLogxInput。成员逐一对齐（Required 侧 4 个：action/minimumSeverity/limit/order；Pick 侧 7 个：directory/scope/eventName/sessionId/search/since/until），无删除、无收窄，函数体逐字节相同。为何不能照抄派生式：本仓 LogxInput 的可选项带 | undefined（exactOptionalPropertyTypes 要求的形状，尺子自动放行），Required<> 只去掉 ? 却把 | undefined 留在 action/minimumSeverity 上；实测把基线派生式换回来跑 pnpm --filter @hibernalglow/xaihi-logx typecheck 立刻 rc=2，报 src/core.ts(121) minimumSeverity: LogSeverityText|undefined 不可赋给 LogQuery.minimumSeverity 及 (178) LogxAction|undefined 两处——纯类型层让步，非逻辑改动。",
+      "ours": "3f9e12b003c58995c58a4935251cd29ca8b3c067bbe50885f6a5e0ec9de7d290",
+      "declaredAt": "2026-10-06T18:51"
+    },
+    "plugins/recycleu/src/core.ts": {
+      "reason": "normalizeDriveLetter 末句：基线 `return match ? match[1].toUpperCase() : \"\"`，本仓 `return match?.[1]?.toUpperCase() ?? \"\"`。本仓 tsconfig.base 开了 noUncheckedIndexedAccess，索引访问 match[1] 在类型上是 string|undefined，基线那句会类型报错。实测这是行为上的空让步：正则 /^([a-zA-Z])(?::)?$/ 的捕获组 1 ([a-zA-Z]) 是必选组， (?::)? 只是可选的非捕获冒号——只要整条命中，组 1 必然存在且为单个字母，永不为 undefined。用探针集(\"\",\"c\",\"C\",\"c:\",\"C:\",\"cc\",\":\",\"1\",\"a:\",\"z\",\"Z \",\"  \",\"Q\") 验证：命中且组1为undefined的输入=0，基线式与本仓式输出逐个相等。故 ?. / ?? 只收窄类型不改语义，非逻辑改动。全文件其余内容与基线逐字符相等（归一化 diff 反证：撤销这一处后即等价）。",
+      "ours": "c8f6b8e87b24d533de6bf31e64581df57ab8daf77d6487a6175129921f65071b",
+      "declaredAt": "2026-10-06T18:52"
+    },
+    "plugins/gifu/src/core.ts": {
+      "reason": "NormalizedGifuInput 的写法：基线 Required<GifuInput>，本仓 { [K in keyof Required<GifuInput>]: NonNullable<GifuInput[K]> }。为何不能照抄：本仓 GifuInput 的可选成员带 | undefined（exactOptionalPropertyTypes 要求的形状，尺子自动放行那一类），Required<> 只去掉 ? 而把 | undefined 留在类型上；实测把基线写法换回来 pnpm --filter @hibernalglow/xaihi-gifu typecheck 立刻 rc=1，报 src/core.ts(285,19) 'template' is possibly 'undefined' 与 (286,44)/(287,32) number|undefined 不能赋给 number 三处——纯类型层让步，运行时零差异（normalizeGifuInput 给每个成员都填了默认值，NonNullable 只是把这件事写进类型）。全文件其余内容与基线逐字符等（除同类已申报的形状外，归一化 diff 仅此一处）。",
+      "ours": "06fc479853944dd3ea7fd6e339df834a56b24c2c7d89f0c722d4b34ecaa24c58",
+      "declaredAt": "2026-10-06T18:58"
+    }
+  }
+}

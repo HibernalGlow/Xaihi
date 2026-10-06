@@ -1,0 +1,1322 @@
+{
+  "name": "@hibernalglow/xaihi-gifu",
+  "version": "0.0.0",
+  "description": "Xaihi node Gifu: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "xgifu": "./lib/cli.js"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-gifu",
+    "title": {
+      "zh": "Gifu",
+      "en": "Gifu"
+    },
+    "ui": {
+      "remote": "gifu",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.gifu",
+        "title": {
+          "zh": "Gifu面板",
+          "en": "Gifu panel"
+        },
+        "area": "workspace",
+        "remote": "gifu",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "gifu",
+      "title": {
+        "zh": "Gifu",
+        "en": "Gifu"
+      },
+      "description": {
+        "zh": "使用原生媒体运行时，将图片归档转换为 GIF、WebP、APNG、WebM 或 MP4。",
+        "en": "Convert image archives to GIF, WebP, APNG, WebM, or MP4 with the native media runtime."
+      },
+      "actions": [
+        {
+          "id": "inspect",
+          "label": {
+            "zh": "检查",
+            "en": "Inspect"
+          }
+        },
+        {
+          "id": "plan",
+          "label": {
+            "zh": "计划",
+            "en": "Plan"
+          }
+        },
+        {
+          "id": "make",
+          "label": {
+            "zh": "转换",
+            "en": "Convert"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "工作流",
+            "en": "Workflow"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "inspect",
+              "label": {
+                "zh": "检查",
+                "en": "Inspect"
+              }
+            },
+            {
+              "value": "plan",
+              "label": {
+                "zh": "计划",
+                "en": "Plan"
+              }
+            },
+            {
+              "value": "make",
+              "label": {
+                "zh": "转换",
+                "en": "Convert"
+              }
+            }
+          ],
+          "default": {
+            "text": "plan"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "pathsText",
+          "label": {
+            "zh": "归档或目录",
+            "en": "Archives or folders"
+          },
+          "description": {
+            "zh": "每行一个路径；目录可递归扫描。",
+            "en": "One path per line. Directories can be scanned recursively."
+          },
+          "kind": "path-list",
+          "lines": 5,
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "recursive",
+          "label": {
+            "zh": "递归扫描目录",
+            "en": "Scan folders recursively"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "format",
+          "label": {
+            "zh": "输出格式",
+            "en": "Output format"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "webp",
+              "label": {
+                "zh": "WEBP",
+                "en": "WEBP"
+              }
+            },
+            {
+              "value": "gif",
+              "label": {
+                "zh": "GIF",
+                "en": "GIF"
+              }
+            },
+            {
+              "value": "apng",
+              "label": {
+                "zh": "APNG",
+                "en": "APNG"
+              }
+            },
+            {
+              "value": "webm",
+              "label": {
+                "zh": "WEBM",
+                "en": "WEBM"
+              }
+            },
+            {
+              "value": "mp4",
+              "label": {
+                "zh": "MP4",
+                "en": "MP4"
+              }
+            },
+            {
+              "value": "auto",
+              "label": {
+                "zh": "AUTO",
+                "en": "AUTO"
+              }
+            }
+          ],
+          "default": {
+            "text": "webp"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "outMode",
+          "label": {
+            "zh": "输出布局",
+            "en": "Output layout"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "same",
+              "label": {
+                "zh": "同目录",
+                "en": "Same folder"
+              }
+            },
+            {
+              "value": "separate",
+              "label": {
+                "zh": "独立目录树",
+                "en": "Separate tree"
+              }
+            }
+          ],
+          "default": {
+            "text": "same"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "outDir",
+          "label": {
+            "zh": "输出目录",
+            "en": "Output directory"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "namePrefix",
+          "label": {
+            "zh": "命名前缀",
+            "en": "Name prefix"
+          },
+          "kind": "text",
+          "default": {
+            "text": "[#dyna]"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "nameTemplate",
+          "label": {
+            "zh": "命名模板",
+            "en": "Name template"
+          },
+          "kind": "text",
+          "default": {
+            "text": "{prefix}{stem}"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "durationMs",
+          "label": {
+            "zh": "每帧时长（毫秒）",
+            "en": "Frame duration (ms)"
+          },
+          "kind": "number",
+          "range": {
+            "min": 1,
+            "max": 60000
+          },
+          "default": {
+            "number": 120
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "loop",
+          "label": {
+            "zh": "循环次数（0 为无限）",
+            "en": "Loop count (0 is infinite)"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "max": 100000
+          },
+          "default": {
+            "number": 0
+          },
+          "visible": {
+            "type": "any",
+            "predicates": [
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "gif"
+                  }
+                },
+                "negated": false
+              },
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "webp"
+                  }
+                },
+                "negated": false
+              },
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "wbp"
+                  }
+                },
+                "negated": false
+              },
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "apng"
+                  }
+                },
+                "negated": false
+              },
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "auto"
+                  }
+                },
+                "negated": false
+              }
+            ]
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "quality",
+          "label": {
+            "zh": "WebP 质量",
+            "en": "WebP quality"
+          },
+          "kind": "number",
+          "range": {
+            "min": 1,
+            "max": 100
+          },
+          "default": {
+            "number": 85
+          },
+          "visible": {
+            "type": "any",
+            "predicates": [
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "webp"
+                  }
+                },
+                "negated": false
+              },
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "wbp"
+                  }
+                },
+                "negated": false
+              },
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "auto"
+                  }
+                },
+                "negated": false
+              }
+            ]
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "webpMethod",
+          "label": {
+            "zh": "WebP 编码强度",
+            "en": "WebP effort"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "max": 6
+          },
+          "default": {
+            "number": 2
+          },
+          "visible": {
+            "type": "any",
+            "predicates": [
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "webp"
+                  }
+                },
+                "negated": false
+              },
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "wbp"
+                  }
+                },
+                "negated": false
+              },
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "auto"
+                  }
+                },
+                "negated": false
+              }
+            ]
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "ffmpegThreads",
+          "label": {
+            "zh": "FFmpeg 线程数（0 自动）",
+            "en": "FFmpeg threads (0 is automatic)"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "max": 256
+          },
+          "default": {
+            "number": 0
+          },
+          "visible": {
+            "type": "any",
+            "predicates": [
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "apng"
+                  }
+                },
+                "negated": false
+              },
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "webm"
+                  }
+                },
+                "negated": false
+              },
+              {
+                "test": {
+                  "type": "fieldEquals",
+                  "fieldId": "format",
+                  "value": {
+                    "text": "mp4"
+                  }
+                },
+                "negated": false
+              }
+            ]
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "webmCrf",
+          "label": {
+            "zh": "WebM CRF",
+            "en": "WebM CRF"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "max": 63
+          },
+          "default": {
+            "number": 34
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "fieldEquals",
+                "fieldId": "format",
+                "value": {
+                  "text": "webm"
+                }
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "webmCpuUsed",
+          "label": {
+            "zh": "WebM cpu-used",
+            "en": "WebM cpu-used"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "max": 8
+          },
+          "default": {
+            "number": 6
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "fieldEquals",
+                "fieldId": "format",
+                "value": {
+                  "text": "webm"
+                }
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "mp4Preset",
+          "label": {
+            "zh": "MP4 NVENC 预设",
+            "en": "MP4 NVENC preset"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "p1",
+              "label": {
+                "zh": "P1",
+                "en": "P1"
+              }
+            },
+            {
+              "value": "p2",
+              "label": {
+                "zh": "P2",
+                "en": "P2"
+              }
+            },
+            {
+              "value": "p3",
+              "label": {
+                "zh": "P3",
+                "en": "P3"
+              }
+            },
+            {
+              "value": "p4",
+              "label": {
+                "zh": "P4",
+                "en": "P4"
+              }
+            },
+            {
+              "value": "p5",
+              "label": {
+                "zh": "P5",
+                "en": "P5"
+              }
+            },
+            {
+              "value": "p6",
+              "label": {
+                "zh": "P6",
+                "en": "P6"
+              }
+            },
+            {
+              "value": "p7",
+              "label": {
+                "zh": "P7",
+                "en": "P7"
+              }
+            }
+          ],
+          "default": {
+            "text": "p3"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "fieldEquals",
+                "fieldId": "format",
+                "value": {
+                  "text": "mp4"
+                }
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "mp4Cq",
+          "label": {
+            "zh": "MP4 CQ",
+            "en": "MP4 CQ"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "max": 63
+          },
+          "default": {
+            "number": 32
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "fieldEquals",
+                "fieldId": "format",
+                "value": {
+                  "text": "mp4"
+                }
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "maxWorkers",
+          "label": {
+            "zh": "并行归档数（0 自动）",
+            "en": "Parallel archives (0 is automatic)"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "max": 128
+          },
+          "default": {
+            "number": 0
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "extractSingle",
+          "label": {
+            "zh": "提取单图归档",
+            "en": "Extract single-image archives"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "overwrite",
+          "label": {
+            "zh": "覆盖已有输出",
+            "en": "Overwrite existing outputs"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "仅预览",
+            "en": "Preview only"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "recordRun",
+          "label": {
+            "zh": "写入 JSONL 运行记录",
+            "en": "Write a JSONL run record"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "databasePath",
+          "label": {
+            "zh": "运行记录路径",
+            "en": "Run record path"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "fieldTrue",
+                "fieldId": "recordRun"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "configPath",
+          "label": {
+            "zh": "旧版 gifu TOML 路径",
+            "en": "Legacy gifu TOML path"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "input",
+          "label": {
+            "zh": "输入",
+            "en": "Input"
+          },
+          "description": {
+            "zh": "选择归档或目录，此阶段不会修改文件。",
+            "en": "Choose archives or directories without changing files."
+          },
+          "fieldIds": [
+            "action",
+            "pathsText",
+            "recursive",
+            "configPath"
+          ]
+        },
+        {
+          "id": "output",
+          "label": {
+            "zh": "输出",
+            "en": "Output"
+          },
+          "description": {
+            "zh": "设置命名、目录结构与动画编码。",
+            "en": "Configure naming, layout, and animation encoding."
+          },
+          "fieldIds": [
+            "format",
+            "outMode",
+            "outDir",
+            "namePrefix",
+            "nameTemplate",
+            "durationMs",
+            "loop",
+            "quality",
+            "webpMethod",
+            "ffmpegThreads",
+            "webmCrf",
+            "webmCpuUsed",
+            "mp4Preset",
+            "mp4Cq"
+          ]
+        },
+        {
+          "id": "execution",
+          "label": {
+            "zh": "执行",
+            "en": "Execution"
+          },
+          "description": {
+            "zh": "确认计划前请保持预览开启。",
+            "en": "Keep preview enabled until the plan is correct."
+          },
+          "fieldIds": [
+            "maxWorkers",
+            "extractSingle",
+            "overwrite",
+            "dryRun",
+            "recordRun",
+            "databasePath"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "pathsText",
+          "slot": "paths",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "recursive",
+          "slot": "recursive",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "format",
+          "slot": "format",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "outMode",
+          "slot": "outMode",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "outDir",
+          "slot": "outDir",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "namePrefix",
+          "slot": "namePrefix",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "nameTemplate",
+          "slot": "nameTemplate",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "durationMs",
+          "slot": "durationMs",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "loop",
+          "slot": "loop",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "quality",
+          "slot": "quality",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "webpMethod",
+          "slot": "webpMethod",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "ffmpegThreads",
+          "slot": "ffmpegThreads",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "webmCrf",
+          "slot": "webmCrf",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "webmCpuUsed",
+          "slot": "webmCpuUsed",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "mp4Preset",
+          "slot": "mp4Preset",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "mp4Cq",
+          "slot": "mp4Cq",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "maxWorkers",
+          "slot": "maxWorkers",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "extractSingle",
+          "slot": "extractSingle",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "overwrite",
+          "slot": "overwrite",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "recordRun",
+          "slot": "recordRun",
+          "transform": "asBoolean",
+          "defaultExport": "default_record_run"
+        },
+        {
+          "fieldId": "databasePath",
+          "slot": "databasePath",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "configPath",
+          "slot": "configPath",
+          "transform": "identity"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "make"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认写入输出文件",
+          "en": "Confirm file output"
+        },
+        "body": {
+          "zh": "Gifu 将创建动画文件，并可能覆盖已有输出。",
+          "en": "Gifu will create animation files and may overwrite existing outputs."
+        },
+        "confirmLabel": {
+          "zh": "转换文件",
+          "en": "Convert files"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "resultTable": {
+        "columns": [
+          {
+            "id": "path",
+            "label": {
+              "zh": "路径",
+              "en": "Path"
+            },
+            "width": 34
+          },
+          {
+            "id": "state",
+            "label": {
+              "zh": "状态",
+              "en": "State"
+            },
+            "width": 12
+          },
+          {
+            "id": "images",
+            "label": {
+              "zh": "张图片",
+              "en": "images"
+            },
+            "width": 10
+          },
+          {
+            "id": "output",
+            "label": {
+              "zh": "输出目录",
+              "en": "Output directory"
+            },
+            "width": 36
+          }
+        ]
+      },
+      "help": {
+        "whenToUse": {
+          "zh": "需要在工作区 UI 或 CLI 中使用该节点的图像工作流时，使用 Gifu。",
+          "en": "Use Gifu when you need this node's image workflow from either the workspace UI or CLI."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "notes": {
+            "zh": [
+              "在修改文件前，优先使用预览或 dry-run 模式。",
+              "处理大文件夹时请保留备份或撤销记录。"
+            ],
+            "en": [
+              "Prefer preview or dry-run modes before changing files.",
+              "Keep backups or undo records when processing large folders."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
