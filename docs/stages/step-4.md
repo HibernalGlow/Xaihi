@@ -492,3 +492,25 @@ token 分层全归 `ctx.theme`，我们只是它的一个 override 来源（它�
 加这两条的测试时，我用一个自称"no-op guard"的 replace 把 `planAssertionProbe` 的
 import 删掉了，门禁当场红在 `ReferenceError`。那是我自己写的注释与行为不符，
 不是移植件的问题；修回后 130 条全绿。
+
+## 16 面板按钮的最后一环：量到签名级，然后停在 DSH 的真缺口上
+
+接着 §12 往下量，拿到的是**权威形状**而不是猜测：
+`@deepseek-ai/dsh-commands/lib/typert.remote-client.d.ts`（生成物）写的是
+
+```ts
+'commands/execute': (agentId: SessionId, line: string, submittedAttachments, signal?) => ...
+'commands/list':    (agentId: SessionId) => ...
+```
+
+也就是说第一个参数不是 Agent 对象而是 **SessionId**。接着找"当前会话 id 从哪读"，
+四条路都是空的（每条都实机读过）：`currentSession` 在 `dsh-client-ui-agent-preset` 里是
+private；`dsh-client-ui-session` 只有按会话键控的 observable，没有"当前"这一个；
+`remote.hostFacts` 只有 `{isLoopback:true}`；`remote.namespaces` 是空集合；URL 是裸 SPA 路径。
+
+结论：0.2.0-rc.2 里**第三方插件客户端拿不到 agentId**，所以面板"有按钮但按不动"。
+这写成了 `docs/upstream-proposals.md` 的 P1，附三种最小改法（只读暴露当前会话 id /
+给 `invokeSelected` 一个可猜的形状或一行文档 / 开放业务包自挂 `@Remote` 命名空间）。
+
+现在的行为保持"如实失败"，并把缺的参数名写进错误文案，指向 P1。没有为了绿灯去自建
+`/xaihi` 执行路由。

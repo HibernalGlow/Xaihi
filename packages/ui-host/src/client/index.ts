@@ -94,6 +94,8 @@ function recordRemoteShape(ctx: Context): void {
         namespaces: remote === undefined ? [] : surfaceOf(remote),
         commands: surfaceOf(commands),
         hostFacts: JSON.stringify(remote?.hostFacts ?? null),
+        // 装配实际挂了哪些 Remote 命名空间（不是代理自身的属性名）。
+        mounted: Object.keys((remote as { namespaces?: Record<string, unknown> })?.namespaces ?? {}),
       }
   } catch (error) {
     report = { present: false, reason: error instanceof Error ? error.message : String(error) }
