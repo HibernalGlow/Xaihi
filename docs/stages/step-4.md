@@ -683,6 +683,14 @@ A `linedup` → B `sleept` → C `dissolvef` → **D `findz`**。前三个都是
    `const LEAK = '--dsw-alias-text-primary'` ⇒ `scaffold.spec.ts` 立刻 rc=1（断言原文
    `expected … not to contain '--dsw-'`）；撤回后 `shasum` 与探针前一致
    （`93d438e6701cb68eeaaf94aba74c078c7498966c`），重跑 rc=0。
+7. 干净检出（新包必须能自证）：仓库外 `git worktree add --detach 21124de` ⇒
+   `pnpm install --frozen-lockfile` rc=0、`pnpm -r run build` rc=0（14 条完成行）、
+   `pnpm -r run typecheck` rc=0、`pnpm -r --no-bail run test:unit` rc=0（19 个文件），
+   且产出的 `plugins/sleept/dist/__federation_expose_Panel.js` 里 `xaihi-card` ×2 ——
+   kit 是在那份提交里自己编出来的，不依赖工作区残留。
+   顺带量到一条：lockfile 里带着 `plugins/findz` 这个 importer，而那次检出的树里没有它，
+   pnpm 12 照样 rc=0（它按目录跳过），所以"lockfile 引用了未提交的包"这一类不一致
+   **install 门是抓不到的**，只能靠 `pnpm -r` 的构建/测试清单核对包数（7 个包 vs 工作区 8 个）。
 
 ### 为什么这样设计
 
