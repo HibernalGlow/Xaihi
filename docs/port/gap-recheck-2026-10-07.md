@@ -437,5 +437,48 @@ check-cli-parity: 27 个包，比了 26 张开关表，真跑了 7 条命令，�
 **这层为什么差点没落地**：第一次做的时候我用一个短锚点（数组里某一行夹具）插新夹具，
 锚点撞到了数组中段的另一个匹配，把 `]` 和一段控制流插进 `cases` 中央，整把尺结构错乱。
 处理是对**我自己那一个文件**跑 `but discard <file-id>`（不是裸 discard）退回已提交态，
-复核 `node --check` 与 23 条夹具都过，再按"锚点取足够长的唯一上下文"重做六处编辑——
-第二次一次过。教训：往数组/列表里插东西，锚点必须带上下文明确的邻行。
+复核 `node --check` 与 23 条夹具都过，再按"锚点带明确邻行"重做六处编辑——
+第二次一次过。教训：往数组/列表里插东西，锚点必须取足够长的唯一上下文。
+
+## 代理把 54 块搬进 23 份清单之后，我判它**先不提交**（同日，实测）
+
+内容层面它做完了：23 份 `package.json#xaihi.node.help.workflows` 落地、`packageModules.generated.ts` 重生成、
+23/23 包 `typecheck` rc=0，`check:vocab/installable/noderegistry/cliregistry` 全 rc=0。
+我抽查两条它报的关键事实，都成立：
+
+- `plugins/bandia/package.json` 里 `workflows.ui[0]` 是 `"Open the module registry and deploy Bandia to the current workspace."`、
+  `cli[0]` 是 ``"Run `xbandia extract` on archive paths."`` ⇒ **只有英文**。
+  上游那份数据本身是双语的（它数出 `en` 125 行 / `zh` 125 行），而我们的契约
+  `NodeHelp.workflows = Partial<Record<'ui'|'cli'|'tips', string[]>>`（`packages/node-sdk/src/node.ts:158`）
+  一条只能装一种语言 ⇒ 它按 `logx`/`recycleu` 的先例写了 `en`，把 125 条中文丢了。
+- 这张表**当前没有运行时读者**：`nodeHelpFromManifest`（`packages/node-sdk/src/help.ts:93-169`）
+  只取 nodeId/title/description/actions 自己合成屏，不读 `manifest.help`
+  ⇒ 我今天补的这块内容对面板与 `--help` 都是**惰性**的，目前唯一的读者是 `check-cli-commands`。
+
+**为什么不顺手把 14 份 `definition.spec.ts` 改成"含 workflows"就提交**：那 14 条红不是随手钉错，
+它们是**前几批自己写下的 G11**——"上游 workflows 的值是 `{zh,en}` 两份，我们声明的是 `string[]`，装不下"
+（`plugins/smartzip/tests/definition.spec.ts:20-21`、`plugins/bandia/tests/definition.spec.ts:250` 那条
+`expect(raw).not.toContain('workflows')` 就是这条缺口的锁）。把锁改掉去迁就一份**丢了中文**的数据，
+等于用测试批准一次语言收缩，正对着"不许把容易过的那个换上去"这条。
+
+**根修三步（已开任务，顺序不能反）**：
+① 契约加宽成 `Array<string | LocalizedText>`（保持现有 3 份纯串仍然合法，不是一次破坏性改名）；
+② 把 125 条 `zh` 按上游原文补回去（英文行已核过是真改写到了各包自己的 `bin` 上，那部分要留）；
+③ 给这张表一个读者（`nodeHelpFromManifest` 读 `manifest.help`），否则补完仍是惰性的；
+④ 最后才重钉那 20 份 spec 的键集合。
+在这四步之前，那 23 份 manifest 与重生成的产物**留在工作树里不提交**——
+谁在这个分支上跑 `pnpm test` 会看到 14 条红，那不是回归，是这一批尚未定形的部分落地状态。
+
+### 顺带：换值腿之后我又修了自己尺上两处脏
+
+`--path` / `--paths` / `--configPath` / `--reportPath` / `--historyPath` 这些**名字不带 File/Dir 的路径开关**
+被旧的名字正则放过，于是全被喂了字符串 `"alpha"`：命令照样退 0，但那不是"在测参数"，是"在测垃圾输入"。
+改成**按那一行描述判路径族**（`looksPathish` 读 `描述 + <placeholder>`，实测 `--paths` 的描述写着
+"Root paths…"、`--input` 的没写 ⇒ 前者不喂、后者照喂，而 `xmarku text --input` 换值确实换输出，证明它真是内容）。
+顺带把 `previewFlagsFromOptions` 的重复项去掉（`--dryRun` 与描述里的 `(also --dry-run)` 曾被当成两个开关）。
+
+代价与收益一起报，不粉饰：**真跑的条数 7 → 3**（`formatv/linku/nameu/timeu` 只剩路径类开关，
+没有可安全喂的内容开关 ⇒ 归到"这条腿不判"），但留下的 3 条每一个参数都是有意义的；
+`换值判了 2 条` 不变（linedup `--source`、marku `--input`），`--self-check` 28 条夹具 rc=0，全量 rc=0。
+要再把那 4 个包纳进来，需要的是**给它们造临时目录夹具**（`--path` 指向 `.scratch/` 下真存在的目录），
+那是下一步的量法，不是把判据放松。

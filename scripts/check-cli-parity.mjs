@@ -231,24 +231,41 @@ function packageFace(id) {
   return { id, bin: binName, cliPath, node, danger }
 }
 
+/** 一整行 `Options:` 记录：开关名 + 它自己的描述（用来判"这是内容还是路径"）。 */
+function optionLines(screen) {
+  const out = []
+  for (const match of screen.matchAll(/--([A-Za-z][\w-]*)(\s+<[^>\n]*>)?([^\n]*)/g)) {
+    out.push({ name: match[1], placeholder: (match[2] ?? '').replace(/[<>\s]/g, '').toLowerCase(), rest: match[3] ?? '' })
+  }
+  return out
+}
+
+/**
+ * 这一行的对象是**路径/目录**吗？按描述判，不按开关名判。
+ * 名字会骗人：本仓实测到的 `--paths`（nameu/timeu 的根目录清单）、`--input`（marku 的读入文件）、
+ * `--historyPath`、`--config` 都是路径族，而按旧的名字正则只挡得住 `*File`/`*Dir` 两种，
+ * 于是这些开关全被喂了字符串 "alpha"——命令仍然退 0，但那不是在测参数，是在测垃圾输入。
+ */
+function looksPathish(line) {
+  return /path|file|director|roots?\b|\bdir\b/i.test(`${line.rest} ${line.placeholder}`)
+}
+
 /**
  * 从一屏 `Options:` 里挑可以安全喂值的开关。
  *
  * 不用清单里的字段名去凑：实测过两侧名字本来就不一样
  * （`xaihi.node.fields` 是 `sourceText` / `filterText`，而 `xlinedup filter --help` 打的是 `--source` / `--filter`），
  * 按字段名凑会得到"一个开关都喂不进去"的假跳过。这里直接读那条子命令自己的屏。
- * 带 `File` / `output` 的那几类会碰磁盘，一律不喂——这一段腿的零副作用约束就在这条上。
+ * 路径族一律不喂（见 `looksPathish`）——这一段腿的零副作用约束就在这条上。
  */
 export function inlineFlagsFromOptions(screen) {
   const out = []
-  for (const match of screen.matchAll(/--([A-Za-z][\w-]*)(?:\s+<([^>\n]*)>)?/g)) {
-    const name = match[1]
-    const placeholder = (match[2] ?? '').toLowerCase()
-    if (['help', 'version', 'json'].includes(name)) continue
-    if (PATHISH.test(name)) continue
-    if (/\d|number|size|limit|count|depth|thread|percent/.test(placeholder + name)) out.push(`--${name}=1`)
-    else if (placeholder === '') out.push(null) // 布尔型：不主动打开，默认值就够跑一次
-    else out.push(`--${name}=alpha`)
+  for (const line of optionLines(screen)) {
+    if (['help', 'version', 'json'].includes(line.name)) continue
+    if (looksPathish(line)) continue
+    if (/\d|number|size|limit|count|depth|thread|percent/.test(line.placeholder + line.name)) out.push(`--${line.name}=1`)
+    else if (line.placeholder === '') out.push(null) // 布尔型：不主动打开，默认值就够跑一次
+    else out.push(`--${line.name}=alpha`)
   }
   return out.filter((entry) => entry !== null)
 }
@@ -424,6 +441,7 @@ for (const id of ids) {
     continue
   }
   runsDone += 1
+  notes.push(`${id}: 真跑了 ${voice.bin} ${sub} ⇒ argv=${JSON.stringify(argv)}`)
   if (usedArgs.preview === undefined && voice.node.danger?.type === 'all') {
     notes.push(`${id}: 用预演参数 ${JSON.stringify(usedArgs)} 让契约放行；屏上没有 dryRun 类开关时这条判据依赖上游默认值`)
   }
