@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { openNodeWindow, readXaihiWindowCapability } from '../src/desktop-windows.ts'
+import { openNodeWindow, readXaihiWindowCapability, type XaihiWindowOpenOptions } from '../src/desktop-windows.ts'
 
 /** 只有自家壳才有的动词；官方桌面端与 dsh web 各有一种"没有它"的样子，必须分得开。 */
 function scopeWith (shape: unknown): unknown {
@@ -89,23 +89,25 @@ describe('openNodeWindow 的本地闸门与透传', () => {
     expect(await openNodeWindow(scope, 'xaihi-hello')).toEqual({ ok: false, reason: 'stock-shell' })
   })
 
-  // 0007 的转达分支：产品文档替被嵌的 Xaihi 帧来问，路径由调用方给、本地先按形状收住。
-  it('自家文档路径逐字透传给壳，缺省时第二参数是 undefined', async () => {
-    const seen: Array<[string, string | undefined]> = []
+  // 0007 的转达分支 + 0009 的 input 形状：路径与尺寸都由调用方给，本地先按形状收住。
+  it('input 逐字透传给壳，缺省时第二个参数是 undefined', async () => {
+    const seen: Array<[string, unknown]> = []
     const scope = scopeWith({
       dshDesktop: {
         xaihiWindow: {
-          open: async (node: string, documentPath?: string) => {
-            seen.push([node, documentPath])
+          open: async (node: string, options?: unknown) => {
+            seen.push([node, options])
             return { windowId: 4, alreadyOpen: false }
           },
         },
       },
     })
     const path = '/xaihi/ui/0123456789ab/index.html'
-    expect(await openNodeWindow(scope, 'xaihi-sleept', path)).toEqual({ ok: true, opening: { windowId: 4, alreadyOpen: false } })
+    expect(await openNodeWindow(scope, 'xaihi-sleept', { documentPath: path, width: 900, height: 700 }))
+      .toEqual({ ok: true, opening: { windowId: 4, alreadyOpen: false } })
     await openNodeWindow(scope, 'xaihi-linedup')
-    expect(seen).toEqual([['xaihi-sleept', path], ['xaihi-linedup', undefined]])
+    // 逐字：三个键一个都不能在包装层被丢掉（丢参数那次是自家测试抓到的）
+    expect(seen).toEqual([['xaihi-sleept', { documentPath: path, width: 900, height: 700 }], ['xaihi-linedup', undefined]])
   })
 
   it('坏路径在本地就拒，不喂给 IPC', async () => {
@@ -115,8 +117,28 @@ describe('openNodeWindow 的本地闸门与透传', () => {
     })
     for (const bad of ['', '/xaihi/ui/../index.html', '/xaihi/ui/ZZZZ/index.html', 'https://example.com/x',
       '/xaihi/ui/0123456789ab/index.html?node=x', '/xaihi/ui/0123456789a/index.html', '/other/index.html']) {
-      expect(await openNodeWindow(scope, 'xaihi-hello', bad)).toEqual({ ok: false, reason: 'invalid-document-path' })
+      expect(await openNodeWindow(scope, 'xaihi-hello', { documentPath: bad })).toEqual({ ok: false, reason: 'invalid-document-path' })
     }
     expect(calls).toBe(0)
+  })
+
+  // 尺寸的**数值范围**留给壳判（那台机器的最小/最大窗尺寸只有壳知道），这里只收形状：
+  // 必须是成对的整数 —— 半套尺寸最容易被写成"另一个用壳的缺省值"，那是静默的错。
+  it('尺寸形状不合在本地就拒，成对整数才透传', async () => {
+    const seen: unknown[] = []
+    const scope = scopeWith({
+      dshDesktop: { xaihiWindow: { open: async (_node: string, options?: unknown) => { seen.push(options); return { windowId: 2, alreadyOpen: false } } } },
+    })
+    // 这一格**故意**喂运行时可能出现的坏形状（半套、字符串、NaN），所以类型上先按 unknown 收；
+    // 用类型系统"证明"它们不存在就等于不测。
+    const badSizes: unknown[] = [{ width: 900 }, { height: 700 }, { width: 900.5, height: 700 },
+      { width: '900', height: 700 }, { width: 900, height: Number.NaN }]
+    for (const bad of badSizes) {
+      expect(await openNodeWindow(scope, 'xaihi-hello', bad as XaihiWindowOpenOptions))
+        .toEqual({ ok: false, reason: 'invalid-window-size' })
+    }
+    expect(seen.length).toBe(0)
+    await openNodeWindow(scope, 'xaihi-hello', { width: 900, height: 700 })
+    expect(seen).toEqual([{ width: 900, height: 700 }])
   })
 })

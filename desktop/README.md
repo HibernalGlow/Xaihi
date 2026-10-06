@@ -482,3 +482,40 @@ J 段量的是"被嵌帧 `window.open`"——**还差一格是实际最容易走
   `./src/nodes/classf/ClassfDeletionHistoryDialog.tsx`（1 条）、`./src/nodes/marku/WorkflowEditor.tsx`（2 条），
   **全部是搬运那刀的在飞文件，错误集里没有 `main.tsx` 也没有 `boot-notice.ts`**。
   等那一刀落地再补跑这条；现在它只是纯函数实跑（12 条）加改动本身，不写成"已编译验证"。
+
+## 0009：动词改成 input 对象，并可带新建尺寸（2026-10-07 07:0x）
+
+基线那边的窗口契约不是"给我一个 node"就完事：`Xiranite/src/backend/runtime/runtime.ts:125-132` 的
+`OpenComponentWindowInput` 是 `{ componentId, moduleId, workspaceId?, title?, width?, height? }`，
+而 `:134-151` 的 `WindowRuntime` 有十一个成员，`useWindowControls.ts:83-104` 在 open 之前还会
+`resolveComponentWindowSize(...)` 把**记住的尺寸**喂进去。搬运清单（`docs/port/xiranite-ui.json`）
+已经排了 `hooks/useWindowControls.ts`、`backend/services/windowService.ts`、
+`components/workspace/FloatingComponentWindow.tsx`、`components/modules/nodeWindowPreferences.ts`
+等六份文件 ⇒ 搬运那刀落地时会照着这张表向宿主提问。
+
+0009 把动词换成 **input 对象**（`open(node, options?)`，`options = { documentPath?, width?, height? }`），
+尺寸按基线那样**由调用方带**：哪个节点窗多大是 Xaihi 自己的耐久数据，按 ADR-0013 走 DSH 的
+settings / storage 面，壳不另开一份存储。校验放在纯模块里（`normalizeXaihiWindowSize`），
+下界与 `createWindow` 的 `minWidth/minHeight` 同档（520 / 600），上界 12000；
+**半套尺寸（只有 width 或只有 height）整条按形状错误拒**，不许静默退回缺省尺寸。
+尺寸**只作用在新建那一次**：重复请求是聚焦，把使用者已经拖放好的窗改了尺寸等于替他做决定。
+
+实机（L 段五条，`node desktop/live-check.mjs` ⇒ **59 条 OK、rc=0**）：
+`open(nodes[2], {documentPath, width: 900, height: 700})` ⇒ `bounds={x:95,y:33,width:900,height:700}` 逐字读回；
+同一 node 再带 `1500x1100` 问一次 ⇒ `alreadyOpen=true` 且 `boundsAfterRepeat` 仍是 `900x700`；
+`{width:900}`（半套）与 `{300,300}`（越界）都按 `width and height must both be integers within the allowed bounds` 拒。
+`--verify` 侧新增 12 条尺寸用例（正控：合法尺寸逐字放行；反控：半套 / 小数 / 字符串 / 越界 / 非对象），
+并带一条"合法尺寸被吞也判尺瞎"的减法对照。
+
+**十一个成员的契约，今天答得上几条**（给搬运那刀的实话，不是自我表扬）：
+
+| 基线成员（`runtime.ts:134-151`） | 我们这侧 | 证据 |
+|---|---|---|
+| `openComponent(input)` | ✅ `xaihiWindow.open(node, {documentPath, width, height})` | J / K / L 段活体 |
+| `getCapabilities()` | ⚠️ 只有开窗那一格：SDK 的 `readXaihiWindowCapability` 给 `supported` 与三种原因，可对上基线 `componentWindows` 的 `native` / `unsupported` / `browser-popup` 三档（`Xiranite/src/backend/adapters/web.ts:206` 是 `browser-popup`）；`nativeWindowControls`、`frameless`、`captionOwner`、`captionInset` **一位都没答** | 单测 + F / I 段屏上读数 |
+| `focus(id)` / `close(id)` | ⚠️ 间接：去重命中时 `show()+focus()`；关闭只有 OS 那条路，没有按 id 的动词 | C 段（聚焦）；按 id 关闭未提供 |
+| `controlMain` / `controlComponent` / `openDevTools` / `getFrame` / `setFrame` / `subscribeFrameChanges` / `startDragging` | ❌ 未提供 | 无 |
+
+⇒ 搬运那刀接 `windowService.ts` 时，除 `open` 之外每一条都要**先接降级再接触点**：
+按决定 4，探测不到就画"这一格没有提供者"，不许把 `controlComponent` 之类写成"成功但什么都没做"。
+补齐它们每条都是独立 patch，优先级由落地时真正调用到哪几条决定 —— 现在这条表就是那条尺的对照面。

@@ -16,8 +16,19 @@ export interface XaihiWindowOpening {
   readonly alreadyOpen: boolean
 }
 
-/** 壳上的动词；第二个参数是 0007 那条转达分支，缺省时目标取自发起者自己的文档。 */
-export type XaihiWindowOpener = (node: string, documentPath?: string) => Promise<XaihiWindowOpening>
+/**
+ * 开窗的可选入参（0009 的 input 形状，照基线 `OpenComponentWindowInput` 的 `width` / `height`）。
+ * `documentPath` 是 0007 的转达分支：由产品文档替被嵌的 Xaihi 帧来问时给自家文档路径。
+ * 尺寸的记忆归 Xaihi 自己（ADR-0013：走 DSH 的 settings / storage 面），壳只校验并作用于新建那一次。
+ */
+export interface XaihiWindowOpenOptions {
+  readonly documentPath?: string
+  readonly width?: number
+  readonly height?: number
+}
+
+/** 壳上的动词；缺省 options 表示"发起者自己就是那份文档"。 */
+export type XaihiWindowOpener = (node: string, options?: XaihiWindowOpenOptions) => Promise<XaihiWindowOpening>
 
 /**
  * 探测结果只有两种形态，且**不支持时必须带原因**。
@@ -33,7 +44,7 @@ export type XaihiWindowUnavailableReason = 'no-shell-surface' | 'stock-shell' | 
 interface ShellSurface {
   readonly dshDesktop?: {
     readonly xaihiWindow?: {
-      readonly open?: (node: string, documentPath?: string) => Promise<XaihiWindowOpening>
+      readonly open?: (node: string, options?: XaihiWindowOpenOptions) => Promise<XaihiWindowOpening>
     }
   }
 }
@@ -59,35 +70,42 @@ export function readXaihiWindowCapability (scope: unknown): XaihiWindowCapabilit
     return { supported: false, reason: 'stock-shell' }
   }
   if (typeof windowApi.open !== 'function') return { supported: false, reason: 'not-a-function' }
-  // 两个参数都要转过去：只带 node 的包装层会把 0007 的转达路径静默吃掉（实测的"半接"就长这样）。
-  return { supported: true, shell: 'xaihi-desktop', opener: (node, documentPath) => windowApi.open!(node, documentPath) }
+  // 两个参数都要转过去：只带 node 的包装层会把可选入参静默吃掉（实测的"半接"就长这样）。
+  return { supported: true, shell: 'xaihi-desktop', opener: (node, options) => windowApi.open!(node, options) }
 }
 
 /** 开窗的结果同样只有两种，失败带原因；IPC 抛回来的原文透传，不重写成"未知错误"。 */
 export type OpenNodeWindowResult =
   | { readonly ok: true, readonly opening: XaihiWindowOpening }
-  | { readonly ok: false, readonly reason: 'invalid-node-id' | 'invalid-document-path' | XaihiWindowUnavailableReason | `ipc-failed: ${string}` }
+  | { readonly ok: false, readonly reason: 'invalid-node-id' | 'invalid-document-path' | 'invalid-window-size' | XaihiWindowUnavailableReason | `ipc-failed: ${string}` }
 
 /**
- * 为一个节点请求独立窗：先本地按形状收 node 与（可选的）文档路径，再交给壳。
+ * 为一个节点请求独立窗：先本地按形状收 node、文档路径与尺寸，再交给壳。
  * @param scope - the surface to probe for the shell verb.
  * @param node - a manifest id; invalid ids never reach IPC.
- * @param documentPath - 0007 的转达分支：由产品文档替被嵌的 Xaihi 帧来问时给自家文档路径；
- *   缺省表示"发起者自己就是那份文档"。形状不合本地就拒，不喂给 IPC。
+ * @param options - 0007 的转达路径与 0009 的开窗尺寸；形状不合本地就拒，不喂给 IPC。
+ *   尺寸的**数值范围**留给壳判（壳才有那台机器的最小/最大窗尺寸），这里只收"整数、且成对给出"。
  */
 export async function openNodeWindow (
   scope: unknown,
   node: string,
-  documentPath?: string,
+  options?: XaihiWindowOpenOptions,
 ): Promise<OpenNodeWindowResult> {
   if (typeof node !== 'string' || !NODE_ID_PATTERN.test(node)) return { ok: false, reason: 'invalid-node-id' }
+  const documentPath = options?.documentPath
   if (documentPath !== undefined && (typeof documentPath !== 'string' || !DOCUMENT_PATH_PATTERN.test(documentPath))) {
     return { ok: false, reason: 'invalid-document-path' }
+  }
+  const { width, height } = options ?? {}
+  if (width !== undefined || height !== undefined) {
+    const paired = typeof width === 'number' && typeof height === 'number'
+      && Number.isInteger(width) && Number.isInteger(height)
+    if (!paired) return { ok: false, reason: 'invalid-window-size' }
   }
   const capability = readXaihiWindowCapability(scope)
   if (!capability.supported) return { ok: false, reason: capability.reason }
   try {
-    return { ok: true, opening: await capability.opener(node, documentPath) }
+    return { ok: true, opening: await capability.opener(node, options) }
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     return { ok: false, reason: `ipc-failed: ${detail}` }
