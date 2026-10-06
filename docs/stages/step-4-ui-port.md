@@ -512,3 +512,33 @@ ADR-0014 把载体从 `lib/client.js` 换成 Xaihi 自己的文档产物之后�
 这条**故意不接进 `pnpm test`**（同 `check:brand`、`check-verbatim` 的处置）：
 它现在量到的是"还没有产物"，接进全仓测试只是把并发 lane 正在收的 `build:document` 红变成我的红。
 接线时机：`dist-ui/main.js` 落地且除 `findz` 那类 `undecidable` 之外全绿。
+
+## 16. 界面叶子的解析、43 份测试从"零断言"到"300 条"，以及一条我复现出来的前缀遮蔽（2026-10-07 04:08）
+
+这一轮的三件实测（各自带 rc，全部由我本人复跑，代理叙述只当线索）：
+
+1. **别名表按键长递减排**（`xrw`）。症状不是"解析不到"而是"解析到错的文件"：
+   `@xiranite/shared` 在前、`@xiranite/shared/rules` 在后，而 `resolve.alias` 前缀匹配先到先得
+   ⇒ 6 对被遮蔽（`shared/rules`、`shared/swimlane`、`cli-runtime/terminal` 各两种前缀写法）。
+   原来的 `assertAliasTargets()` 只查"每条指得到文件"，对此完全瞎。现在源头排一次序 + 加一条判据，
+   阳性对照真跑：把排序块短路 ⇒ rc=1 并点名 6 对；恢复 ⇒ rc=0，位次 139 早于 144。
+2. **12 份搬运进来的节点测试真跑起来**（`lsk`）。include 原来只收 `tests/**` 与 design-theme，
+   于是 `src/nodes/**` 那 43 份是"在场、零断言"。逐个点名 12 份后 ui-host 从 26 文件/248 条到
+   **38 文件/300 条 rc=0**；承重证明是把 `src/nodes/shared/useNodeSurface.ts:15` 的 1040 改 1041 ⇒
+   rc=1 `expected 'expanded' to be 'workspace'`，恢复后回到 300。剩下 30 份的分类在
+   `docs/port/ui-tests-inventory.md`，全都能归到同一个根因（见 3）。
+   我试过的第三条路要如实记下：把被遮蔽的那份 `RuleTreeEditor.test.tsx` 加进 include，
+   遮蔽修完它仍红——它经由 `@xiranite/shared/rules` 撞到同一个 `zod` 裸名问题，
+   ⇒ 前缀遮蔽不是那 30 份的主因，我没有为了"数字好看"把它留在名单里（配置已还原，`git diff --stat` 干净）。
+3. **主因是跨包裸名没有解析根**，且**不该在 vitest 里治**（任务 #25）。
+   `packages/{shared,logging}` 在 `pnpm-workspace.yaml` 的负向名单里 ⇒ 没有自己的 `node_modules`，
+   它们发出的 `zod` 按逐级上溯找不到。rspack 那侧早有两行机械规则（`rspack.document.mjs:78-92`
+   的 `resolve.modules` 与 `extensionAlias`），但 Vite 没有 `modules` 的等价物：
+   `resolve.dedupe` 要按包名一条条列（每来一个新裸名加一行），给那两个包手工软链 `node_modules`
+   是假装成流水线产物。真正的解法是并发 lane 正在做的那一步（把 shared/logging/contract/api/cli-runtime
+   换成本仓包名并解掉负向条目），让 pnpm 自己装依赖。
+
+一条纪律性的账：我做这批测量时**三次**踩同一个工具坑——`rg -r` 把下一个参数当替换文本，
+于是屏幕上出现 `n_DIR`、`modules/ln.ts` 这种仓里不存在的名字；第三次我先怀疑它、
+改用 Read/python 读原文才没把假名字写进台账。同一轮里我自己也写错过一次事实
+（把 `packages/tui` 当成存在的目录，实际 TUI 源码在 `packages/logging/src/`）。
