@@ -48,3 +48,37 @@
    的证据：合法搬运面只剩 `ctx.webServer` 的命名路由，而 `WebRoute.handler` 的文档原话允许
    长挂响应（SSE）。落地的形状见 `docs/stages/step-4.md`。
 
+## 落批次 D（`findz`）时补的两条
+
+1. **"内核不是 JS"这件事本身要过表**。它不属于原来任何一行：`subprocess.md` 管的是
+   "怎么起进程"，不管"什么样的内核值得为它付一个进程"。这条落在
+   `docs/adr/0004-non-js-core-delivery.md` 的四个决定里，判据是**故障半径**
+   （`-buildmode=c-shared` 的 Go panic 在 cgo 边界不可恢复，陪葬使用者的宿主与整条会话），
+   不是性能。所以"内核慢不慢"不能用来判要不要独立进程，"它崩了会不会带走宿主"才是。
+2. **内核的对外形状本身也不许重写**。ADR-0004 决定 2 的原话是"复用那 4 个既有符号的语义"，
+   落地就是那 4 个导出符号（`findz_abi_version` / `findz_api_info` / `findz_call` /
+   `findz_free`）在帧协议下各有对应：`call` 是请求帧、`api_info` 是**问候帧**、`free` 交给
+   进程退出。**"自由符号"在帧协议里没有方法名**，所以移植时凡是被 wrapper 层（Worker /
+   FFI 客户端）服务过的方法，都要回头确认它的真源在哪一层——`findz` 的 `api.info` 就是
+   这么漏的，症状是 `unsupported_method: api.info`。
+
+
+## 缺口台账（终端面与主机缝，实测由批次 E/F 的子代理报出，逐条给出处）
+
+这些不是"还没做完"，是**DSH 这一侧现在兑现不了**的形状；每条都写着今天代码里怎么表现的。
+
+| # | 缺口 | 今天的表现（可复核） | 出处 |
+|---|---|---|---|
+| G1 | **主机进程之外没有文件系统缝**。上游 `nodes/logx/platform.ts` 的 `createNodeLogxRuntime` 直接 `node:fs` 读日志目录；本仓的 `ctx.fs` 只在 DSH bundle 的 `apply()` 里存在 | 全局 `bin`（`xlogx`）那一面**只能出计划**：`executed:false` + 退出码 2，stderr 点名 `ctx.fs` 与 `Config.logDir` | `plugins/logx/tests/cli.spec.ts`；`plugins/logx/src/cli.ts` |
+| G2 | **主机进程之外没有设置缝**。上游 `@xiranite/config` 的 `loadNodeConfigWithHints` / `updateNodeConfigFile` 与 `TerminalPreferenceController`（主题 / default_mode / 语言）都映射到 `ctx.settings`，bin 里够不到 | `ui` / `gd` 两条交互腿因此不是"缺渲染器"而是**没地方读写偏好**，直接拒 | `plugins/{logx,recycleu}/src/cli.ts` 的拒答文案 |
+| G3 | **`NodeCall` 不往下传取消信号**。DSH 有 `ToolExecution.signal`，但 `defineNode` 的调用形状里没有它 | `recycleu start` 的暂停/撤销只能靠自己那套；`maxCycles=0`（无限循环）被**拒**而不是假装有闸 | `packages/node-sdk/src/define-node.ts:50-54`；`plugins/recycleu/src/exec.ts:141`（`CANCELLATION_GAP`） |
+| G4 | **`xaihi.node/v1` 没有"这一面尚未出货"的表示法**。上游清单里 `help.workflows.cli` 的散文还写着 `xlogx ui` / `xrecycleu gd` | 屏幕不撒谎（推导器只读 `nodeId`/`title`/`description`/`actions`），但**清单这一块确实在宣传包自己会拒的腿** | 两份 manifest 原文；`packages/node-sdk/src/help.ts` |
+| G5 | **剪贴板读取在上游是缝外的直接 `node:child_process`**（`crashu/src/platform.ts:23-62`），唯一调用者是 `guided` 那条腿 | 该函数**没搬**，`ui/gd/guided` 一律可见地拒；搬它要先决定它归哪个 DSH 服务 | `plugins/crashu/src/platform.ts` 头注释 |
+| G6 | **危险动作的批准只在主机侧有缝**。bin 面没有 `ctx.approval` | `danger.all` 经由 `defineNode` 的 `ask` 在宿主侧生效；从终端直接跑的那条路**没有批准环节可展示**，因此 `--force` 之类的形状一律不做 | `plugins/{crashu,formatv}/src/index.ts`；ADR-0013 |
+| G7 | **帮助页与真注册的斜杠命令两头都能对不上**（现读：13 份 `plugins/*/src/help.ts` 传了 `command:'/…'`，而 `inject` 里带 `commands` 的只有 `findz` 与 `sleept`，且 `findz/src/help.ts` **不在**那 13 份里） | 两个方向都错：12 个包印了一条宿主里不存在的 `/id`；`findz` 反过来注册了命令却不印。修法：`command` 改成可选参数、只在包真注册时传，并给这条加一把尺（`help.ts` 传了 `command` 的包必须在 `inject` 里带 `commands`，反向也要报） | `packages/node-sdk/src/help.ts`；各 `plugins/*/src/{help,index}.ts` | `packages/node-sdk/src/help.ts`；各 `plugins/*/src/help.ts` |
+
+| G8 | **模型省略布尔时，声明式默认不生效**。`xaihi.node/v1` 的 `fields[].default` 只有表单侧会填；`define-node` 把省略的布尔折成 `false` | `rawfilter` 因此出现"内核默认 `dryRun=false`、清单默认 `true`"的分叉，两份各钉一条测试钉住现状；这不是 DSH 的缺口，是**我们 SDK 侧的落差**，修法在 `packages/node-sdk/src/define-node.ts` 的入参折叠处补"省略 ⇒ 用清单默认" | `plugins/rawfilter/src/index.ts` 注释与其 `tests/core.spec.ts` 两条 |
+| G9 | **一方节点界面在 2026-10-07 之前根本没有消费者**（见 `docs/adr/0014-first-party-node-ui-in-realm.md`） | 表现是"搬进来了、类型过了、注册了 12 条，屏上一个都没有"；判据是产物字面命中（`lib/client.js` 里搜 `上次任务失败` 命中 0）。修法与验收条件写在 ADR-0014 的后果一节 | `packages/ui-host/src/components/modules/packageModules.generated.ts`、`packages/ui-host/src/client/workspace.tsx` |
+**共同形状**：G1/G2/G6 都是同一条边界的两面——DSH 的服务缝活在插件进程里，
+而"能装进 `$PATH` 的那一面"活在它外面。要么给 DSH 提提案（非主机进程的 fs/settings/approval 入口），
+要么接受"bin 面 = 计划器 + 只读查询"这一条明确的口径；两种都比在 bin 里私开一套强。
