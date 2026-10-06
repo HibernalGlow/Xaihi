@@ -34,6 +34,13 @@ export default defineConfig({
   },
   test: {
     environment: 'happy-dom',
+    // Node 26 的实验性 `localStorage` 全局会把 happy-dom 那份 `Storage` 顶掉（实测值恒为
+    // undefined 且读一次告警一次）。这一层不是某个测试的毛病，是运行时形状：搬来的节点测试里
+    // 180 条 `setItem` 失败全压在这上面（`docs/port/ui-tests-283-triage.md`）。
+    // 先试过 `poolOptions.threads.execArgv: ['--no-experimental-webstorage']`——照红，
+    // Worker 的 execArgv 收不下进程级开关；所以改成在测试宿主里装回同一个实现（见那份文件头）。
+    // 判据是 `tests/localstorage-env.spec.ts` 那三条：去掉起手必须红。
+    setupFiles: ['src/test/setup-webstorage.ts'],
     include: [
       'tests/**/*.spec.ts',
       'tests/**/*.spec.tsx',
