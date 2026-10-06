@@ -57,13 +57,14 @@ afterAll(async () => {
   if (tempDir !== '') await rm(tempDir, { recursive: true, force: true })
 })
 
-/** 构造只带 loader 与 baseUrl 的最小宿主上下文。 */
-function fakeContext(rows: EntryLike[]): DiscoverContext {
+/** 构造只带 loader、baseUrl 与 `get` 的最小宿主上下文。 */
+function fakeContext(rows: EntryLike[], provided: Record<string, unknown> = {}): DiscoverContext {
   return {
     baseUrl: profileRoot,
     loader: {
       entries: () => rows[Symbol.iterator](),
     },
+    get: (name: string) => provided[name],
   } as unknown as DiscoverContext
 }
 
@@ -106,6 +107,19 @@ describe('discover', () => {
     expect(isSubpathSpecifier('@fixture/xaihi-demo/sub')).toBe(true)
     expect(isSubpathSpecifier('plain-package')).toBe(false)
     expect(isSubpathSpecifier('plain-package/sub')).toBe(true)
+  })
+
+  it('可选服务的可用性被读出来，缺席不伪装成可用', () => {
+    const rows = [row('@fixture/xaihi-demo')]
+    expect(discover(fakeContext(rows)).services).toEqual({
+      storageDomain: false,
+      approval: false,
+      commands: false,
+      xaihiOperations: false,
+    })
+    const withStorage = discover(fakeContext(rows, { storageDomain: { open: () => {} } }))
+    expect(withStorage.services.storageDomain).toBe(true)
+    expect(withStorage.services.approval).toBe(false)
   })
 
   it('collect 是 discover 的登记表投影', () => {

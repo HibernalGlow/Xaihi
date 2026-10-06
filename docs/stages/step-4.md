@@ -210,3 +210,65 @@ Material You 桥与 UI Kit、`.dsh/skills`。
 - ③「立即睡眠/休眠」的**真实触发**：按计划条款需要使用者当场说"跑"。默认只做到
   "计划出的 argv 正确 + 危险闸门把它变成 `ask`"。附带一条没测的：macOS 上 `pmset sleepnow`
   是否需要管理员权限——跑它本身就会睡，所以没跑。
+
+## 10 耐久运行账目（checkpoint / history 的落地）
+
+### 改了什么
+
+- `node-sdk`：`RunRecord` / `HistorySnapshot` / `HISTORY_SCHEMA='xaihi.ledger/1'` /
+  `HISTORY_SNAPSHOT_PATH='/xaihi/history.json'` 进契约（浏览器读回不许依赖 core 的 Node 模块）。
+- `core/src/history.ts`：用 DSH 的 storage domain 声明 `xaihi_runs` 域（`defineDomain` +
+  `domainTable` + zod），`openLedger` 给出 `RunLedger`（`durable` / `reason` / `append` /
+  `list` / `close`），拿不到缝时退化成内存账本并把原因带在响应里；`historyHandler` 是路由。
+- `core/src/index.ts`：订阅事件流，在 `finished` / `failed` 时落一条记录（含该运行的事件条数）；
+  注册 `/xaihi/history.json`；卸载时关域。
+- `core` 依赖新增 `@deepseek-ai/dsh-storage-domain@0.2.0-rc.2` 与 `zod@4.6.5`（都是精确钉版，
+  check-pins 覆盖前者）。
+- `discover` 顺带带出 `services`：Xaihi **可选**使用的宿主服务是否真解析到了实现。
+  这是回读路径，不是日志——"检查点没存"必须能被区分成装配问题与代码问题。
+
+### 为什么这样设计
+
+- 存储**不自己造**：DSH 的 `ctx.storageDomain` 就是"非会话事件的持久化"这件事的正解
+  （`storage.md:5`），运行账目是域概念但落盘是通用能力。
+- `RunRecord` 不留可选字段：没有就写 `''` / 0。JSON 里"字段缺失"与"值为空"混在一起时，
+  读回方无法区分"这条记录没说"和"这条记录说了没有"。
+- `checkpoint` 字段先占位为空串，载荷形状等批次 C（`dissolvef` 的 legacy undo 就是它的活样本）；
+  现在发明一个没人用的载荷 schema 就是给将来的人添堵。
+- 退化路径要**可读出**而不是不可用：`durable=false` + `reason` 出现在正常响应里，
+  所以"这台宿主没有存储缝"是一个能被观察到的状态，而不是一个静默的行为差异。
+
+### 测到的三条文档没写的约束
+
+1. `defineDomain` 在 import 时就拒绝带连字符的域名：`/^[a-z][a-z0-9_]*$/`。
+   我第一次写 `xaihi-runs` 直接被抛，改成 `xaihi_runs`。
+2. 0.2.0-rc.2 发布的 `SubprocessHandle` **没有** `pid`（文档写了），所以账本与状态里
+   都不出现 pid；见 §8。
+3. `ctx.get(name)` 在**本 fiber 提供它之前**读不到自己的服务：boot 期的形状打印里
+   `xaihiOperations=absent` 是这个原因，不是故障。请求期现读才是 `true`。
+   所以可用性探针每次请求现算，不在 boot 缓存。
+
+### 证据
+
+1. 门禁 `pnpm test` → `GATE_RC=0`；core 单测从 40 涨到 50（`history.spec.ts` 10 条），
+   全仓 108 条。阳性对照：账本打不开时路由是 500 带原因，不是 200 空清单；
+   内存账本溢出时淘汰的是旧的。
+2. 真机装载：`plugin:install` rc=0 后启动隔离宿主，
+   `GET /xaihi/history.json` → `HTTP=200`、
+   `{"schema":"xaihi.ledger/1","durable":true,"reason":null,"records":[]}` ——
+   **`durable:true` 是 core 在宿主进程里真的 `open()` 开了 DSH 的 storage domain 才可能出现的值**。
+3. 后端根目录是真的：verbose 启动日志读出
+   `storageDomain=closeAll,config,ctx,domains,get,open,reserved`；
+   `$DSH_HOME/storages/` 里已有 DSH 自己的 `workspace.json`，
+   `xaihi_runs.json` 要等第一条记录写入才出现（json 后端按需落盘）。
+4. 装配事实（纠正 §5 的记录方式）：请求期 `debug.json.services` =
+   `{storageDomain:true, approval:true, commands:true, xaihiOperations:true}`。
+   我之前用 `createRequire(profile/package.json)` 试解析 `@deepseek-ai/dsh-storage-domain`
+   得到 MODULE_NOT_FOUND，那是**假阴性**（组合的导入基准与我的不同）；
+   判"有没有某个服务"只能问运行时。
+
+### 还差的一条
+
+写入-重启-读回的完整耐久回路要等**一次真运行**（同上，缺模型凭据）。目前证明的是
+"缝开得住"，还没证明"字节落得下"——差别说在这里，不含糊过去。
+

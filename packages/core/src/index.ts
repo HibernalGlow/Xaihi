@@ -24,7 +24,15 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { buildRegistrations, buildWorkspaceDocument, type ServedRegistration } from './registry.ts'
 import { manifestHandler, remoteHandler } from './routes.ts'
 import { createJournal, operationsSnapshotHandler, operationsStreamHandler } from './operations.ts'
-import { OPERATIONS_SERVICE, OPERATIONS_SNAPSHOT_PATH, OPERATIONS_STREAM_PATH } from '@hibernalglow/xaihi-sdk'
+import { historyHandler, openLedger, type DomainFacilityLike, type RunLedger } from './history.ts'
+import {
+  HISTORY_SNAPSHOT_PATH,
+  OPERATIONS_SERVICE,
+  OPERATIONS_SNAPSHOT_PATH,
+  OPERATIONS_STREAM_PATH,
+  type OperationEvent,
+  type RunRecord,
+} from '@hibernalglow/xaihi-sdk'
 
 export const name = '@hibernalglow/xaihi-core'
 
@@ -68,6 +76,26 @@ export type DiscoverContext = Context & { loader: LoaderLike }
 /** 本插件用到的服务面（发现 + 路由）。 */
 type HostContext = DiscoverContext & { webServer: WebServerLike }
 
+/**
+ * Xaihi 会**可选**使用的宿主服务。
+ *
+ * 为什么单独列出来：`inject` 是硬要求，缺席就不装载；这几件缺席时我们只是少个能力
+ * （没 storage domain 就只在内存里记账），但"少了吗"必须有一个地方能读到，
+ * 否则症状会是"检查点没存"而没人知道是装配问题还是代码问题。
+ */
+export const OPTIONAL_SERVICES = ['storageDomain', 'approval', 'commands', OPERATIONS_SERVICE] as const
+
+/**
+ * 现读一次可选服务的可用性。
+ * @param ctx - 宿主上下文。
+ * @returns 服务名 → 是否解析到了实现。
+ */
+export function probeOptionalServices(ctx: DiscoverContext): Record<string, boolean> {
+  const availability: Record<string, boolean> = {}
+  for (const service of OPTIONAL_SERVICES) availability[service] = ctx.get(service as never) !== undefined
+  return availability
+}
+
 /** 发现过程的可读快照，供 `/xaihi/debug.json` 与诊断使用。 */
 export interface Discovery {
   baseUrl: string
@@ -80,6 +108,8 @@ export interface Discovery {
   /** 每个候选的定位结果：有没有定位到 package.json、有没有 xaihi 键、被拒原因。 */
   located: LocatedSummary[]
   registrations: ServedRegistration[]
+  /** 可选服务的可用性，现读。 */
+  services: Record<string, boolean>
 }
 
 /** 单个候选的定位结果。 */
@@ -149,7 +179,7 @@ export function discover(ctx: DiscoverContext): Discovery {
       ? { specifier, pkgPath, hasXaihi: true, problems }
       : { specifier, pkgPath, hasXaihi: true })
   }
-  return { baseUrl, rows, candidates: specifiers, subpaths, located, registrations }
+  return { baseUrl, rows, candidates: specifiers, subpaths, located, registrations, services: probeOptionalServices(ctx) }
 }
 
 /**
@@ -159,6 +189,22 @@ export function discover(ctx: DiscoverContext): Discovery {
 export function isSubpathSpecifier(name: string): boolean {
   const segments = name.split('/')
   return name.startsWith('@') ? segments.length > 2 : segments.length > 1
+}
+
+/**
+ * 一个服务对象**实际**能调什么：自有属性加一层原型上的方法名。
+ * @param value - 服务实例。
+ * @returns 排序后的成员名，构造器与 `Object.prototype` 除外。
+ */
+export function surfaceOf(value: object): string[] {
+  const names = new Set<string>(Object.keys(value))
+  const proto = Object.getPrototypeOf(value) as object | null
+  if (proto !== null && proto !== Object.prototype) {
+    for (const key of Object.getOwnPropertyNames(proto)) {
+      if (key !== 'constructor') names.add(key)
+    }
+  }
+  return [...names].sort()
 }
 
 /**
@@ -172,6 +218,16 @@ export function collect(ctx: DiscoverContext): ServedRegistration[] {
 
 export function apply(ctx: HostContext, config: Config): void {
   const journal = createJournal()
+  if (config.verbose.get()) {
+    // 文档与发布物会漂（`SubprocessHandle.pid` 就是例子），所以 verbose 时把可选服务
+    // 真实暴露的成员打出来，让"我以为 API 长这样"能被当场核对。
+    // 不含 xaihiOperations：那是本 fiber 自己稍后才提供的，此刻必然读不到，列出来只会误导。
+    const shapes = OPTIONAL_SERVICES.filter((service) => service !== OPERATIONS_SERVICE).map((service) => {
+      const value = ctx.get(service as never) as object | undefined
+      return `${service}=${value === undefined ? 'absent' : surfaceOf(value).join(',') || '(empty)'}`
+    })
+    console.log(`[${name}] optional services: ${shapes.join(' | ')}`)
+  }
   // 服务必须在 fiber 活着的期间可见、卸载时自动收回，所以挂在 effect 里而不是模块作用域。
   ctx.effect(() => ctx.provide(OPERATIONS_SERVICE, journal), 'xaihi-core: operations journal')
   const snapshot = () => {
@@ -223,6 +279,41 @@ export function apply(ctx: HostContext, config: Config): void {
     path: OPERATIONS_SNAPSHOT_PATH,
     handler: operationsSnapshotHandler(journal),
   }), 'xaihi-core: operations snapshot route')
+
+  // 账本订阅事件流：事件是易逝的，结算记录才落盘。计数在这里做，因为"这次运行发了几条事件"
+  // 只有订阅方看得见，而 journal 自己有上界。
+  const ledger = openLedger(ctx.get('storageDomain') as DomainFacilityLike | undefined)
+  const perRun = new Map<string, number>()
+  ctx.effect(() => journal.subscribe((event: OperationEvent) => {
+    perRun.set(event.runId, (perRun.get(event.runId) ?? 0) + 1)
+    if (event.kind !== 'finished' && event.kind !== 'failed') return
+    const run = journal.runs().find((entry) => entry.runId === event.runId)
+    if (run === undefined) return
+    const record: RunRecord = {
+      runId: run.runId,
+      nodeId: run.nodeId,
+      actionId: run.actionId,
+      startedAt: run.startedAt,
+      finishedAt: run.finishedAt ?? event.at,
+      outcome: event.kind === 'failed' ? 'failed' : 'finished',
+      message: event.message ?? '',
+      events: perRun.get(event.runId) ?? 0,
+      checkpoint: '',
+    }
+    void ledger.then((opened: RunLedger) => opened.append(record), (error: unknown) => {
+      console.warn(`xaihi-core: run ledger append failed for ${record.runId}: ${String(error instanceof Error ? error.message : error)}`)
+    })
+  }), 'xaihi-core: run ledger sink')
+
+  ctx.effect(() => () => {
+    void ledger.then((opened: RunLedger) => opened.close())
+  }, 'xaihi-core: close run ledger')
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: HISTORY_SNAPSHOT_PATH,
+    handler: historyHandler(() => ledger),
+  }), 'xaihi-core: run history route')
 
   ctx.tools.register(defineTool({
     name: 'xaihi_nodes',

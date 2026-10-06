@@ -22,7 +22,7 @@
 | 项 | 为什么 DSH 没有 | v1 落点 |
 |---|---|---|
 | **operation stream**：一次节点运行的 `progress` / `preview` / `result_view` 三态 | `tools` 只有"一次调用的 output schema + 呈现意图"（`@deepseek-ai/dsh-tools` 的 `DefineToolOptions.output`、`presentCall` / `presentResult`），`ctx.emit` 是通用事件缝；两者都没有"同一运行的中间态流给面板订阅"这件事 | `packages/core/src/operations.ts` + 客户端读回；节点侧经 `defineNode` 的 `reportsProgress` 打开 |
-| **运行历史 / checkpoint**（`historyService.ts` 的 NodeRunHistory 语义 + `dissolvef` 的 legacy undo 依赖） | `session.md` 的事件日志是**会话**的模型，不是"某节点跑过什么、能否回滚这次效果"的域账本；`persistence.md` 只管事件日志耐久 | `packages/core/src/history.ts`，与 operation stream 同一存储缝 |
+| **运行历史 / checkpoint**（`historyService.ts` 的 NodeRunHistory 语义 + `dissolvef` 的 legacy undo 依赖） | `session.md` 的事件日志是**会话**的模型，不是"某节点跑过什么、能否回滚这次效果"的域账本；`persistence.md` 只管事件日志耐久 | `packages/core/src/history.ts`（已落）+ 事件流同一缝；**落盘用 DSH 的 `ctx.storageDomain`**（域 `xaihi_runs`，实测 `durable=true`），不自建文件层 |
 | **可恢复删除 + 删除历史**（`file-operations` 的 recoverable 部分） | `filesystem` 有原子操作与 guards、`sandbox` 有效果策略，但"删错了能列出来并还原"是域语义 | 批次 C（`dissolvef`）之前落，v1 不做 |
 
 ## 判据本身要可反证

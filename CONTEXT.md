@@ -28,6 +28,7 @@
 - **run（运行）**：一次节点动作调用的生命周期单位。`started` / `finished` / `failed` 由 `defineNode` 自动补，节点只管 `progress` / `preview` / `result_view`（经 `call.run`）。
 - **operation journal（运行账本）**：core 提供的服务 `xaihiOperations`。事件 `seq` 单调、缓冲区有界，且**截断必须可读**（`truncated` / `oldestSeq`），否则"没有历史"与"没拿到历史"分不清。
 - **operation stream（事件流）**：同一份账本的两个视图——`/xaihi/operations/stream`（SSE，靠 `WebRoute.handler` 允许长挂响应）与 `/xaihi/operations.json`（快照）。DSH 的 `ctx.remote.$on` 是闭集，装不进第三方事件，所以搬运归 Xaihi、词表也归 Xaihi。
+- **run ledger（运行账目）**：事件流结算后的耐久记录（`xaihi.ledger/1`），落在 DSH 的 storage domain（域名 `xaihi_runs`，域名不许带连字符）。`durable=false` 是**可读出的状态**而不是故障——没有存储缝时它退化成内存账本，原因随响应一起给。
 - **feed（运行回显）**：壳状态栏里那一条最近运行。传输方式如实标出来（`data-transport="live|polling|offline"`），退到轮询就写轮询，不假装实时。
 - **inhibitor（睡眠拦截）**：sleept 里"养一个活着的子进程来阻止系统休眠"这件事的统称。两平台同形：mac 是 `caffeinate`，Windows 是调 `SetThreadExecutionState` 的 PowerShell —— **状态随进程消失**，所以解除 = 杀进程，宿主退出也必须杀（`ctx.effect`）。
 - **locale-proof 解析**：解析外部命令输出时只依赖 ASCII token、GUID/十六进制形状与位置，不读任何本地化标签、不假设控制台编码。判据来自真机（zh-CN Windows 的 `powercfg` 与 GBK 字节输出）。

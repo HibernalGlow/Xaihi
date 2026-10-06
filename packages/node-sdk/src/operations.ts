@@ -28,6 +28,41 @@ export const OPERATIONS_STREAM_PATH = '/xaihi/operations/stream'
 /** 主机侧快照路由（轮询兜底与诊断用）。 */
 export const OPERATIONS_SNAPSHOT_PATH = '/xaihi/operations.json'
 
+/** 主机侧耐久运行账目的路由。 */
+export const HISTORY_SNAPSHOT_PATH = '/xaihi/history.json'
+
+/** 耐久账本的读回契约版本。 */
+export const HISTORY_SCHEMA = 'xaihi.ledger/1'
+
+/**
+ * 一条结算后的运行记录。字段一律不留空位：没有就写 `''` 或 0，
+ * 这样 JSON 里"没这个字段"与"值为空"不会被混为一谈。
+ */
+export interface RunRecord {
+  runId: string
+  nodeId: string
+  actionId: string
+  startedAt: number
+  finishedAt: number
+  outcome: 'finished' | 'failed'
+  /** 失败原因；成功时是空串。 */
+  message: string
+  /** 这次运行留下的事件条数（含结算那条）。 */
+  events: number
+  /** 回滚需要的载荷（JSON 文本）；空串表示这次运行不需要回滚。 */
+  checkpoint: string
+}
+
+/** `/xaihi/history.json` 的响应体。 */
+export interface HistorySnapshot {
+  schema: typeof HISTORY_SCHEMA
+  /** false 表示这台宿主没有 storage domain，账本只在内存里活着。 */
+  durable: boolean
+  /** 退化原因；`durable` 为 true 时是 null。 */
+  reason: string | null
+  records: RunRecord[]
+}
+
 /**
  * 事件种类。`started` / `finished` / `failed` 由 `defineNode` 自动补，节点不必操心；
  * `progress` / `preview` / `result_view` 只有节点自己知道什么时候发。
