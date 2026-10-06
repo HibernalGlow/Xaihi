@@ -1,0 +1,466 @@
+{
+  "name": "@hibernalglow/xaihi-linku",
+  "version": "0.0.0",
+  "description": "Xaihi node Linku: symlink records with create / move-link / recover / restore, plus a workspace panel and a terminal face.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-linku",
+    "title": {
+      "zh": "Linku",
+      "en": "Linku"
+    },
+    "ui": {
+      "remote": "linku",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.linku",
+        "title": {
+          "zh": "Linku面板",
+          "en": "Linku panel"
+        },
+        "area": "workspace",
+        "remote": "linku",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "linku",
+      "title": {
+        "zh": "Linku",
+        "en": "Linku"
+      },
+      "description": {
+        "zh": "创建、移动、导入、还原、列出并恢复符号链接记录。",
+        "en": "Create, move, import, restore, list, and recover symlink records."
+      },
+      "actions": [
+        {
+          "id": "info",
+          "label": {
+            "zh": "◉ 信息",
+            "en": "◉ Info"
+          }
+        },
+        {
+          "id": "create",
+          "label": {
+            "zh": "⊕ 创建",
+            "en": "⊕ Create"
+          }
+        },
+        {
+          "id": "move_link",
+          "label": {
+            "zh": "⇄ 移动回链",
+            "en": "⇄ Move & link"
+          }
+        },
+        {
+          "id": "list",
+          "label": {
+            "zh": "▤ 列表",
+            "en": "▤ List"
+          }
+        },
+        {
+          "id": "recover",
+          "label": {
+            "zh": "↻ 恢复",
+            "en": "↻ Recover"
+          }
+        },
+        {
+          "id": "restore",
+          "label": {
+            "zh": "⟲ 还原",
+            "en": "⟲ Restore"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "命令",
+            "en": "Command"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "info",
+              "label": {
+                "zh": "◉ 信息",
+                "en": "◉ Info"
+              }
+            },
+            {
+              "value": "create",
+              "label": {
+                "zh": "⊕ 创建",
+                "en": "⊕ Create"
+              }
+            },
+            {
+              "value": "move_link",
+              "label": {
+                "zh": "⇄ 移动回链",
+                "en": "⇄ Move & link"
+              }
+            },
+            {
+              "value": "list",
+              "label": {
+                "zh": "▤ 列表",
+                "en": "▤ List"
+              }
+            },
+            {
+              "value": "recover",
+              "label": {
+                "zh": "↻ 恢复",
+                "en": "↻ Recover"
+              }
+            },
+            {
+              "value": "restore",
+              "label": {
+                "zh": "⟲ 还原",
+                "en": "⟲ Restore"
+              }
+            }
+          ],
+          "default": {
+            "text": "info"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "path",
+          "label": {
+            "zh": "源路径 / 原链接",
+            "en": "Source path / original link"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "list",
+                  "recover"
+                ]
+              },
+              "negated": true
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "required"
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "info",
+                      "restore",
+                      "create",
+                      "move_link"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            },
+            {
+              "rule": {
+                "type": "nonBlank"
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "info",
+                      "restore",
+                      "create",
+                      "move_link"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "target",
+          "label": {
+            "zh": "目标路径",
+            "en": "Target path"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "create",
+                  "move_link"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "required"
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "create",
+                      "move_link"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            },
+            {
+              "rule": {
+                "type": "nonBlank"
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "create",
+                      "move_link"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "configPath",
+          "label": {
+            "zh": "链接记录配置",
+            "en": "Link records config"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "links",
+          "label": {
+            "zh": "链接拓扑",
+            "en": "Link topology"
+          },
+          "fieldIds": [
+            "action",
+            "path",
+            "target",
+            "configPath"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "path",
+          "slot": "path",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "target",
+          "slot": "target",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "configPath",
+          "slot": "configPath",
+          "transform": "identity"
+        }
+      ],
+      "danger": {
+        "type": "actionIn",
+        "actionField": "action",
+        "dangerous": [
+          "create",
+          "move_link",
+          "recover",
+          "restore"
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认文件系统链接操作",
+          "en": "Confirm filesystem link operation"
+        },
+        "body": {
+          "zh": "此操作会创建链接，移动回链还会移动原路径。",
+          "en": "This creates symlinks; move-link also moves the source path."
+        },
+        "confirmLabel": {
+          "zh": "确认执行",
+          "en": "Execute"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "当需要从工作区 UI 或 CLI 使用该节点的文件工作流时，使用 Linku。",
+          "en": "Use Linku when you need this node's file workflow from either the workspace UI or CLI."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "notes": {
+            "zh": [
+              "修改文件前优先使用预览或 dry-run 模式。",
+              "处理大文件夹时保留备份或撤销记录。"
+            ],
+            "en": [
+              "Prefer preview or dry-run modes before changing files.",
+              "Keep backups or undo records when processing large folders."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "bin": {
+    "xlinku": "./lib/cli.js"
+  }
+}

@@ -1,0 +1,474 @@
+{
+  "name": "@hibernalglow/xaihi-classq",
+  "version": "0.0.0",
+  "description": "Xaihi node ClassQ: keyword-folder wait routing, plus actions, a workspace panel and a terminal face.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-classq",
+    "title": {
+      "zh": "ClassQ",
+      "en": "ClassQ"
+    },
+    "ui": {
+      "remote": "classq",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.classq",
+        "title": {
+          "zh": "ClassQ面板",
+          "en": "ClassQ panel"
+        },
+        "area": "workspace",
+        "remote": "classq",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "classq",
+      "title": {
+        "zh": "ClassQ",
+        "en": "ClassQ"
+      },
+      "description": {
+        "zh": "查找关键词文件夹并将同级项移入 wait 文件夹。",
+        "en": "Find keyword folders and move sibling items into wait folders."
+      },
+      "actions": [
+        {
+          "id": "plan",
+          "label": {
+            "zh": "⌕ 扫描计划",
+            "en": "Plan"
+          }
+        },
+        {
+          "id": "classify",
+          "label": {
+            "zh": "↳ 分类执行",
+            "en": "Classify"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "工作流",
+            "en": "Workflow"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "plan",
+              "label": {
+                "zh": "⌕ 扫描计划",
+                "en": "Plan"
+              }
+            },
+            {
+              "value": "classify",
+              "label": {
+                "zh": "↳ 分类执行",
+                "en": "Classify"
+              }
+            }
+          ],
+          "default": {
+            "text": "plan"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "paths",
+          "label": {
+            "zh": "输入根目录",
+            "en": "Root directories"
+          },
+          "description": {
+            "zh": "每行一个，递归发现关键词目录。",
+            "en": "One root per line."
+          },
+          "kind": "path-list",
+          "lines": 6,
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "keyword",
+          "label": {
+            "zh": "关键词目录",
+            "en": "Keyword folder"
+          },
+          "kind": "text",
+          "default": {
+            "text": "already"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "waitKeyword",
+          "label": {
+            "zh": "等待目录",
+            "en": "Wait folder"
+          },
+          "kind": "text",
+          "default": {
+            "text": "wait"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "transferMode",
+          "label": {
+            "zh": "传输方式",
+            "en": "Transfer"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "move",
+              "label": {
+                "zh": "移动",
+                "en": "Move"
+              }
+            },
+            {
+              "value": "copy",
+              "label": {
+                "zh": "复制",
+                "en": "Copy"
+              }
+            }
+          ],
+          "default": {
+            "text": "move"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "classify"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "existingPolicy",
+          "label": {
+            "zh": "目标冲突",
+            "en": "Existing target"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "merge",
+              "label": {
+                "zh": "报告冲突",
+                "en": "Report conflict"
+              }
+            },
+            {
+              "value": "skip",
+              "label": {
+                "zh": "跳过",
+                "en": "Skip"
+              }
+            }
+          ],
+          "default": {
+            "text": "merge"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "classify"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "仅预演",
+            "en": "Dry run"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "classify"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "routing",
+          "label": {
+            "zh": "路由规则",
+            "en": "Routing"
+          },
+          "fieldIds": [
+            "action",
+            "paths",
+            "keyword",
+            "waitKeyword",
+            "transferMode",
+            "existingPolicy",
+            "dryRun"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "paths",
+          "slot": "paths",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "keyword",
+          "slot": "keyword",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "waitKeyword",
+          "slot": "waitKeyword",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "transferMode",
+          "slot": "transferMode",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "existingPolicy",
+          "slot": "existingPolicy",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "classify"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认真实分类",
+          "en": "Confirm live classify"
+        },
+        "body": {
+          "zh": "将移动或复制所有就绪项；冲突项会保留为报告。",
+          "en": "Ready items will be transferred; conflicts remain reported."
+        },
+        "confirmLabel": {
+          "zh": "确认分类",
+          "en": "Classify"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "当已审阅的文件夹通过名称标记，且其旁的其余项需要排入 wait 文件夹时使用 ClassQ。",
+          "en": "Use ClassQ when reviewed folders are marked by name and everything beside them should be queued into a wait folder."
+        },
+        "safety": {
+          "defaultMode": "dry-run",
+          "destructive": {
+            "zh": [
+              "classify"
+            ],
+            "en": [
+              "classify"
+            ]
+          },
+          "notes": {
+            "zh": [
+              "UI 中的真实移动/复制需要二次确认。",
+              "已存在的目标会被作为冲突报告并跳过。"
+            ],
+            "en": [
+              "Live move/copy is gated by confirmation in the UI.",
+              "Existing targets are reported as conflicts and skipped."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "bin": {
+    "xclassq": "./lib/cli.js"
+  }
+}
