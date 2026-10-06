@@ -242,7 +242,17 @@ if (flag('verify')) {
     fail('verify: 0002 的判策是瞎的（外链居然被放行）')
   }
   // 0003 的判策也是纯函数：给了名字走 profiles/<name>，缺省 desktop，坏形状要抛。
-  const paths = await import('./dsh/apps/desktop/src/paths.ts')
+  // paths.ts 要 import @deepseek-ai/dsh-home-paths（workspace 包的构建产物），
+  // 所以这一段在**没装依赖的干净 clone** 上必然取不到模块 —— 那要报成"未跑"，不许抛栈冒充判据。
+  let paths = null
+  try {
+    paths = await import('./dsh/apps/desktop/src/paths.ts')
+  } catch (error) {
+    console.log(`verify: 0003 判据**未跑** —— 取不到 apps/desktop/src/paths.ts 的依赖（${String(error).slice(0, 60)}）`
+      + ' ⇒ 先在 desktop/dsh 里 pnpm install 并跑 pnpm run build:lib:host'
+      + '（workspace 包的 lib/ 是构建产物，deinit 之后不会自己回来）')
+  }
+  if (paths !== null) {
   process.env.XAIHI_DESKTOP_PROFILE = 'xaihi-desktop-probe'
   const chosen = paths.resolveDesktopPaths('/tmp/home').profile
   process.env.XAIHI_DESKTOP_PROFILE = 'Bad Name!'
@@ -254,6 +264,7 @@ if (flag('verify')) {
   if (chosen !== '/tmp/home/profiles/xaihi-desktop-probe') fail('verify: 0003 没让壳选 profile')
   if (dflt !== '/tmp/home/profiles/desktop') fail('verify: 0003 改坏了缺省值')
   if (!threw.includes('must match')) fail('verify: 0003 对坏形状太宽容（静默退回默认值算缺陷）')
+  }
 
   // 第二阶段：产物判据。lib/ 是上游 tsc 吐出来的，存在就说明这条通道真被编进了壳的
   // 主进程与 preload —— 源码里有定义 ≠ 落进了产物（这是构建绿却跑错代码那一类病的解药）。

@@ -120,6 +120,26 @@ patch 0003 = `XAIHI_DESKTOP_PROFILE`：给了就按 `profiles/<name>` 解析，�
    （`computeRev(uiBundleDir)`）。拿错就会得到 `rev mismatch (current …)` 这种诚实但绕人的 404。
 6. **产物判据要按整个 lib 目录看**：`xaihi/ui` 在 `routes.js` 与共享 chunk 里，只 grep `index.js` 会误判。
 
+## 全新 clone 的可复现性（这条是 deinit 实测出来的）
+
+`git submodule deinit -f desktop/dsh` 把工作树清空（现读 0 个条目）之后，
+`node desktop/sync-dsh.mjs` 一条命令把 3 个 patch 重放回来，**tree 哈希与之前逐字相同**
+（`41ef226b8b0c`，`head=ca7ce839`，`dirty=0`，`gitlink=pin`），耗时 4.0 s（`load1m=14.67`），
+未装依赖的干净树是 114.7 MiB。⇒ pin + patch 确实是真源，工作树可丢弃重建。
+
+`--verify` 在这种状态下**分档报**而不是崩：0001（通道）与 0002（11 条判策用例）是纯模块，照样跑；
+0003 与产物判据报成「未跑」并给准确前置——workspace 包的 `lib/` 是构建产物，
+deinit 会连它一起清掉，所以要 `pnpm install` **并且** `pnpm run build:lib:host`。
+（这条一开始写成"先 pnpm install"就够了，实测装回依赖后 0003 仍取不到模块，才把说明改准。）
+
+**重放之后没能立刻再拿一次绿**：deinit → sync → install → build:lib:host → bundle 之后重启壳，
+`dsh web` 起来了但欢迎面抛 `desktop welcome: Web request failed`（`lib/main.js:8149 invoke`，
+与之前那次 `Web authentication failed` 不是同一条），于是 `live-check` 十三条全报红——
+**报红的是"这一次没验成"，不是"验过再失效"**：上一条 13/13 全绿是在 `live-check` 于 run10 之后、
+deinit 之前跑出来的（`ui.rev=b6a8cb8bc96f`、正文回显 `node=xaihi-linedup`、窗口 2→3）。
+`--skip-build` 这条路里 `.desktop-build/targets/**/primary-runtime` 被 deinit 弄成半截目录会
+`ENOTEMPTY`，删掉 `targets/` 就能过；这条也记在这儿，免得下次又当神秘故障查半天。
+
 ## 与门禁的关系（别把 vendor 扫进去）
 
 `check:pins` 与 `check:installable` 只走 `packages`/`plugins` 的**一层**目录（`GROUPS = ['packages','plugins']`、
