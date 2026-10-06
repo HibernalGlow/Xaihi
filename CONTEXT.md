@@ -53,10 +53,17 @@
 
 - **check-pins**：所有 `@deepseek-ai/dsh*` 必须精确 `0.2.0-rc.2`。原因是 npm 上若干 `dsh-client-*` 的 `latest` 标签还停在 `0.0.1-rc.1`。
 - **purity**：浏览器半边不得 value-import 模块表基线之外的 harness 包（会被内联成第二份上下文）；产物里的 `require` 必须落在基线内。
-- **check-panels**：`plugins/*/frontend/Panel.tsx` 剥掉注释后不许出现 hex、`rgb()/hsl()` 颜色函数、
+- **check-panels**：**作废（ADR-0006 退回清单 #1，脚本 `scripts/check-panels.mjs` 已删）**。
+  `plugins/*/frontend/Panel.tsx` 剥掉注释后不许出现 hex、`rgb()/hsl()` 颜色函数、
   `--dsw-` 引用或自建 React root，且必须从 UI Kit 取组件；样式表里每处 `var(--dsw-` 必须紧跟在
   `var(--xaihi-…, ` 之后（**逐次出现判，不按整行判**——同一行混着合法与裸引用时按行判会放过裸的）。
   尺自带 `--self-check`：三种形状（裸的要抓、带层的要放过、同行混着要抓到那一次）+ 枚举漏口
   （有 `frontend/` 却没有 `Panel.tsx` 的包要报）。
 - **自包含**：装进 profile 的包不许引用 `@hibernalglow/*`（profile 解析不了仓内包，见 ADR-0002）。
+- **check-brand**：代码里不许出现旧品牌的**活标识符**（包名/scope、`bin`、CSS 类名、`data-*`、
+  import 说明符、落盘路径、界面与 i18n 文案）；尺是**剥掉注释之后再找**，所以 prose 与注释里的
+  `Xiranite` 是"这条从哪搬来"的出处、不算违规（ADR-0010）。`--self-check` 钉 `1/0/1` 三种形状
+  （import 要抓到、注释里的出处要放过、字符串常量要抓到）。**这条此刻故意不接 CI**：数字是活的
+  （几分钟内 134 → 504 → 757，增量全是别人在飞的搬运产物），接上去只会把红线画在别人正在写的文件上；
+  接线时机 = 最后一条 A 类命中被改掉的那个提交。
 - **阳性对照**：每条尺都必须有一个"关掉防御就变红"的用例，否则该判据视为不存在。
