@@ -103,6 +103,36 @@
       "reason": "ADR-0013：`src/config/webview2.ts` 与 `Webview2ExperimentsPanel.tsx` 已登记为\"有意不要\"（removed: true），但这份设置搜索索引还留着指向它们的三行（`import { WEBVIEW2_FLAG_CATALOG }` 与两条生成项），在文档构建里就是 `Cannot find module \"@/config/webview2\"`。摘掉这三行是完成那一次删除，不是新决定：本仓没有可设的 webview2 面，被摘掉的只是搜索索引里的两条条目。",
       "upstreamSha": null,
       "ours": "40247c8c1cdc8c121ec04a7f9d8823e4ea543ab0f47a6baa02e0af1b413df474"
+    },
+    "components/modules/DatabaseDataView.tsx": {
+      "reason": "使用者 2026-10-07 拍板：ocean / folia 两个私有组件包不进 v1。ocean-dataview 的 peer 是 React ^19（实测其 package.json），网页面受 DSH 的 18.3.1 单例约束；folia-player 在 npm 与本机 node_modules 里都没有对应物。这五份是它们唯一的使用者与唯一消费者，裁掉而不是编 stub。",
+      "removed": true,
+      "upstreamSha": null,
+      "ours": null
+    },
+    "components/modules/DatabaseModule.tsx": {
+      "reason": "使用者 2026-10-07 拍板：ocean / folia 两个私有组件包不进 v1。ocean-dataview 的 peer 是 React ^19（实测其 package.json），网页面受 DSH 的 18.3.1 单例约束；folia-player 在 npm 与本机 node_modules 里都没有对应物。这五份是它们唯一的使用者与唯一消费者，裁掉而不是编 stub。",
+      "removed": true,
+      "upstreamSha": null,
+      "ours": null
+    },
+    "components/modules/DatabaseModule.test.tsx": {
+      "reason": "使用者 2026-10-07 拍板：ocean / folia 两个私有组件包不进 v1。ocean-dataview 的 peer 是 React ^19（实测其 package.json），网页面受 DSH 的 18.3.1 单例约束；folia-player 在 npm 与本机 node_modules 里都没有对应物。这五份是它们唯一的使用者与唯一消费者，裁掉而不是编 stub。",
+      "removed": true,
+      "upstreamSha": null,
+      "ours": null
+    },
+    "components/modules/KanbanModule.tsx": {
+      "reason": "使用者 2026-10-07 拍板：ocean / folia 两个私有组件包不进 v1。ocean-dataview 的 peer 是 React ^19（实测其 package.json），网页面受 DSH 的 18.3.1 单例约束；folia-player 在 npm 与本机 node_modules 里都没有对应物。这五份是它们唯一的使用者与唯一消费者，裁掉而不是编 stub。",
+      "removed": true,
+      "upstreamSha": null,
+      "ours": null
+    },
+    "components/workspace/WorkspaceMelodeck.tsx": {
+      "reason": "使用者 2026-10-07 拍板：ocean / folia 两个私有组件包不进 v1。ocean-dataview 的 peer 是 React ^19（实测其 package.json），网页面受 DSH 的 18.3.1 单例约束；folia-player 在 npm 与本机 node_modules 里都没有对应物。这五份是它们唯一的使用者与唯一消费者，裁掉而不是编 stub。",
+      "removed": true,
+      "upstreamSha": null,
+      "ours": null
     }
   }
 }

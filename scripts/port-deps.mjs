@@ -64,7 +64,9 @@ function installedVersion(pkg) {
 const BLOCKED = {
   '@hibernalglow/ocean-dataview': '使用者的私有组件包，peer 要 React ^19（实测其 package.json：'
     + '"react": "^19.0.0"），而网页面受 DSH 的 18.3.1 单例约束。'
-    + '要么它出一个 18 兼容线，要么这个数据面模块不进 v1（`components/modules/DatabaseDataView.tsx`）。',
+    + '2026-10-07 使用者拍板不进 v1，它的使用者已裁进申报差量表；这条留着是给"下一次从上游重搬"当闸门。',
+  '@hibernalglow/folia-player': '同一个使用者的私有包，npm 与本机 node_modules 都没有对应物（实测 require.resolve 失败），'
+    + '声明它等于让全仓 pnpm install 红。2026-10-07 使用者拍板不进 v1（WorkspaceMelodeck.tsx 已裁）。',
 }
 
 const tsFiles = (dir) =>

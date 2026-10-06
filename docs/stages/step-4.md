@@ -1349,6 +1349,10 @@ hostRequirements 是 `os-native + external-process + recursive-enumeration + fil
 `bandia` 552 / `enginev` 596 / `bitv` 683 / `gifu` 781 / `repacku` 894 行），
 其中前四个已派子代理在搬。
 
+**2026-10-07 02:32 追加**：使用者裁定 `kisaki` 就是 `czkawka` 的改名（原话见文末同名一节），
+所以"`@xiranite/czkawka-native`"不是外来引擎，是这个节点改名前自己的本名带出来的件；
+本节"引擎从哪来"那一问仍然要一份 ADR，但问题性质变了——是"改名后的原生件怎么随包交付"，不是"要不要引第三方引擎"。
+
 ## 28 个 retain-rewrite 节点的现状板（2026-10-07 01:25 现读，分支头 `2a525c3`）
 
 | 状态 | 数量 | 节点 |
@@ -1486,3 +1490,84 @@ hostRequirements 是 `os-native + external-process + recursive-enumeration + fil
 上游会崩的那条路，本仓变成给空串），也不该被当成"移植坏了"——它需要的是**逐包申报**，
 像搬运尺那样有一份 `ours` 指纹的差量台账。这一步本预算内做不完，所以先把原样输出落成账：
 `docs/port/verbatim-debt-2026-10-06.txt`，尺本身保持红（不降标准、不加白名单）。
+
+## 使用者裁定两件事：`kisaki` 就是 `czkawka` 的改名；`ocean` / `folia` 不进 v1（2026-10-07 02:32）
+
+原话：「kisaki 就是 czkawka 的改名，ocean folia 不要」。两条各自有账。
+
+### 1. `kisaki` = `czkawka`（改名，不是两个节点）
+
+这条把台账里一处**看起来互相矛盾**的判定解释掉了：同一份
+`<Xiranite>/docs/xiranite-target-node-manifest.json` 里 `czkawka` 判 `removed`（standalone
+`czkawka-tauri`）、`kisaki` 判 `retain-rewrite`，且 `kisaki` 的 hostRequirements 证据点名的正是
+`@xiranite/czkawka-native`。按"改名"读，两句都成立且不打架：**出局的是那个退休的 Tauri 前端壳，
+留下的是同一个去重能力换了个名字**，它的原生件本来就是它自己的（前一份 ADR 里那句"引擎从哪来"因此
+从"要不要引第三方引擎"降为"改名后的原生件按哪个平台预编译、随哪个包交付"）。
+
+现读证据（不是只听说法）：`Xiranite/src/nodes/kisaki/` 里 `data-testid` 一片还是
+`czkawka-result-table` / `czkawka-result-viewport` / `czkawka-activity-log` /
+`czkawka-similar-folders`，持久化键里也有 `czkawka12MotionCropMigrationNotified`
+（`rg -i czkawka src/nodes/kisaki` ⇒ 10+ 处命中，2026-10-07 02:30）。
+⇒ 搬 `kisaki` 那一批时要按 ADR-0010 分两类处理：**testid 与类名跟着改名**（它们随代码活），
+**落盘的存储键属于数据迁移**，动之前先问使用者，不许静默改键把老账目变成孤儿。
+
+顺带一条已经被这条裁定改掉的账：`docs/stages/step-4-terminal-port.md` §九 把
+`packages/cli/package.json` 里 `@xiranite/czkawka` 那条边按"指向已出局节点"删掉了。
+删本身仍然对（Xaihi 侧它将以 `@hibernalglow/xaihi-kisaki` 的名字回来），
+但**读法要改**：那条不是"删掉一个死引用"，是"这个名字改名后才回来"——已在下面 §九 补一句。
+
+### 2. `ocean-dataview` / `folia-player` 不进 v1：五份搬运文件裁掉
+
+两个包都不是"本仓漏声明"，是**根本解不出来**（2026-10-07 02:20 现复测）：
+
+```
+node -e require.resolve  → @hibernalglow/ocean-dataview  RESOLVE FAIL MODULE_NOT_FOUND
+                        → @hibernalglow/folia-player    RESOLVE FAIL MODULE_NOT_FOUND
+npm view                 → 两个都 404（tarball, folder, http url, or git url）
+ls <Xiranite>/packages/{ocean-dataview,folia-player} → No such file or directory
+```
+
+`ocean-dataview` 另有一条独立死因：它的 peer 要 React `^19`，而网页面受 DSH 的 18.3.1 单例约束（ADR-0009）。
+
+裁掉的五份（**都是叶子**：`rg` 全仓除这五份彼此之外无人 import，`components/modules/registry.ts`
+与 `packageModules.generated.ts` 里零命中）：
+
+| 文件 | 为什么跟着走 |
+|---|---|
+| `src/components/modules/DatabaseDataView.tsx` | 唯一 `@hibernalglow/ocean-dataview` 的使用者 |
+| `src/components/modules/DatabaseModule.tsx` | `lazy(() => import("./DatabaseDataView"))` |
+| `src/components/modules/DatabaseModule.test.tsx` | `vi.mock("./DatabaseDataView")` |
+| `src/components/modules/KanbanModule.tsx` | 整份就是 `<DatabaseDataView initialViewMode="board" />` |
+| `src/components/workspace/WorkspaceMelodeck.tsx` | 唯一 `@hibernalglow/folia-player`（含它的 `styles.css`）的使用者，同时是 `@/nodes/melodeck/*` 那 8 条未迁边的宿主 |
+
+五份都登记进 `docs/port/xaihi-deltas.json` 的 `removed: true`（判据是"目标必须不存在"，
+所以这一档不能被静默放宽），条目从 19 涨到 **24**。
+
+真实读数（主 agent 现跑，仓库内 worktree；**这一档测量落在并发 lane 的写入窗口里**——
+`find packages/ui-host/src -newermt '-12 minutes'` 点到它们的 `src/document/realm.ts` 与
+`src/client/document-frame.tsx` 正在被改，本刀裁的五份与这两个文件零交集，`rg` 逐条验过）：
+
+```
+node scripts/port-ui.mjs --check        rc=0  check: 657 tracked file(s), 0 copied, 0 out of sync, 0 missing, 24 条申报过的本地改动
+node scripts/port-deps.mjs              rc=0  缺声明 0 条 … 堵住的 0 条      （ocean/folia 从此不进 pool）
+node packages/ui-host/scripts/build-css.mjs   rc=0  assertions: canary 13/13 · groups src/components=9334 … · build-css: PASS
+pnpm exec vitest run                    rc=0  26 文件全绿
+pnpm run build                          rc=0  check-client-bundle OK：单文件、无 Node 专用 require、无相对分片
+pnpm run build:document                 rc=1  ^ERROR in 计数 5（与裁之前同数，报错里没有 Database/Kanban/folia/ocean）
+pnpm run typecheck                      rc=1  10 条 TS 错，全部落在 src/backend/{localBackendConfig,runtime/runtime}.ts
+                                              与 ../api/src/client.ts、../logging/src/jsonl.ts —— 都是
+                                              `@xiranite/{shared,contract,file-operations,services}` 那批
+                                              UNRESOLVED_BY_DESIGN 边，与本刀无关（裁前裁后同数）
+```
+
+改了两处别人的尺数据，如实记在这里：`packages/ui-host/scripts/build-css.mjs` 的 `CANARIES` 从
+**17 条降到 13 条**（`max-w-5xl`、`size-px` 那两条指 `WorkspaceMelodeck.tsx`，
+`bg-badge-gray-subtle`、`text-badge-gray-subtle-foreground` 那两条指 `DatabaseDataView.tsx`；
+`checkCanaries` 读不到文件会把 `inSource` 判 false ⇒ 不删这 4 条就是构建红，不是"可以选择留"）。
+**没有找到等价替代 canary**：这四个类名在幸存源码里零命中（逐条 `rg -F` 查过），所以这一档的
+覆盖是真的少了一格，不是换了个名字。断言 B 的 `src/components` 下限 4800 仍然满足（实测 9334）。
+
+一处**没动**的死面，交给设计语言那一侧：`src/styles/tailwind.css` 的 37 条 `--color-badge-*`
+与 `src/styles/themes/base.css` 的 75 条 `--badge-*` 现在无人消费（唯一使用者是被裁的 `DatabaseDataView`）。
+它们是上游设计令牌的一部分，删它们要按搬运尺申报差量，且 `melodeck`/`marku` 这类未迁视图将来可能用到，
+所以这一刀不替使用者决定，只把"当前零消费者"记下来。

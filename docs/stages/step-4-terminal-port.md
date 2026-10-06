@@ -241,6 +241,12 @@ $ plugins/{sleept,linedup,dissolvef} tsc --noEmit               rc=0
 台账判 `removed` ×6 + `hold-unmigrated` ×1）一并删掉；`@xiranite/*` 边数因此从 31 降到 24。
 减法跑测：往生成物里塞一条 `ghost` 假条目后 `--check` rc=1 并点名"现读 21 条"，重新生成后 rc=0。
 
+**读法要补一条（2026-10-07 使用者裁定 `kisaki` 就是 `czkawka` 的改名）**：这七条里 `czkawka` 不是"能力出局"，
+它是 `kisaki` 的本名——台账同一份文件里 `czkawka` 判 `removed` 指的是那个退休的 Tauri 前端壳，
+`kisaki` 判 `retain-rewrite` 且它的 hostRequirements 证据正点名 `@xiranite/czkawka-native`。
+删除这条边仍然正确（Xaihi 侧它将以 `@hibernalglow/xaihi-kisaki` 回来，见 `docs/stages/step-4.md`
+§《使用者裁定两件事》），但不要把"去重/相似图查找"读成被砍掉的功能。
+
 还剩两步（有依赖顺序，不能顺手做完）：第 2 步是 `@xiranite/{file-operations,services}` 那两条
 按 ADR-0013 判定不接之后 `packages/api` 怎么改；第 3 步是把 `packages/{api,contract,shared,logging,cli-runtime}`
 的包名从上游名换成 `@hibernalglow/xaihi-*`，换完才能解掉 `pnpm-workspace.yaml` 里那批负向条目。

@@ -105,13 +105,9 @@ const CANARIES = [
   { cls: 'backdrop-saturate-150', file: 'src/components/modules/musicPlayer/MusicPlayerSurface.tsx', group: 'port' },
   { cls: 'shadow-inner', file: 'src/components/modules/musicPlayer/MusicPlayerSurface.tsx', group: 'port' },
   { cls: 'min-w-48', file: 'src/components/workspace/MelodeckIslandMoreMenu.tsx', group: 'port' },
-  { cls: 'max-w-5xl', file: 'src/components/workspace/WorkspaceMelodeck.tsx', group: 'port' },
   { cls: 'sm:inline-flex', file: 'src/components/modules/musicPlayer/MusicPlayerSurface.tsx', group: 'port' },
   { cls: 'xl:col-span-1', file: 'src/components/modules/musicPlayer/MusicPlayerSurface.tsx', group: 'port' },
   { cls: 'focus:text-destructive', file: 'src/components/ui/context-menu.tsx', group: 'port' },
-  { cls: 'bg-badge-gray-subtle', file: 'src/components/modules/DatabaseDataView.tsx', group: 'port' },
-  { cls: 'text-badge-gray-subtle-foreground', file: 'src/components/modules/DatabaseDataView.tsx', group: 'port' },
-  { cls: 'size-px', file: 'src/components/workspace/WorkspaceMelodeck.tsx', group: 'port' },
 ]
 
 /** 断言 A 的负样本：产物里不该有它，也不该在任何源码里出现。 */
