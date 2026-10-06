@@ -183,6 +183,37 @@ md3 与 mondrian 发 `#rrggbb`，**武陵发 `oklch(...)`**，**孤星的半透�
 而不是被 `continue` 洗掉。上游那侧 swiss / lonestar 各自钉了一份 AA 尺（实测
 `spec.test.ts` 里有 "the palette clears WCAG AA on the pairs that carry text"），
 **武陵没有**——这一条是真缺口，跨形状的 AA 要等真浏览器那轮补。
+## 七、L4+L2 能不能打进浏览器产物：探针实测（跑完即删的配置）
+
+问的是一个问题：**搬来的节点界面 + shadcn 原子 + 设计语言 + 注册表，tsdown 打不打得出来**。
+探针配置只 import 这四样（不带 L1 外壳，因为另一条 lane 正在裁 settings 面的边）。
+
+| 阶段 | 结果 |
+|---|---|
+| 原样（上游那份注册表） | `Build failed with 29 errors`，全是 `Could not resolve '@/nodes/<id>/entry'`（bandia/bitv/…）——没搬的节点不是运行时 404，是**整个 bundle 编不出来** |
+| 换成本仓生成的注册表（`scripts/gen-node-registry.mjs`） | `10 errors`：4 类 CSS（`tsdown:css-guard`：`@tsdown/css` 没装）+ 1 类悬空边 |
+| 补 `@tsdown/css@0.22.14`（tsdown 的 peer 逐字钉这一个版本） | `5 errors`，**全部**是并发 lane 裁掉 4 个 backend/config 文件后留下的悬空 import（`@/config/webview2`、`@/backend/localBackendControl`、`Webview2ExperimentsPanel`、`./NodeMemoryProtectionSettings`） |
+| 把 L1 从探针里去掉，只留 L4+L2+设计语言 | **`BUILD COMPLETE`**：30 个 chunk / 合计 3.7 MB |
+| 再加 `inlineDynamicImports: true`（压单文件） | `BUILD COMPLETE`：主文件 **2.60 MB**，但**仍留下一个 806 KB 的孤儿 chunk**，并且 CSS 落到独立资产 **`style.css` 5.46 kB** |
+
+两条由此定死的结论：
+
+1. **CSS 不会自己进 JS。** 27 个 chunk 里 grep 不到任何 CSS 文本（实测 `含 CSS 文本的 chunk: 0 / 27`），
+   `@tsdown/css` 的产物形态是旁边一个 `style.css`。而 DSH 只给插件
+   `/plugins/<pkg>/client.js` 与 `client.<name>.js` 两种 URL，没有"取自身静态文件"的官方通道
+   ⇒ CSS 必须变成**产物里的一段文本**再运行时注入，这正是 `docs/stages/step-4-css-pipeline.md`
+   在做的东西（那边同时处理 Tailwind v4 的 `@source`/候选快照）。
+2. **"能不能拆 chunk"不由我们决定。** DSH 那条路由只有一个 `client.js`；
+   要么压成单文件（2.6 MB，且现在还有一个 806 KB 孤儿 chunk 没并进去 ⇒ 单文件这条路本身没走通），
+   要么按 ADR-0001/0007 决定 6：**工作台作为 MF2 remote 由我们自己的 `/xaihi/remotes/<slug>/<rev>/<file>` 发**，
+   sibling chunk 天然可发。第 5 行的多 chunk 产物形状就是为这条准备的。
+
+另外注册表这件事本身已经变成机制，不是一次性手工活：`node scripts/gen-node-registry.mjs --check`
+是尺（实测在 `samea`/`timeu` 的宿主清单刚落地的同一分钟里它就报了"注册表与实际节点不一致"），
+`port-ui.mjs` 那边把这份生成物登记成 `computed` 类 delta（不钉 sha，钉了就会逼人每次改账本），
+而 `nodes/*/entry.ts` 那一族是**有意重写**：`def` 从注册表嵌进来的 `package.json#xaihi.node` 取，
+不 value-import 宿主包（ADR-0007 决定 4 的 Xaihi 形状）。
+
 
 ## 八、依赖声明与"两把尺分别跑"（搬运树第一次能被类型检查）
 

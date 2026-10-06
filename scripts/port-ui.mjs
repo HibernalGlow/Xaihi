@@ -194,7 +194,11 @@ for (const rel of files) {
   // 为什么允许：ADR-0013 定了上游那套"配置住在后端 toml、带版本历史"的通路整块不接，
   // 于是有几个上游文件是**故意不要**的；搬运器硬把它们拉回来等于违反一条已接受的 ADR。
   const acceptedDelta = delta !== undefined && (
-    delta.removed === true ? ours === null : ours !== null && ours === delta.ours)
+    delta.removed === true ? ours === null
+      // 生成物不钉 sha：它每次重生成都会变，钉住就变成"记得就改账本"的仪式。
+      // 它的尺是生成器自己的 --check（见 gen-node-registry.mjs），这里只承认"由生成器负责"。
+      : delta.computed === true ? ours !== null
+      : ours !== null && ours === delta.ours)
   const inSync = ours === digest || acceptedDelta
   if (!check && !inSync) {
     mkdirSync(dirname(dst), { recursive: true })

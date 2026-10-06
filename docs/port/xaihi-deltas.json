@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "note": "申报过本地改动的搬运文件：必须连 ours 的 sha256 一起对上才算同步。新增条目要有理由；上游一改，ours 就对不上，--check 立刻红。 允许 removed:true：那一头的判据是「目标必须不存在」，所以它同样不能被静默放宽。",
+  "note": "申报过本地改动的搬运文件：必须连 ours 的 sha256 一起对上才算同步。新增条目要有理由；上游一改，ours 就对不上，--check 立刻红。 允许 removed:true：那一头的判据是「目标必须不存在」，所以它同样不能被静默放宽。 entry.ts 那一族是有意重写的连接点，不是漂。",
   "deltas": {
     "components/views/settings/RuntimeSection.tsx": {
       "reason": "并发 lane 于 2026-10-06 23:15 在改这一份（比上游少几条 import，疑似在裁掉还没有对应物的接缝）。搬运器不许把它覆盖回去。",
@@ -31,6 +31,33 @@
       "removed": true,
       "upstreamSha": null,
       "ours": null
+    },
+    "nodes/linedup/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>，在本仓解析不到。",
+      "upstreamSha": null,
+      "ours": "895c1cba3f3da51448811327d854d0aa257a6652216295313b3a6944bae50aa2"
+    },
+    "nodes/sleept/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>，在本仓解析不到。",
+      "upstreamSha": null,
+      "ours": "6483648e07faa260744260be004ed901d63822ede0cf3b4ba6bf1504c60cec2b"
+    },
+    "nodes/dissolvef/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>，在本仓解析不到。",
+      "upstreamSha": null,
+      "ours": "7f764fdd68079f862265919fff8f9d414a5ba5b92f365427412c7fec38627768"
+    },
+    "nodes/findz/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>，在本仓解析不到。",
+      "upstreamSha": null,
+      "ours": "b0ff9498c0430dda2db17e14425c4e462531658a5c3920b2997905974f68111c"
+    },
+    "components/modules/packageModules.generated.ts": {
+      "reason": "注册表在本仓由 scripts/gen-node-registry.mjs 生成（ADR-0007 决定 6 第 2 条：注册是构建期的事）。上游那份是 28 个节点的全集，其中每条 `@/nodes/<id>/entry` 与 `@xiranite/node-<id>/help` 都是静态边，没搬的节点会让整个 bundle 编不出来（实测探针构建 29 条 RESOLVE_ERROR），所以必须与实际存在的节点取交集，且帮助改为从嵌进来的清单推导。",
+      "removed": false,
+      "upstreamSha": null,
+      "ours": null,
+      "computed": true
     }
   }
 }
