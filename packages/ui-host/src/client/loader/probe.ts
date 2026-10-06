@@ -53,5 +53,11 @@ export function recordProbe(
 
 /** 把观测面挂到页面上供人工与脚本读取。 */
 export function publishObservatory(global: Record<string, unknown>): void {
+  // 别人（例如客户端 apply 记下的宿主环境事实）可能先建了 __XAIHI__。这里把它们并进
+  // observatory 本体而不是换个新对象——换对象会让后续装载写入的模块事实失去活性。
+  const existing: unknown = global.__XAIHI__
+  if (typeof existing === 'object' && existing !== null && existing !== observatory) {
+    Object.assign(observatory, existing as Record<string, unknown>)
+  }
   global.__XAIHI__ = observatory
 }

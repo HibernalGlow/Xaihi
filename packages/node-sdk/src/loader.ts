@@ -24,11 +24,22 @@ export interface PanelProps {
 }
 
 /** 面板可用的宿主能力面（v1 只列真实接线的项）。 */
+/** 一次命令通道调用的结局。失败要把宿主说的原因原样带回来，不许咽成空字符串。 */
+export type CommandOutcome = { ok: true; text: string } | { ok: false; reason: string }
+
 export interface PanelHost {
   /** 打开另一个面板；未知 id 返回 false 而不是抛错。 */
   openPanel(id: string): boolean
   /** 往宿主通知层放一条消息；不涉及权限，权限审批走 DSH。 */
   notify(message: string, level?: 'info' | 'warn' | 'error'): void
+  /**
+   * 经 DSH 的命令通道执行一行命令（不经过模型）。
+   *
+   * 面板上的按钮因此不需要 Xaihi 自建 RPC：命令是宿主公开认可的入口，
+   * 危险动作由节点自己在命令侧拒绝（见 `defineNode` 返回值的注释）。
+   * @param line - 完整命令行，含前导斜杠，例如 `/sleept status`。
+   */
+  runCommand(line: string): Promise<CommandOutcome>
 }
 
 /** 一个插槽填充的 props。 */

@@ -310,4 +310,52 @@ DSH 的命令是"**不送给模型**就在接收 agent 上执行"的入口（`co
   违反第一条原则。这条留作下一步：先测客户端 `remote` 的真实形状，再接面板按钮。
 - 因此 §10 的"写入-重启-读回"仍缺一次真运行（命令入口通了，但触发它需要 UI 或凭据）。
 
+## 12 面板→宿主的控制通路：量出来的契约与一个诚实的失败
+
+### 做了什么
+
+面板不再只能显示：`PanelHost` 加了 `runCommand(line)`，包的是 DSH 的命令通道；
+sleept 的面板换成四个按钮（读状态 / 阻止 25 分钟 / 解除 / 立即睡眠-应被拒）。
+`ui-host` 的客户端 `inject` 加了 `remote` 与 `remote.commands`。
+
+### 一条条量出来的契约（不是从文档读的）
+
+1. **不声明就读不到**：`ctx.remote` 直接抛 `cannot get property "remote" without inject`，
+   `ctx.get('remote').commands` 抛 `cannot get property "remote.commands" without inject`。
+   ⇒ 必须显式 `inject: ['remote', 'remote.commands']`（与 `docs/api-gateway.md` 的说法一致）。
+   声明之后 shell 照常装载（三块面板 + 两个 remote 模块都在），所以这不是危险改动。
+2. **参数个数**：`execute(line)` 被客户端拒成
+   `commands/execute expected 3 business argument(s) plus an optional AbortSignal, got 1`；
+   补齐三参 `execute(agent, line, submittedAttachments)` 之后请求打到网关。
+3. **第一个参数必须是 routed Agent**：网关回 `gateway/arguments-invalid {endpoint:
+   "commands/execute"}`，而 `remote.hostFacts` 只有 `{isLoopback:true}`；
+   `invokeSelected` / `invokeMethod` 各自要另一种入参形状（实测分别炸在
+   `reading 'invoke'` 与 `reading 'context'`）。
+   ⇒ **插件客户端在 0.2.0-rc.2 里拿不到"当前 Agent 身份"**，这是通路唯一还缺的那一环。
+
+### 因此现在的行为是如实失败
+
+拿不到 agent 时 `runCommand` 直接返回 `{ok:false, reason: "cannot name the routed Agent…"}`
+并指向本节；面板显示 ERROR 原文。**没有**为了让按钮"看起来能用"去：
+自建 `/xaihi` 执行路由（绕开宿主分派语义）、伪造 agent 常量（会让命令打到错的会话上）、
+或把网关的 `ok:false` 收成成功（这条正是实验期真踩到的 bug，现在有
+`command-result.spec.ts` 的阳性对照钉住：`ok:false` 绝不能被读成成功）。
+
+### 下一步与上游提案候选
+
+- 待查：客户端有没有会话/Agent store 能读到当前 routed agent（`remote.mutations` /
+  `remote.streams` / 某个 `dsh-client-*` 服务）；找到就只改 `agent` 一个实参。
+- **新增上游提案候选**：给插件客户端一个"在当前 Agent 上执行命令"的入口
+  （哪怕是把 `invokeSelected` 的入参形状写进文档）。当前第三方只能拿到 endpoint 名，
+  拿不到身份，等价于命令通道对插件半开。
+
+### 证据
+
+1. 三种失败原文都来自浏览器实机 `window.__XAIHI__.commandAttempts` 与面板 `<pre>`，
+   逐条抄在上面。
+2. 声明 `remote`/`remote.commands` 后：`.xaihi-shell` 在、`.xaihi-nav-item` 三块、
+   `__XAIHI__.modules = [linedup/Panel, sleept/Panel]`、`__XAIHI__.remote.present = true`。
+3. 门禁 `pnpm test` rc=0：ui-host 从 9 涨到 13 条（新增 `command-result.spec.ts`），全仓 112 条。
+
+
 

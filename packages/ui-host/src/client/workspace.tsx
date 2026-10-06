@@ -10,7 +10,7 @@
  */
 
 import * as React from 'react'
-import type { LoadResult, PanelContribution, PanelProps, UIModuleLoader, WorkspaceDocument } from '@hibernalglow/xaihi-sdk'
+import type { CommandOutcome, LoadResult, PanelContribution, PanelProps, UIModuleLoader, WorkspaceDocument } from '@hibernalglow/xaihi-sdk'
 import type { Translate } from './locales.ts'
 import type { XaihiSlot } from './slots.ts'
 import { createRemoteLoader } from './loader/remote-modules.ts'
@@ -22,6 +22,8 @@ export interface RootProps {
   locale: 'zh' | 'en'
   /** Xaihi 自己声明的插槽渲染入口（DSH 的 children 座位）。 */
   renderSlot: (key: XaihiSlot) => React.ReactNode
+  /** DSH 命令通道的包装；面板用它动宿主，不自建 RPC。 */
+  runCommand: (line: string) => Promise<CommandOutcome>
 }
 
 interface PanelEntry {
@@ -88,7 +90,7 @@ function collectRemotes(document: WorkspaceDocument): Record<string, string> {
   return remotes
 }
 
-function Workspace({ t, locale, renderSlot, document, loader }: WorkspaceProps): React.ReactElement {
+function Workspace({ t, locale, renderSlot, runCommand, document, loader }: WorkspaceProps): React.ReactElement {
   const panels = React.useMemo(() => flatten(document), [document])
   const [selected, setSelected] = React.useState<string | null>(panels[0]?.contribution.id ?? null)
   const [notice, setNotice] = React.useState<string | null>(null)
@@ -108,7 +110,8 @@ function Workspace({ t, locale, renderSlot, document, loader }: WorkspaceProps):
     notify(message: string) {
       setNotice(message)
     },
-  }), [panels])
+    runCommand,
+  }), [panels, runCommand])
 
   const active = panels.find((entry) => entry.contribution.id === selected) ?? null
 
