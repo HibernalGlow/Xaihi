@@ -7,7 +7,7 @@
 
 Step 0—4 的主体都落地并有实测证据（`docs/stages/step-2.md`、`step-3.md`、`step-4.md`）：
 工作台外壳、`xaihi.node/v1` 契约与 SDK、脚手架、运行账本（operation stream + checkpoint +
-耐久 ledger 的读回面）、Material You 别名层与 UI Kit、批次 A `linedup` / B `sleept` /
+耐久 ledger 的读回面）、Material You 别名层（只是六套语言里的 `md3` 一份，见 ADR-0006）、批次 A `linedup` / B `sleept` /
 C `dissolvef` / D `findz`。
 
 Step 1 的 API 研究结论**不在** `docs/dsh-api-notes.md`（计划里写的这个文件名不存在），
@@ -21,8 +21,9 @@ Step 1 的 API 研究结论**不在** `docs/dsh-api-notes.md`（计划里写的�
 
 | # | 项 | 前置 | 状态 |
 |---|---|---|---|
-| R1 | `xaihi-ui-kit` 补 M3 的 state layer / focus ring / ripple | 无 | state layer 与 focus ring **已完成**（§22：规则与静息值实机读到）；ripple 仍欠 |
-| R2 | 对比度门禁：断言"文字对其底 ≥ 4.5:1"，尺度取 MCU 算出的实际配对 | R1 | **已完成**：六对 × 明暗 = 12 个比值全过 AA；最小的是 tonal 按钮 4.55/4.56，余量 0.05 ⇒ 换 seed 时它第一个翻红 |
+| R1 | ~~`xaihi-ui-kit` 补 M3 state layer / focus ring / ripple~~ | 无 | **作废**：ui-kit 方向由 ADR-0006 撤掉，组件层不该存在；共享形状只从 Xiranite `src/nodes/shared/` 搬 |
+| R2 | 对比度门禁的**判法**转给设计语言契约 | `design-theme` 移植 | 待重做：AA 的配对表与三条对照可以留着，但对象改成每套语言的 token 集（Xiranite 已有 `contrast.ts` 49 行做工具用） |
+| R10 | **移植 Xiranite 的工作台与节点 UI**（先工作台外壳，再按节点分批，每批带自己的测试） | ADR-0006 | 未开始：实测规模 231 个 `.tsx`（四个主目录）+ 31 个 `src/nodes/<id>`；动词是搬运接线，不是设计 |
 | R3 | 资源调度器 + 缩略图协调器 + 节点内存保护 | 批次 C/D 的真实负载 | 后置（计划 D14 明写） |
 | R4 | 可恢复删除 + 删除历史 | R3、`dissolvef` 的 checkpoint 载荷 | 后置（同上） |
 | R5 | 平台可选依赖包 `@hibernalglow/xaihi-findz-<platform>-<arch>` 的发布流程 | ADR-0004 的"后果 1" | **未定**：发布流程没拍，现在只有开发期显式 `hostBinary` |

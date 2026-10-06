@@ -87,18 +87,4 @@ describe('scaffold', () => {
     expect(parsed.nodeId).toBe('demonode')
   })
 
-  it('生成的面板只经 UI Kit 上色，自己不写颜色', () => {
-    const files = filesOf(input)
-    // 只看代码：模板的文件头注释里就写着"不写 --dsw-*"，那不算违规。
-    const panel = (files['frontend/Panel.tsx'] as string).replace(/^\/\*\*[\s\S]*?\*\//, '')
-    expect(panel).toContain("from '@hibernalglow/xaihi-ui-kit'")
-    expect(panel).toContain('<XPanel')
-    expect(panel).toContain('<XButton')
-    expect(panel).not.toMatch(/#[0-9a-f]{3,8}\b/i)
-    expect(panel).not.toContain('--dsw-')
-    expect(panel).not.toContain('createRoot')
-    // 依赖没带上的话，生成物的 rspack 构建会在解析 kit 时就红。
-    const pkg = JSON.parse(files['package.json'] as string) as { devDependencies: Record<string, string> }
-    expect(pkg.devDependencies['@hibernalglow/xaihi-ui-kit']).toBe(input.sdkVersion)
-  })
 })

@@ -35,7 +35,7 @@ export default function Panel({ contribution, locale, host }: PanelProps) { ... 
 ```
 
 - React 由宿主给（`shared` 里 `import:false`），面板不建自己的 root。
-- 颜色只写 `var(--xaihi-*, var(--dsw-alias-*))`。主题属于 Core Theme Service，**绝不进 MF2**；Material You 生成的 token 经 `ctx.theme.overrideTokens('xaihi.md3', …)` 叠一层，插件禁止自带颜色类名。
+- 颜色与形状来自**当前设计语言的 token**，而语言本身要移植（`Xiranite/src/lib/design-theme/`：`contract` + `registry` + 每套语言的 `spec/resolve`），落到 DSH 只经 `ctx.theme.overrideTokens(source, tokens)` 叠一层；主题**绝不进 MF2**。**不要自造 token 命名层，也不要自造组件包**——`--xaihi-*` 别名层与 `packages/ui-kit` 是 ADR-0006 撤掉的东西，Material You 只是 `md3` 这一套语言，不是默认长相。
 - 面板要动宿主：走 DSH 的命令入口（`/node action`，不经过模型），或在 `PanelProps.host` 上加受控的调用口。**不要自建 RPC**；也不要为了演示在 `/xaihi` 下开一条"执行节点动作"的路由——那会绕过宿主的分派语义和危险闸门。
 - **面板摆的控件只能是"命令面能到达的形状"**。节点动作清单常常比 `/node` 命令宽（`findz`：13 个动作，命令面覆盖常用形状，分页游标 / 路径前缀 / 排序字段只有 agent 的工具路径能到）。装不下的部分**明说**，不要摆一个按下去没有用的控件；给按钮禁用态一个 `title` 说明缺什么。合法值从 `package.json#xaihi.node` 读，不要重抄一份，并用判据钉住"命令面覆盖的动作集合恰好等于清单"——加了动作没想它在命令面长什么样，判据当场红。
 - **命令注册 ≠ 点击派发**。`ctx.commands.register` 成功（真宿主 `debug_info` 的 `commands.names` 里能看到）只证明命令面在了；面板按钮能不能真的派发取决于宿主给不给插件客户端身份，那是另一件事（见 `docs/upstream-proposals.md` 的 P1）。汇报时把这两件分开说，别用"注册成功"暗示"按钮能用"。
@@ -44,23 +44,24 @@ export default function Panel({ contribution, locale, host }: PanelProps) { ... 
 
 状态栏的 `RunFeed` 订阅 `/xaihi/operations/stream`（SSE），失败退到 `/xaihi/operations.json` 轮询，并把传输方式如实标成 `data-transport="live|polling|offline"`。没有运行就不画回显。
 
-## 上色只有一个出口（有门禁）
+## UI 的真源是 Xiranite（ADR-0006）
 
-面板组件与颜色一律来自 `@hibernalglow/xaihi-ui-kit`：`XPanel` / `XButton`（filled|tonal|text）/
-`XField` + 挂载时 `registerKitStyles()`。写进 `devDependencies`（开发期 `workspace:*`）；kit 是
-**打包期内联进每个 remote** 的（ADR-0002「一个包就是一个 bundle」），运行时不解析共享组件包。
+**别在这里造 UI。** 工作台与每个节点的面板都已经以 React 实现存在于 `Xiranite`：
 
-- 只有 kit 的 `tokens.ts` 允许出现 hex，且只能在 `ALIAS` 的兜底位；面板里 hex、`rgb(a)(`/`hsl(`、
-  或直接引用 `--dsw-*` 都是违规。布局用的 inline style（`margin` / `whiteSpace` / `fontSize`）允许。
-- `XPanel` 可以没有正文（`children` 可选）：只有动作行与状态行是合法形状，不要塞空片段占位。
-- 样式标签按 `id="xaihi-ui-kit"` 去重。实机连挂三个 kit 面板之后 `<style>` 仍然是 1 个——
-  这条同时证明去重守卫在起作用（守卫失效就会涨到 3）。
-- 门禁是 `pnpm check:panels`（`scripts/check-panels.mjs`，CI 里排在 build 前面）：剥掉注释后跑
-  四条规则，并要求每个面板从 kit 取组件；它还报"有 `frontend/` 却没有 `Panel.tsx`"这种会让枚举
-  静默变窄的洞。**不要为了让门禁变绿把违规颜色挪进注释**——尺先剥注释，挪进去只是把问题留给下一个人。
-- 回落层的 `--dsw-alias-*` **名字只能从实机 CSSOM 读**（遍历 `document.styleSheets` 收名字，再逐个
-  `getComputedStyle(body).getPropertyValue(name)` 回读）。文档只给前缀规律，不给后缀：抄来的
-  `--dsw-alias-text-primary` 这类名字在这台装配里全是 `unset`，症状是"回落层从来没生效过"。
-  验证回落层是否真的接上：造一个把 `--xaihi-*` 全设成 `initial` 的容器再读计算色，读到的应当是
-  DSH 主题的值，而不是字面量兜底。
+- 工作台：`src/App.tsx` + `src/components/{workspace,views,modules,ui}`（实测 231 个 `.tsx`，`src/` 全下 558 个，Svelte 0 个）
+- 节点：`src/nodes/<id>/`（31 个），形状固定为 `entry.ts` / `Component.tsx` / `controls.tsx` / `constants.ts` / `types.ts`
+  加 `Component.test.tsx` 与 `*.browser.test.tsx`；sleept 那份 1671 行
+- 注册表：`src/components/modules/packageModules.generated.ts` 里 `sleept: () => import('@/nodes/sleept/entry')
+  as Promise<{ default: AppNodeEntry }>`，契约与 `HeadlessNodePackage` 都在 `@xiranite/contract`
+- 共享形状：`src/nodes/shared/`（ExecuteButton、LocalImage/Video/Audio Preview(Dialog)、NodeConfigPopover、
+  NodeConfigSourceView、NodeRunHistoryPopover、NodeRuntimeContext）
+- 设计语言：`src/lib/design-theme/`——`contract.ts`(476) + `registry.ts`(100) + `apply.ts`(163) + `contrast.ts`(49)
+  + `domColor.ts`(74)，六套语言 `native|md3|mondrian|wuling|swiss|lonestar` 各带 `spec.ts`/`resolve.ts` 与测试，
+  另有 `DESIGN_DIMENSIONS` 按维度开关
 
+所以写面板的动词是**搬运与接线**：保真优先，判据是「与 `src/nodes/<id>` 那份行为一致」，不是好看或可扩展。
+不许新增组件包、不许新造设计语言、不许把共享形状另写一份；需要共享的东西就从 `shared/` 搬名字和它的测试。
+UI 层契约以 `AppNodeEntry` 为准（Xaihi 现在的 `PanelProps` + `Probe` 是子集，要按那份补齐）。
+
+仍然有效的两条宿主边界（与 UI 形状无关）：主题只能经 `ctx.theme.overrideTokens(source, tokens)` 叠，
+DOM 由宿主的 presenter 写；回落层里 `--dsw-alias-*` 的**名字只能从真宿主 CSSOM 现读**，不能照前缀规律拼。

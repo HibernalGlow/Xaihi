@@ -18,7 +18,6 @@ proofs are still blocked on things outside this repo (see [What is not proven ye
 | Workbench | `@hibernalglow/xaihi-ui` | the `main` panel shell, layout, `UIModuleLoader`, Xaihi slot declarations, Material You bridge |
 | Host half | `@hibernalglow/xaihi-core` | node discovery, `/xaihi/*` routes, operation journal + durable ledger |
 | Contract | `@hibernalglow/xaihi-sdk` | `xaihi.manifest/1`, `xaihi.node/v1`, event vocabulary, `defineNode` |
-| Components | `@hibernalglow/xaihi-ui-kit` | the only place a colour literal may appear in a panel |
 | Domain nodes | `plugins/*` | one package per node: host actions plus its own UI artifact |
 
 Hard rules: never copy the loader, never occupy the `root` slot, never build a second desktop
@@ -48,7 +47,7 @@ shell / updater / marketplace / agent loop, and when DSH cannot support a design
 ```bash
 pnpm install
 pnpm build            # tsdown for host halves, rspack Module Federation for node UI artifacts
-pnpm test             # pins + skills + panels + installable gates, then build, typecheck, unit tests
+pnpm test             # pins + skills + installable gates, then build, typecheck, unit tests
 ```
 
 The dev host always runs **isolated** from your daily harness:
@@ -68,10 +67,9 @@ exactly why the scratch `DSH_HOME` is mandatory rather than a suggestion.
 |---|---|
 | `check:pins` | any `@deepseek-ai/*` dependency not pinned to the release we validated against |
 | `check:skills` | skills that drift from `.dsh/skills/<kebab-case>/SKILL.md` |
-| `check:panels` | panels that colour themselves (hex, `rgb()/hsl()`, direct `--dsw-` references, own React root) instead of going through the UI kit; also reports a plugin that has `frontend/` but no `Panel.tsx` |
 | `check:installable` | a bundle package carrying `workspace:*` runtime dependencies, which pnpm refuses at install time |
 | purity (in `ui-host` tests) | browser-side value imports outside the module-table baseline — inlining a second harness context is caught by product inspection |
-| every gate | each `check:*` script runs a `--self-check` first — a synthetic violation that the rule must catch, plus a case it must *not* flag; the purity, theme and scaffold tests carry in-test falsification cases. A ruler that cannot go red is treated as absent |
+| the three `check:*` gates | each `check:*` script runs a `--self-check` first — a synthetic violation that the rule must catch, plus a case it must *not* flag; the purity, theme and scaffold tests carry in-test falsification cases. A ruler that cannot go red is treated as absent |
 
 ## Current nodes
 

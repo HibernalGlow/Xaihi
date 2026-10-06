@@ -358,9 +358,6 @@ importers:
       '@hibernalglow/xaihi-sdk':
         specifier: workspace:*
         version: link:../../packages/node-sdk
-      '@hibernalglow/xaihi-ui-kit':
-        specifier: workspace:*
-        version: link:../../packages/ui-kit
       '@module-federation/enhanced':
         specifier: 2.9.2
         version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
@@ -465,9 +462,6 @@ importers:
       '@hibernalglow/xaihi-sdk':
         specifier: workspace:*
         version: link:../../packages/node-sdk
-      '@hibernalglow/xaihi-ui-kit':
-        specifier: workspace:*
-        version: link:../../packages/ui-kit
       '@module-federation/enhanced':
         specifier: 2.9.2
         version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
@@ -514,9 +508,6 @@ importers:
       '@hibernalglow/xaihi-sdk':
         specifier: workspace:*
         version: link:../../packages/node-sdk
-      '@hibernalglow/xaihi-ui-kit':
-        specifier: workspace:*
-        version: link:../../packages/ui-kit
       '@module-federation/enhanced':
         specifier: 2.9.2
         version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
@@ -569,9 +560,6 @@ importers:
       '@hibernalglow/xaihi-sdk':
         specifier: workspace:*
         version: link:../../packages/node-sdk
-      '@hibernalglow/xaihi-ui-kit':
-        specifier: workspace:*
-        version: link:../../packages/ui-kit
       '@module-federation/enhanced':
         specifier: 2.9.2
         version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)

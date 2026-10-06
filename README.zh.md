@@ -17,7 +17,6 @@
 | 工作台外壳 | `@hibernalglow/xaihi-ui` | `main` 面板、布局、`UIModuleLoader`、Xaihi 插槽声明、Material You 桥 |
 | 宿主半边 | `@hibernalglow/xaihi-core` | 节点发现、`/xaihi/*` 路由、运行账本（journal）与耐久账目（ledger） |
 | 契约 | `@hibernalglow/xaihi-sdk` | `xaihi.manifest/1`、`xaihi.node/v1`、事件词表、`defineNode` |
-| 组件层 | `@hibernalglow/xaihi-ui-kit` | 面板里**唯一**允许出现颜色字面量的地方 |
 | 领域节点 | `plugins/*` | 一个节点一个包：宿主动作 + 自带 UI 产物 |
 
 硬规矩：不复制 loader、不占 `root` 槽、不造第二个桌面壳/更新器/市场/agent loop；DSH 不支持某个
@@ -46,7 +45,7 @@
 ```bash
 pnpm install
 pnpm build            # 宿主半边用 tsdown，节点 UI 产物用 rspack Module Federation
-pnpm test             # pins + skills + panels + installable 四道门禁，然后 build / typecheck / 单测
+pnpm test             # pins + skills + installable 三道门禁，然后 build / typecheck / 单测
 ```
 
 开发宿主**永远与日常宿主隔离**：
@@ -65,10 +64,9 @@ profile 不隔离会话（会话按 cwd 落在 `$DSH_HOME/sessions`），所以�
 |---|---|
 | `check:pins` | 任何没有钉到我们验证过版本的 `@deepseek-ai/*` 依赖 |
 | `check:skills` | 偏离 `.dsh/skills/<kebab-case>/SKILL.md` 布局的技能文件 |
-| `check:panels` | 面板自带颜色（hex、`rgb()/hsl()`、直接引用 `--dsw-`）或自建 React root，而不是经 UI Kit 上色；也报"有 `frontend/` 却没有 `Panel.tsx`"这种会让枚举静默变窄的洞 |
 | `check:installable` | 带 `dsh.bundle.patch` 的包却有 `workspace:*` 运行时依赖（装机时会被 pnpm 拒） |
 | purity（在 `ui-host` 测试里） | 浏览器半边 value-import 模块表基线之外的 harness 包——把第二份上下文内联进产物这种事由**产物本身**判 |
-| 所有门禁 | 都带阳性对照（`--self-check` 或测试内的证伪用例）；**不能变红的尺视为不存在** |
+| 三条 `check:*` 门禁 | 都带阳性对照（`--self-check` 或测试内的证伪用例）；**不能变红的尺视为不存在** |
 
 ## 现有节点
 

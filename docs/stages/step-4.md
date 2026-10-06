@@ -642,6 +642,9 @@ A `linedup` → B `sleept` → C `dissolvef` → **D `findz`**。前三个都是
 
 ## 18 UI Kit：面板唯一的上色出口
 
+> **已作废（ADR-0006，2026-10-06）**：这一节把「我自己发明的组件包」当成了面板的上色出口，而用户的工作台与节点 UI 早就以 React 实现存在于 `Xiranite`（`src/components/workspace|views|modules|ui`、`src/nodes/<id>/entry.ts` + `Component.tsx`、`src/nodes/shared/`、`src/lib/design-theme/` 六套语言）。本节的形状判据不再有效，保留只为记录我错在哪；`check:panels` 门禁与 `packages/ui-kit` 已按 `docs/adr/0006-ui-comes-from-xiranite-not-a-new-kit.md` 退回。
+
+
 ### 改了什么
 
 新包 `packages/ui-kit`（`@hibernalglow/xaihi-ui-kit`，纯浏览器侧）：
@@ -804,6 +807,9 @@ P1 一旦落地，要改的只有 `resolveAgent()` 里"从哪儿取值"这一处
   两个独立缺口：前者缺触发入口（模型凭据或宿主侧命令派发），后者缺客户端身份。
 
 ## 20 面板上色收口：五个面板全走 kit，并把规则变成门禁
+
+> **已作废（ADR-0006，2026-10-06）**：这一节把「我自己发明的组件包」当成了面板的上色出口，而用户的工作台与节点 UI 早就以 React 实现存在于 `Xiranite`（`src/components/workspace|views|modules|ui`、`src/nodes/<id>/entry.ts` + `Component.tsx`、`src/nodes/shared/`、`src/lib/design-theme/` 六套语言）。本节的形状判据不再有效，保留只为记录我错在哪；`check:panels` 门禁与 `packages/ui-kit` 已按 `docs/adr/0006-ui-comes-from-xiranite-not-a-new-kit.md` 退回。
+
 
 ### 改了什么
 
@@ -974,6 +980,9 @@ P1 一旦落地，要改的只有 `resolveAgent()` 里"从哪儿取值"这一处
 
 ## 22 状态层与对比度门禁（`docs/roadmap.md` 的 R1 + R2 一起做掉）
 
+> **已作废（ADR-0006，2026-10-06）**：这一节把「我自己发明的组件包」当成了面板的上色出口，而用户的工作台与节点 UI 早就以 React 实现存在于 `Xiranite`（`src/components/workspace|views|modules|ui`、`src/nodes/<id>/entry.ts` + `Component.tsx`、`src/nodes/shared/`、`src/lib/design-theme/` 六套语言）。本节的形状判据不再有效，保留只为记录我错在哪；`check:panels` 门禁与 `packages/ui-kit` 已按 `docs/adr/0006-ui-comes-from-xiranite-not-a-new-kit.md` 退回。
+
+
 ### 改了什么
 
 - `packages/ui-kit/src/tokens.ts` 的 `KIT_CSS` 补 M3 的**状态层**与**焦点环**：
@@ -1103,7 +1112,9 @@ alpha 发布时按 ADR-0005 写好的形状跑一次："新 profile 只装入口
 - 例外名单只放了入口包一项，**没有**给任何节点包开后门（节点包本来就是干净的）。
 - 入口包的装机证明没跑（前提不成立）；这条如实挂在 R9，不当已验。
 
-## 24 仓的入口文档补上，四条门禁都配上阳性对照
+## 24 仓的入口文档补上，三条门禁都配上阳性对照
+
+> **部分作废（ADR-0006）**：本节写的时候是四条门禁，其中 `check:panels` 已随 `packages/ui-kit` 一起退回，现在是三条（`check:pins` / `check:skills` / `check:installable`）。其余仍成立：README 与 LICENSE 的补齐、`check:pins` 与 `check:skills` 的阳性对照，以及「每条尺都要能红」的口径。下面的 self-check 输出是当时真跑过的记录，不改写。
 
 ### 改了什么
 

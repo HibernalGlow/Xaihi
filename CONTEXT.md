@@ -24,9 +24,7 @@
 - **host（宿主）**：在 Xaihi 文档里指 **Xaihi ui-host**（工作台半边）；在 DSH 文档里指 DeepSeek Harness 进程。两个意思分开用，不混写。
 - **theme bridge**：把 Material You 生成的 token 层交给 DSH 的 `ctx.theme.overrideTokens(source, tokens)`。**Xaihi 没有第二套主题引擎**；主题绝不进远程模块。
 - **observatory**：装载器留在 `globalThis.__XAIHI__` 的事实（装载了哪些 remote、每个模块的 React 与宿主是否同一个）。没有 Probe 导出的远端记为 `unknown`，不假装通过。
-- **UI Kit（上色出口）**：`@hibernalglow/xaihi-ui-kit`。节点面板**唯一**允许出现颜色的地方是它
-  的 `ALIAS` 兜底位；面板不许自带颜色类名（`check-panels` 是这条的尺）。kit 在打包期内联进每个
-  remote（自包含，ADR-0002），所以"共享组件"共享的是**规则**，不是运行时实例。
+- **UI Kit（上色出口）**：**作废（ADR-0006，2026-10-06）**。它是我凭空造的组件包，把"面板唯一的上色出口"定义成一个包名；真实情况是工作台与节点面板的 UI 早就以 React 实现存在于 `Xiranite`，动词是搬运。下面的"分层回落"与"状态层"两条只作为**机制**保留（回落链的形状、叠加色的做法），但它们服务的是移植过来的**设计语言**（`design-theme` 的 contract + registry + 各语言 spec/resolve），不是这个包。
 - **layered fallback（分层回落）**：一处颜色写成
   `var(--xaihi-*, var(--dsw-alias-*, 兜底字面量))`。第一层是 Material You 桥叠上的值，第二层是
   DSH 主题自己的值，第三层只在两套主题都不在场时用。**第二层的名字只能实测**（这台装配的 CSSOM
