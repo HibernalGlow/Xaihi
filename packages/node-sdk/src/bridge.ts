@@ -13,6 +13,10 @@
 export * from './host-bridge.ts'
 export * from './bridge-document.ts'
 export * from './bridge-shell.ts'
+// 开窗探测读的只是注入到 window 上的那份形状（`dshDesktop.xaihiWindow`），不碰 Node 面，
+// 所以浏览器文档也从这条入口取它，而不是裸名 `@hibernalglow/xaihi-sdk`
+// ——ui-host 的浏览器图里那个裸名被刻意收窄成 help.ts（`build-aliases.mjs` 的 BROWSER_GRAPH_ALIASES）。
+export * from './desktop-windows.ts'
 // `UiBundleFace` 的产地是 wire.ts（清单里那一格的形状），但 barrel 会把 Node 侧管线带进来，
 // 所以浏览器那侧从这条入口取。`export type` 不产生运行时请求，产物形状不变。
 export type { UiBundleFace } from './wire.ts'

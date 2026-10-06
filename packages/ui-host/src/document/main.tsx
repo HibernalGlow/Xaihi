@@ -20,7 +20,21 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from '@/App'
 import { startRealm } from './realm.ts'
+import { describeNoBridge } from './boot-notice.ts'
 import '@/index.css'
+
+/**
+ * 桥等不到时画出来的那一面（决定 4：可以退化，不许静默）。
+ * 文本由 `boot-notice.ts` 判，这里只负责挂上 DOM 并留一个读回属性。
+ */
+function renderNotice (container: HTMLElement, notice: ReturnType<typeof describeNoBridge>): void {
+  document.title = 'Xaihi — 桥未接通'
+  const box = document.createElement('pre')
+  box.dataset.xaihiDocumentBoot = notice.reason
+  box.style.cssText = 'margin:0;padding:16px;font:12px/1.7 ui-monospace,monospace;white-space:pre-wrap'
+  box.textContent = notice.lines.join('\n\n')
+  container.replaceChildren(box)
+}
 
 /**
  * 文档那一侧的正式入口：realm 管道在 `realm.ts`，这里只负责把工作台挂上去。
@@ -40,16 +54,27 @@ if (realm === null) {
   if (container === null) {
     document.title = 'Xaihi — 装载失败'
   } else {
-    // 握手先走完再挂界面：host 形状来自桥，早挂会让第一帧读到的能力是"未知"而不是"没有"。
-    const wait = setInterval(() => {
-      if (realm.bridge.ready() === null) return
-      clearInterval(wait)
-      createRoot(container).render(
-        <StrictMode>
-          <App />
-        </StrictMode>,
-      )
-    }, 120)
-    setTimeout(() => clearInterval(wait), 8000)
+    const isTopLevel = window.parent === window
+    const notice = () => describeNoBridge({ isTopLevel, scope: globalThis, node: realm.boot.node ?? '' })
+    // 顶层文档没有父帧，桥的那一侧不可能存在（自家桌面壳开出来的独立窗就是这一格）：
+    // 不等 8 秒，直接画读回面。等到点才画＝中间是一段什么都不是的空白。
+    if (isTopLevel) {
+      renderNotice(container, notice())
+    } else {
+      // 握手先走完再挂界面：host 形状来自桥，早挂会让第一帧读到的能力是"未知"而不是"没有"。
+      const wait = setInterval(() => {
+        if (realm.bridge.ready() === null) return
+        clearInterval(wait)
+        createRoot(container).render(
+          <StrictMode>
+            <App />
+          </StrictMode>,
+        )
+      }, 120)
+      setTimeout(() => {
+        clearInterval(wait)
+        if (realm.bridge.ready() === null) renderNotice(container, notice())
+      }, 8000)
+    }
   }
 }

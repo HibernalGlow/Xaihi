@@ -10,6 +10,7 @@
 
 import { createRoot } from 'react-dom/client'
 import { startRealm } from './realm.ts'
+import { describeHostSurface } from './boot-notice.ts'
 
 const realm = startRealm()
 
@@ -25,6 +26,8 @@ if (realm === null) {
   if (container === null) {
     document.title = 'Xaihi — 装载失败'
   } else {
+    const isTopLevel = window.parent === window
+    const notice = describeHostSurface({ isTopLevel, scope: globalThis, node: realm.boot.node ?? '' })
     // 必须真走 createRoot：这条探针要证的是"React 19 能在我们自己的文档里挂载"，
     // 用 appendChild 拼 DOM 正好把要证的东西绕过去（第一版就是这样，产物里没有 react-dom）。
     createRoot(container).render(
@@ -34,6 +37,11 @@ if (realm === null) {
         {`rev=${realm.boot.rev} · node=${realm.boot.node ?? ''}`}
         <br />
         界面内容等搬运树建出来之后由 main.tsx 挂载。
+        {/* 决定 4：退化要读得回来。这块板本来就明写自己不是界面，但它落在哪个宿主里、
+            有没有独立窗动词，使用者不该开控制台才能知道。 */}
+        <div data-xaihi-window-capability={notice.windowStatus}>
+          {notice.lines.join(' ')}
+        </div>
       </div>,
     )
   }
