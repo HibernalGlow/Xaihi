@@ -1,0 +1,568 @@
+{
+  "name": "@hibernalglow/xaihi-mvz",
+  "version": "0.0.0",
+  "description": "Xaihi node MVZ: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "xmvz": "./lib/cli.js"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-mvz",
+    "title": {
+      "zh": "MVZ",
+      "en": "MVZ"
+    },
+    "ui": {
+      "remote": "mvz",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.mvz",
+        "title": {
+          "zh": "MVZ面板",
+          "en": "MVZ panel"
+        },
+        "area": "workspace",
+        "remote": "mvz",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "mvz",
+      "title": {
+        "zh": "MVZ",
+        "en": "MVZ"
+      },
+      "description": {
+        "zh": "根据 findz 输出，对归档内的文件执行删除、解压、移动或重命名。",
+        "en": "Delete, extract, move, or rename files inside archives from findz output."
+      },
+      "actions": [
+        {
+          "id": "extract",
+          "label": {
+            "zh": "⇩ 解压",
+            "en": "⇩ Extract"
+          }
+        },
+        {
+          "id": "move",
+          "label": {
+            "zh": "⇄ 移动",
+            "en": "⇄ Move"
+          }
+        },
+        {
+          "id": "delete",
+          "label": {
+            "zh": "⌫ 删除",
+            "en": "⌫ Delete"
+          }
+        },
+        {
+          "id": "rename",
+          "label": {
+            "zh": "✎ 重命名",
+            "en": "✎ Rename"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "命令",
+            "en": "Command"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "extract",
+              "label": {
+                "zh": "⇩ 解压",
+                "en": "⇩ Extract"
+              }
+            },
+            {
+              "value": "move",
+              "label": {
+                "zh": "⇄ 移动",
+                "en": "⇄ Move"
+              }
+            },
+            {
+              "value": "delete",
+              "label": {
+                "zh": "⌫ 删除",
+                "en": "⌫ Delete"
+              }
+            },
+            {
+              "value": "rename",
+              "label": {
+                "zh": "✎ 重命名",
+                "en": "✎ Rename"
+              }
+            }
+          ],
+          "default": {
+            "text": "extract"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "fileText",
+          "label": {
+            "zh": "归档内部条目",
+            "en": "Archive entries"
+          },
+          "kind": "multiline",
+          "lines": 5,
+          "placeholder": {
+            "zh": "D:/archive.zip//internal/file.txt",
+            "en": "D:/archive.zip//internal/file.txt"
+          },
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "nonBlank"
+              }
+            }
+          ]
+        },
+        {
+          "id": "output",
+          "label": {
+            "zh": "输出目录",
+            "en": "Output directory"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "extract",
+                  "move"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "near",
+          "label": {
+            "zh": "就近输出",
+            "en": "Near archive"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "extract",
+                  "move"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "autoDir",
+          "label": {
+            "zh": "自动子目录",
+            "en": "Automatic subdirectory"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "extract",
+                  "move"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "flatten",
+          "label": {
+            "zh": "扁平提取",
+            "en": "Flatten"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "extract",
+                  "move"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "pattern",
+          "label": {
+            "zh": "匹配表达式",
+            "en": "Rename pattern"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "rename"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "nonBlank"
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "rename"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "replacement",
+          "label": {
+            "zh": "替换文本",
+            "en": "Replacement"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "rename"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "separator",
+          "label": {
+            "zh": "路径分隔符",
+            "en": "Entry separator"
+          },
+          "kind": "text",
+          "default": {
+            "text": "//"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "仅预演",
+            "en": "Dry run"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "archive",
+          "label": {
+            "zh": "归档操作",
+            "en": "Archive operation"
+          },
+          "fieldIds": [
+            "action",
+            "fileText",
+            "output",
+            "near",
+            "autoDir",
+            "flatten",
+            "pattern",
+            "replacement",
+            "separator",
+            "dryRun"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "fileText",
+          "slot": "fileText",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "output",
+          "slot": "output",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "near",
+          "slot": "near",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "autoDir",
+          "slot": "autoDir",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "flatten",
+          "slot": "flatten",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "pattern",
+          "slot": "pattern",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "replacement",
+          "slot": "replacement",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "separator",
+          "slot": "separator",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认修改压缩包",
+          "en": "Confirm archive modification"
+        },
+        "body": {
+          "zh": "此操作会修改压缩包内容。",
+          "en": "This modifies archive contents."
+        },
+        "confirmLabel": {
+          "zh": "确认执行",
+          "en": "Execute"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "当需要从工作区 UI 或 CLI 使用该节点的文件工作流时，使用 MVZ。",
+          "en": "Use MVZ when you need this node's file workflow from either the workspace UI or CLI."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "notes": {
+            "zh": [
+              "修改文件前优先使用预览或 dry-run 模式。",
+              "处理大文件夹时保留备份或撤销记录。"
+            ],
+            "en": [
+              "Prefer preview or dry-run modes before changing files.",
+              "Keep backups or undo records when processing large folders."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
