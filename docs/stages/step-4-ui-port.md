@@ -148,6 +148,43 @@ $ pnpm exec vitest --version         # 负模式放行后 pnpm 恢复可用
 vitest/4.1.11 darwin-arm64 node-v26.10.0                                     rc=0
 ```
 
+## 七、主题接缝的一处实错（搬完设计语言才发现的）
+
+`ctx.theme.overrideTokens(source, tokens)` 的键**只认宿主自己的 `--dsw-alias-*` 名字**。
+装的这份 0.2.0-rc.2 逐字写着：`ThemeTokens = Record<string, string>` 的注释是
+"Theme token dictionary: --dsw-alias-* overrides keyed by variable name"
+（`packages/ui-host/node_modules/@deepseek-ai/dsh-client-ui-theme/lib/types/client/index.d.ts:26-28`），
+而 `overrideTokens` 在 `:178` 且**返回一个 disposer**（"returns disposer removing exactly the layer this call created"）。
+
+我 Step 4.4 那一版（`src/client/theme/material-you.ts`）把 `--xaihi-*` 当名字喂了进去。
+⇒ **那一层从未到过屏幕上**，而它的 7 条测试全绿：测的是"我这层函数产出了什么"，
+不是"宿主拿没拿到"。这与 §21 早先那次"照前缀规律拼出来的 `--dsw-alias-*` 全 `(unset)`"是同一个洞的两种犯法。
+
+替换成什么（都有尺）：
+
+- `src/client/theme/engine.ts`：同一份配方按明暗各求值一次，凑齐 `ThemeTokenModes` 要求的成对值；
+  值只出自搬进来的引擎，接缝里一个 hex 都不写，也不再直接引 `@material/material-color-utilities`。
+- `src/client/theme/design-language.ts`：`HOST_ROLES` 的七个 `--dsw-alias-*` 名字全部来自 §21 的实测表，
+  并且**必须出现在 `ctx.theme.exportInspectTokens()` 现读出来的目录里**才应用；
+  不在的进 `absent`，描述里一个角色词都不命中的进 `unconfirmed`（应用了但看得见）。
+  这条"名字只许现读"是类型给的出口：`exportInspectTokens` 的注释逐字
+  "Export the current token directory without reading DOM or computed styles"（`index.d.ts:136`）。
+- `default 配方 = native ⇒ 整层不存在`：不把任何一份候选提成默认（AGENTS.md 里那条口径）。
+- `material-you.ts` 与它的 `tests/theme.spec.ts` 一起删掉；`tests/design-layer.spec.ts` 接住
+  原来那两条判据（形状 / 兜底覆盖率）并新加四条，全部带阳性对照。
+
+搬完才看见的两个**颜色形状**事实（我上一版以为形状由接缝决定）：
+md3 与 mondrian 发 `#rrggbb`，**武陵发 `oklch(...)`**，**孤星的半透明面发
+`color-mix(in oklab, #0B6E75 16%, transparent)`**。所以接缝的判据只能是"两值成对 + 是个 CSS 颜色"，
+不能是"是 hex"。AA 那条因此量程受限：`contrastRatio` 只吃 hex，
+而引擎把任意 CSS 颜色读成 hex 靠的是 canvas 像素回读（`domColor.ts` 开头写明），
+**本机 happy-dom 没有 canvas 后端**（实测 `cssColorToHex('#ff0000')` 返回 `null`），
+所以未量的色对必须逐条落在 `unmeasurable` 清单里、并断言 `unmeasurable + checked == 全量`，
+而不是被 `continue` 洗掉。上游那侧 swiss / lonestar 各自钉了一份 AA 尺（实测
+`spec.test.ts` 里有 "the palette clears WCAG AA on the pairs that carry text"），
+**武陵没有**——这一条是真缺口，跨形状的 AA 要等真浏览器那轮补。
+
+
 **没做 / 未验**（别把这些当已完成）：
 `pnpm build` 与 `typecheck` **还没跑过**——那 740 条第三方 value 边里绝大多数没声明，
 构建必然红；`check:pins` / `check:skills` / `check:installable` 本轮没重跑（别的 lane 在飞，

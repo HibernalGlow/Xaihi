@@ -27,7 +27,8 @@ import { LOCALE_NAMESPACE, en, zh, type LocaleKey, type Translate } from './loca
 import { MAIN_PANEL_KEY, registerPanelEntry } from './panel-entry.tsx'
 import { createRemoteLoader } from './loader/remote-modules.ts'
 import { registerStyles } from './styles.ts'
-import { xaihiMd3Layer } from './theme/material-you.ts'
+import { DEFAULT_DESIGN_THEME } from '../lib/design-theme/contract.ts'
+import { designHostLayer } from './theme/design-language.ts'
 import { WorkspaceRoot } from './workspace.tsx'
 
 /** Xaihi 声明的插槽，`children` 与 props 类型共用这一份。 */
@@ -341,8 +342,14 @@ export function apply(ctx: Context): void {
   recordRemoteShape(ctx)
   ctx.effect(() => ctx.locale.register(LOCALE_NAMESPACE, { zh, en }), 'xaihi-ui: dictionaries')
   ctx.effect(() => registerStyles(), 'xaihi-ui: styles')
-  // Material You 只叠一层别名；明暗模式与切换归 ctx.theme，本包不造第二套引擎。
-  ctx.effect(() => ctx.theme.overrideTokens('xaihi.md3', xaihiMd3Layer()), 'xaihi-ui: material you layer')
+  // 主题的明暗与切换全归 ctx.theme；本包只把「搬进来的设计语言」算成一层宿主别名覆盖，
+  // 键必须是宿主目录里真存在的 --dsw-alias-* 名字（名字现读，不拼）——上一版把 --xaihi-*
+  // 喂给这个 API，那一层因此从未到过屏幕。默认配方是 native ⇒ 整层不存在，不替使用者挑候选。
+  ctx.effect(() => {
+    const layer = designHostLayer(DEFAULT_DESIGN_THEME, ctx.theme.exportInspectTokens())
+    if (Object.keys(layer.tokens).length === 0) return () => {}
+    return ctx.theme.overrideTokens(layer.source, layer.tokens)
+  }, 'xaihi-ui: design-language layer')
 
   // 侧栏那一行由 ui-sidebar 持有：显示标题、响应点击、调用 selectPanel 都是它的事，
   // 本插件只贡献标记与行标题，所以这里既不碰路由也不碰布局。
