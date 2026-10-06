@@ -250,3 +250,26 @@ $ plugins/{sleept,linedup,dissolvef} tsc --noEmit               rc=0
 还剩两步（有依赖顺序，不能顺手做完）：第 2 步是 `@xiranite/{file-operations,services}` 那两条
 按 ADR-0013 判定不接之后 `packages/api` 怎么改；第 3 步是把 `packages/{api,contract,shared,logging,cli-runtime}`
 的包名从上游名换成 `@hibernalglow/xaihi-*`，换完才能解掉 `pnpm-workspace.yaml` 里那批负向条目。
+
+## 十一、TUI 这一腿的真实状态：源码在场，依赖从未装过（2026-10-07 03:46 现读）
+
+我先前把它写成"packages/tui 还缺三片叶子"——那句现在**读起来像有个 `packages/tui` 目录，它不存在**：
+`ls -d packages/*/` ⇒ `api bundle cli cli-runtime contract core create-xaihi-plugin logging node-sdk shared ui-host ui-kit`，
+没有 tui。真正的 TUI 源码住在 **`packages/logging/src/`** 里（`Tui.tsx` / `tui-runner.tsx` / `Tui.test.tsx`），
+`packages/cli-runtime` 另有一条 `./terminal/opentui` 导出。
+
+现读的关键一条：**OpenTUI 这台机器上根本没装过**。
+`ls node_modules/.pnpm | rg -c opentui` ⇒ 0；`ls packages/logging/node_modules | rg -c opentui` ⇒ 0。
+而 `packages/logging/package.json` 的 deps 里明明写着 `@opentui/core` / `@opentui/react` `0.4.5`，
+`pnpm-workspace.yaml` 又有一条 `- '!packages/logging'` 把这个包整体关在 workspace 外面。
+⇒ 结论要按这个口径写：**TUI 这一腿是"源码已搬、从未执行"**，不是"已迁移"。
+它那份 `Tui.test.tsx` 一次都没跑过，`@opentui` 的 0.4.5 在 Node 上能不能建 renderer 也还没证。
+（上游那侧的对照：`Xiranite/package.json:285-286` 同样钉 `@opentui/{core,react} 0.4.5`，
+`Xiranite/packages/cli/src/` 里是 `Tui.tsx` / `tui-runner.tsx` / `workspace-tui-model.ts` + `Tui.node.test.tsx`。）
+
+为什么不顺手 `pnpm install` 把它装上：`packages/logging` 进 workspace 会牵动全仓锁文件，
+而并发 lane 正在做那一轮收口（`docs/stages/step-4-terminal-port.md` §十 第 3 步就是包名换成本仓名）。
+所以测量走**仓库外的隔离探针**：`/Users/glow/Base/Code/Freya/.scratch/tui-probe` 里用 npm 单装那两件，
+先回答"OpenTUI 0.4.5 在这台机的 Node 上能不能 createCliRenderer"，再把我们那份 `Tui.test.tsx`
+搬进探针跑一遍——把"端口本身成不成"和"workspace 管道通不通"这两件事分开量。
+读数落 `docs/stages/tui-leg-measurements.md`。
