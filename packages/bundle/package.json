@@ -1,0 +1,28 @@
+{
+  "name": "@hibernalglow/xaihi",
+  "version": "0.0.0",
+  "description": "Xaihi for DeepSeek Harness: a workspace extension framework — panel host, layout, Material You theme bridge, and node ecosystem. Install this bundle, then add node bundles like @hibernalglow/xaihi-hello.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "locale/*.json",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@hibernalglow/xaihi-core": "workspace:*",
+    "@hibernalglow/xaihi-ui": "workspace:*"
+  }
+}

@@ -1,0 +1,8 @@
+# 宿主半边自带一行：安装这个包就能让 loader 装载它，不依赖任何入口元包。
+# `id` 是宿主派生的 settings 命名空间；`name` 必须是裸包名，client-modules 与
+# --dump-config 都按它寻址。
+- insert:
+    - id: xaihi-core
+      name: '@hibernalglow/xaihi-core'
+      config:
+        verbose: false

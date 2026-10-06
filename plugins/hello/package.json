@@ -1,0 +1,85 @@
+{
+  "name": "@hibernalglow/xaihi-hello",
+  "version": "0.0.0",
+  "description": "Xaihi reference node: smallest possible plugin package carrying a host tool and a workspace panel, used to prove the module transport end to end.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-hello",
+    "title": {
+      "zh": "示例节点",
+      "en": "Example node"
+    },
+    "ui": {
+      "remote": "hello",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.hello",
+        "title": {
+          "zh": "Hello 面板",
+          "en": "Hello panel"
+        },
+        "area": "workspace",
+        "remote": "hello",
+        "export": "Panel",
+        "order": 10
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3"
+  }
+}

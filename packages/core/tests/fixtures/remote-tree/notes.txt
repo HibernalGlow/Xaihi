@@ -1,0 +1,1 @@
+secret-ish text that must not be served by extension

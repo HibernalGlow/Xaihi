@@ -1,0 +1,7 @@
+# 工作台浏览器半边所在的那一行。
+#
+# `name` 必须等于包名：client-modules 把浏览器半边挂到 specifier 为裸包名的行上，
+# 所以关掉这一行就同时卸掉整个工作台（含它声明的 xaihi.* 槽与所有贡献）。
+- insert:
+    - id: xaihi-ui
+      name: '@hibernalglow/xaihi-ui'

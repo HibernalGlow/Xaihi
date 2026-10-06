@@ -1,0 +1,34 @@
+{
+  "name": "@hibernalglow/xaihi-sdk",
+  "version": "0.0.0",
+  "description": "Contracts for Xaihi nodes and UI contributions: the xaihi.manifest/1 shape, the xaihi.node/v1 vocabulary, and the UIModuleLoader interface that hides the module transport.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/index.d.ts",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib",
+    "prepare": "tsdown"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.11"
+  }
+}

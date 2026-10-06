@@ -1,0 +1,3 @@
+var slots = require("@deepseek-ai/dsh-client-ui-slots");
+var layout = require("@deepseek-ai/dsh-client-ui-layout");
+var react = require("react");

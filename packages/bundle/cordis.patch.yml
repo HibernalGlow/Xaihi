@@ -1,0 +1,17 @@
+# Xaihi bundle 层：把工作台的两半插进 profile。
+#
+# 行的 `id` 同时是宿主派生的 settings 命名空间与 Plugins 页的键，`name` 是包
+# specifier；client-modules 用同一个 `name` 挂载浏览器半边，所以三处必须一致
+# （见 packages/ui-host/tsdown.config.ts 的握手 id）。
+# 每个节点插件自带自己的 cordis.patch.yml，不写在这里——那样才能在 Plugins 页
+# 单独开关而不影响工作台。
+- insert:
+    - id: xaihi-core
+      name: '@hibernalglow/xaihi-core'
+      config:
+        verbose: false
+    - id: xaihi-ui
+      name: '@hibernalglow/xaihi-ui'
+      config:
+        panelKey: xaihi
+        defaultPanel: xaihi.workspace
