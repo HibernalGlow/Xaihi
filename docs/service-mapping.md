@@ -120,3 +120,18 @@ G12 那份 vendored `cli-support.ts` 与基线差在"不剥 `--key` 前缀、只
 这次它给的两条"证据"（`timeu/src/index.ts:114` 读 signal、7 个剪贴板文件）我照着写进台账就会变成
 一条假事实加一条被低估的债；而我自己那条 `check-no-os-trash.mjs` 更糟——它不是数字错，
 是**我替仓库发明了一个不存在的防御机制**，而这正是本仓最禁止的形状（"不许伪造它没给的数据"）。
+
+### 复验之后又量了两条（2026-10-07 03:43，都是我自己重跑的）
+
+- **G7 的真数既不是 12 也不是代理说的 25**：把 26 份已构建的 `plugins/*/lib/help.js` 逐个读进来找
+  `command: "/<id>"` 这一形状 ⇒ **15 个包**命中
+  （bandia classq crashu dissolvef enginev formatv linedup linku logx nameu rawfilter recycleu samea sleept timeu）。
+  代理报"25"是因为它把 help 模块**加载后现算**的产物也数进去了（`help.ts:108` 那条
+  `command ?? \`/${nodeId}\`` 的默认式，一 import 就全都"有 slash 命令"），量的其实是默认值而不是源码。
+  这一档的修法仍然要先有"命令注册"这条缝（`ctx.commands` 现在只有 findz / sleept inject），
+  不是把 `command` 字段删掉就完事。
+- **G4 的口径我先前也报宽了**：我说的"55 处 / 15 份"把 `src/cli.ts` 里**主动拒绝**的那批文案
+  （`ui 面未接`、`gd 未接`）一起数了，而那些恰恰是不撒谎的一半。
+  真正的谎面只有清单里那 2 条：`bitv` 的 `help.workflows[1].actions` 带着 `ui` / `gd`
+  （`plugins/bitv/package.json`，`ui`/`gd` 在 `plugins/bitv/src/cli.ts` 都是抛 `not supported yet`）。
+  数法：`rg -c '"ui"|"guided"|"gd"' plugins/*/package.json` ⇒ 27 个清单里只有 bitv 这一个提到这些动作。
