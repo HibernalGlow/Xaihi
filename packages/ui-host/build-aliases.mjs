@@ -31,6 +31,12 @@ export const XIRANITE_ALIASES = {
   '@xiranite/contract': join(PKGS, 'contract/src/index.ts'),
   '@xiranite/shared': join(PKGS, 'shared/src/index.ts'),
   '@xiranite/shared/rules': join(PKGS, 'shared/src/rules.ts'),
+  // 这条曾经挂在下面的"有意不给解析"里，理由是"packages/shared 里没有 swimlane 那份"。
+  // 那句是**没量就写的错话**：`diff -q packages/shared/src/swimlane.ts <Xiranite>/packages/shared/src/swimlane.ts`
+  // 逐字节相同（162 行、17 条导出），文件一直在仓里，缺的只是这张表的一行。
+  // 症状很间接：`@/components/workspace/swimlane/model` 因此"module has no exports"，
+  // 把 `LaneView.tsx` 炸出 5 条 ESModulesLinkingError（文档构建 25 条错里的 5 条是它的下游）。
+  '@xiranite/shared/swimlane': join(PKGS, 'shared/src/swimlane.ts'),
   '@xiranite/api/client': join(PKGS, 'api/src/client.ts'),
   '@xiranite/logging': join(PKGS, 'logging/src/index.ts'),
   '@xiranite/cli-runtime': join(PKGS, 'cli-runtime/src/index.ts'),
@@ -87,8 +93,6 @@ export const UNRESOLVED_BY_DESIGN = [
   // Go 内核宿主：按 ADR-0004 走 `@hibernalglow/xaihi-findz-<platform>-<arch>` 平台包，
   // 那条线还没发包 ⇒ 这条边现在必须响。
   '@xiranite/findz-native',
-  // packages/shared 里没有 swimlane 那份（搬运只带了终端面用到的部分）。
-  '@xiranite/shared/swimlane',
 ]
 
 /** 自检：表里指向的文件必须真的存在（漂了就是构建红，而不是"某些文件解析不到"这种远因）。 */

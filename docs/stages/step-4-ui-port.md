@@ -387,3 +387,34 @@ importer 集合是本仓 34 个 workspace 目录的**超集**，其中批次 G/H
 还在子代理手里没提交；把这份锁与 `packages/ui-host/package.json` 一起提上去，
 干净检出会多出十几个空 importer。收口时机是所有包落定后一次 `pnpm install` 生成再一起提，
 判据仍是"仓库外干净 worktree + `pnpm install --frozen-lockfile`"。
+
+## 12. 一行别名清掉 11 条错：`UNRESOLVED_BY_DESIGN` 里那条"按设计不给"其实是没量就写的（2026-10-07 01:40）
+
+`build-aliases.mjs` 把 `@xiranite/shared/swimlane` 挂在"有意不给解析"的名单里，理由写的是
+"packages/shared 里没有 swimlane 那份（搬运只带了终端面用到的部分）"。这句**是错的**：
+
+```
+diff -q packages/shared/src/swimlane.ts <Xiranite>/packages/shared/src/swimlane.ts   # 逐字节相同
+162 行、17 条 export
+```
+
+文件一直在仓里，缺的只是解析表上的一行。症状离原因很远：`@/components/workspace/swimlane/model`
+因此变成"module has no exports"，`LaneView.tsx` 跟着炸出 5 条 `ESModulesLinkingError`
+（`normalizeSwimlanePreferences` / `legacySwimlaneSessionState` / `fitSwimlaneWidthsToViewport` /
+`adjacentSwimlane` / `DEFAULT_SWIMLANE_WORKSPACE_PREFERENCES`）。
+
+补上那一行、`--write` 重生 `tsconfig.ported.json` 的 paths（文档构建的别名是从那份 paths 读的，
+`rspack.document.mjs:88` 的 `aliasesFromTsconfig()`）之后：**文档构建 25 条错 → 14 条**。
+同步尺读数：解析表 **35 条**（批次 G/H 的包各自带进 `core`/`interaction` 边，表是 `plugins/*/src` 现读派生的），
+`node packages/ui-host/build-aliases.mjs` rc=0。
+
+剩下 14 条按类点名为四类，都不含"未知的坑"：`src/plugins/frontendIntegrity.ts` 4 条、
+`components/views/settings/RuntimeSection.tsx` 3 条（含那条挂着的 `./NodeMemoryProtectionSettings`，
+归正在改 settings 那一刀的 lane）、`nodes/sleept/Component.tsx` 2 条（`node-sleept/{duration,interaction}`
+是**真没搬**的定时器内核，与上面那条错话不同，这一条量过：noxide 的 `packages/nodes/sleept/src/` 里
+有 `core.ts`/`interaction.ts` 而没有 `duration.ts`，本仓 `plugins/sleept/src/` 两份都没有）、
+`node:{fs,os,module}` 各 1 条（搬运树里桌面侧的模块在浏览器图上）、
+再加 `settingsNavigation.ts` 与 `ModuleRenderer.tsx` 各 1 条。
+
+**判据没变好之前不许说"上屏了"**：`dist-ui/` 现在仍然是空的（构建红就不出产物），
+所以"节点界面在屏上"这条还没兑现，只从 43 条错走到了 14 条。

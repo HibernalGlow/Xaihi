@@ -49,6 +49,9 @@
       "@xiranite/shared/rules": [
         "../shared/src/rules.ts"
       ],
+      "@xiranite/shared/swimlane": [
+        "../shared/src/swimlane.ts"
+      ],
       "@xiranite/api/client": [
         "../api/src/client.ts"
       ],
@@ -61,8 +64,20 @@
       "@xiranite/cli-runtime/terminal": [
         "../cli-runtime/src/tui/index.ts"
       ],
+      "@xiranite/node-bandia/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/core.ts"
+      ],
+      "@xiranite/node-bitv/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/core.ts"
+      ],
+      "@xiranite/node-classf/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/core.ts"
+      ],
       "@xiranite/node-classq/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/classq/src/core.ts"
+      ],
+      "@xiranite/node-cleanf/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/core.ts"
       ],
       "@xiranite/node-crashu/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/crashu/src/core.ts"
@@ -73,11 +88,17 @@
       "@xiranite/node-encodeb/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/encodeb/src/core.ts"
       ],
+      "@xiranite/node-enginev/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/core.ts"
+      ],
       "@xiranite/node-findz/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/core.ts"
       ],
       "@xiranite/node-formatv/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/formatv/src/core.ts"
+      ],
+      "@xiranite/node-gifu/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/gifu/src/core.ts"
       ],
       "@xiranite/node-linedup/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/linedup/src/core.ts"
@@ -91,8 +112,14 @@
       "@xiranite/node-marku/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/core.ts"
       ],
+      "@xiranite/node-marku/interaction": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/interaction.ts"
+      ],
       "@xiranite/node-migratef/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/migratef/src/core.ts"
+      ],
+      "@xiranite/node-mvz/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/core.ts"
       ],
       "@xiranite/node-nameu/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/nameu/src/core.ts"
@@ -103,8 +130,14 @@
       "@xiranite/node-recycleu/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/recycleu/src/core.ts"
       ],
+      "@xiranite/node-repacku/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/repacku/src/core.ts"
+      ],
       "@xiranite/node-samea/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/samea/src/core.ts"
+      ],
+      "@xiranite/node-smartzip/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/smartzip/src/core.ts"
       ],
       "@xiranite/node-timeu/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/timeu/src/core.ts"
