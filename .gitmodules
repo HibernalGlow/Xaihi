@@ -1,6 +1,6 @@
 [submodule "desktop/dsh"]
 	path = desktop/dsh
 	url = https://github.com/deepseek-ai/deepseek-harness.git
-	# gitlink 永远指 pin：patch 只活在工作树里，由 sync-dsh 重放。
-	# 不设 ignore=all 的话每次 sync 之后本仓会永久脏一条 submodule 变更。
-	ignore = all
+	# gitlink 永远指 UPSTREAM_PIN 那一格：patch 只活在工作树里，由 sync-dsh 重放。
+	# 不设 ignore = all —— 指针漂移要能被 git status 看见，看不见的那次我就把
+	# 只在本机存在的 patch 后提交记进了仓库（判据：node desktop/sync-dsh.mjs --check）。

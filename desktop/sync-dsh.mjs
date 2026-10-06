@@ -212,6 +212,14 @@ if (flag('check')) {
   console.log(`want_pin=${pin.sha} head=${headSha()} `
     + `tree=${String(git(['-C', VENDOR, 'rev-parse', 'HEAD^{tree}'])).trim()} `
     + `patches_on_top=${String(depth)} expected_patches=${String(patchFiles().length)} dirty=${String(dirtyCount())}`)
+  // gitlink 必须停在 pin：记下 patch 后的提交，别人 clone 出来是一个取不到的对象。
+  const committed = String(git(['ls-tree', 'HEAD', 'desktop/dsh'])).trim().split(/\s+/u)[2] ?? ''
+  const staged = String(git(['ls-files', '-s', 'desktop/dsh'])).trim().split(/\s+/u)[1] ?? ''
+  console.log(`gitlink_committed=${committed.slice(0, 8)} gitlink_staged=${staged.slice(0, 8)} want=${pin.sha.slice(0, 8)}`)
+  if (committed.length > 0 && committed !== pin.sha) {
+    fail(`gitlink 指到了 ${committed.slice(0, 8)} 而不是 pin ${pin.sha.slice(0, 8)} ⇒ 那条提交只活在本机（git am 造出来的），`
+      + '别人 clone 取不到。先把 submodule 退回 pin（--reset）再重提 desktop/dsh')
+  }
   if (headSha() !== pin.sha && depth === -1) fail('HEAD 不在 pin 之上：pin 漂移或 patch 丢失，跑 --reset')
   if (depth !== patchFiles().length) {
     fail(`patch 数不符：树上有 ${String(depth)} 个，patches/dsh 里有 ${String(patchFiles().length)} 个 ⇒ 跑一次 node desktop/sync-dsh.mjs`)
