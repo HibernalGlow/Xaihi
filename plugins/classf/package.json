@@ -1,0 +1,767 @@
+{
+  "name": "@hibernalglow/xaihi-classf",
+  "version": "0.0.0",
+  "description": "Xaihi node ClassF: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "xclassf": "./lib/cli.js"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-classf",
+    "title": {
+      "zh": "ClassF",
+      "en": "ClassF"
+    },
+    "ui": {
+      "remote": "classf",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.classf",
+        "title": {
+          "zh": "ClassF面板",
+          "en": "ClassF panel"
+        },
+        "area": "workspace",
+        "remote": "classf",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "classf",
+      "title": {
+        "zh": "ClassF",
+        "en": "ClassF"
+      },
+      "description": {
+        "zh": "递归检测所有文件，并在不丢失路径分类的前提下分流到 already、del 或 wait。",
+        "en": "Classify detected files into already, del, or wait without losing path context."
+      },
+      "actions": [
+        {
+          "id": "plan",
+          "label": {
+            "zh": "预演",
+            "en": "Plan"
+          }
+        },
+        {
+          "id": "classify",
+          "label": {
+            "zh": "执行",
+            "en": "Classify"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "操作",
+            "en": "Action"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "plan",
+              "label": {
+                "zh": "预演",
+                "en": "Plan"
+              }
+            },
+            {
+              "value": "classify",
+              "label": {
+                "zh": "执行",
+                "en": "Classify"
+              }
+            }
+          ],
+          "default": {
+            "text": "plan"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "pathsText",
+          "label": {
+            "zh": "SameA 压缩包根目录",
+            "en": "SameA archive roots"
+          },
+          "kind": "path-list",
+          "lines": 4,
+          "placeholder": {
+            "zh": "每行一个压缩包根目录",
+            "en": "One archive root per line"
+          },
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "crashuSourcesText",
+          "label": {
+            "zh": "CrashU 匹配源目录",
+            "en": "CrashU source directories"
+          },
+          "kind": "path-list",
+          "lines": 3,
+          "placeholder": {
+            "zh": "每行一个匹配源目录",
+            "en": "One matching source directory per line"
+          },
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "placementMode",
+          "label": {
+            "zh": "放置位置",
+            "en": "Placement"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "local",
+              "label": {
+                "zh": "文件所在目录",
+                "en": "Beside each file"
+              }
+            },
+            {
+              "value": "root",
+              "label": {
+                "zh": "给定根目录（保留相对路径）",
+                "en": "Target root (preserve paths)"
+              }
+            }
+          ],
+          "default": {
+            "text": "local"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "targetDir",
+          "label": {
+            "zh": "分流目标根目录",
+            "en": "Classification target root"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "required"
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "fieldEquals",
+                    "fieldId": "placementMode",
+                    "value": {
+                      "text": "root"
+                    }
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "transferMode",
+          "label": {
+            "zh": "迁移方式",
+            "en": "Transfer mode"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "move",
+              "label": {
+                "zh": "移动",
+                "en": "Move"
+              }
+            },
+            {
+              "value": "copy",
+              "label": {
+                "zh": "复制",
+                "en": "Copy"
+              }
+            }
+          ],
+          "default": {
+            "text": "move"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "alreadyEnabled",
+          "label": {
+            "zh": "启用 already 队列",
+            "en": "Enable already queue"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "waitEnabled",
+          "label": {
+            "zh": "启用 wait 队列",
+            "en": "Enable wait queue"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "delEnabled",
+          "label": {
+            "zh": "启用 del 队列",
+            "en": "Enable del queue"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "existingPolicy",
+          "label": {
+            "zh": "现有项目策略",
+            "en": "Existing policy"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "merge",
+              "label": {
+                "zh": "合并",
+                "en": "Merge"
+              }
+            },
+            {
+              "value": "skip",
+              "label": {
+                "zh": "跳过",
+                "en": "Skip"
+              }
+            }
+          ],
+          "default": {
+            "text": "merge"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "workItemMode",
+          "label": {
+            "zh": "作品类型",
+            "en": "Work item type"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "files",
+              "label": {
+                "zh": "压缩包文件",
+                "en": "Archive files"
+              }
+            },
+            {
+              "value": "folders",
+              "label": {
+                "zh": "已解压文件夹",
+                "en": "Extracted folders"
+              }
+            },
+            {
+              "value": "mixed",
+              "label": {
+                "zh": "压缩包 + 文件夹",
+                "en": "Archives + folders"
+              }
+            }
+          ],
+          "default": {
+            "text": "files"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "blacklistKeywordsText",
+          "label": {
+            "zh": "黑名单作者",
+            "en": "Blacklisted authors"
+          },
+          "kind": "multiline",
+          "lines": 5,
+          "default": {
+            "text": "[OgoG]\n[ぶたコマ300g]\n[すいせいむし]\n[ダツマ69]\n[ヤキカルビー]"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "预演",
+            "en": "Dry run"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "sameaGroupAlreadyEnabled",
+          "label": {
+            "zh": "already 队列画师分组",
+            "en": "Group already artists"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "sameaGroupWaitEnabled",
+          "label": {
+            "zh": "wait 队列画师分组",
+            "en": "Group wait artists"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "sameaGroupDelEnabled",
+          "label": {
+            "zh": "del 队列画师分组",
+            "en": "Group del artists"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "sameaGroupMinOccurrences",
+          "label": {
+            "zh": "画师最少文件数",
+            "en": "Minimum files per artist group"
+          },
+          "kind": "number",
+          "range": {
+            "min": 1,
+            "max": 100,
+            "step": 1
+          },
+          "default": {
+            "number": 1
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "pathsText",
+          "slot": "paths",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "crashuSourcesText",
+          "slot": "crashuSourcePaths",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "placementMode",
+          "slot": "placementMode",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "targetDir",
+          "slot": "targetDir",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "transferMode",
+          "slot": "transferMode",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "alreadyEnabled",
+          "slot": "alreadyEnabled",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "waitEnabled",
+          "slot": "waitEnabled",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "delEnabled",
+          "slot": "delEnabled",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "existingPolicy",
+          "slot": "existingPolicy",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "workItemMode",
+          "slot": "workItemMode",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "blacklistKeywordsText",
+          "slot": "blacklistKeywords",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "sameaGroupAlreadyEnabled",
+          "slot": "sameaGroupAlreadyEnabled",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "sameaGroupWaitEnabled",
+          "slot": "sameaGroupWaitEnabled",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "sameaGroupDelEnabled",
+          "slot": "sameaGroupDelEnabled",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "sameaGroupMinOccurrences",
+          "slot": "sameaGroupMinOccurrences",
+          "transform": "asInteger"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "classify"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认执行 ClassF 管道",
+          "en": "Confirm ClassF pipeline"
+        },
+        "body": {
+          "zh": "MigrateF 将按已确认计划对文件系统执行真实操作。",
+          "en": "MigrateF will apply the reviewed filesystem transfer plan."
+        },
+        "confirmLabel": {
+          "zh": "确认执行",
+          "en": "Run pipeline"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "当多层文件夹需要递归分类，但不能打散或抹掉原有路径层级时使用 ClassF。",
+          "en": "Use ClassF when nested archive trees must be classified without flattening their existing directory structure."
+        },
+        "safety": {
+          "defaultMode": "dry-run",
+          "destructive": {
+            "zh": [
+              "classify"
+            ],
+            "en": [
+              "classify"
+            ]
+          },
+          "notes": {
+            "zh": [
+              "UI 中的真实移动/复制需要二次确认。",
+              "已存在的目标会被作为冲突报告并跳过。"
+            ],
+            "en": [
+              "Live move/copy is gated by confirmation in the UI.",
+              "Existing targets are reported as conflicts and skipped."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
