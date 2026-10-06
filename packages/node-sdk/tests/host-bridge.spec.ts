@@ -113,6 +113,24 @@ describe('parseBridgeMessage', () => {
   it('hello 里混进未知能力组就整条拒（未知组不能被当成"没要到"）', () => {
     expect(parseBridgeMessage({ ...hello(), requested: ['state', 'printing'] }, 'from-document')).toBeNull()
   })
+
+  // env 是握手里带过来的数据，不是方法：畸形形状必须整条拒，
+  // 否则文档会拿到一个 theme 是 undefined 的"环境"，然后按自己猜的暗亮画一屏。
+  it('ready 的 env 形状不对就整条拒，对的话原样带过来', () => {
+    const base = { schema: BRIDGE_SCHEMA, kind: 'ready', contractVersion: BRIDGE_CONTRACT_VERSION, granted: ['config'], refused: [], degraded: [] }
+    expect(parseBridgeMessage({ ...base, env: { theme: 'sepia', platform: 'web' } }, 'from-shell')).toBeNull()
+    expect(parseBridgeMessage({ ...base, env: { theme: 'dark' } }, 'from-shell')).toBeNull()
+    const withEnv = parseBridgeMessage({ ...base, env: { theme: 'dark', platform: 'linux' } }, 'from-shell')
+    expect(withEnv?.kind === 'ready' ? withEnv.env : undefined).toEqual({ theme: 'dark', platform: 'linux' })
+    const without = parseBridgeMessage(base, 'from-shell')
+    expect(without?.kind === 'ready' ? 'env' in without : null).toBe(false)
+  })
+
+  it('negotiate 把外壳给的环境快照原样放进应答（没给就不写这个键）', () => {
+    const ready = negotiateBridge(hello({ requested: ['env'] }), ['env'], {}, { theme: 'light', platform: 'web' })
+    expect(ready.env).toEqual({ theme: 'light', platform: 'web' })
+    expect('env' in negotiateBridge(hello({ requested: ['env'] }), ['env'])).toBe(false)
+  })
 })
 
 describe('negotiateBridge', () => {

@@ -207,9 +207,22 @@ export interface BridgeReady {
   granted: readonly NodeCapabilityId[]
   refused: readonly NodeCapabilityId[]
   degraded: readonly BridgeDegradation[]
+  /** 外壳没答这一格时是 undefined（不是猜一个亮色）；文档侧读到 undefined 必须显示退化。 */
+  env?: BridgeEnv
 }
 
 export type BridgeMessage = BridgeHello | BridgeReady | BridgeRequest | BridgeResponse
+
+/**
+ * 界面环境快照。上游 `NodeEnvCapability` 是数据不是方法（`theme` / `platform`），
+ * 所以它**没有对应的桥动词**——没有 `env.getX` 这种东西可搬。
+ * 挂在握手上带过来是本仓的决定，理由：文档那一侧要立刻用它决定暗/亮与主题变量往哪写
+ * （ADR-0008 的"两边都写"），等一次额外的往返只会把首屏分成两次跳变。
+ */
+export interface BridgeEnv {
+  theme: 'light' | 'dark'
+  platform: string
+}
 
 /** 一条 `ready` 里每条被拒/退化的原因，按组拼成一行的读数（面板与 `/xaihi/debug.json` 都用它）。 */
 export function describeNegotiation(ready: BridgeReady): string {
@@ -267,6 +280,11 @@ export function parseBridgeMessage(raw: unknown, direction: 'from-document' | 'f
     if (!Array.isArray(raw.granted) || !raw.granted.every(isCapability)) return null
     if (!Array.isArray(raw.refused) || !raw.refused.every(isCapability)) return null
     if (!Array.isArray(raw.degraded)) return null
+    let env: BridgeEnv | undefined
+    if (raw.env !== undefined) {
+      if (!isRecord(raw.env) || (raw.env.theme !== 'light' && raw.env.theme !== 'dark') || typeof raw.env.platform !== 'string') return null
+      env = { theme: raw.env.theme, platform: raw.env.platform }
+    }
     const rows: BridgeDegradation[] = []
     for (const item of raw.degraded) {
       if (!isRecord(item) || !isCapability(item.capability) || typeof item.reason !== 'string') return null
@@ -279,6 +297,7 @@ export function parseBridgeMessage(raw: unknown, direction: 'from-document' | 'f
       granted: [...raw.granted] as NodeCapabilityId[],
       refused: [...raw.refused] as NodeCapabilityId[],
       degraded: rows,
+      ...(env === undefined ? {} : { env }),
     }
   }
   if (kind === 'response') {
@@ -331,6 +350,7 @@ export function negotiateBridge(
   hello: BridgeHello,
   offered: readonly NodeCapabilityId[],
   reasons: Partial<Record<NodeCapabilityId, string>> = {},
+  env?: BridgeEnv,
 ): BridgeReady {
   const versionOk = hello.contractVersion === BRIDGE_CONTRACT_VERSION
   const offeredSet = new Set(versionOk ? offered : [])
@@ -362,6 +382,7 @@ export function negotiateBridge(
     granted,
     refused,
     degraded,
+    ...(env === undefined ? {} : { env }),
   }
 }
 

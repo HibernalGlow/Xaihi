@@ -25,6 +25,7 @@ import {
   type BridgeHello,
   type BridgeMessage,
   type BridgeMethod,
+  type BridgeEnv,
   type BridgeReady,
   type BridgeResponse,
   type NodeCapabilityId,
@@ -51,6 +52,11 @@ export interface ShellCapabilities {
   extra?: readonly NodeCapabilityId[]
   /** 每组没给的原因，落进 `ready.degraded`。 */
   reasons?: Partial<Record<NodeCapabilityId, string>>
+  /**
+   * 界面环境快照，随握手带过去。没给就**不带**（不猜一个亮色）：
+   * 文档侧读到 undefined 时要把这一格显示成退化，而不是按默认值画一遍。
+   */
+  env?: BridgeEnv
 }
 
 /** 一条请求的求值结果。 */
@@ -133,7 +139,7 @@ export function createShellBridge(
       if (message === null) return false
       if (message.kind === 'hello') {
         const hello = message as BridgeHello
-        ready = negotiateBridge(hello, [...offered], caps.reasons ?? {})
+        ready = negotiateBridge(hello, [...offered], caps.reasons ?? {}, caps.env)
         if (!exceedsMessageBudget(ready)) send(ready)
         onHello?.(ready)
         return true
