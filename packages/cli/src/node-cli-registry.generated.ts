@@ -4,6 +4,18 @@
 
 export const GENERATED_NODE_CLI_REGISTRY = [
   {
+    id: "bandia",
+    packageName: "@hibernalglow/xaihi-bandia",
+    bin: "xbandia",
+    description: "Bandia (scaffold initial definition)",
+  },
+  {
+    id: "bitv",
+    packageName: "@hibernalglow/xaihi-bitv",
+    bin: "xbitv",
+    description: "BitV (scaffold initial definition)",
+  },
+  {
     id: "classf",
     packageName: "@hibernalglow/xaihi-classf",
     bin: "xclassf",
@@ -40,10 +52,22 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     description: "Preview and recover garbled filenames by re-decoding path components.",
   },
   {
+    id: "enginev",
+    packageName: "@hibernalglow/xaihi-enginev",
+    bin: "xenginev",
+    description: "EngineV (scaffold initial definition)",
+  },
+  {
     id: "formatv",
     packageName: "@hibernalglow/xaihi-formatv",
     bin: "xformatv",
     description: "Scan video folders, add/remove .nov suffixes, and check prefixed duplicates.",
+  },
+  {
+    id: "gifu",
+    packageName: "@hibernalglow/xaihi-gifu",
+    bin: "xgifu",
+    description: "Gifu (scaffold initial definition)",
   },
   {
     id: "linedup",
@@ -98,6 +122,12 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     packageName: "@hibernalglow/xaihi-recycleu",
     bin: "xrecycleu",
     description: "Empty the Windows recycle bin immediately or on a bounded timer.",
+  },
+  {
+    id: "repacku",
+    packageName: "@hibernalglow/xaihi-repacku",
+    bin: "xrepacku",
+    description: "Repacku (scaffold initial definition)",
   },
   {
     id: "samea",
