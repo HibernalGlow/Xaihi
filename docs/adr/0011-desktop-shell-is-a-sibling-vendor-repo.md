@@ -79,10 +79,24 @@ vendor 之后本仓会出现两条版本线与两套 workspace 定义。所以�
   追加"壳仓 / 自有文档窗 / 节点独立窗 / 可见退化"四个词会被卷进他们的提交。
   这四个词的定义此刻只存在于本 ADR 的决定 2/3/4 里，等 CONTEXT.md 干净时补。
 
-## 待使用者拍板（不拍也能开工的前置已标注）
+## 待使用者拍板
 
-1. **vendor 形态**：`Xaihi-Desktop` 里上游是走 submodule（父仓只记一个 commit）还是
-   "完整 clone + 仓内 `UPSTREAM_PIN` 文件"。不拍不影响第一个 patch，但影响第一个提交。
-2. **仓库归属**：要不要远端、叫什么名字（`Xaihi-Desktop` 是本 ADR 假设的名字）。
-3. **第一个 patch 的落点**：`main.ts:206/1066`（窗的创建与生命周期）+ `ipc.ts:8-34`（新增 window 通道）
-   + preload 三处联动，还是先只做"Xaihi 自有文档窗"、节点独立窗放第二批。建议后者起步。
+1. **vendor 形态：已拍（2026-10-06）——不用 submodule。** 壳仓只记 `UPSTREAM_PIN`（`tag + 40 位 sha`
+   一行），vendor 工作树被 `.gitignore` 挡着、由脚本按 pin 拉。理由：submodule 会把上游 14k 文件的
+   树和它那份 `pnpm-workspace.yaml` 一起绑进壳仓的 index，而我们要的只是"换一行 sha + 重放 patch"；
+   vendor 因此是构建产物而不是源码，patch 才是本仓唯一的手写内容。
+   起步 pin `dsh-v0.2.0-rc.2` = `639ed015397290b3745d163aafe02ffee4aa3f84`（实测 lightweight tag，
+   `ls-remote` 不出 `^{}` 行 ⇒ sha 直接就是 commit）。
+2. **仓库归属：已拍——`../Xaihi-Desktop`，本地仓，暂无远端。** 骨架已建（提交 `07944da`：
+   `README.md` + `UPSTREAM_PIN` + `.gitignore` + `patches/dsh/README.md` 三条 patch 计划）。
+   注意这个仓**不在 GitButler 管理下**，那里的写操作只能是普通 `git`。
+3. **第一个 patch 的落点：未拍。** `main.ts:206/1066`（窗的创建与生命周期）+ `ipc.ts:8-34`
+   （新增 window 通道）+ preload 三处联动一起做，还是先只做"Xaihi 自有文档窗"、节点独立窗放第二批。
+   **建议起步 0001（自有文档窗）**。
+
+## Xaihi 侧的落地位置已经有了（写在这里免得下次重新找）
+
+工作台那半边不需要等壳仓：`/xaihi/ui` 已经是"一份文档 + 它的产物"的路由
+（`packages/core/src/routes.ts:101` 的 `UI_PATH_PREFIX = '/xaihi/ui'`，同文件 :155 的注释
+「文档壳 + 它的产物」），节点寻址参数也在里面——由另一条 lane 在提交 `0e4b61b` 里落的，
+不是我这次的产物。壳仓的 0001/0002 就是去开这份文档。
