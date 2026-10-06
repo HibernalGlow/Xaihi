@@ -37,7 +37,25 @@ export default function Panel({ contribution, locale, host }: PanelProps) { ... 
 - React 由宿主给（`shared` 里 `import:false`），面板不建自己的 root。
 - 颜色只写 `var(--xaihi-*, var(--dsw-alias-*))`。主题属于 Core Theme Service，**绝不进 MF2**；Material You 生成的 token 经 `ctx.theme.overrideTokens('xaihi.md3', …)` 叠一层，插件禁止自带颜色类名。
 - 面板要动宿主：走 DSH 的命令入口（`/node action`，不经过模型），或在 `PanelProps.host` 上加受控的调用口。**不要自建 RPC**；也不要为了演示在 `/xaihi` 下开一条"执行节点动作"的路由——那会绕过宿主的分派语义和危险闸门。
+- **面板摆的控件只能是"命令面能到达的形状"**。节点动作清单常常比 `/node` 命令宽（`findz`：13 个动作，命令面覆盖常用形状，分页游标 / 路径前缀 / 排序字段只有 agent 的工具路径能到）。装不下的部分**明说**，不要摆一个按下去没有用的控件；给按钮禁用态一个 `title` 说明缺什么。合法值从 `package.json#xaihi.node` 读，不要重抄一份，并用判据钉住"命令面覆盖的动作集合恰好等于清单"——加了动作没想它在命令面长什么样，判据当场红。
+- **命令注册 ≠ 点击派发**。`ctx.commands.register` 成功（真宿主 `debug_info` 的 `commands.names` 里能看到）只证明命令面在了；面板按钮能不能真的派发取决于宿主给不给插件客户端身份，那是另一件事（见 `docs/upstream-proposals.md` 的 P1）。汇报时把这两件分开说，别用"注册成功"暗示"按钮能用"。
 
 ## 运行回显
 
 状态栏的 `RunFeed` 订阅 `/xaihi/operations/stream`（SSE），失败退到 `/xaihi/operations.json` 轮询，并把传输方式如实标成 `data-transport="live|polling|offline"`。没有运行就不画回显。
+
+## 上色只有一个出口（有门禁）
+
+面板组件与颜色一律来自 `@hibernalglow/xaihi-ui-kit`：`XPanel` / `XButton`（filled|tonal|text）/
+`XField` + 挂载时 `registerKitStyles()`。写进 `devDependencies`（开发期 `workspace:*`）；kit 是
+**打包期内联进每个 remote** 的（ADR-0002「一个包就是一个 bundle」），运行时不解析共享组件包。
+
+- 只有 kit 的 `tokens.ts` 允许出现 hex，且只能在 `ALIAS` 的兜底位；面板里 hex、`rgb(a)(`/`hsl(`、
+  或直接引用 `--dsw-*` 都是违规。布局用的 inline style（`margin` / `whiteSpace` / `fontSize`）允许。
+- `XPanel` 可以没有正文（`children` 可选）：只有动作行与状态行是合法形状，不要塞空片段占位。
+- 样式标签按 `id="xaihi-ui-kit"` 去重。实机连挂三个 kit 面板之后 `<style>` 仍然是 1 个——
+  这条同时证明去重守卫在起作用（守卫失效就会涨到 3）。
+- 门禁是 `pnpm check:panels`（`scripts/check-panels.mjs`，CI 里排在 build 前面）：剥掉注释后跑
+  四条规则，并要求每个面板从 kit 取组件；它还报"有 `frontend/` 却没有 `Panel.tsx`"这种会让枚举
+  静默变窄的洞。**不要为了让门禁变绿把违规颜色挪进注释**——尺先剥注释，挪进去只是把问题留给下一个人。
+
