@@ -1,0 +1,697 @@
+{
+  "name": "@hibernalglow/xaihi-bitv",
+  "version": "0.0.0",
+  "description": "Xaihi node BitV: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "xbitv": "./lib/cli.js"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-bitv",
+    "title": {
+      "zh": "BitV",
+      "en": "BitV"
+    },
+    "ui": {
+      "remote": "bitv",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.bitv",
+        "title": {
+          "zh": "BitV面板",
+          "en": "BitV panel"
+        },
+        "area": "workspace",
+        "remote": "bitv",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "bitv",
+      "title": {
+        "zh": "BitV",
+        "en": "BitV"
+      },
+      "description": {
+        "zh": "使用 ffprobe 分析视频码率并安全分类文件。",
+        "en": "Analyze video bitrate with ffprobe and classify files safely."
+      },
+      "actions": [
+        {
+          "id": "status",
+          "label": {
+            "zh": "环境状态",
+            "en": "Environment status"
+          }
+        },
+        {
+          "id": "analyze",
+          "label": {
+            "zh": "分析码率",
+            "en": "Analyze bitrate"
+          }
+        },
+        {
+          "id": "classify",
+          "label": {
+            "zh": "分析并分类",
+            "en": "Analyze and classify"
+          }
+        },
+        {
+          "id": "report",
+          "label": {
+            "zh": "按报告分类",
+            "en": "Classify from report"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "工作流",
+            "en": "Workflow"
+          },
+          "description": {
+            "zh": "分析视频、分析后分类，或复用已有报告分类。",
+            "en": "Analyze videos, classify a folder, or reuse a saved report."
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "status",
+              "label": {
+                "zh": "环境状态",
+                "en": "Environment status"
+              }
+            },
+            {
+              "value": "analyze",
+              "label": {
+                "zh": "分析码率",
+                "en": "Analyze bitrate"
+              }
+            },
+            {
+              "value": "classify",
+              "label": {
+                "zh": "分析并分类",
+                "en": "Analyze and classify"
+              }
+            },
+            {
+              "value": "report",
+              "label": {
+                "zh": "按报告分类",
+                "en": "Classify from report"
+              }
+            }
+          ],
+          "default": {
+            "text": "analyze"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "paths",
+          "label": {
+            "zh": "视频文件或目录",
+            "en": "Video files or directories"
+          },
+          "description": {
+            "zh": "每行输入一个路径。",
+            "en": "Enter one path per line."
+          },
+          "kind": "path-list",
+          "lines": 5,
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "analyze",
+                  "classify"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "analyze",
+                      "classify"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "reportPath",
+          "label": {
+            "zh": "分析报告",
+            "en": "Analysis report"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "report"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "required"
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "report"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "recursive",
+          "label": {
+            "zh": "扫描子目录",
+            "en": "Scan subdirectories"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "analyze",
+                  "classify"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "bitrateStepMbps",
+          "label": {
+            "zh": "码率档位步长（Mbps）",
+            "en": "Bitrate step (Mbps)"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0.1,
+            "step": 0.5
+          },
+          "default": {
+            "number": 5
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "analyze",
+                  "classify",
+                  "report"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "custom",
+                "exportName": "positive_number"
+              }
+            }
+          ]
+        },
+        {
+          "id": "maxLevels",
+          "label": {
+            "zh": "码率档位数量",
+            "en": "Bitrate levels"
+          },
+          "kind": "number",
+          "range": {
+            "min": 1,
+            "max": 1000,
+            "step": 1
+          },
+          "default": {
+            "number": 10
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "analyze",
+                  "classify",
+                  "report"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "outputPath",
+          "label": {
+            "zh": "写入分析报告",
+            "en": "Write analysis report"
+          },
+          "description": {
+            "zh": "可选；绝不会覆盖已有文件。",
+            "en": "Optional. Existing files are never overwritten."
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "analyze"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "targetPath",
+          "label": {
+            "zh": "目标目录",
+            "en": "Target directory"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "classify",
+                  "report"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "required"
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "classify",
+                      "report"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "transferMode",
+          "label": {
+            "zh": "文件操作",
+            "en": "File operation"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "copy",
+              "label": {
+                "zh": "复制",
+                "en": "Copy"
+              }
+            },
+            {
+              "value": "move",
+              "label": {
+                "zh": "移动",
+                "en": "Move"
+              }
+            }
+          ],
+          "default": {
+            "text": "copy"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "classify",
+                  "report"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "仅预演",
+            "en": "Preview only"
+          },
+          "description": {
+            "zh": "只规划目标路径，不改动文件。",
+            "en": "Plan destination paths without changing files."
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "classify",
+                  "report"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "source",
+          "description": {
+            "zh": "选择工作流以及需要检查的视频或报告。",
+            "en": "Choose the workflow and the videos or report to inspect."
+          },
+          "fieldIds": [
+            "action",
+            "paths",
+            "reportPath",
+            "recursive",
+            "bitrateStepMbps",
+            "maxLevels"
+          ],
+          "label": {
+            "zh": "来源与分析",
+            "en": "Source and analysis"
+          }
+        },
+        {
+          "id": "output",
+          "description": {
+            "zh": "设置报告、目标目录、文件操作和安全状态。",
+            "en": "Set report, target, transfer, and safety options."
+          },
+          "fieldIds": [
+            "outputPath",
+            "targetPath",
+            "transferMode",
+            "dryRun"
+          ],
+          "label": {
+            "zh": "分类与输出",
+            "en": "Classification and output"
+          }
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "paths",
+          "slot": "paths",
+          "transform": "lines"
+        },
+        {
+          "fieldId": "reportPath",
+          "slot": "reportPath",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "targetPath",
+          "slot": "targetPath",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "outputPath",
+          "slot": "outputPath",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "recursive",
+          "slot": "recursive",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "bitrateStepMbps",
+          "slot": "bitrateStepMbps",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "maxLevels",
+          "slot": "maxLevels",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "transferMode",
+          "slot": "transferMode",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "classify",
+                "report"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "应用视频分类？",
+          "en": "Apply file classification?"
+        },
+        "body": {
+          "zh": "BitV 将{{mode}}视频到对应码率目录；已有文件不会被覆盖。",
+          "en": "BitV will {{mode}} videos into bitrate directories. Existing files will not be overwritten."
+        },
+        "confirmLabel": {
+          "zh": "应用分类",
+          "en": "Apply classification"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "整理视频库前，用 BitV 检查码率分布。使用报告分类来预演或复用之前保存的分析结果。",
+          "en": "Use BitV to inspect bitrate distributions before organizing a video library. Use report classification to preview or repeat a previously saved analysis."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "notes": {
+            "zh": [
+              "classify 与 report 默认使用 dry-run。",
+              "复制、移动和报告写入都不会覆盖已有路径，而是自动选择带编号的新路径。"
+            ],
+            "en": [
+              "Classify and report commands default to dry-run.",
+              "Copy, move, and report writes never overwrite an existing path; a numbered destination is selected instead."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
