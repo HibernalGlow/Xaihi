@@ -21,7 +21,7 @@
  *   node scripts/check-cli-parity.mjs --only linedup,formatv
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
@@ -147,6 +147,47 @@ export function judgeDeclared(missing, entry, knownPackages) {
   return { declared: resolved, stale: [] }
 }
 
+/**
+ * 主文本开关：屏上那条"吃内联内容"的开关。
+ * 只认描述里明写 inline 的那种——`one per line` 的很可能是路径清单
+ * （classf 的 `--pathsText` 就是"每行一个根目录"），换两份都不存在的清单输出当然一样，
+ * 那不是"参数被吞"，是判据挑错了对象。
+ */
+export function pickPrimaryTextFlag(screen) {
+  for (const match of screen.matchAll(/--([A-Za-z][\w-]*)\s+<[^>\n]*>[^\n]*/g)) {
+    if (/inline/i.test(match[0]) && !PATHISH.test(match[1])) return match[1]
+  }
+  return ''
+}
+
+/** 输出一看就是"什么都没产出"：没有 JSON 主体，或者 JSON 里的数组全是空的。 */
+export function outputLooksEmpty(stdout) {
+  const at = stdout.indexOf('{')
+  if (at < 0) return true
+  let parsed
+  try {
+    parsed = JSON.parse(stdout.slice(at))
+  } catch {
+    return true
+  }
+  const arrays = Object.values(parsed ?? {}).filter((v) => Array.isArray(v))
+  if (arrays.length === 0) return false
+  return arrays.every((v) => v.length === 0)
+}
+
+/**
+ * 换值判据，三种结果，不许把"判不了"混进"过"：
+ *  - `ranTwo` 为假 ⇒ 没有可判的 inline 开关，不判（计数里看得见）；
+ *  - `looksEmpty` ⇒ 两边都产不出条目，记 undecidable，不算判过；
+ *  - 有内容却逐字一样 ⇒ 参数被吞，判红。
+ */
+export function judgeFlagEffect(ranTwo, looksEmpty, outA, outB, flag) {
+  if (!ranTwo) return ''
+  if (looksEmpty) return ''
+  if (outA !== outB) return ''
+  return `--${flag} 换了值而输出逐字不变 ⇒ 参数被吞了（值没进内核就有输出了。前 60 字：${JSON.stringify(outA.slice(0, 60))}）`
+}
+
 /** 同参数跑两遍必须一字不差。 */
 export function judgeDeterminism(first, second) {
   if (first === second) return ''
@@ -241,6 +282,11 @@ if (process.argv.includes('--self-check')) {
     { name: '没有申报的包 ⇒ declared 空、缺项照报', got: [JSON.stringify(judgeDeclared(['foo'], undefined, new Set(['gifu'])))], expect: ['{"declared":[],"stale":[]}'] },
     { name: '内联开关：文件类与 json/help 不许进来，数值类给 1', got: inlineFlagsFromOptions('Options:\n  --source <value>   Inline source\n  --sourceFile <path> File\n  --limit <number>   Max\n  --json             Print JSON\n  --help, -h         Help\n'), expect: ['--source=alpha', '--limit=1'] },
     { name: '屏上只有文件类开关 ⇒ 退化成裸命令（空表，不是假跑）', got: inlineFlagsFromOptions('Options:\n  --inputFile <path>\n  --outputFile <path>\n'), expect: [] },
+    { name: '只认 inline：路径清单那种 one per line 不当内容开关', got: [pickPrimaryTextFlag('Options:\n  --source <value>   Inline source text. Use \\n for new lines.\n  --pathsText <value> SameA archive roots, one per line\n')], expect: ['source'] },
+    { name: '屏上没有 inline 开关 ⇒ 空（这条腿不判，不等于过）', got: [pickPrimaryTextFlag('Options:\n  --targetDir <value> Classification target root\n')], expect: [''] },
+    { name: 'JSON 里数组全空 ⇒ undecidable 的形状；有条目 ⇒ 不是', got: [String(outputLooksEmpty('plan\n{"groups":[],"candidates":[]}')), String(outputLooksEmpty('plan\n{"groups":[{"files":[{"path":"a"}]}]}'))], expect: ['true', 'false'] },
+    { name: '换值而输出不变 ⇒ 判红（参数被吞）', got: judgeFlagEffect(true, false, '{"kept":["a"]}', '{"kept":["a"]}', 'source'), expectKind: 'string' },
+    { name: '两边都产不出条目 ⇒ 放行成 undecidable，不冒充判过', got: judgeFlagEffect(true, true, '{"groups":[]}', '{"groups":[]}', 'source'), expectKind: 'empty' },
     { name: '预演布尔：dryRun/preview 可以主动开，force/yes 不行', got: previewFlagsFromOptions('Options:\n  --dryRun   Preview only\n  --force    Overwrite\n  --yes      Confirm\n  --preview  Show plan\n'), expect: ['--dryRun', '--preview'] },
     { name: '挑动作：第一条被门禁挡住 ⇒ 选第二条', got: (() => {
       const fake = (definition, check, actionId) => (actionId === 'apply' ? { en: 'x', zh: 'y' } : undefined)
@@ -256,6 +302,23 @@ if (process.argv.includes('--self-check')) {
     })(), expect: ['undefined'] },
   ]
   const problems = []
+  // 端到端正控：造一份"对参数毫无反应"的假 CLI，换值腿必须真的把它抓出来。
+  // 光有纯函数夹具挡不住另一种假绿——"屏里解析不到 inline 开关，于是这条腿一次都没跑过"。
+  const fakeDir = join(ROOT, '.scratch/cli-parity-selfcheck')
+  mkdirSync(fakeDir, { recursive: true })
+  const fakeCli = join(fakeDir, 'ignores-flags.js')
+  writeFileSync(fakeCli, 'console.log("Options:\\n  --source <value>   Inline source text. Use \\\\n for new lines.")\nconsole.log(JSON.stringify({ kept: ["always-the-same"] }))\n')
+  const fakePrimary = pickPrimaryTextFlag(String(runCli(fakeCli, ['go', '--help'])))
+  if (fakePrimary !== 'source') {
+    problems.push(`端到端正控失败：假 CLI 的 inline 开关没被认出来（认出的是 "${fakePrimary}"）⇒ 换值腿根本不会跑`)
+  } else {
+    const fa = String(runCli(fakeCli, ['go', '--source=alpha']))
+    const fb = String(runCli(fakeCli, ['go', '--source=beta']))
+    if (judgeFlagEffect(true, outputLooksEmpty(fa) && outputLooksEmpty(fb), fa, fb, fakePrimary) === '') {
+      problems.push('端到端正控失败：一份对参数毫无反应的假 CLI 被换值腿判成放行 ⇒ 这条腿是装饰品')
+    }
+  }
+  rmSync(fakeDir, { recursive: true, force: true })
   for (const c of cases) {
     if (Array.isArray(c.expect)) {
       const gotList = Array.isArray(c.got) ? c.got : [String(c.got)]
@@ -288,6 +351,8 @@ const failures = []
 const notes = []
 let facesChecked = 0
 let runsDone = 0
+let effectsJudged = 0
+let effectsUndecidable = 0
 let skippedDanger = 0
 let skippedShape = 0
 const missingList = []
@@ -371,9 +436,36 @@ for (const id of ids) {
     const jsonProblem = judgeJsonRun(String(jsonOut))
     if (jsonProblem !== '') failures.push(`${id}: ${jsonProblem}`)
   }
+
+  // 换值腿：主文本开关改内容，输出必须跟着改。判不了就说判不了（进 undecidable 计数，不进"过"）。
+  const primary = pickPrimaryTextFlag(allScreens.get(sub) ?? '')
+  if (primary !== '' && argv.some((t) => t.startsWith(`--${primary}=`))) {
+    const swap = (value) => argv.map((t) => (t.startsWith(`--${primary}=`) ? `--${primary}=${value}` : t))
+    const withJson = (value) => [...swap(value), '--json']
+    const effectA = runCli(voice.cliPath, withJson('alpha\\nbeta\\nalpha'))
+    if (typeof effectA === 'object' && effectA.failed) {
+      effectsUndecidable += 1
+      notes.push(`${id}: 换值腿拿不到输出（${voice.bin} 用 --${primary} 退出码非 0）⇒ 记 undecidable，不判过`)
+    } else {
+      const effectB = runCli(voice.cliPath, withJson('gamma\\ndelta'))
+      const outA = String(effectA)
+      const outB = String(effectB)
+      const bothEmpty = outputLooksEmpty(outA) && outputLooksEmpty(outB)
+      const effectProblem = judgeFlagEffect(true, bothEmpty, outA, outB, primary)
+      if (effectProblem !== '') failures.push(`${id}: ${effectProblem}`)
+      else if (bothEmpty) {
+        effectsUndecidable += 1
+        notes.push(`${id}: --${primary} 换值两边都产不出条目 ⇒ undecidable（不许算成"参数被吃过了"）`)
+      } else {
+        effectsJudged += 1
+        notes.push(`${id}: 换值判过 —— --${primary} 给两份不同内容出两份不同输出 ⇒ 这个参数真进了内核`)
+      }
+    }
+  }
 }
 
-console.log(`check-cli-parity: ${ids.length} 个包，比了 ${facesChecked} 张开关表，真跑了 ${runsDone} 条命令；`
+console.log(`check-cli-parity: ${ids.length} 个包，比了 ${facesChecked} 张开关表，真跑了 ${runsDone} 条命令，`
+  + `换值判了 ${effectsJudged} 条（${effectsUndecidable} 条记 undecidable）；`
   + `跳过 ${skippedShape} 个（形状/基线没有/没跑通）、${skippedDanger} 个包每条动作都被契约判成危险。`)
 for (const note of notes) console.log(`  · ${note}`)
 if (missingList.length > 0) {
