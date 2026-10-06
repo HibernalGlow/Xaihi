@@ -35,7 +35,7 @@ const definition = {
       { value: 'dedup', label: { zh: '去重', en: 'Dedup' } },
       { value: 'shrink', label: { zh: '缩减', en: 'Shrink' } },
     ] },
-    { id: 'paths', kind: 'path-list', label: { zh: '路径', en: 'Paths' }, rules: [{ type: 'required' }] },
+    { id: 'paths', kind: 'path-list', label: { zh: '路径', en: 'Paths' }, rules: [{ rule: { type: 'required' } }] },
     { id: 'count', kind: 'number', label: { zh: '数量', en: 'Count' }, visible: {
       type: 'single',
       predicate: { test: { type: 'actionIs', allowed: ['shrink'] }, negated: false },

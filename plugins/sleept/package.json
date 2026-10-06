@@ -204,8 +204,10 @@
           },
           "rules": [
             {
-              "type": "integerAtLeast",
-              "minimum": 1
+              "rule": {
+                "type": "integerAtLeast",
+                "minimum": 1
+              }
             }
           ],
           "visible": {

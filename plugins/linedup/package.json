@@ -91,8 +91,10 @@
           },
           "rules": [
             {
-              "type": "atLeastLines",
-              "value": 1
+              "rule": {
+                "type": "atLeastLines",
+                "value": 1
+              }
             }
           ]
         },

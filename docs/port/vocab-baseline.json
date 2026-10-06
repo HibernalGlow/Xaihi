@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "note": "词表棘轮：pass 不许降，classes 只许减不许增。上游定义目录是只读真源，改它不在本仓权限内。",
+  "upstream": "/Users/glow/Base/Code/Freya/Xiranite/node-definitions",
+  "total": 27,
+  "passed": 27,
+  "classes": []
+}

@@ -83,12 +83,25 @@ export interface NodeFieldOption {
   label: LocalizedText
 }
 
-/** 一条参数校验规则。 */
-export interface NodeFieldRule {
+/** 规则本体（上游 Rust 那边就叫 `Rule`）。 */
+export interface NodeRuleBody {
   type: (typeof RULE_KINDS)[number]
   value?: unknown
   minimum?: number
   maximum?: number
+  fieldId?: string
+}
+
+/**
+ * 上游 Rust 的 `GuardedRule`：检查本身与"什么条件下才检查"是两件事，
+ * 所以 `rules[]` 的每一项都是 `{rule, when?}`，**不是**扁平的 `{type,…}`。
+ * 本仓一度把它摊平（少一层、写起来省事），代价是 27 份上游定义里每一条规则都报错——
+ * 实测 `validateNodeDefinition` 对上游定义放过 0/27。词表的真源是那 27 份数据与
+ * `<Xiranite>/packages/node-definitions/src/contract.ts`，省事的一侧让路。
+ */
+export interface NodeFieldRule {
+  rule: NodeRuleBody
+  when?: NodeCondition
 }
 
 /** 一个输入字段。 */
@@ -99,7 +112,10 @@ export interface NodeField {
   description?: LocalizedText
   /** 该字段即动作选择器（整个表单按它切换可见性）。 */
   isActionSelector?: boolean
-  default?: string | number | boolean | string[]
+  /** 上游形状是"恰好 text/number/boolean 取一"的对象；裸标量也收（我们早期的写法）。 */
+  default?: NodeScalar | string | number | boolean | string[]
+  /** 只属于 number 字段（上游 `range belongs to number fields only`）。 */
+  range?: { min?: number, max?: number }
   options?: NodeFieldOption[]
   rules?: NodeFieldRule[]
   visible?: NodeCondition
@@ -224,9 +240,38 @@ export function validateNodeDefinition(raw: unknown): NodeValidation {
       errors.push(`${at}.kind ${JSON.stringify(field.kind)} is not in ${NODE_FIELD_KINDS.join(', ')}`)
     }
     if (!isLocalized(field.label)) errors.push(`${at}.label must carry both zh and en`)
+    if (field.kind === 'select' && !(Array.isArray(field.options) && field.options.length > 0)) {
+      // 上游那条逐字：a select field must offer options。空选项的 select 会渲染出一个选不了的控件。
+      errors.push(`${at}: a select field must offer options`)
+    }
+    if (field.range !== undefined && field.kind !== 'number') {
+      errors.push(`${at}: range belongs to number fields only`)
+    }
+    if (isPlainObject(field.range) && typeof field.range.min === 'number' && typeof field.range.max === 'number' && field.range.min > field.range.max) {
+      errors.push(`${at}: range.min ${String(field.range.min)} exceeds range.max ${String(field.range.max)}`)
+    }
+    if (field.default !== undefined && field.default !== null && typeof field.default === 'object' && !Array.isArray(field.default)) {
+      const onlyKey = Object.keys(field.default)[0]
+      const expected = field.kind === 'number' ? 'number' : field.kind === 'boolean' ? 'boolean' : 'text'
+      if (onlyKey !== undefined && onlyKey !== expected) {
+        errors.push(`${at}: default ${onlyKey} does not match kind ${String(field.kind)}`)
+      }
+    }
     for (const [ruleIndex, rule] of (Array.isArray(field.rules) ? field.rules : []).entries()) {
-      if (!isPlainObject(rule) || !inList(rule.type, RULE_KINDS)) {
-        errors.push(`${at}.rules[${ruleIndex}].type is not in ${RULE_KINDS.join(', ')}`)
+      const where = `${at}.rules[${ruleIndex}]`
+      // 上游 `GuardedRule`：`{rule, when?}`。扁平 `{type}` 在这里必须红，
+      // 否则"能读上游定义"这件事只是口号。
+      if (!isPlainObject(rule) || !('rule' in rule)) {
+        errors.push(`${where} must be a guarded rule object: {rule, when?}`)
+        continue
+      }
+      const body = (rule as { rule?: unknown }).rule
+      if (!isPlainObject(body) || !inList(body.type, RULE_KINDS)) {
+        errors.push(`${where}.rule.type is not in ${RULE_KINDS.join(', ')}`)
+      }
+      const guard = (rule as { when?: unknown }).when
+      if (guard !== undefined && (!isPlainObject(guard) || !inList(guard.type, CONDITION_KINDS))) {
+        errors.push(`${where}.when.type is not in ${CONDITION_KINDS.join(', ')}`)
       }
     }
     if (field.visible !== undefined && !isPlainObject(field.visible)) errors.push(`${at}.visible must be an object`)

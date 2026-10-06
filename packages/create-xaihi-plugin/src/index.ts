@@ -110,7 +110,7 @@ function nodeDefinitionOf(input: ScaffoldInput): Record<string, unknown> {
     title: { zh: input.titleZh, en: input.titleEn },
     description: { zh: `${input.titleZh}（脚手架初始定义）`, en: `${input.titleEn} (scaffold initial definition)` },
     actions: [{ id: 'run', label: { zh: '执行', en: 'Run' } }],
-    fields: [{ id: 'target', kind: 'text', label: { zh: '目标', en: 'Target' }, rules: [{ type: 'nonBlank' }] }],
+    fields: [{ id: 'target', kind: 'text', label: { zh: '目标', en: 'Target' }, rules: [{ rule: { type: 'nonBlank' } }] }],
     groups: [{ id: 'main', fieldIds: ['target'] }],
     inputBindings: [{ fieldId: 'target', slot: 'target', transform: 'trim' }],
     danger: { type: 'none' },

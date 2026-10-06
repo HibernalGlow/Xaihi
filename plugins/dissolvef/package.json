@@ -167,7 +167,9 @@
           },
           "rules": [
             {
-              "type": "nonBlank"
+              "rule": {
+                "type": "nonBlank"
+              }
             }
           ],
           "visible": {

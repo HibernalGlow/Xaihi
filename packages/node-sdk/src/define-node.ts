@@ -80,7 +80,10 @@ export interface DefineNodeOptions {
 
 function fieldProperty(field: NodeField): ParameterPropertySpec {
   const description = `${field.label.en} / ${field.label.zh}`
-  const required = (field.rules ?? []).some((rule) => rule.type === 'required' || rule.type === 'nonBlank')
+  // 上游的 `GuardedRule`：规则本体在 `rule.rule` 里。带 `when` 的条件规则**不算**必填——
+  // 只在条件成立时才检查的规则，不能把参数永久标成 required（那会让模型看到一份比界面更严的参数表）。
+  const required = (field.rules ?? []).some((entry) =>
+    entry.when === undefined && (entry.rule.type === 'required' || entry.rule.type === 'nonBlank'))
   switch (field.kind) {
     case 'text':
     case 'multiline':
