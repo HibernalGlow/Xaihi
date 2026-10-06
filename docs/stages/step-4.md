@@ -1395,3 +1395,27 @@ hostRequirements 是 `os-native + external-process + recursive-enumeration + fil
 - 包内全套 `test:unit`：24 文件里 23 过、218 判据里 217 过。唯一红的是
   `tests/shell-caps.spec.ts > runner 组的退化原因点名 P1` —— 那是那侧新落的
   `src/client/shell-caps.ts` 与它的测试，本轮没碰，按仓内纪律只报不改。
+
+## 新尺 `check:nodebundle`：产物里不许有未声明的裸名 import（2026-10-07 01:51）
+
+来由是 `marku` 踩到的假绿类：内核引 `diff` / `remark` 而 `package.json` 没声明时，
+`tsdown` 只打一条 `UNRESOLVED_IMPORT` 警告然后 rc=0，产物里原样留着那条 import，
+装进 profile 后第一次调用就 `ERR_MODULE_NOT_FOUND`。浏览器那半边早有
+`packages/ui-host/scripts/check-client-bundle.mjs` 管产物形状，节点包这半边没有对应尺。
+
+`scripts/check-node-bundle.mjs` 量的就是**装进 profile 的那份文件**而不是源码：
+扫 `plugins/<id>/lib/**/*.js` 里所有裸名说明符（静态 import / 再导出、动态 `import()`、`require()`），
+减去本包 `dependencies` + `peerDependencies` + `optionalDependencies` 与 Node 内置名，
+剩下的非空即红。`@hibernalglow/xaihi-sdk` **不**列为允许项——它在构建期被 `noExternal` 内联，
+真出现在产物里就说明内联没做成，把它放行进这条尺就废了。
+缺 `lib/` 同样判红（尺没法验一份不存在的产物），不做静默跳过。
+
+读数：`--self-check` rc=0（5 条夹具 + `import type` 那条都能被证伪），
+真跑比对 **27 个包**：**18 个有产物的包零违规**，红的 9 个全部是批次 H 还没成形的目录
+（`bandia bitv classf cleanf enginev gifu mvz repacku smartzip` 没有 `lib/`）。
+写在 `pnpm test` 里的位置是 `-r run build` **之后**、`typecheck` 之前，
+因为这条尺的前提就是"产物存在"，放在构建之前只会得到一片"没有 lib/"。
+
+顺手写进尺自己的两个真错（都是这把尺自己的 `--self-check` 抓的，不是人看出来的）：
+块注释里写 glob `plugins/*/lib/**/*.js` 会把注释提前关掉（`*/`），文件直接 SyntaxError；
+第一版把 `import type` 的跳过漏掉了，夹具那条"类型说明符不该算 value 依赖"当场红。
