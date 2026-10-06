@@ -125,6 +125,22 @@ async function readNodeSnapshot(settings: SettingsFace, node: string): Promise<N
   }
 }
 
+/**
+ * 把设置面的写应答**缩成一条** `{revision}`。
+ *
+ * 不是省流量的小事：DSH 的 `mutate` / `update` 回的是整份 `SettingsNamespaceView`
+ * （schema + base + user + value 全带上，2026-10-06 在 3399 那台宿主上实测到 200 KiB 的节点状态
+ * 写**已经落盘**，可应答体积超了桥的 256 KiB 上界，于是调用方读到的是 `too-large` ——
+ * "写成了但看起来失败"是比失败更难查的一种分歧）。
+ * 而 `expectedRevision` 本来就是这条写唯一需要送回的东西，整份文档留在外壳那侧。
+ * @param value - 注入的面回来的原始应答（形状按 DSH 的 view，但我们不假设它有哪几块）。
+ * @returns 只带 revision 的一条应答；读不到 revision 时回空对象（不编一个数）。
+ */
+function projectWriteAck(value: unknown): { revision?: number } {
+  const revision = (value as { revision?: unknown } | undefined)?.revision
+  return typeof revision === 'number' ? { revision } : {}
+}
+
 /** 一条请求的求值结果。 */
 type Outcome = { ok: true; value?: unknown } | { ok: false; reason: string; detail?: string }
 
@@ -173,15 +189,15 @@ async function evaluate(method: BridgeMethod, args: readonly unknown[], caps: Sh
       return { ok: false, reason: 'bad-args', detail: 'state 的两条写都收 (节点 id, 已序列化的 JSON 文本, expectedRevision?)——序列化在文档那一侧' }
     }
     if (caps.settings === undefined) return unavailable(method)
-    // 优先路径级写：每个节点各写自己那一段，两个节点窗口不会互相盖掉整个字段。
+    // 优先路径级写：各节点各写自己那一段，两个节点窗口不会互相盖掉整个字段。
     if (caps.settings.mutate !== undefined) {
       return {
         ok: true,
-        value: await caps.settings.mutate(
+        value: projectWriteAck(await caps.settings.mutate(
           STATE_SETTINGS_NS,
           [{ op: 'set', path: [STATE_SETTINGS_FIELD, node as string], value: json }],
           revision,
-        ),
+        )),
       }
     }
     // 面没给 mutate 时才整段回写——这条路会连别人的段落一起覆盖，所以说明里点明代价。
@@ -193,7 +209,7 @@ async function evaluate(method: BridgeMethod, args: readonly unknown[], caps: Sh
       merged[key] = value
     }
     merged[node as string] = json
-    return { ok: true, value: await caps.settings.update(STATE_SETTINGS_NS, { [STATE_SETTINGS_FIELD]: merged }, revision) }
+    return { ok: true, value: projectWriteAck(await caps.settings.update(STATE_SETTINGS_NS, { [STATE_SETTINGS_FIELD]: merged }, revision)) }
   }
   if (method === 'runner.run') {
     if (caps.runner === undefined) return unavailable(method)

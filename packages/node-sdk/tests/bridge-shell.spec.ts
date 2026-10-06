@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { BRIDGE_CONTRACT_VERSION, BRIDGE_SCHEMA, NODE_CAPABILITY_IDS, type BridgeMessage } from '@hibernalglow/xaihi-sdk'
+import { BRIDGE_CONTRACT_VERSION, BRIDGE_MAX_MESSAGE_BYTES, BRIDGE_SCHEMA, NODE_CAPABILITY_IDS, messageBytes, type BridgeMessage } from '@hibernalglow/xaihi-sdk'
 import { createShellBridge, type SettingsFace } from '../src/bridge-shell.ts'
 
 const ORIGIN = 'http://127.0.0.1:3199'
@@ -129,7 +129,25 @@ describe('请求求值', () => {
   })
 
   describe('state 的持久快照', () => {
-    /** 设置文档里我们那一格的真实形状（2026-10-06 在端口 3399 的宿主上读回来的字段名）。 */
+    /**
+     * 设置面假件：应答按 **DSH 真回的那份形状**写，不是按我希望的形状写。
+     *
+     * 上一版的 `update` 只回 `{revision}`，于是"桥把整份文档原样转给文档"这条真事故
+     * 在测里看不见（2026-10-06 实测：200 KiB 的节点状态写**已经落盘**，
+     * 应答却因带上 schema+base+user+value 超了 256 KiB 上界，调用方读到 `too-large`）。
+     * 现在这份假件带一个撑大的 `schema`，判据落在"过桥的应答只剩 revision"上。
+     */
+    const fatView = (ns: string, revision: number) => ({
+      ns,
+      autoGenerate: true,
+      schema: { uid: revision, pad: 's'.repeat(300 * 1024) },
+      value: { verbose: false, nodeState: { 'sleept': '{}' } },
+      base: { verbose: false },
+      user: { nodeState: { 'sleept': '{}' } },
+      applies: 'live' as const,
+      secrets: [],
+      revision,
+    })
     const stateFace = (calls: string[], rows: unknown[], withMutate = true): SettingsFace => ({
       describe: () => {
         calls.push('describe')
@@ -137,12 +155,12 @@ describe('请求求值', () => {
       },
       update: async (ns, patch, revision) => {
         calls.push(`update:${ns}:${JSON.stringify(patch)}:${revision ?? ''}`)
-        return { revision: 9 }
+        return fatView(ns, 9)
       },
       ...(withMutate ? {
         mutate: async (ns: string, ops: readonly unknown[], revision?: number) => {
           calls.push(`mutate:${ns}:${JSON.stringify(ops)}:${revision ?? ''}`)
-          return { revision: 7 }
+          return fatView(ns, 7)
         },
       } : {}),
     })
@@ -176,6 +194,10 @@ describe('请求求值', () => {
       const reply = sent.filter((m) => m.kind === 'response').at(-1)
       if (reply?.kind !== 'response' || reply.ok !== true) throw new Error('期望一条成功应答')
       expect(reply.value).toEqual({ revision: 7 })
+      // 阳性对照的两半：假件那份 view 本身确实超界（否则下面这条判据是恒真），
+      // 而过了桥的应答必须落回上界之内。
+      expect(JSON.stringify(fatView('xaihi-core', 7)).length).toBeGreaterThan(BRIDGE_MAX_MESSAGE_BYTES)
+      expect(messageBytes(reply)).toBeLessThan(BRIDGE_MAX_MESSAGE_BYTES)
     })
 
     it('面没给 mutate 时才整段回写，并且保住别的节点那几格', async () => {
