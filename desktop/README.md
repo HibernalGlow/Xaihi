@@ -301,6 +301,24 @@ SDK 那侧（`packages/node-sdk/src/desktop-windows.ts`）同步收第二条参�
 `packages/node-sdk/src/host-bridge.ts:45/130/163`）里没有 `openNodeWindow` 这一项。补它要动我们自己的桥契约，
 下一刀做；做完之前"面板里点一下开独立窗"仍然只有壳侧的路与单测。
 
+## 冷重放：把上面那些读数在"退回 pin 重新开始"的链上再取一遍（2026-10-07 06:2x）
+
+判据顺序仍按本文钉死的那条走：**reset ⇒ sync ⇒ install-free 的 `pnpm run build` ⇒ 起壳 ⇒ 判据**。
+这次是 7 条 patch 的第一次全链复现（上一轮"从零重放后重拿绿"是 4 条 patch、13 条判据的时候）：
+
+| 步 | 命令 | 读数 |
+|---|---|---|
+| 退回 pin | `node desktop/sync-dsh.mjs --reset --force` | `reset 到 639ed015（sparse 已关）`，rc=0 |
+| 重放系列 | `node desktop/sync-dsh.mjs` | `head=8d8405de tree=9eb91c1de6a5 patches=7/7 dirty=0`，rc=0 —— **tree 与冷 reset 之前逐字相同**（这条就是幂等判据本身） |
+| 全量构建 | `pnpm run build`（在 `desktop/dsh`） | rc=0；`packages/api/gateway/lib/` 里 **2 个 JS**（症状链那一格的 0 → 2 复现） |
+| 产物尺 | `node desktop/sync-dsh.mjs --verify` | rc=0；`0002/0003/0005/0006/0007 已接进 bundle` 全 true，减法对照在跑 |
+| 装配 | `node desktop/dev-shell.mjs check` | rc=0；`bundles=6`、UI 产物在场、宿主 `--dump-config` 解析通过 |
+| 活体 | `node desktop/dev-shell.mjs verify`（内含 `live-check`） | rc=0；**42 条 OK、0 条 FAIL**，含 H 段七条与 F 段的 iframe 反向对照 |
+
+这条的意义不在"又绿了一次"，而是**别人照 README 跑会得到同样的树哈希**：`git am` 系列的 sha 稳定
+（`GIT_COMMITTER_DATE` 钉在 pin 的 committer date 上）与"少跑一步就得到空网关产物"这两件事，
+现在都各自有读数与判据盯着。
+
 ## 0005 与 0006：主窗只是隐藏时节点窗还能继续开，标题也真带得出 node（2026-10-07 05:3x，home `.scratch/dsh-xaihi-desktop-home3`）
 
 **前提（上游现读，不是我推的）**：主窗的 `close` 被 `preventDefault` 换成隐藏
