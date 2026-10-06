@@ -1,8 +1,9 @@
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
 
-/* 由 Vite 启动/构建时生成；避免组件 class 编辑触发全局 CSS HMR。 */
-@source ".tailwind-candidates.txt";
+/* 上游由 Vite 插件在启动/构建时生成 `.tailwind-candidates.txt` 再 @source 它；本包没有
+   Vite（构建是 tsdown），那份清单也从没进过仓 ⇒ 直接扫本包源码，候选随组件走，不留生成物。 */
+@source "..";
 
 
 /* 扫描 @blocknote/shadcn 内的 class 名。 */

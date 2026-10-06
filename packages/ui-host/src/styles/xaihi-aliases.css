@@ -1,0 +1,53 @@
+/*
+ * 裸 shadcn 变量层：搬运来的组件全是 utility class（`bg-background`、`text-muted-foreground`、
+ * `border-border`…），而 `src/styles/tailwind.css` 的 `@theme inline` 把它们指向
+ * `var(--background)` 这类**裸名字**。上游那份装配里这些裸名字由
+ * `<Xiranite>/src/styles/themes/base.css` 直接给 oklch 常量——那等于在 Xaihi 里再装一套主题，
+ * 与 CONTEXT.md「Xaihi 没有第二套主题引擎」冲突。所以这里只做**别名**：值一律来自
+ * 我们已有的三层，取不到就退回 CSS 系统色（系统色跟着明暗与使用者设置走，不伪造 DSH 没给的角色）。
+ *
+ * 角色对照的出处：左边一列按上游 base.css 里同名变量的用途（`:root` 第 28 行起、`.dark` 第 104 行起），
+ * 右边一列是本仓 `src/client/theme/*` 与 `src/client/styles.ts` 里真实存在的名字（现读，不拼）。
+ * `--radius` 与字体栈抄上游 base.css:25-27；字体里 `"Inter"` / `"JetBrains Mono"` 被删掉，
+ * 因为本包不随包带这两款字体，留着只会静默回退成系统字体、把"我们没带字体"这件事藏起来。
+ */
+
+:root {
+  --background: var(--xaihi-surface, var(--dsw-alias-bg-layer-1, Canvas));
+  --foreground: var(--xaihi-on-surface, CanvasText);
+
+  --card: var(--xaihi-surface, var(--dsw-alias-bg-layer-1, Canvas));
+  --card-foreground: var(--xaihi-on-surface, CanvasText);
+  --popover: var(--xaihi-surface, var(--dsw-alias-bg-layer-1, Canvas));
+  --popover-foreground: var(--xaihi-on-surface, CanvasText);
+
+  --primary: var(--xaihi-primary, Highlight);
+  --primary-foreground: var(--xaihi-on-primary, HighlightText);
+  --secondary: var(--xaihi-secondary-container, ButtonFace);
+  --secondary-foreground: var(--xaihi-on-secondary-container, ButtonText);
+
+  --muted: var(--xaihi-secondary-container, var(--dsw-alias-bg-layer-1, ButtonFace));
+  --muted-foreground: var(--xaihi-on-surface-variant, GrayText);
+  --accent: var(--xaihi-secondary-container, Highlight);
+  --accent-foreground: var(--xaihi-on-secondary-container, HighlightText);
+
+  --destructive: var(--xaihi-error, Mark);
+  --destructive-foreground: var(--xaihi-on-secondary-container, MarkText);
+
+  --border: var(--xaihi-outline, var(--dsw-alias-interactive-bg-hover, GrayText));
+  --input: var(--xaihi-outline, ButtonBorder);
+  --ring: var(--xaihi-outline, Highlight);
+
+  --sidebar: var(--xaihi-surface, var(--dsw-alias-bg-layer-1, Canvas));
+  --sidebar-foreground: var(--xaihi-on-surface, CanvasText);
+  --sidebar-border: var(--xaihi-outline, GrayText);
+  --sidebar-accent: var(--xaihi-secondary-container, ButtonFace);
+  --sidebar-accent-foreground: var(--xaihi-on-secondary-container, ButtonText);
+  --sidebar-primary: var(--xaihi-secondary-container, Highlight);
+  --sidebar-primary-foreground: var(--xaihi-on-secondary-container, HighlightText);
+  --sidebar-ring: var(--xaihi-outline, Highlight);
+
+  --radius: 0.5rem;
+  --font-app-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-app-mono: ui-monospace, monospace;
+}

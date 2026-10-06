@@ -12,6 +12,8 @@ node_modules/
 /plugins/*/dist/
 /examples/*/lib/
 /examples/*/dist/
+/packages/*/src/**/generated/
 *.tsbuildinfo
 *.log
 .DS_Store
+.workbuddy

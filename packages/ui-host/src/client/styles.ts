@@ -1,12 +1,17 @@
 /**
- * 工作台样式：只注入一层 `--xaihi-*` 别名，全部解析到 DSH 的 `--dsw-*` token。
+ * 工作台样式：一层 `--xaihi-*` 别名（全部解析到 DSH 的 `--dsw-*` token），加上搬运组件
+ * 需要的 Tailwind 工具类与裸 shadcn 变量别名。
  *
  * 为什么不自带颜色：暗色/亮色与 token 分层归 DSH 的 `ctx.theme`
  * （`overrideTokens(source, tokens)`），Xaihi 再造一套就会在宿主换主题时分裂。
  * 类别名给 M3 组件层用，Material You 桥落在别名上而不是直接写 `--dsw-*`。
+ * `CLIENT_CSS` 是生成物（`scripts/build-css.mjs`）：宿主只发 `client.*.js`，
+ * 所以 CSS 走 JS 通道注进同一个 `<style>`，而不是 `<link>` 一个 `.css`。
  *
  * @module xaihi-ui/styles
  */
+
+import { CLIENT_CSS } from './generated/client-css.ts'
 
 const STYLE_TAG_ID = 'xaihi-ui-styles'
 
@@ -57,7 +62,7 @@ export function registerStyles(): () => void {
   if (document.getElementById(STYLE_TAG_ID) !== null) return () => {}
   const tag = document.createElement('style')
   tag.id = STYLE_TAG_ID
-  tag.textContent = CSS
+  tag.textContent = `${CSS}\n${CLIENT_CSS}`
   document.head.append(tag)
   return () => tag.remove()
 }
