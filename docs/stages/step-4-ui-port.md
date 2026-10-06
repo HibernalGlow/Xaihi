@@ -289,9 +289,14 @@ React 19 写法回退）一条都还没接；浏览器实机观感未验。
 - `packages/ui-host/package.json`（`@tailwindcss/oxide: 4.3.2`）与 `pnpm-lock.yaml`：
   声明与 lock 不能分开发；而这份 lock 现在同时载着批次 F 那六个还没成形的包目录，
   提上去会给干净检出多出六个空 importer。
-  **另记一条 HEAD 本来就有的同类悬挂**：`pnpm-lock.yaml` 已列 `plugins/findz`（其 `package.json`
-  未提交）与 `packages/ui-kit`（该包在 ADR-0006 退回时已删）⇒ 干净检出的 `pnpm install --frozen-lockfile`
-  **在这一条上早就红**，收口时一并清，不是这一轮造成的。
+  **另记一条 HEAD 本来就有的同类问题（这条我先前写错了，现在是实测）**：在仓库外的临时 worktree 里检出 HEAD 跑
+  `pnpm install --frozen-lockfile`，报的是
+  `ERR_PNPM_PACKAGE_MANAGER_NO_IMPORTER: Cannot install with "frozen-lockfile" because pnpm-lock.yaml has no
+  importers["plugins/hello"] entry`——方向与我原写的那条相反：**是 `plugins/hello` 还在 HEAD 的树里**
+  （并发 lane 删它的那一刀还没提交），而这份 lock 是在删掉之后重装生成的。
+  先前那句「`packages/ui-kit` 已删」是我没量就写的错话：`ls -d packages/ui-kit` 在盘上、HEAD 的树里也有它的
+  `package.json`。`check:installable` 在活工作树里 rc=0 恰好把这一类完全挡住看不见，所以收口判据只能是
+  「干净 worktree + --frozen-lockfile」这一条，等 hello 的删除与批次 F 的包一起落地后一次重装生成 lock 再验。
 
 ### 脚手架落后于已成形的包（下一条该做的）
 `create-xaihi-plugin` 现在只出 13 个文件，缺 `src/{cli,cli-support,help}.ts`、`tests/cli.spec.ts`、

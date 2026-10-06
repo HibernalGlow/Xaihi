@@ -13,9 +13,9 @@
 | 长任务与提醒 | `jobs.md`（`ctx.jobs`）、`schedule.md`（durable reminders 回到原会话） | **不搬**，也不自建队列。 |
 | 工具输出落盘 / 大结果 | `spill.md`（工具输出落盘缝）、`storage.md`（非会话事件的持久化） | **不搬**。 |
 | PTY、终端、代码执行、编排脚本 | `terminal.md`、`code-runtime.md`、`workflow.md`、`subagent` | **不搬**，`flow-plugin` 因此从"实现"降级为"只立项"（见 `docs/stages/step-2.md` 与计划 Step 4.5）。 |
-| CLI / TUI 面（每节点 `cli.ts`、`Tui.tsx`） | DSH commands + tools + agent | **不搬**：节点动作经 `defineNode` 变成工具就是模型面。 |
+| CLI / TUI 面（每节点 `cli.ts`、`Tui.tsx`） | DSH commands + tools + agent | **已作废（2026-10-06）→ 改判"搬"**。原判"不搬"的理由（原文：「节点动作经 `defineNode` 变成工具就是模型面」）只覆盖到"命令能触发动作"，覆盖不到终端上那套交互设计（`trename` 的路径 diff / JSON 树 / 冲突面板、`sleept` 的倒计时视图）。落点见 `docs/adr/0006-ui-source-is-xiranite.md` §「裁定：终端面（CLI / TUI）纳入搬运，与 GUI 同批」与 `docs/roadmap.md` R11。**别与上一行混淆**：上一行不搬的是 DSH 的 `terminal` 子系统（PTY / 代码执行），不是 Xiranite 的终端面。 |
 | `repository` 抽象层、`packages/api` 的 HTTP 面 | DSH webserver / api-gateway / typert（`scope.md` 的 scoped-layer 模型） | **不搬**，Xaihi 只注册路由（`/xaihi/*`）不做后端框架。 |
-| `nodeMemoryProtection.ts`、`resourceScheduler.ts`、`thumbnailCoordinator.ts` | 确无同类 | **确认 DSH 没有，但 v1 不搬**：这三件的前提是"每节点独立进程 + 大图缩略图"。今天节点跑在宿主进程内，搬过来就是给不存在的压力做调度。触发条件写死：出现第一个真需要独立进程/并发缩略图的节点（批次 D `findz` 的候选）时再来搬。 |
+| `nodeMemoryProtection.ts`、`resourceScheduler.ts`、`thumbnailCoordinator.ts` | 确无同类 | **确认 DSH 没有，但 v1 不搬**：这三件的前提是"每节点独立进程 + 大图缩略图"。今天节点跑在宿主进程内，搬过来就是给不存在的压力做调度。触发条件写死：出现第一个真需要独立进程/并发缩略图的节点（批次 D `findz` 的候选）时再来搬。**触发条件已部分应验**：批次 D 确实落地了独立进程（见 `docs/adr/0004-non-js-core-delivery.md`），但对应的是"内核跨界"这一层，不是这三件各自的问题——独立进程的**内存上限**与**并发缩略图**至今没有实测数据，**这三个文件仍然不搬**，等有测量再谈。 |
 
 ## 搬（DSH 没有，且工作台/节点直接依赖）
 
