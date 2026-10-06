@@ -50,6 +50,20 @@
 - **rev 必须在路径里**：`/xaihi/remotes/<slug>/<rev>/<file>`。rspack 用 remoteEntry 所在目录推同级 chunk 的 URL 时会丢查询串，挂在 query 上时实测入口 200 而 chunk 永远 404。
 - **headless profile 里 `xaihi-core` 是 pending**（`waiting for service: webServer`）：它的路由面确实只在有 web 宿主时存在，节点自己的工具不受影响（Gate 2.5 正是在 headless 跑通的）。fail-loud 保留，不做静默降级；无头形态若要注册表需另做一份不依赖 webServer 的半边。
 - **全局配置文件里的 `xaihi-ui` 行没有 Config**：浏览器半边目前不读任何宿主配置，写一个 GUI 能改而没人读的字段就是装饰品。节点的实时配置走各自行的 config + 清单。
-- **Gate 2.0 的"单 React"浏览器断言尚未收口**：尺已备好（远端导出 `Probe`，装载器写 `window.__XAIHI__.modules['hello/Panel'].sameReactAsHost`），阳性对照是把 `plugins/hello/rspack.config.mjs` 里 `shared.react.import` 从 `false` 改 `true`，此时该字段必须变 `false`。
+- **Gate 2.0 已收口（真浏览器，隔离宿主 3199）**：`window.__XAIHI__` 报
+  `modules: {"hello/Panel": {reactVersion: "18.3.1", sameReactAsHost: true}, "linedup/Panel": {...sameReactAsHost: true}}`，
+  两个节点面板都由各自 UI 模块渲染（linedup 有输入框、hello 有计数按钮）。
+  尺的可证伪性不靠改打包器，而由 `packages/ui-host/tests/probe.spec.ts` 常驻守住：
+  传一个形状相同但不同一性的 decoy React 必须判 `false`，远端不导出 Probe 必须判 `unknown`。
+- **宿主隔离边界（踩过之后写死的规则）**：profile 只隔离插件层与配置；**会话按 cwd 存在
+  `$DSH_HOME/sessions/`，与 profile 无关**。早期几次 `dsh xaihi-headless` 直接写进了日常
+  使用的 `~/.dsh`，并且宿主默认端口 3080 与日常 web profile 撞。现在所有宿主操作必须带
+  `DSH_HOME=$PWD/../.scratch/dsh-xaihi-home`（已封进 `pnpm host` / `plugin:add` /
+  `plugin:install` / `profile:dump` / `host:headless`），隔离 profile 的 `cordis.patch.yml`
+  把 `webserver` 端口固定成 3199。
+- **移动 profile 目录的代价**：profile 里 `file:` 依赖原本是相对路径，目录一搬就指向
+  `.scratch/Base/Code/Freya/Xaihi/...`（`ERR_PNPM_FS_PACKLIST_IO`），且只删 lockfile 不够，
+  必须连 `node_modules` 一起清掉重装。 ⇒ 结论：隔离要在**创建 profile 之前**就把
+  `DSH_HOME` 定好，别指望搬目录。
 - 产物 `lib/` 与 `dist/` 不进版本控制，由 CI 的 build 步骤现生成；profile 用 `file:` 装的是工作树副本，因此本地开发必须先 `pnpm -r run build`。
 - `@deepseek-ai/dsh-web-app` 必须显式装进自定义 profile（模板只带 `dsh-base`），且 profile 的 `pnpm-workspace.yaml` 里 `allowBuilds.koffi` 要填 `true`，否则整次 add 被 `ERR_PNPM_IGNORED_BUILDS` 拒掉。

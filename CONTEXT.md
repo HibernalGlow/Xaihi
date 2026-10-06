@@ -26,6 +26,15 @@
 - **observatory**：装载器留在 `globalThis.__XAIHI__` 的事实（装载了哪些 remote、每个模块的 React 与宿主是否同一个）。没有 Probe 导出的远端记为 `unknown`，不假装通过。
 - **debug 端点 `/xaihi/debug.json`**：发现过程的可读回路径 —— loader 行、候选、每条定位失败原因。症状"没有节点"必须能读出原因。
 
+## 宿主隔离
+
+- **隔离宿主（dev host）**：一切 `dsh` 调用都必须带 `DSH_HOME=$PWD/../.scratch/dsh-xaihi-home`，
+  并用 `pnpm host` / `plugin:add` / `plugin:install` / `profile:dump` 这些脚本走，不要手敲。
+- **profile 不隔离会话**：DSH 的会话按 **cwd** 落在 `$DSH_HOME/sessions/<cwd-slug>/`，换 profile
+  不换会话库。开发宿主与日常宿主必须换 `DSH_HOME`，否则测试对话会出现在使用者正常界面里。
+- **端口**：隔离 profile 的 `cordis.patch.yml` 把 `webserver` 覆写成 `127.0.0.1:3199`；日常 web
+  profile 用默认 3080。config 是整值替换，所以 `host` 与 `port` 要一起写。
+
 ## 门禁词
 
 - **check-pins**：所有 `@deepseek-ai/dsh*` 必须精确 `0.2.0-rc.2`。原因是 npm 上若干 `dsh-client-*` 的 `latest` 标签还停在 `0.0.1-rc.1`。
