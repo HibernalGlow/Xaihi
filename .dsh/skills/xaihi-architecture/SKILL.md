@@ -22,6 +22,7 @@ Xaihi 是 DSH 之上的 **Workspace Extension Framework + Domain Plugin Ecosyste
 | Xaihi 宿主半边 | `@hibernalglow/xaihi-core` | 节点发现、`/xaihi/*` 路由、运行账本（journal）与耐久账目（ledger）、`xaihiOperations` 服务 |
 | Xaihi 浏览器半边 | `@hibernalglow/xaihi-ui` | `main` 面板与工作壳、布局、`UIModuleLoader`、Xaihi 插槽声明、Material You 桥 |
 | 契约 | `@hibernalglow/xaihi-sdk` | `xaihi.manifest/1`、`xaihi.node/v1`、事件词表、`defineNode`。只有类型、校验器与常量 |
+| 组件层 | `@hibernalglow/xaihi-ui-kit` | 面板唯一的上色出口：M3 观感的 `XPanel` / `XButton` / `XField` 与 `--xaihi-*` 别名表。**插件面板不许自带颜色**（hex 或直接引用 `--dsw-*`） |
 | 域节点 | `plugins/*` | 一个节点一个包：后端动作 + 自带 UI 产物 |
 
 ## 版本纪律
@@ -37,3 +38,6 @@ Xaihi 是 DSH 之上的 **Workspace Extension Framework + Domain Plugin Ecosyste
 ## 每个阶段的交付格式
 
 写进 `docs/stages/step-N.md`，四段：改了什么 / 为什么这样设计 / 与 DSH API 的关系（引用到 `file:line`）/ 后续扩展方式，再加编号证据与**明确没做**。架构取舍单独进 `docs/adr/`，新术语进 `CONTEXT.md`。
+
+还没做但已排期的、以及"等外部条件所以我不 hack"的清单在 `docs/roadmap.md`（含 `flow-plugin`
+的立项边界与触发条件）。新推迟一项要同时写明**触发条件**，否则它只会躺在表里。
