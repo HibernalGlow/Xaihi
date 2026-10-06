@@ -98,6 +98,11 @@
       "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition，本仓没有那个包名。",
       "upstreamSha": null,
       "ours": "e302612cacc6f0150a107a8f0e5c6b093b9ff76a1170e316465fb89363a38e9b"
+    },
+    "components/views/settings/settingsNavigation.ts": {
+      "reason": "ADR-0013：`src/config/webview2.ts` 与 `Webview2ExperimentsPanel.tsx` 已登记为\"有意不要\"（removed: true），但这份设置搜索索引还留着指向它们的三行（`import { WEBVIEW2_FLAG_CATALOG }` 与两条生成项），在文档构建里就是 `Cannot find module \"@/config/webview2\"`。摘掉这三行是完成那一次删除，不是新决定：本仓没有可设的 webview2 面，被摘掉的只是搜索索引里的两条条目。",
+      "upstreamSha": null,
+      "ours": "40247c8c1cdc8c121ec04a7f9d8823e4ea543ab0f47a6baa02e0af1b413df474"
     }
   }
 }
