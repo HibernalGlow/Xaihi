@@ -42,7 +42,12 @@ const shared = {
 interface LoaderObservatory {
   loaderKind: string
   remotes: string[]
-  modules: Record<string, { remote: string; exportName: string; reactVersion?: string; sameReactAsHost?: boolean | 'unknown' }>
+  modules: Record<string, {
+    remote: string
+    exportName: string
+    reactVersion?: string | undefined
+    sameReactAsHost?: boolean | 'unknown'
+  }>
 }
 
 const observatory: LoaderObservatory = { loaderKind: 'remote-modules', remotes: [], modules: {} }
