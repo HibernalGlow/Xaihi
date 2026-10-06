@@ -58,6 +58,32 @@ patches/dsh 里有 1 个`）；`--pin` 给错 sha 时红且 **HEAD 未移动**�
 也不要"干净但取不到"。判据的阳性对照就是那个坏状态本身：加完判据当场跑红
 （`gitlink_committed=0b04cd40 want=639ed015`）。
 
+
+### 实机结果（同日 03:3x）：上一条那三格全绿
+
+根因确认得很干脆：**`apps/web/dist` 当时是 0 个文件**。壳的产品文档是从
+`@deepseek-ai/dsh-web-frontend`（就是 `apps/web`，build 脚本是 `vite build`）的 `dist` 出的，
+dist 空 ⇒ `/` 拿不到 2xx ⇒ `connectDesktopWelcome`（`src/welcome-backend.ts:49-51`）抛
+`desktop welcome: Web authentication failed`。**不是缺凭据，也不是 patch**。补跑
+`pnpm run build:web` ⇒ rc=0、`apps/web/dist` 变 196 个文件，重启后这条错消失（日志里
+`Web authentication failed` 计数 0）。
+
+判据收进了仓：**`node desktop/live-check.mjs`**，九条全绿（rc=0）：
+
+| 段 | 读数 |
+|---|---|
+| A（真产品文档 `dsh-app://app/`） | `protocolVersion=1`；对照 `typeof browser='object'`（既有面没被改坏）；`typeof xaihiWindow='object'`、`open` 是函数；调 `open('findz')` ⇒ `REJECTED: Error invoking remote method 'dsh-desktop:xaihi-window-open': Error: xaihi desktop: only the Xaihi UI document may open a window` |
+| B（放行分支） | 把主窗导到 URL 形状合法的自家文档地址后调 `open('findz')` ⇒ `RESOLVED windowId=3`，窗口数 **2 → 3**，新窗 URL 是 `dsh-app://app/xaihi/ui/0123456789ab/index.html?node=findz`（node 参数由壳改写）；测完自动关掉多出来的窗并导回产品文档 |
+
+两条工程笔记（都是这轮踩出来的，写在脚本头注释里）：renderer 的 CDP（9222）要
+`--remote-allow-origins`，上游启动器不给这个参数 ⇒ Node 侧 WS 会挂住；主进程是 ESM 入口，
+inspector 求值域里没有 `require`/`module`，`import()` 报 `A dynamic import callback was not
+specified` ⇒ 只有 `process.getBuiltinModule('module').createRequire(…)` 能拿到 electron API，
+而它能直接数窗口，判据反而比数 target 硬。
+
+**这一格仍未验**：B 段用的是合成文档（Host 那边没装 Xaihi 时会回 404），证的是**壳侧代码路径与
+原生窗创建**，不证 Xaihi 真内容渲染在第二窗里——那一格仍挂在 R9（发布）或应用内插件管理器上。
+
 ## 与门禁的关系（别把 vendor 扫进去）
 
 `check:pins` 与 `check:installable` 只走 `packages`/`plugins` 的**一层**目录（`GROUPS = ['packages','plugins']`、
@@ -111,6 +137,7 @@ vendor 里那份上游 workspace 定义不会自动并进来。
 是这条启动链自己的前置。已在补 `pnpm run build:lib:client`（日志 `/tmp/vendor-build-client.log`）。
 
 client face 建完之后，这一档的判据已经写好，跑的是活体而不是编译产物：
+（下面三条已实现并跑绿，见下一节）
 
 1. CDP 枚举 target，主文档上 `window.dshDesktop.xaihiWindow` 必须存在（0001 的运行时面）。
 2. 在 `dsh-app://app/index.html` 上调 `open('findz')` 必须以
