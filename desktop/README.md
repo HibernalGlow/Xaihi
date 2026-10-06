@@ -97,4 +97,25 @@ vendor 里那份上游 workspace 定义不会自动并进来。
   `xaihiWindowOpen === 'dsh-desktop:xaihi-window-open'`、`browserAcquire` 仍在 ⇒ **rc=0**，
   把期望值换成错值 ⇒ **rc=1**（对照）。类型层已随 `tsc -b apps/desktop` rc=0 结掉；
   `main.ts` 里那两个分支（开窗与 deny）只到**编译进产物**，运行时行为要等 Electron 实机才算数。
+## 首次实机（2026-10-07 01:2x，隔离 `DSH_HOME=../.scratch/dsh-desktop-home`）
+
+走通了 `start:desktop` 的准备链：**Electron 真的起来了** —— 进程
+`.desktop-build/development/Harness Dev.app/Contents/MacOS/Electron --inspect=127.0.0.1:9229
+--remote-debugging-port=9222 --user-data-dir=…`，`lsof` 看到 9222 LISTEN。
+一次 disposable 项目安装的代价实测：`.desktop-build` 长到 **786 MB**（`--ignore-scripts` 那份
+`node_modules` 是 1.84 GiB，两者叠一起就是这层的真实磁盘账单）。
+
+**但这次没验到 patch**：Host 报一整组 `@deepseek-ai/dsh-client-ui-* failed to import`
+加 `Plugins waiting for services (9)`，CDP `/json/version` 6 s 无响应 ⇒ 窗口没到 ready。
+红因是我只建了 host face（`build:lib:host` rc=0），**没建 client face** —— 与 0001/0002 无关，
+是这条启动链自己的前置。已在补 `pnpm run build:lib:client`（日志 `/tmp/vendor-build-client.log`）。
+
+client face 建完之后，这一档的判据已经写好，跑的是活体而不是编译产物：
+
+1. CDP 枚举 target，主文档上 `window.dshDesktop.xaihiWindow` 必须存在（0001 的运行时面）。
+2. 在 `dsh-app://app/index.html` 上调 `open('findz')` 必须以
+   `xaihi desktop: only the Xaihi UI document may open a window` 被拒（0002 的 deny 分支）。
+3. allow 分支（真开出一个原生窗）需要 Xaihi 文档真的挂在 Host 上 ⇒ 还是 R9 那条发布前置，
+   或者 dev profile 的合法挂载路径；**不许**为了这一格手写 `profiles/desktop` 里的文件。
+
 - 上游 bump ⇒ patch series 重放；重放红就是红，不许 `--3way` 蒙。
