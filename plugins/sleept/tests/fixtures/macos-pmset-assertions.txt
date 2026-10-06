@@ -1,0 +1,23 @@
+2026-10-06 17:57:18 +0800 
+Assertion status system-wide:
+   BackgroundTask                 0
+   ApplePushServiceTask           0
+   UserIsActive                   0
+   PreventUserIdleDisplaySleep    0
+   SoftwareUpdateTask             0
+   PreventSystemSleep             0
+   PreventSystemSleepSecurityIndicator 0
+   ExternalMedia                  0
+   PreventUserIdleSystemSleep     1
+   NetworkClientActive            0
+Listed by owning process:
+   pid 1984(Vorssaint): [0x0002025400018a33] 67:25:06 PreventUserIdleSystemSleep named: "Vorssaint: keep the Mac awake"  
+   pid 90015(starCore): [0x0005a55100019198] 01:12:49 PreventUserIdleSystemSleep named: "StarCore active streaming session"  
+   pid 68255(coreaudiod): [0x00057e2d00018c4c] 03:59:50 PreventUserIdleSystemSleep named: "com.apple.audio.BuiltInSpeakerDevice.context.preventuseridlesleep"  
+	Created for PID: 53533. 
+	Resources: audio-out BuiltInSpeakerDevice 
+   pid 53533(UURemote): [0x0002d9ec0001a6a4] 52:05:14 PreventUserIdleSystemSleep named: "UURemote Disable Idle System Sleep"  
+Kernel Assertions: 0x104=USB,MAGICWAKE
+   id=557  level=255 0x100=MAGICWAKE creat=2026/10/2 01:59  mod=2026/10/4 19:04 description=en0 owner=IOSkywalkNetworkBSDClient
+   id=561  level=255 0x4=USB creat=2026/10/2 03:53 description=com.apple.usb.externaldevice.01100000 owner=USB2.1 Hub
+   id=563  level=255 0x4=USB creat=2026/10/2 03:53 description=com.apple.usb.externaldevice.01200000 owner=USB3.2 Hub

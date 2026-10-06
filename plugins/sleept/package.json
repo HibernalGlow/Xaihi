@@ -1,0 +1,298 @@
+{
+  "name": "@hibernalglow/xaihi-sleept",
+  "version": "0.0.0",
+  "description": "Xaihi node Sleep control: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-sleept",
+    "title": {
+      "zh": "休眠管理",
+      "en": "Sleep control"
+    },
+    "ui": {
+      "remote": "sleept",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.sleept",
+        "title": {
+          "zh": "休眠管理面板",
+          "en": "Sleep control panel"
+        },
+        "area": "workspace",
+        "remote": "sleept",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "sleept",
+      "title": {
+        "zh": "休眠管理",
+        "en": "Sleep control"
+      },
+      "description": {
+        "zh": "读取本机睡眠/休眠设置与谁在阻止休眠，临时阻止系统休眠，或让机器立即进入睡眠（Windows 可选休眠）。仅覆盖 macOS 与 Windows。",
+        "en": "Read sleep/hibernate settings and which processes hold sleep off, temporarily prevent system sleep, or put the machine to sleep now (hibernate on Windows). Covers macOS and Windows only."
+      },
+      "actions": [
+        {
+          "id": "status",
+          "label": {
+            "zh": "读取状态",
+            "en": "Read status"
+          },
+          "description": {
+            "zh": "报告睡眠/休眠空闲超时、休眠是否启用，以及当前正在阻止休眠的进程。",
+            "en": "Report idle sleep/hibernate timeouts, whether hibernation is enabled, and which processes currently hold sleep off."
+          }
+        },
+        {
+          "id": "block",
+          "label": {
+            "zh": "阻止休眠",
+            "en": "Prevent sleep"
+          },
+          "description": {
+            "zh": "在时长内阻止系统休眠；宿主退出或调用 unblock 时自动解除。",
+            "en": "Prevent system sleep for the given duration; released by unblock or when the host exits."
+          }
+        },
+        {
+          "id": "unblock",
+          "label": {
+            "zh": "解除阻止",
+            "en": "Release hold"
+          },
+          "description": {
+            "zh": "结束持有拦截的子进程，把睡眠交还给系统。",
+            "en": "Terminate the holding child and give sleep back to the system."
+          }
+        },
+        {
+          "id": "sleep",
+          "label": {
+            "zh": "立即睡眠",
+            "en": "Sleep now"
+          },
+          "description": {
+            "zh": "让机器立即进入睡眠。Windows 上 allowHibernate=true 改为休眠。会中断使用者，需要批准。",
+            "en": "Put the machine to sleep immediately; on Windows allowHibernate=true hibernates instead. Interrupts whoever is at the keyboard, so it needs approval."
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "kind": "select",
+          "isActionSelector": true,
+          "label": {
+            "zh": "动作",
+            "en": "Action"
+          },
+          "options": [
+            {
+              "value": "status",
+              "label": {
+                "zh": "读取状态",
+                "en": "Read status"
+              }
+            },
+            {
+              "value": "block",
+              "label": {
+                "zh": "阻止休眠",
+                "en": "Prevent sleep"
+              }
+            },
+            {
+              "value": "unblock",
+              "label": {
+                "zh": "解除阻止",
+                "en": "Release hold"
+              }
+            },
+            {
+              "value": "sleep",
+              "label": {
+                "zh": "立即睡眠",
+                "en": "Sleep now"
+              }
+            }
+          ]
+        },
+        {
+          "id": "minutes",
+          "kind": "number",
+          "label": {
+            "zh": "阻止时长（分钟）",
+            "en": "Hold duration (minutes)"
+          },
+          "description": {
+            "zh": "省略时用插件配置里的默认值。到期后拦截随子进程一起结束。",
+            "en": "Falls back to the plugin config default. The hold ends with its child when the time is up."
+          },
+          "rules": [
+            {
+              "type": "integerAtLeast",
+              "minimum": 1
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": ["block"]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "allowHibernate",
+          "kind": "boolean",
+          "label": {
+            "zh": "休眠而非睡眠（仅 Windows）",
+            "en": "Hibernate instead of sleep (Windows only)"
+          },
+          "description": {
+            "zh": "Windows 上休眠开着时，走 rundll32 的 bHibernate=false 会把睡眠睡成休眠；本机休眠被禁用时此选项会被拒绝而不是什么都不做。",
+            "en": "On Windows the classic rundll32 path turns 'sleep' into hibernation while hibernation is enabled; this option is refused outright when hibernation is off, rather than silently doing nothing."
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": ["sleep"]
+              },
+              "negated": false
+            }
+          }
+        }
+      ],
+      "groups": [
+        {
+          "id": "main",
+          "label": {
+            "zh": "电源",
+            "en": "Power"
+          },
+          "fieldIds": ["action", "minutes", "allowHibernate"]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "minutes",
+          "slot": "minutes",
+          "transform": "asInteger",
+          "when": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": ["block"]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "fieldId": "allowHibernate",
+          "slot": "allowHibernate",
+          "transform": "asBoolean",
+          "when": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": ["sleep"]
+              },
+              "negated": false
+            }
+          }
+        }
+      ],
+      "danger": {
+        "type": "actionIn",
+        "actionField": "action",
+        "dangerous": ["sleep"]
+      },
+      "resultExport": "result_view",
+      "reportsProgress": false,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "要临时保住一台机器不睡（跑长任务）、或想知道是谁把睡眠拦下来的时候用。",
+          "en": "Use it to keep a machine awake for a while, or to find out who is holding sleep off."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/node": "^22.20.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}

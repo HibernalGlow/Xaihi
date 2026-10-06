@@ -85,10 +85,13 @@
 ## 5 对照表的两处实测更正（写进 `docs/service-mapping.md`）
 
 1. `ctx.storage` 不是键值存储；插件侧的 typed 面是 `ctx.storageDomain.open(defineDomain(...))`。
-   它在 0.2.0-rc.2 **有对应发布包**（`@deepseek-ai/dsh-storage-domain`、`@deepseek-ai/dsh-storage`
-   的 `next` 标签都是 0.2.0-rc.2，`latest` 又是撒谎的 0.0.1-rc.1），但**不在默认 web/headless
-   组合里**——我这台隔离宿主的 146 个包里搜不到 `dsh-storage-domain`。落 checkpoint 时按
-   "往 profile 的 bundles 里加一行"处理，那是合法装配，不是 fork。
+   它**已经在默认组合里开着**：隔离宿主的 loader 行里 `storage` / `storage-json` /
+   `storage-domain` 三行分别指向 `@deepseek-ai/dsh-storage{,-json,-domain}` 且
+   `disabled=false`。我中途根据 `ls node_modules/@deepseek-ai` 判过"没装"，那是**把包目录
+   当运行时**的错判，已按 loader 行改正：落 checkpoint 直接用 `ctx.storageDomain`，
+   既不加 bundle 行也不自己写 JSON 文件层。同一份行表还确认了 `subprocess` →
+   `@deepseek-ai/dsh-subprocess-local`、`approval` → `@deepseek-ai/dsh-user-approval`
+   （所以危险动作的 `ask` 真的有出口）、`commands` → `@deepseek-ai/dsh-commands`。
 2. 运行历史不能用 `ctx.sessionPersistence`：它只持久化 `SessionEvent`，键是 SessionId，
    文档明说"no parallel persisted event type"。这条支持了对照表里"搬"的判定。
 
@@ -127,5 +130,83 @@
 ## 7 明确没做
 
 `preview` 的渲染、`result_view` 的渲染函数（等批次 C 的载荷形状）、checkpoint / 运行历史
-落盘（需要先给 profile 加 storage 行）、可恢复删除账本、Material You 桥与 UI Kit、
-`.dsh/skills`。
+落盘（用 `ctx.storageDomain`，组合里已有，见 §5）、可恢复删除账本、sleept 的电源方案读写、
+Material You 桥与 UI Kit、`.dsh/skills`。
+
+## 8 批次 B：sleept（macOS 与 Windows 同期）
+
+### 改了什么
+
+新包 `plugins/sleept`（**由 `create-xaihi-plugin` 生成后填充**）：
+
+- `src/platform.ts`：平台差异的唯一落点，纯函数。`planCommand` 出 argv，`parse*` 读输出。
+  mac ①`pmset -g custom` / `-g assertions` ②`caffeinate -di [-t 秒]` ③`pmset sleepnow`；
+  Windows ①`powercfg /query SCHEME_CURRENT SUB_SLEEP {STANDBYIDLE,HIBERNATEIDLE}` +
+  `reg query ... HibernateEnabled` ②PowerShell `SetThreadExecutionState(ES_CONTINUOUS|ES_SYSTEM_REQUIRED)`
+  长驻子进程 ③`SetSuspendState` 的 PInvoke（真睡眠）/ `rundll32 ...,1,1,0`（休眠）。
+- `src/exec.ts`：`createRunner`（一律经 `ctx.subprocess`，不自建 spawn）与
+  `createInhibitor`（持有 / 解除 / 到期自己落回未持有 / 起不来时绝不报"已阻止"）。
+- `src/index.ts`：`inject = ['tools','subprocess']`，四个动作经 `defineNode` 变工具，
+  `danger.actionIn dangerous:['sleep']` → 睡眠这一步走 DSH 的 `ask`；卸载时 `ctx.effect`
+  放掉拦截。
+- `tests/fixtures/*`：六份**真机抓取**的输出，两份 Windows 分别留了 UTF-8 与 GBK 原样。
+- `tests/platform.spec.ts` + `tests/exec.spec.ts`：22 条，含三条阳性对照。
+
+### 为什么这样设计
+
+- **②③在两平台是两套语义**，同期做才证明 `xaihi.node/v1` 的平台分支是真抽象：
+  "阻止休眠"两边都归成"养一个子进程，杀掉就归还"，所以生命周期代码只有一份。
+- **Windows 的休眠歧义按测到的事实处理**：这台盒子 `HibernateEnabled=0x1`，正是
+  "要求睡眠结果去休眠"的那个经典坑；真睡眠因此走 `SetSuspendState(hibernate=false,...)`
+  的 PInvoke 而不是 rundll32；反过来要求休眠但系统关了休眠时**抛原因**，因为那条命令
+  会返回 0 却什么都不做。
+- **状态里刻意没有 pid**：0.2.0-rc.2 真正发布的 `SubprocessHandle` 不暴露 pid
+  （`docs/subsystems/subprocess.md` 写了 pid，是文档与发布物的漂移，以
+  `@deepseek-ai/dsh-subprocess/lib/types/types.d.ts` 为准）。要知道"谁在拦"就读
+  `pmset -g assertions`，那是操作系统说的话。
+- **危险面只有一个出口**：本包不实现审批、不自带确认框，只把 `ask` 交给宿主
+  （`approval` → `@deepseek-ai/dsh-user-approval` 在组合里开着，所以 `ask` 有真出口）。
+
+### 与 DSH API 的关系（读证）
+
+- `SubprocessSpawnSpec` 完全显式（`argv`/`cwd`/`stdio` 每条都要给处置、`graceMs` 必填、
+  `argv` 永不经 shell 解释）：`docs/subsystems/subprocess.md` "The fully-explicit spawn spec"。
+- `terminate()` 是这条缝唯一的终止动词且是**树级**的（POSIX 打进程组、Windows 走
+  `taskkill /T`）：同文档 SubprocessHandle 段——这正是"宿主退了、拦截进程还活着"的解药。
+- `ctx.get(name)` 不需要 `inject`、未提供返回 `undefined`：`vendor/cordis/src/reflect.ts:19,225-243`。
+
+### 测出来的两条平台约束（要写进 `xaihi-migration` 技能）
+
+1. `powercfg` 的输出**标签是本地化的**（这台盒子 zh-CN：`当前交流电源设置索引`），解析只能
+   依赖 ASCII 别名 token、GUID 形状与 `0x` 值的**位置**；测试里同一份内容换成英文标签也必须
+   解析得出，才算守住这条。
+2. 控制台**编码不可假设**：`powercfg /availablesleepstates` 直接经 SSH 拿回来是 GBK 字节
+   （夹具 `windows-availablesleepstates.gbk.txt` 原样保留）。任何"读文字"的判据在那一刻都会
+   变成乱码，所以状态判断只认十六进制与 ASCII。
+
+## 9 批次 B 的证据
+
+1. 门禁：`pnpm test` → `GATE_RC=0`；build / typecheck 全绿；13 个 spec 文件、97 条用例
+   （core 39 / node-sdk 23 / sleept 22 / ui-host 9 / create-xaihi-plugin 4）。
+2. 夹具不是过拟合：重跑一次 `pmset -g custom` 与 `-g assertions` 现读现解析，得到与夹具
+   推出的同一份结果（AC 600/600/mode 3、Battery 900/600/mode 3；4 个持有者，第一个
+   `Vorssaint` pid 1984）。
+3. Windows 证据来自 `ssh 30902@100.122.176.77`（PTEROSAUR / Win11，只读查询）：
+   `HibernateEnabled REG_DWORD 0x1`；`STANDBYIDLE` 的 AC/DC 都是 `0x00000000`；
+   `HIBERNATEIDLE` 的 DC 是 `0x7fffffff`（这条同时证明"0 与 0x7fffffff 不是一回事"）。
+4. 装载链：`pnpm plugin:add file:$PWD/plugins/sleept` → `ADD_RC=0`；`pnpm profile:dump` →
+   `DUMP_RC=0` 且 `xaihi-core / xaihi-hello / xaihi-ui / xaihi-linedup / xaihi-sleept` 五行齐全；
+   第五项由 DSH 自己的 reconciler 写进 `dsh.profile.bundles`（不是我手改的）。
+5. 发现面：`/xaihi/debug.json` → `locate errors: []`、`problems: []`、
+   `registered: [hello, linedup, sleept]`；三条子路径行归进 `subpaths` 而不再被报成
+   "定位失败"（顺手修掉诊断噪声，配 `isSubpathSpecifier` 两条测试）。
+6. 浏览器实机：侧栏三项（行去重过滤 / **休眠管理** / Hello），点进休眠管理面板渲染出
+   "休眠管理面板（待填）"，`window.__XAIHI__.modules` 里 `sleept/Panel` 的
+   `sameReactAsHost=true`、`reactVersion 18.3.1` —— **脚手架生成的包**第二例走通全链。
+
+### 批次 B 未证与原因
+
+- 四个工具被**真 agent 调用**：缺模型凭据，同 §6 那一条。
+- ③「立即睡眠/休眠」的**真实触发**：按计划条款需要使用者当场说"跑"。默认只做到
+  "计划出的 argv 正确 + 危险闸门把它变成 `ask`"。附带一条没测的：macOS 上 `pmset sleepnow`
+  是否需要管理员权限——跑它本身就会睡，所以没跑。
