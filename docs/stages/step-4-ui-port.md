@@ -479,3 +479,36 @@ rspack 只能报 "was not found in '@xiranite/contract' (possible exports: NODE_
 
 留一条后续（别人一行）：给 `packages/node-sdk/package.json` 补 `./help` 导出、
 让 `scripts/gen-node-registry.mjs` 按子路径取，然后删掉这条临时别名。
+
+## 15. "节点界面上屏"这句从此有一把尺，而不是有一句形容词（2026-10-07 02:49）
+
+ADR-0014 把载体从 `lib/client.js` 换成 Xaihi 自己的文档产物之后，验收判据跟着换了地方，
+但**没有尺**——只有 §14 那句"`dist-ui/` 还是空的 ⇒ 这句还不成立"。现在补上 `scripts/check-node-face.mjs`。
+
+判据的形状是**源码里的字面串在产物里还在**：rspack 把一个 `Component.tsx` 编进图里，
+它 JSX 里的使用者可见中文串就原样留在产物；没进图的模块，它的文案不可能出现。
+两个细节让它不是一张空证：
+
+1. **只认"独一份"的串**。同一句话被两个节点共用时，搜到它不代表任何一个节点在，
+   所以挑探针时把**其余节点的源码**当排除集（`pickProbes(own, others)`）。
+2. **挑不出唯一串就判 `undecidable`，不判绿**。现读真实树：12 个节点目录里
+   `findz` 就是这一档（它那份组件没有 ≥4 字且独一份的中文串）——
+   这条是"这把尺看不见它"的自白，不是"findz 没上屏"的证据。
+
+三档阴性/阳性对照（`--self-check` 实测 rc=0，跑 3 个夹具节点）：
+真在图里的判 `present`、真缺的判 `missing`、**共用串不当证据**（夹具 `alpha` 若把
+`都一样` 当探针就红）、**空产物不许判绿**（`distFiles: []` 时全部 missing/undecidable）。
+
+写这把尺的过程里它自己抓了两个 bug，都是"绿着看不见东西"那一类：
+
+- 正则 `[一-龥][^…]{2,}?` 的**懒量词**只截到 3 字，全被长度闸门拒掉 ⇒ 三个夹具统统
+  `undecidable`，而阳性对照当场把它报成红（对照存在的意义就是这一刻）。改成贪婪 `{2,}`。
+- 文件没有 `isMain` 闸门 ⇒ 被 `import` 时把 CLI 跑了一遍，测试与别的尺一引它就打印判决。
+  补上 `realpathSync(process.argv[1]) === realpathSync(import.meta.url)` 那道闸，
+  与本仓 `scripts/tailwind-candidates.mjs` 用的是同一种写法。
+
+真实读数：`node scripts/check-node-face.mjs` **rc=1**，红因是 `dist-ui/` 目录不存在，
+话术直接写"『节点界面上屏』这句在没有产物的时候不成立，也不许被报成成立"。
+这条**故意不接进 `pnpm test`**（同 `check:brand`、`check-verbatim` 的处置）：
+它现在量到的是"还没有产物"，接进全仓测试只是把并发 lane 正在收的 `build:document` 红变成我的红。
+接线时机：`dist-ui/main.js` 落地且除 `findz` 那类 `undecidable` 之外全绿。
