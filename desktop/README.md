@@ -270,13 +270,18 @@ client face 建完之后，这一档的判据已经写好，跑的是活体而�
 "任一活着的自家文档窗"（`xaihiOwnedSender`），目标 URL 改从**发起者自己的文档**取，
 四条形状守卫一条不松。
 
-实机读数（`node desktop/live-check.mjs` ⇒ **28 条 OK、0 条 FAIL、rc=0**；D 段就是这一条的证据）：
+实机读数（`node desktop/live-check.mjs` ⇒ **32 条 OK、0 条 FAIL、rc=0**；D 段是 0005 的证据，E 段是 0002 的真路）：
 
 - 问的那一刻 `mainHiddenWhileAsking=true`；从节点窗 `open(nodes[1])` ⇒
-  `{kind:"opened", windowId:18, alreadyOpen:false}`，`countBefore=3 → countAfter=4`（按 id 差量量，不按总数），
+  `{kind:opened, windowId:18, alreadyOpen:false}`，`countBefore=3→countAfter=4`（按 id 差量量，不按总数），
   新开那窗 `title="Xaihi · xaihi-sleept"`、URL 带 `node=xaihi-sleept`。
 - 把那个窗导到 `dsh-app://app/index.html` 后再问 ⇒ `rejected window request from an unowned renderer`
   ⇒ 放宽的只有"谁可以问"，不是"问什么都行"。
+- **E 段补上的是 0002 一直缺的那格活体证据**（此前只有 11 条单元用例 + 编译）：在真文档页里
+  `window.open(自家文档 URL)` ⇒ `popup` 读回 `"null"`（弹出窗没长出来），同时窗口 id 差量恰好 1，
+  那窗 `url` 逐字等于目标、`title="Xaihi · xaihi-sleept"`；对照是 `window.open('dsh-app://app/index.html')`
+  ⇒ 也是 `"null"` 且**不长窗**。外链那条对照故意不在活体上跑：判策命中后走 `shell.openExternal`，
+  真跑会打开使用者的浏览器——它已由 `--verify` 的单元用例覆盖。
 - **0006 是 D 段读回来的缺陷**：0004 的 `setTitle` 会被文档自己的 `<title>` 覆盖，
   第一次实测 `getTitle()` 只剩 `"Xaihi"`（node 名在窗标题上丢了）。修法是自家窗里拦住
   `page-title-updated`。这不是装饰：使用者辨认"这个窗是哪个 node"只有标题这一个读回面。

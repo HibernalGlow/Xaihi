@@ -331,6 +331,51 @@ const D = await evaluateMain(`(async () => {
 })()`)
 console.log('D 段（主窗隐藏后由节点窗继续开 + 形状守卫仍在）⇒ ' + JSON.stringify(D))
 
+// E 段：0002 的真路 —— 页面自己 window.open。判据要同时证两件事：
+// 原生窗真的出来了，而**弹出窗没有**（handler 返回 deny ⇒ window.open 必须给回 null）。
+// 只证前者会漏掉"两条路各开一个窗"这种叠窗缺陷；只证后者会漏掉"deny 掉了但也没开原生窗"。
+const E = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 500))
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const nodes = manifest.plugins.map((p) => p.manifest.id)
+  const docPath = manifest.ui.documentUrl
+  const target = 'dsh-app://app' + docPath + '?node=' + (nodes[1] ?? nodes[0])
+  const urlOf = (u) => 'dsh-app://app' + docPath + '?node=' + u
+  const opened = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL(urlOf(nodes[0]))
+  await Promise.race([opened, new Promise((r) => setTimeout(r, 6000))])
+  const idsBefore = all().map((w) => w.id)
+  // 一次调用里同时拿回 window.open 的返回值和窗口数变化：分两次求值中间可能被别的销毁插进来。
+  const res = await app.webContents.executeJavaScript(
+    '(() => { const w = window.open(' + JSON.stringify(target) + '); return { popup: w === null ? "null" : (w ? "object" : String(w)) } })()', true)
+  await new Promise((r) => setTimeout(r, 900))
+  const created = all().filter((w) => !idsBefore.includes(w.id))
+  const nativeProbe = created.length === 1 ? { windowId: created[0].id, title: created[0].getTitle(), url: created[0].webContents.getURL() } : null
+  // 对照：自家但**不是文档**的路径不许长出窗。
+  // 外链那条对照不在活体上跑——判策命中后走的是 shell.openExternal，会真打开使用者的浏览器；
+  // 它的拒绝分支已经有单元用例（--verify 的 11 条），这里不重复取证。
+  const innerIds = all().map((w) => w.id)
+  const inner = await app.webContents.executeJavaScript(
+    '(() => { const w = window.open("dsh-app://app/index.html"); return w === null ? "null" : "object" })()', true)
+  await new Promise((r) => setTimeout(r, 700))
+  const innerCreated = all().filter((w) => !innerIds.includes(w.id)).length
+  for (const w of all()) {
+    if (w === app) continue
+    if (isOwnedDocWindow(w) || created.some((c) => c.id === w.id)) w.close()
+  }
+  await new Promise((r) => setTimeout(r, 800))
+  return { target, res, nativeProbe, createdCount: created.length, inner, innerCreated, ownedLeft: openedWins().length }
+})()`)
+console.log('E 段（页面自己 window.open 走原生窗）⇒ ' + JSON.stringify(E))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -372,6 +417,15 @@ need('D: 新开那个窗寻址的就是被问的 node', typeof dd.createdProbe?.
   && dd.createdProbe.url.includes('node=' + String(dd.nodes?.[1] ?? '')) && String(dd.createdProbe?.title).includes(String(dd.nodes?.[1] ?? '')))
 need('D: 守卫没跟着放宽（自家窗被导走后再问仍被拒）', typeof dd.control === 'string' && dd.control.startsWith('REJECTED') && (dd.control.includes('only the Xaihi UI document') || dd.control.includes('unowned renderer')))
 need('D: 收尾把自家窗清干净（不把残留留给下一段）', dd.ownedLeft === 0)
+
+const ee = E.ok === true ? E.value : {}
+need('E: 页面 window.open 自家文档 ⇒ 弹出窗没长出来（原生路吃下了它）', ee.res?.popup === 'null')
+need('E: 原生那一个窗真出来了，寻址到被点的 node，标题也带得上',
+  ee.createdCount === 1 && typeof ee.nativeProbe?.url === 'string'
+  && typeof ee.target === 'string' && ee.nativeProbe.url === ee.target
+  && String(ee.nativeProbe?.title).includes(String(ee.target).split('node=')[1] ?? '~none~'))
+need('E: 对照——自家非文档路径的 window.open 没长出窗', ee.inner === 'null' && ee.innerCreated === 0)
+need('E: 收尾把自家窗清干净', ee.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {
