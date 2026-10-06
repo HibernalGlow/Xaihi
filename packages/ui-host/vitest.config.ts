@@ -12,10 +12,11 @@ assertAliasTargets()
  * 把它们退到 node 环境会红成一片，而症状离原因很远（"document is not defined"）。
  * 本仓自己那四个 spec 不碰 DOM API 的存在性，所以同环境跑。
  *
- * `include` 只点到 `src/lib/design-theme/**`，没有放开整个 `src/**`：
- * 那底下正在并行搬 L1/L2/L4，上游测试里有依赖 Tauri、浏览器夹具和 `@/i18n` 的，
- * 一次性放开会让"设计语言这一层到底搬没搬对"这个判据被淹没在别人的红里。
- * 每确认一层能跑，就往上加一条 glob，加的那次必须能说出为什么。
+ * `include` 里没有整个 `src/nodes/**`（那底下的上游测试仍有一大批跑不起来，判据见
+ * `docs/port/ui-tests-inventory.md`）：下面那十二条是**实测过**的——临时配置一次放开全部
+ * 43 个节点测试，跑绿的那 12 个逐个记下断言数，合计 52 条，才写进来。
+ * 每确认一层能跑，就往上加一条，加的那次必须能说出为什么；用显式文件路径而不是
+ * `src/nodes/shared/*.test.tsx` 这类族 glob，是为了新搬进来的文件不会被顺手放绿。
  *
  * `@material/material-color-utilities@0.4.0` 的 ESM 产物里是**无扩展名的内部 import**
  * （`…/dynamiccolor/dynamic_color`），Vite 能解析、Node 的 ESM 加载器不能。
@@ -37,6 +38,20 @@ export default defineConfig({
       'tests/**/*.spec.ts',
       'tests/**/*.spec.tsx',
       'src/lib/design-theme/**/*.test.ts',
+      // 以下 12 个是搬运批次带进来的上游节点测试里**实测能跑**的那一批
+      // （38 文件 / 300 断言，`docs/port/ui-tests-inventory.md` 有前后对照）。
+      'src/nodes/findz/workspace-layout.test.ts',
+      'src/nodes/logx/browser-boundary.test.ts',
+      'src/nodes/marku/workflow-result-projection.test.ts',
+      'src/nodes/marku/workflow-state.test.ts',
+      'src/nodes/shared/LocalAudioPreviewDialog.test.tsx',
+      'src/nodes/shared/LocalImagePreview.test.tsx',
+      'src/nodes/shared/LocalImagePreviewDialog.test.tsx',
+      'src/nodes/shared/LocalVideoPreview.test.tsx',
+      'src/nodes/shared/LocalVideoPreviewDialog.test.tsx',
+      'src/nodes/shared/externalNodeGateway.test.ts',
+      'src/nodes/shared/useLocalFileDrop.test.tsx',
+      'src/nodes/shared/useNodeSurface.test.ts',
     ],
     server: {
       deps: {
