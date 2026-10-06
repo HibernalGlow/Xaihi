@@ -152,10 +152,31 @@ export interface NodeDanger {
   exportName?: string
 }
 
+/** 使用面里的一行：纯串（单语）或 `{zh,en}` 两份都收。 */
+export type LocalizedLine = string | LocalizedText
+
+/**
+ * 一个使用面块：上游那份的形状（带 `title` / `summary`，每条还能双语）。
+ *
+ * 为什么契约要收这一形而不是只有下面那份扁平表：聚合 CLI 的渲染器
+ * （`packages/cli-runtime/src/help.ts:7-10`）与 `packages/contract/src/index.ts:179`
+ * 读的**本来就是块数组**（`workflow.title` / `summary` / `ui` / `cli` / `tips`），
+ * 而 node-sdk 这边原先只收"按面分组的 `string[]`"⇒ 同一份上游数据搬进来时，
+ * 46 个 title/summary 与 125 条中文要么丢、要么渲染器读不到。两种都收才是并集。
+ */
+export interface NodeHelpWorkflow {
+  title?: LocalizedText
+  summary?: LocalizedText
+  ui?: readonly LocalizedLine[]
+  cli?: readonly LocalizedLine[]
+  tips?: readonly LocalizedLine[]
+}
+
 /** 使用说明，按使用面分组。 */
 export interface NodeHelp {
   whenToUse?: LocalizedText
-  workflows?: Partial<Record<(typeof HELP_SURFACES)[number], string[]>>
+  /** 块数组（上游 / contract / 聚合 CLI 那一形）或扁平表（本仓早先那一形）都合法。 */
+  workflows?: readonly NodeHelpWorkflow[] | Partial<Record<(typeof HELP_SURFACES)[number], string[]>>
 }
 
 /** 一份节点定义。 */
@@ -311,6 +332,55 @@ export function validateNodeDefinition(raw: unknown): NodeValidation {
   }
 
   if (raw.help !== undefined && !isPlainObject(raw.help)) errors.push('help must be an object')
+  if (raw.help !== undefined && isPlainObject(raw.help)) {
+    const workflows = (raw.help as { workflows?: unknown }).workflows
+    if (workflows !== undefined) {
+      const line = (value: unknown, where: string): void => {
+        if (typeof value === 'string') return
+        if (isPlainObject(value)) {
+          const zh = (value as { zh?: unknown }).zh
+          const en = (value as { en?: unknown }).en
+          if (typeof zh !== 'string' || typeof en !== 'string') {
+            errors.push(`help.workflows ${where}: 每个语言都得是非空字符串（{zh,en}），不是串也别是半边`)
+          }
+          return
+        }
+        errors.push(`help.workflows ${where}: 只收 string 或 {zh,en}`)
+      }
+      if (Array.isArray(workflows)) {
+        for (const [at, block] of workflows.entries()) {
+          if (!isPlainObject(block)) {
+            errors.push(`help.workflows[${at}]: 块必须是对象`)
+            continue
+          }
+          const entry = block as Record<string, unknown>
+          for (const field of ['title', 'summary'] as const) {
+            if (entry[field] !== undefined) line(entry[field], `[${at}].${field}`)
+          }
+          for (const surface of HELP_SURFACES) {
+            const steps = entry[surface]
+            if (steps === undefined) continue
+            if (!Array.isArray(steps)) {
+              errors.push(`help.workflows[${at}].${surface} 必须是数组`)
+              continue
+            }
+            for (const [index, step] of steps.entries()) line(step, `[${at}].${surface}[${index}]`)
+          }
+        }
+      } else if (isPlainObject(workflows)) {
+        for (const [surface, steps] of Object.entries(workflows as Record<string, unknown>)) {
+          if (!HELP_SURFACES.includes(surface as (typeof HELP_SURFACES)[number])) {
+            errors.push(`help.workflows 用了不认识的面 "${surface}"（可写的是 ${HELP_SURFACES.join(', ')}）`)
+          }
+          if (!Array.isArray(steps) || steps.some((step) => typeof step !== 'string')) {
+            errors.push(`help.workflows.${surface} 扁平那一形必须是 string[]`)
+          }
+        }
+      } else {
+        errors.push('help.workflows 只能是块数组或按面分组的对象')
+      }
+    }
+  }
 
   if (errors.length > 0) return { ok: false, errors }
   return { ok: true, value: raw as unknown as NodeDefinition }

@@ -482,3 +482,37 @@ check-cli-parity: 27 个包，比了 26 张开关表，真跑了 7 条命令，�
 `换值判了 2 条` 不变（linedup `--source`、marku `--input`），`--self-check` 28 条夹具 rc=0，全量 rc=0。
 要再把那 4 个包纳进来，需要的是**给它们造临时目录夹具**（`--path` 指向 `.scratch/` 下真存在的目录），
 那是下一步的量法，不是把判据放松。
+
+## 步骤①已落地：`help.workflows` 契约现在两形都收（同日）
+
+先更正一处我自己在末节里写错的话：**这张表并不是"没有读者"**。
+`packages/cli-runtime/src/help.ts:7-10`（聚合 CLI 的渲染器）读的正是上游那一形
+——`workflow.title` / `summary` / `ui` / `cli` / `tips`，`packages/contract/src/index.ts:179` 也声明成
+`readonly NodeHelpWorkflow[]`。真正错位的是 **node-sdk 这一侧**：它原先只收"按面分组的 `string[]`"，
+于是同一份双语块数据要么丢 title/summary、要么丢中文、要么渲染器读不到。
+代理 C 报的"读者缺失"是它按 `nodeHelpFromManifest` 一条看的结果，方向对但结论太宽——
+这句以我现读的两处代码为准。
+
+改动（`packages/node-sdk/src/node.ts`）：
+
+- `NodeHelp.workflows` 现在是 `readonly NodeHelpWorkflow[] | Partial<Record<Surface, string[]>>`：
+  **块数组那一形是新增的，扁平那一形原样保留** ⇒ 现存 26 份清单不必改也仍然合法。
+- `validateNodeDefinition` 加了真校验（不写就等于"两种都收"变成"什么都能塞"）：
+  每行只收 `string` 或 `{zh,en}` 且两边都得是非空串；块必须是对象；扁平那一形的面名必须在
+  `HELP_SURFACES` 里、值必须是 `string[]`；整体既不是数组也不是对象就拒。
+- 新测试 `packages/node-sdk/tests/help-workflows-shape.spec.ts` 8 条：两种合法形状各一条，
+  六条必须被拒（半边语言、行不是串也不是对象、面名写成 `panels`、扁平里塞对象、块不是对象、整体是串）。
+
+实测：`node-sdk test:unit` **10 文件 / 105 条 rc=0**、`typecheck` rc=0、`build` rc=0；
+`check:noderegistry`、`check:cliregistry`、`pnpm test:contract`（16 条）全 rc=0；
+`scripts/check-cli-commands.mjs` 仍 rc=0（`absent 0`）。
+用建好的 `lib/index.js` 现读**全部 27 份清单跑校验器：红 0** ⇒ 这次加宽没有把任何已提交的包判成非法。
+
+顺手修了一条**先前就存在**的红：`packages/node-sdk/tests/help.spec.ts:33` 的
+`block[1]` 在 `noUncheckedIndexedAccess` 下是 TS2532（`git show HEAD:` 那份同一段代码逐字相同，
+所以不是我这次改出来的），改成 `block?.[1]` + 明确的 undefined 分支。
+
+**还剩三步**（任务 #30）：② 按上游原文把 23 份里的内容重嵌成块形状并补回 125 条中文
+（C 改写到各包真实 `bin` 上的那 92 条英文要留着）；③ 让 `nodeHelpFromManifest` 也读 `manifest.help`
+（它确实不读，这条我复核过）；④ 最后才重钉那 20 份 `definition.spec.ts` 的键集合。
+那 23 份 manifest 与重生成的产物**仍未提交**，等的就是 ②。

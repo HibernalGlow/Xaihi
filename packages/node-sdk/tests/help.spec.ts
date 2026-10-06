@@ -29,8 +29,9 @@ const GOOD = {
 function contractHelpFields(): string[] {
   const source = readFileSync(new URL('../../../packages/contract/src/index.ts', import.meta.url), 'utf8')
   const block = /export interface NodeHelp \{([\s\S]*?)\n\}/.exec(source)
-  if (block === null) throw new Error('读不到 @xiranite/contract 的 NodeHelp：这条对照尺失效了')
-  return [...block[1].matchAll(/^\s{2}(\w+)\??:/gm)].map((match) => match[1] as string)
+  const body = block?.[1]
+  if (body === undefined) throw new Error('读不到 @xiranite/contract 的 NodeHelp：这条对照尺失效了')
+  return [...body.matchAll(/^\s{2}(\w+)\??:/gm)].map((match) => match[1] as string)
 }
 
 describe('nodeHelpFromManifest', () => {
