@@ -306,3 +306,37 @@ client face 建完之后，这一档的判据已经写好，跑的是活体而�
 壳空闲时同一步连跑三次是 10 / 16 / 28 ms ⇒ 不是路由慢；可疑点是"上一个窗刚 close 完，主窗文档的
 执行上下文还没稳"。现在的处理是基础设施步（读 manifest、导航）允许再读一次且两次读数都打出来，
 **行为步（三次 open、守卫拒绝）不重试**——重试会把"open 自己不落地"这类真缺陷盖掉。
+
+## F 段：决定 4 的"退化要在界面上读得回来"第一次真上屏（2026-10-07 05:5x，同一棵壳）
+
+壳侧的动词到 0006 为止已经全绿，但决定 4 要的不是"产物里有定义"，是**使用者不开控制台也能看见**。
+这一格落在 bundle 侧（不在 `desktop/`）：
+
+- `packages/ui-host/src/document/boot-notice.ts` 是纯函数，分两档：`describeHostSurface` 只报现场事实
+  （在顶层窗还是 iframe 里 + 独立窗动词读回），`describeNoBridge` 才允许说"桥等不到"。
+  分成两档是因为 realm 探针**从不等桥**，它原先那句"桥没答话"是过度陈述——被 F 的反向对照逼出来的。
+- 探针（`realm-entry.tsx`，壳的 `uiBundleDir` 现在真的在发的那份产物）画上 `data-xaihi-window-capability`；
+  生产入口（`main.tsx`）原先在 8 秒握手等不到之后**什么都不画**（空白页＝静默），现在画同一档的失败面。
+- 开窗探测走 `@hibernalglow/xaihi-sdk/bridge` 取，不从裸名取：ui-host 的浏览器图里裸名被
+  `build-aliases.mjs` 的 `BROWSER_GRAPH_ALIASES` 刻意收窄成 `help.ts`，裸名 import 的后果是
+  `pnpm exec rspack build -c rspack.realm.mjs` **rc=1**
+  （`ESModulesLinkingError: export 'readXaihiWindowCapability' was not found … possible exports: nodeHelpFromManifest`），
+  而 vitest 全绿（它按源码解析）。⇒ 这条边的判据必须是浏览器图那把尺，不是单测。
+
+实机（`node desktop/live-check.mjs` ⇒ **35 条 OK、rc=0**）：
+
+- 顶层窗读到 `attr="supported"`，正文
+  `这是桌面壳直接开出来的顶层窗，装的是节点 xaihi-linedup 的文档。 独立窗：可用（自家桌面壳已接 0001 的动词）`，
+  与现场注入面 `typeof window.dshDesktop.xaihiWindow === 'object'` 对得上。
+- 反向对照比原设计更硬：同一份文档嵌进 `<iframe>` ⇒ `attr="no-shell-surface"`，文案换成
+  "装在外层 iframe 里，不是顶层窗 …… 独立窗：不可用 —— 不在桌面壳里"
+  ⇒ 预加载的 `dshDesktop` 不进子帧，那句读回真跟着宿主变，不是写死的字符串。
+- 单测 12 条（`packages/ui-host/tests/boot-notice.spec.ts`），阳性对照实测：把 `supported === true`
+  改成恒真 ⇒ vitest **rc=1、点名 4 条**；node-sdk 侧 `desktop-windows.spec.ts` 8 条仍绿。
+- **`main.tsx` 那一档没有上屏证据，也没有编译证据**：壳现在发的产物是 realm 探针（`dist-realm`），
+  生产入口走 `dist-ui`（`rspack.document.mjs`），而这条链当场建不起来 ——
+  `pnpm exec rspack build -c rspack.document.mjs` **rc=1、6 条错**，逐条归属：
+  `./src/components/views/settings/RuntimeSection.tsx`（3 条，在未提交区里）、
+  `./src/nodes/classf/ClassfDeletionHistoryDialog.tsx`（1 条）、`./src/nodes/marku/WorkflowEditor.tsx`（2 条），
+  **全部是搬运那刀的在飞文件，错误集里没有 `main.tsx` 也没有 `boot-notice.ts`**。
+  等那一刀落地再补跑这条；现在它只是纯函数实跑（12 条）加改动本身，不写成"已编译验证"。

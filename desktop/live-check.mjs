@@ -376,6 +376,41 @@ const E = await evaluateMain(`(async () => {
 })()`)
 console.log('E 段（页面自己 window.open 走原生窗）⇒ ' + JSON.stringify(E))
 
+// F 段：界面上的退化读回（ADR-0011 决定 4 要求"读得回来"，不是产物里有定义）。
+// 反向对照走 iframe 那一格：同一份文档嵌进 `<iframe>` 后 `window.parent !== window`，
+// 文案必须换分支 —— 否则 F 读到的那句可以是一条写死的字符串。
+const F = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const node = manifest.plugins[0].manifest.id
+  const docUrl = 'dsh-app://app' + manifest.ui.documentUrl + '?node=' + node
+  const opened = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL(docUrl)
+  await Promise.race([opened, new Promise((r) => setTimeout(r, 6000))])
+  const READ = "(() => { const el = document.querySelector('[data-xaihi-window-capability]'); const box = document.querySelector('[data-xaihi-realm-probe]'); return { attr: el ? el.getAttribute('data-xaihi-window-capability') : null, text: el ? el.textContent : null, probe: box ? box.textContent.slice(0, 40) : null, surface: typeof (window.dshDesktop && window.dshDesktop.xaihiWindow) } })()"
+  const top = await app.webContents.executeJavaScript(READ, true)
+  // 这里不许用嵌套模板字符串：外层本身就是模板，反引号会把它截断（实机炸过一次，rc=1 且没跑判据）。
+  const NESTED = "(() => new Promise((res) => {"
+    + " const frame = document.createElement('iframe');"
+    + " frame.style.cssText = 'position:fixed;left:-4000px;width:600px;height:400px';"
+    + " frame.addEventListener('load', () => { setTimeout(() => {"
+    + " try { const el = frame.contentDocument.querySelector('[data-xaihi-window-capability]');"
+    + " res({ attr: el ? el.getAttribute('data-xaihi-window-capability') : null, text: el ? el.textContent : null });"
+    + " } catch (error) { res({ error: String(error).slice(0, 80) }); } frame.remove(); }, 1800); }, { once: true });"
+    + " frame.src = " + JSON.stringify(docUrl) + ";"
+    + " document.body.appendChild(frame);"
+    + " }))()"
+  const nested = await app.webContents.executeJavaScript(NESTED, true)
+  return { node, docUrl, top, nested }
+})()`)
+console.log('F 段（屏幕上的退化读回）⇒ ' + JSON.stringify(F))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -426,6 +461,15 @@ need('E: 原生那一个窗真出来了，寻址到被点的 node，标题也带
   && String(ee.nativeProbe?.title).includes(String(ee.target).split('node=')[1] ?? '~none~'))
 need('E: 对照——自家非文档路径的 window.open 没长出窗', ee.inner === 'null' && ee.innerCreated === 0)
 need('E: 收尾把自家窗清干净', ee.ownedLeft === 0)
+
+const ffs = F.ok === true ? F.value : {}
+need('F: 顶层窗在屏幕上读回"独立窗：可用"（决定 4 要的是看得见，不是产物里有定义）',
+  ffs.top?.attr === 'supported' && typeof ffs.top?.text === 'string'
+  && ffs.top.text.includes('桌面壳直接开出来的顶层窗') && ffs.top.text.includes('独立窗：可用'))
+need('F: 那句能力与现场注入面对得上（不是写死的字符串）',
+  ffs.top?.attr === 'supported' ? ffs.top?.surface === 'object' : ffs.top?.surface !== 'object')
+need('F: 反向对照——同一份文档嵌进 iframe 后换了说法',
+  typeof ffs.nested?.text === 'string' && ffs.nested.text.includes('外层 iframe') && ffs.nested.text !== ffs.top?.text)
 
 ws.close()
 if (failures > 0) {
