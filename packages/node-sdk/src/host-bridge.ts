@@ -27,13 +27,13 @@
 import type { OperationEventKind } from './operations.ts'
 
 /** 桥的判别式 schema 名。 */
-export const BRIDGE_SCHEMA = 'xaihi.bridge/1'
+export const BRIDGE_SCHEMA = 'xaihi.bridge/1' as const
 
 /**
  * 桥承载的宿主合同版本。值逐字取自上游 `NODE_HOST_CONTRACT_VERSION`（`packages/contract/src/index.ts:8`）；
  * 不一致就**拒绝**而不是静默降级——与本仓对契约版本的一贯做法一致。
  */
-export const BRIDGE_CONTRACT_VERSION = '1.0.0'
+export const BRIDGE_CONTRACT_VERSION = '1.0.0' as const
 
 /** 单条桥消息的字节上界：跨文档的消息没有背压，不设上界等于把外壳让给一个失控的面板。 */
 export const BRIDGE_MAX_MESSAGE_BYTES = 256 * 1024
