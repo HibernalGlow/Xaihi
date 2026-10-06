@@ -169,7 +169,7 @@ describe("dissolvef core", () => {
 })
 
 async function tempRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "xiranite-dissolvef-"))
+  const root = await mkdtemp(join(tmpdir(), "xaihi-dissolvef-"))
   tempRoots.push(root)
   return root
 }
