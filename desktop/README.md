@@ -610,3 +610,7 @@ mac 上 `captionOwner=system`、`captionInset={x:16,y:18}`、`nativeWindowContro
 再记一条我自己又踩的老毛病：产物判据一开始搜 `'move'` 恒假 —— 打包器把单引号规范成双引号
 （**0006 那次已经记过同一条**），改成只搜与引号无关的标识符（`xaihiFrameSink` / `publishFrame` /
 `xaihiWindowFrameChanged`）。尺红的时候先怀疑它犯过的那个错，这次答案正是"犯过"。
+**这条新样式的判据只证到一半**：真摘掉 0012/0013 重放（11/11、tsc + bundle 都 rc=0）之后 `--verify` rc=1，
+但先撞上的是**通道名**那条（`0010/0011 的通道缺 ⇒ xaihiWindowFrameChanged`，现读 31 期望 32）就退出了，
+所以产物侧那三个标识符的敏感性只由"旧写法恒假那一次假红"证明过，没有独立跑成"摘掉后由产物判据点名"。
+恢复 13/13 重放 + 重建 ⇒ `--verify` rc=0、`live-check` 再跑一次 **79 条 OK、rc=0**。
