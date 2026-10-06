@@ -1,0 +1,41 @@
+{
+  "name": "@hibernalglow/xaihi-ui-kit",
+  "version": "0.0.0",
+  "description": "Material 3 \u89c2\u611f\u7684\u8282\u70b9\u9762\u677f\u7ec4\u4ef6\uff1a\u53ea\u5403 --xaihi-* \u522b\u540d\uff0c\u63d2\u4ef6\u4e0d\u8bb8\u81ea\u5e26\u989c\u8272\u3002",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@types/react-dom": "^18.3.7",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}

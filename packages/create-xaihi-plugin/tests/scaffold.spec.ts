@@ -57,10 +57,48 @@ describe('scaffold', () => {
     }
   })
 
+  it('每个生成物都是能解析的 TS/TSX（语法级门禁）', async () => {
+    const ts = await import('typescript')
+    const files = filesOf(input)
+    const sources = Object.entries(files).filter(([path]) => /\.tsx?$/.test(path))
+    expect(sources.length).toBeGreaterThan(4)
+    for (const [path, content] of sources) {
+      const emitted = ts.transpileModule(content, {
+        reportDiagnostics: true,
+        fileName: path,
+        compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX },
+      })
+      const messages = (emitted.diagnostics ?? []).map((d) => ts.flattenDiagnosticMessageText(d.messageText, ' '))
+      expect(messages, `${path}: ${messages.join(' | ')}`).toEqual([])
+    }
+    // 阳性对照：同一条尺必须看得见坏语法，否则上面那段是空断言。
+    const broken = ts.transpileModule('export const Panel = () => <div>{<', {
+      reportDiagnostics: true,
+      fileName: 'broken.tsx',
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX },
+    })
+    expect((broken.diagnostics ?? []).length).toBeGreaterThan(0)
+  })
+
   it('CLI 参数：--sdk-version 换成发布期版本', () => {
     const parsed = parseArgs(['demo-node', '--node-id', 'demonode', '--sdk-version', '0.1.0-alpha.1', '--dir', '/tmp/x'])
     expect(parsed.sdkVersion).toBe('0.1.0-alpha.1')
     expect(parsed.targetDir).toBe('/tmp/x')
     expect(parsed.nodeId).toBe('demonode')
+  })
+
+  it('生成的面板只经 UI Kit 上色，自己不写颜色', () => {
+    const files = filesOf(input)
+    // 只看代码：模板的文件头注释里就写着"不写 --dsw-*"，那不算违规。
+    const panel = (files['frontend/Panel.tsx'] as string).replace(/^\/\*\*[\s\S]*?\*\//, '')
+    expect(panel).toContain("from '@hibernalglow/xaihi-ui-kit'")
+    expect(panel).toContain('<XPanel')
+    expect(panel).toContain('<XButton')
+    expect(panel).not.toMatch(/#[0-9a-f]{3,8}\b/i)
+    expect(panel).not.toContain('--dsw-')
+    expect(panel).not.toContain('createRoot')
+    // 依赖没带上的话，生成物的 rspack 构建会在解析 kit 时就红。
+    const pkg = JSON.parse(files['package.json'] as string) as { devDependencies: Record<string, string> }
+    expect(pkg.devDependencies['@hibernalglow/xaihi-ui-kit']).toBe(input.sdkVersion)
   })
 })
