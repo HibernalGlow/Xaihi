@@ -20,6 +20,18 @@
 方向没错，但**"自带 React"只是必要条件**。决定成败的不是组件 `import` 到哪个 React，
 而是**谁来渲染**：元素对象与 hook 都绑定在具体那一份 React 上。
 
+**这条已经不是假设，本仓里已经撞上了（22:5x 实测）**：搬运批次正在往 `packages/ui-host/src/` 落，
+其中 `lib/pie-menu/primitive.tsx:16` 逐字 `import { createContext, use, useCallback, … } from "react"`，
+用的是 React **19 才有**的 `use()`；而这一档尺是——
+`@types/react@19.2.10/index.d.ts:1956` 有 `export function use<T>(usable: Usable<T>): T;`，
+`@types/react@18.3.31/index.d.ts` 里**一个裸 `use` 都没有**（同文件里只有 `useContext` / `useState` 那一族），
+且 `packages/ui-host` 现读的正是 `react@18.3.1` + `@types/react@18.3.31`。
+⇒ 这份 vendored 文件的头注释写着"Third-party surface is react / react-dom / radix-ui only,
+all of which this repo already carries"与"Departures from upstream: none"——**两句在 18 下都不成立**。
+（另：`pnpm --filter @hibernalglow/xaihi-ui typecheck` 现在先红在别处
+——`tsconfig.json(5,5): error TS5101: Option 'baseUrl' is deprecated`，
+搬运批的 tsconfig 还没跟上，所以 `use()` 这一条**尚未被类型检查暴露**，别把"没报"读成"没问题"。）
+
 ## 实测（一次隔离宿主上的探针，两条都失败，且失败点不同）
 
 探针包 `plugins/r19spike`（一次性，已删；未进主线，profile 已卸载）。
