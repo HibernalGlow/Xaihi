@@ -15,6 +15,7 @@
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { join, sep } from 'node:path'
+import { NODE_ID_PATTERN } from '@hibernalglow/xaihi-sdk'
 import type { ServedRegistration } from './registry.ts'
 
 /** 后缀到 Content-Type；不在表内的一律拒绝，避免把目录里任何文件当资源发出去。 */
@@ -110,8 +111,9 @@ const REV_PATTERN = /^[0-9a-f]{12}$/
 /**
  * 节点寻址段的形状（ADR-0011 决定 3：节点各自成窗用的是**同一份文档 + 寻址参数**，
  * 不是每个节点一份产物）。清单 id 就是这个小写段，所以闸也按它收。
+ * 判据本身住在 SDK：桥上的 `state.<verb>(node)` 读的是同一份（那里的注释记着为什么必须同源）。
  */
-const NODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/
+const NODE_PATTERN = NODE_ID_PATTERN
 
 /** UI 产物目录与其修订号的来源。 */
 export interface UiBundleSource {

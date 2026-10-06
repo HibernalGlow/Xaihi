@@ -21,6 +21,7 @@ import {
   negotiateBridge,
   parseBridgeMessage,
   providerOf,
+  NODE_ID_PATTERN,
   STATE_SETTINGS_FIELD,
   STATE_SETTINGS_NS,
   type BridgeHello,
@@ -75,10 +76,13 @@ export interface ShellCapabilities {
   env?: BridgeEnv
 }
 
-/** 节点 id 的闸：非空、够短、并且不许是原型链上的键（那会写进 `__proto__`）。 */
+/** 节点 id 的闸：形状读 `NODE_ID_PATTERN` 那份真源，原型键单独点名下。 */
 function checkNodeKey(node: unknown): string | null {
   if (typeof node !== 'string' || node === '') return 'state 的第一段要是节点 id（非空字符串）'
-  if (node.length > 64) return `节点 id 太长了（${String(node.length)} 个字符，上界 64）`
+  if (!NODE_ID_PATTERN.test(node)) {
+    return `节点 id ${JSON.stringify(node)} 不合形状（^[a-z0-9][a-z0-9_-]{0,63}$，与 /xaihi/ui 那条寻址用同一份判据）`
+  }
+  // 这三个能过形状闸，但会写进对象的原型位上——形状闸管不到这一层，所以留一条明写的。
   if (node === '__proto__' || node === 'constructor' || node === 'prototype') return `节点 id ${node} 不能当设置里的键`
   return null
 }

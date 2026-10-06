@@ -199,20 +199,26 @@ describe('请求求值', () => {
       expect(patches[0]).toEqual({ nodeState: { 'sleept': '{"a":3}', 'other-node': '{"keep":1}' } })
     })
 
-    it('节点 id 三道闸：空、过长、原型键都得拒，而且 reason 是人话', async () => {
+    it('节点 id 的形状闸与路由那侧同一份判据：空、过长、原型键、路径段、大写都拒', async () => {
       const calls: string[] = []
       const { sent, bridge } = harness({ settings: stateFace(calls, rowsWith('sleept', '{"a":1}')) })
       await bridge.receive(hello(), ORIGIN)
-      for (const bad of ['', 'x'.repeat(65), '__proto__']) {
-        await bridge.receive(request('state.getData', [bad], `r-${bad.length}`), ORIGIN)
+      // `../etc` 这条是 2026-10-06 真宿主上实测到的**两处门不一致**：路由按 NODE_PATTERN 拒，
+      // 桥上当时把它当一个普通键收下了（写进 nodeState["../etc"]）。现在两道门读同一份判据。
+      for (const bad of ['', 'x'.repeat(65), '__proto__', '../etc', 'Sleept', 'a/b']) {
+        await bridge.receive(request('state.getData', [bad], `r-${bad.length}-${calls.length}`), ORIGIN)
       }
       const denials = sent.filter((m) => m.kind === 'response' && m.ok === false)
-      expect(denials).toHaveLength(3)
+      expect(denials).toHaveLength(6)
       for (const denial of denials) {
         if (denial.kind !== 'response') continue
         expect(denial.error?.reason).toBe('bad-args')
         expect((denial.error?.detail ?? '').length).toBeGreaterThan(0)
       }
+      // 阳性对照的反面：合形状的合法 id 必须走通，否则上面六条是恒真。
+      await bridge.receive(request('state.getData', ['sleept'], 'r-ok'), ORIGIN)
+      const okReply = sent.filter((m) => m.kind === 'response').at(-1)
+      expect(okReply?.kind === 'response' && okReply.ok).toBe(true)
     })
 
     it('设置里没声明那一格时报 state-namespace-missing，而不是回一个 undefined 装作读到了', async () => {

@@ -165,6 +165,17 @@ export const DOCUMENT_OWNED_GROUPS = ['workspace', 'env', 'contract'] as const s
 /** `state.*` 持久快照所在的设置命名空间（= 宿主侧那行 loader 的 id）。 */
 export const STATE_SETTINGS_NS = 'xaihi-core' as const
 
+/**
+ * 节点 id 唯一的那道形状闸。
+ *
+ * 为什么要有真源而不是两处各写一份：同一件事在本仓有**两道门**——
+ * `/xaihi/ui/<rev>/index.html?node=…`（ADR-0011 决定 3 的寻址）与桥上的 `state.<verb>(node)`。
+ * 2026-10-06 在真宿主上实测到两处不一致的后果：路由那侧按这个形状拒，桥上却把
+ * `../etc` 当成一个合法的设置键收下了（写进 `nodeState["../etc"]`，虽然落不到文件系统路径上，
+ * 但那份数据的归属就再也读不回来了）。两道门读同一份判据，词汇表也只有一份。
+ */
+export const NODE_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/
+
 /** 那个 volatile 字段的字段名，形状是 `Record<nodeId, JSON 文本>`。 */
 export const STATE_SETTINGS_FIELD = 'nodeState' as const
 
