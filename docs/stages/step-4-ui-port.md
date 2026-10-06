@@ -256,3 +256,46 @@ md3 与 mondrian 发 `#rrggbb`，**武陵发 `oklch(...)`**，**孤星的半透�
 全仓 `pnpm test` 的结果不可归因，只跑了自己那一档的 `vitest run`）；
 设计语言与宿主面板的接线（`applyDesignTheme` 挂进 `ctx.effect`、CSS 注入、`@/backend` → DSH 接缝、
 React 19 写法回退）一条都还没接；浏览器实机观感未验。
+
+## 9. 这一轮的三刀与它们各自留在未提交区的东西（2026-10-07 00:52）
+
+**提交**：`ony`（`@xiranite/*` 解析收成一张表）、`kpk`（批次 E 四个节点成包）、
+`rxo`（CSS 产物与运行期作用域那一半）、`nxy`（`@parcel/watcher` 占位串拍成 `false`）。
+
+### 改了什么
+1. **一张解析表**：`packages/ui-host/build-aliases.mjs` 是 `@xiranite/*` → 本仓源码的唯一映射，
+   `tsdown.config.ts`、`vitest.config.ts`、`tsconfig.ported.json` 三处都从它取；它自带同步尺
+   （别名条数 vs tsconfig 里 `@xiranite/*` 的键数）与 `assertAliasTargets()`（每条都得指到真文件）。
+   自检当场抓到我两个错：一条指到不存在的 `packages/api/src/index.ts`，以及通配键与精确键的漂移。
+2. **批次 E 成包**：`plugins/{logx,recycleu,samea,timeu}` 各带 `./cli`、`./help`、`bin`、
+   三条 tsdown 入口与两份 spec；`src/nodes/*/entry.ts` 四个连接点改成从生成注册表取 `def`；
+   `docs/port/xaihi-deltas.json` 登记这四条为**有意重写**而不是漂移。
+3. **CSS 那一半**见 `step-4-css-pipeline.md` §8（含它抓到的一条引用计数漏）。
+
+### 为什么这样设计
+表只有一张，是因为"三处各自维护一份别名"这件事上一轮真的漂过：探针构建的 8 条 RESOLVE_ERROR
+里有 3 条就是 tsconfig 有、构建没有。把同步做成脚本内的断言而不是文档约定，是同一个错只犯一次的唯一办法。
+
+### 与 DSH API 的关系
+浏览器半边仍然只出 `lib/client.js` 一个文件（`@deepseek-ai/dsh-client-modules` 的资源路由
+只发 `client.*.js`，见 `packages/ui-host/scripts/check-client-bundle.mjs` 现在断的三件事：
+单文件、无 Node 专用 require、无相对分片）。所有 `@xiranite/*` 与 `@/` 都在构建期内联掉，
+所以运行时不需要任何本仓没有的包名。
+
+### 留在未提交区的两件与原因
+- `src/client/surface.tsx` 与 `tests/css-scope.spec.tsx`：同一文件里载着并发 lane 正在做的
+  整块重写（`RealmProps` / `NoDocumentFace`），GitButler 只能整文件收，按"不替别人提 hunk"这条
+  两边一起等；接线的代码在盘上并已跑绿（12 条 spec，减法跑测两条红）。
+- `packages/ui-host/package.json`（`@tailwindcss/oxide: 4.3.2`）与 `pnpm-lock.yaml`：
+  声明与 lock 不能分开发；而这份 lock 现在同时载着批次 F 那六个还没成形的包目录，
+  提上去会给干净检出多出六个空 importer。
+  **另记一条 HEAD 本来就有的同类悬挂**：`pnpm-lock.yaml` 已列 `plugins/findz`（其 `package.json`
+  未提交）与 `packages/ui-kit`（该包在 ADR-0006 退回时已删）⇒ 干净检出的 `pnpm install --frozen-lockfile`
+  **在这一条上早就红**，收口时一并清，不是这一轮造成的。
+
+### 脚手架落后于已成形的包（下一条该做的）
+`create-xaihi-plugin` 现在只出 13 个文件，缺 `src/{cli,cli-support,help}.ts`、`tests/cli.spec.ts`、
+`vitest.config.ts` 以及 `bin` / `exports` 的 `./cli` `./help` / 三条 tsdown 入口——
+批次 E 与 F 都是**手抄 `plugins/samea` 补上这一块的**。补法应当是生成器在仓内直接读
+`plugins/linedup/src/cli-support.ts` 再改写 `@module` 那一行（这样 `check:vendored` 那条字节尺
+天然守住），而不是在模板里再抄第二份。
