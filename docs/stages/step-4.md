@@ -845,6 +845,14 @@ P1 一旦落地，要改的只有 `resolveAgent()` 里"从哪儿取值"这一处
    **就是清单本体**，而这个包的 `exposes` 是多行写的。改成按片段断言后 4/4 绿。
    hello 也没有 `xaihi.node`：它是"最裸的 cordis 插件"样本（工具名 `xaihi_hello_ping` 被钉成断言），
    SDK 形状由 linedup 与脚手架承担，这一点写进了 spec 的文件头。
+5. 枚举门禁的漏口与它的减法跑测：门禁按 `plugins/*/frontend/Panel.tsx` 枚举，所以"某包的
+   面板文件缺失或改名"会让它**静默变窄**——干净检出里 `findz` 不在，报的就是"4 个面板"
+   （实测：`git worktree add --detach 9815041` ⇒ install / `check:panels` / build / typecheck /
+   `test:unit` 全 rc=0，9 个测试文件）。补了 `findMissingPanels()`：有 `frontend/` 却没有
+   `Panel.tsx` 的包直接判违规。这条新机制自己也做了减法跑测——临时建
+   `plugins/zz-hole/frontend/`（不放 Panel.tsx）⇒ `rc=1` 并点名该包；删掉目录后 `rc=0`。
+   `--self-check` 现在也覆盖这个洞（合成两个目录、只有一个有 frontend ⇒ 必须恰好报 1 处）。
+
 
 ### 为什么这样设计
 

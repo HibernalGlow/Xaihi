@@ -68,6 +68,17 @@ export function findViolations (lines, label, requireKitImport) {
   return problems
 }
 
+/** 有 frontend/ 却没有 Panel.tsx 的包：枚举式门禁会被它静默变窄，所以要单独报。 */
+export function findMissingPanels (pluginDirs, hasFile) {
+  const problems = []
+  for (const dir of pluginDirs) {
+    if (hasFile(`${dir}/frontend`) && !hasFile(`${dir}/frontend/Panel.tsx`)) {
+      problems.push(`${dir}: 有 frontend/ 却没有 Panel.tsx（面板缺失或改名，门禁就会漏掉它）`)
+    }
+  }
+  return problems
+}
+
 /** 阳性对照：合成一段必须被抓到的代码。 */
 function selfCheck () {
   const bad = stripComments([
@@ -81,18 +92,27 @@ function selfCheck () {
     console.error(`check-panels: 尺是瞎的，这些规则没被抓到：${missing.join(', ')}`)
     return 1
   }
-  console.log(`check-panels self-check OK（4 条规则各被抓到一次，命中 ${String(caught.length)} 处）`)
+  const holes = findMissingPanels(['plugins/x', 'plugins/y'], (path) => path === 'plugins/x/frontend')
+  if (holes.length !== 1) {
+    console.error(`check-panels: 枚举漏口的尺没抓到那个洞（报出 ${String(holes.length)} 处，应为 1）`)
+    return 1
+  }
+  console.log(`check-panels self-check OK（4 条规则各被抓到一次，命中 ${String(caught.length)} 处；枚举漏口 1 处）`)
   return 0
+}
+
+/** 仓里现有的插件目录名。 */
+function pluginDirs () {
+  const pluginsDir = join(ROOT, 'plugins')
+  if (!existsSync(pluginsDir)) return []
+  return readdirSync(pluginsDir, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => `plugins/${entry.name}`).sort()
 }
 
 /** 找出所有该检查的面板文件。 */
 function panelFiles () {
-  const pluginsDir = join(ROOT, 'plugins')
-  if (!existsSync(pluginsDir)) return []
   const found = []
-  for (const entry of readdirSync(pluginsDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue
-    const file = join(pluginsDir, entry.name, 'frontend', 'Panel.tsx')
+  for (const dir of pluginDirs()) {
+    const file = join(ROOT, dir, 'frontend', 'Panel.tsx')
     if (existsSync(file)) found.push(file)
   }
   return found.sort()
@@ -100,7 +120,8 @@ function panelFiles () {
 
 if (process.argv.includes('--self-check')) process.exit(selfCheck())
 
-const problems = []
+const hasFile = (relative) => existsSync(join(ROOT, relative))
+const problems = findMissingPanels(pluginDirs(), hasFile)
 for (const file of panelFiles()) {
   const relative = file.slice(ROOT.length)
   problems.push(...findViolations(stripComments(readFileSync(file, 'utf8')), relative, true))
