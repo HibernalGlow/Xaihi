@@ -79,6 +79,9 @@
 
 | G8 | **模型省略布尔时，声明式默认不生效**。`xaihi.node/v1` 的 `fields[].default` 只有表单侧会填；`define-node` 把省略的布尔折成 `false` | `rawfilter` 因此出现"内核默认 `dryRun=false`、清单默认 `true`"的分叉，两份各钉一条测试钉住现状；这不是 DSH 的缺口，是**我们 SDK 侧的落差**，修法在 `packages/node-sdk/src/define-node.ts` 的入参折叠处补"省略 ⇒ 用清单默认" | `plugins/rawfilter/src/index.ts` 注释与其 `tests/core.spec.ts` 两条 |
 | G9 | **一方节点界面在 2026-10-07 之前根本没有消费者**（见 `docs/adr/0014-first-party-node-ui-in-realm.md`） | 表现是"搬进来了、类型过了、注册了 12 条，屏上一个都没有"；判据是产物字面命中（`lib/client.js` 里搜 `上次任务失败` 命中 0）。修法与验收条件写在 ADR-0014 的后果一节 | `packages/ui-host/src/components/modules/packageModules.generated.ts`、`packages/ui-host/src/client/workspace.tsx` |
+| G10 | **`inputBindings` 的 `trim` 把"省略"折成空串**。内核写 `input.x ?? 默认` 判不出"用户没填"与"填了空" | `bitv` 因此发现：`transferMode` 省略 ⇒ `''`，而 `''` 会走 `move` 那条 **unlink** 分支——真会删源文件。修法是在该节点的白名单里把空串折回默认（`bitv`/`crashu` 同条纪律），并各有测试钉住；根修在 `packages/node-sdk/src/define-node.ts` 的折叠处 | `plugins/bitv/src/index.ts`（`TRANSFER_MODES` 白名单）与其 `tests/core.spec.ts` 那条"源文件不在了：这一趟走的是 move 那条腿" |
+| G11 | **`xaihi.node/v1` 的 `help.workflows` / `help.commands` 是单语 `string[]`**，装不下上游那份 `{zh, en}` 数组 | 那两块整块不搬（它们本来就在教人被拒的终端腿），但这表达能力的缺口留着 | `plugins/bitv/src/help.ts`、上游 `packages/nodes/bitv/src/help.ts` |
+| G12 | **vendored `cli-support.ts` 的 flag 语法窄于上游**：没有位置参数、没有短 flag、重复 flag 取后者 | 终端面因此不接受上游那种 `xbitv a.mp4 b.mp4`；这是有意的取舍（一份 vendored 件比 26 份方言好），但要写进账，别让它以后被当成 bug | `plugins/linedup/src/cli-support.ts`（26 份一致，`check-vendored` 守） |
 **共同形状**：G1/G2/G6 都是同一条边界的两面——DSH 的服务缝活在插件进程里，
 而"能装进 `$PATH` 的那一面"活在它外面。要么给 DSH 提提案（非主机进程的 fs/settings/approval 入口），
 要么接受"bin 面 = 计划器 + 只读查询"这一条明确的口径；两种都比在 bin 里私开一套强。
