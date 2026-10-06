@@ -13,7 +13,7 @@
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { collect, discover, type DiscoverContext } from '../src/index.ts'
+import { collect, discover, isSubpathSpecifier, type DiscoverContext } from '../src/index.ts'
 
 interface EntryLike { options: { id: string; name: string; disabled?: boolean } }
 
@@ -92,6 +92,20 @@ describe('discover', () => {
     const result = discover(fakeContext([row('@fixture/xaihi-demo', true)]))
     expect(result.candidates).toEqual([])
     expect(result.rows.map((entry) => entry.name)).toContain('@fixture/xaihi-demo')
+  })
+
+  it('子路径行单独归类，不当成"定位失败"报病', () => {
+    const result = discover(fakeContext([row('@deepseek-ai/dsh-web-app/startup'), row('@fixture/xaihi-demo')]))
+    expect(result.subpaths).toEqual(['@deepseek-ai/dsh-web-app/startup'])
+    expect(result.candidates).toEqual(['@fixture/xaihi-demo'])
+    expect(result.located.filter((entry) => entry.error !== undefined)).toEqual([])
+  })
+
+  it('isSubpathSpecifier 只把真正的子路径算作子路径', () => {
+    expect(isSubpathSpecifier('@fixture/xaihi-demo')).toBe(false)
+    expect(isSubpathSpecifier('@fixture/xaihi-demo/sub')).toBe(true)
+    expect(isSubpathSpecifier('plain-package')).toBe(false)
+    expect(isSubpathSpecifier('plain-package/sub')).toBe(true)
   })
 
   it('collect 是 discover 的登记表投影', () => {

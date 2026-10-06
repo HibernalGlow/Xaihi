@@ -33,11 +33,15 @@
 ## 落 operation stream 时的两条实测更正（Step 4）
 
 1. **存储面**：`ctx.storage` 只是挂载枢纽，插件侧 typed 面是 `ctx.storageDomain.open(defineDomain(...))`
-   （`storage.md:11,24,184`）。0.2.0-rc.2 **确有** `@deepseek-ai/dsh-storage-domain` 与
-   `@deepseek-ai/dsh-storage`（两者的 `next` 标签都是 0.2.0-rc.2，`latest` 又是撒谎的
-   0.0.1-rc.1），但它们不在默认 web / headless 组合里——本机隔离宿主的 146 个已装包里搜不到。
-   所以上表"不搬 storage"仍然成立，但落 checkpoint 时要**往 profile 的 `dsh.profile.bundles`
-   加一行**（合法装配），而不是自己写 JSON 文件层。
+   （`storage.md:11,24,184`）。**实测已在默认组合里**：隔离宿主 `/xaihi/debug.json` 的 loader 行里
+   `storage` → `@deepseek-ai/dsh-storage`、`storage-json` → `@deepseek-ai/dsh-storage-json`、
+   `storage-domain` → `@deepseek-ai/dsh-storage-domain` 三行都是 `disabled=false`。
+   （我先前根据 `ls node_modules/@deepseek-ai` 得出"没装"，那是**看目录当运行时**的错判，
+   已按 loader 行改正：判"有没有某个服务"要读装配后的行，不是读包目录。）
+   所以落 checkpoint 用 DSH 的 storage domain，不加任何行、不自己写 JSON 文件层。
+   同一份 loader 行还确认了 `subprocess` → `@deepseek-ai/dsh-subprocess-local`、
+   `approval` → `@deepseek-ai/dsh-user-approval`（危险动作的 `ask` 因此真的有出口）、
+   `commands` → `@deepseek-ai/dsh-commands`。
 2. **事件转发面**：DSH 的主机→浏览器通道 `ctx.remote.$on` 是闭集
    （`typert.md` "selected by the Host assembly"；`dsh-api-remotes` 的
    `API_REMOTE_FORWARDED_EVENTS` 是写死的 27 项数组）。这正是"operation stream 必须自己搬"

@@ -75,6 +75,8 @@ export interface Discovery {
   rows: Array<{ id: string; name: string; disabled: boolean }>
   /** 参与 xaihi 扫描的 specifier。 */
   candidates: string[]
+  /** 被子路径规则跳过的行（它们不可能带 `package.json#xaihi`）。 */
+  subpaths: string[]
   /** 每个候选的定位结果：有没有定位到 package.json、有没有 xaihi 键、被拒原因。 */
   located: LocatedSummary[]
   registrations: ServedRegistration[]
@@ -106,12 +108,19 @@ export function discover(ctx: DiscoverContext): Discovery {
   const requireFrom = createRequire(baseUrl)
   const rows: Discovery['rows'] = []
   const specifiers: string[] = []
+  const subpaths: string[] = []
   for (const entry of ctx.loader.entries()) {
     const { id, name, disabled } = entry.options
     rows.push({ id, name, disabled: disabled === true })
     if (disabled === true) continue
     // 本地文件与 cordis 内建行没有 package.json#xaihi 语义，跳过但不隐藏。
     if (name.startsWith('cordis:') || name.startsWith('file:')) continue
+    // 子路径行（`@scope/pkg/whatever`）没有 package.json#xaihi 语义：exports 通常不允许
+    // 读它的 package.json。把它报成"定位失败"等于把宿主的正常排布说成故障，所以单独归类。
+    if (isSubpathSpecifier(name)) {
+      subpaths.push(name)
+      continue
+    }
     specifiers.push(name)
   }
   const located: LocatedSummary[] = []
@@ -140,7 +149,16 @@ export function discover(ctx: DiscoverContext): Discovery {
       ? { specifier, pkgPath, hasXaihi: true, problems }
       : { specifier, pkgPath, hasXaihi: true })
   }
-  return { baseUrl, rows, candidates: specifiers, located, registrations }
+  return { baseUrl, rows, candidates: specifiers, subpaths, located, registrations }
+}
+
+/**
+ * loader 行的 name 是不是子路径 specifier（`@scope/pkg/sub` 或 `pkg/sub`）。
+ * @param name - 行里的包 specifier。
+ */
+export function isSubpathSpecifier(name: string): boolean {
+  const segments = name.split('/')
+  return name.startsWith('@') ? segments.length > 2 : segments.length > 1
 }
 
 /**
