@@ -24,8 +24,16 @@ const stripComments = (source: string): string =>
 const SHELL = stripComments(readFileSync(join(process.cwd(), 'src', 'client', 'workspace.tsx'), 'utf8'))
 
 describe('工作台外壳的来源', () => {
+  it('用的是搬运来的组件，不是自己写一遍同形控件', () => {
+    // 组件级复用比 class 字符串强：`bg-secondary` 这类值现在住在搬运来的
+    // `button-variants.ts` 里，外壳只负责挑 variant/size。
+    for (const token of ['<Button', '<Separator', 'NodeChromeActionButton']) {
+      expect(SHELL, `外壳该用搬运组件 ${token}`).toContain(token)
+    }
+  })
+
   it('用的是搬运来的类名词汇（不是另起一套手写样式表）', () => {
-    for (const token of ['bg-background', 'text-foreground', 'text-muted-foreground', 'bg-secondary', 'border-border', 'tracking-widest']) {
+    for (const token of ['bg-background', 'text-foreground', 'text-muted-foreground', 'border-border', 'tracking-widest', 'font-mono']) {
       expect(SHELL, `外壳里找不到搬运来的 utility class ${token}`).toContain(token)
     }
     // 节点标题条的结构是从 NodeSurfaceChrome 的折叠态搬来的。

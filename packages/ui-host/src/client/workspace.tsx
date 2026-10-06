@@ -21,7 +21,9 @@ import * as React from 'react'
 import type { CommandOutcome, LoadResult, PanelContribution, PanelProps, UIModuleLoader, WorkspaceDocument } from '@hibernalglow/xaihi-sdk'
 import type { Translate } from './locales.ts'
 import type { XaihiSlot } from './slots.ts'
+import { Button } from '../components/ui/button.tsx'
 import { NodeChromeActionButton } from '../components/workspace/NodeChromePrimitives.tsx'
+import { Separator } from '../components/ui/separator.tsx'
 import { createRemoteLoader } from './loader/remote-modules.ts'
 import { RunFeed } from './run-feed.tsx'
 
@@ -100,6 +102,7 @@ function collectRemotes(document: WorkspaceDocument): Record<string, string> {
 }
 
 function Workspace({ t, locale, renderSlot, runCommand, document, loader }: WorkspaceProps): React.ReactElement {
+
   const panels = React.useMemo(() => flatten(document), [document])
   // 目标形态是挂搬运来的 `WorkspaceLayout` 本体（实测它不需要 WorkspaceProvider：
   // useWorkspaceShallowSelector 读模块级 store；主题表也已空到只剩 wuling 一枚死类名）。
@@ -109,7 +112,13 @@ function Workspace({ t, locale, renderSlot, runCommand, document, loader }: Work
   // 而从上游把那个文件搬过来实测会再拖出 @/backend/localBackendControl 与 @xiranite/{shared,api,contract}
   // —— 那是我们判定不搬的后端控制层。所以要么那侧把 settings 子树接完，要么把它从 TopBar 的图里切掉；
   // 两者都不是我这一版该替他们做的决定。切/接之后把下面这行换成 <WorkspaceLayout /> 即可。
-  return <PanelFallback t={t} locale={locale} panels={panels} document={document} loader={loader} renderSlot={renderSlot} runCommand={runCommand} />
+  return <ShellFallback t={t} locale={locale} panels={panels} document={document} loader={loader} renderSlot={renderSlot} runCommand={runCommand} />
+}
+
+function ShellFallback({ t, locale, panels, document, loader, renderSlot, runCommand }: WorkspaceProps & {
+  panels: PanelEntry[]
+}): React.ReactElement {
+return <PanelFallback t={t} locale={locale} panels={panels} document={document} loader={loader} renderSlot={renderSlot} runCommand={runCommand} />
 }
 
 /** 我们自己的清单与装载状态那一版外壳（搬运工作台本体挂上来之前的落点）。 */
@@ -190,19 +199,20 @@ function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCom
           {panels.map((entry) => {
             const isActive = entry.contribution.id === selected
             return (
-              <button
+              <Button
                 key={entry.contribution.id}
-                type="button"
+                variant={isActive ? 'secondary' : 'ghost'}
+                size="xs"
                 data-selected={isActive}
                 onClick={() => setSelected(entry.contribution.id)}
                 className={
                   isActive
-                    ? 'xaihi-nav-item min-w-0 truncate rounded-md bg-secondary px-2 py-1 text-left font-mono text-[10px] font-semibold uppercase tracking-widest text-secondary-foreground'
-                    : 'xaihi-nav-item min-w-0 truncate rounded-md px-2 py-1 text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground'
+                    ? ''
+                    : ''
                 }
               >
                 {locale === 'zh' ? entry.contribution.title.zh : entry.contribution.title.en}
-              </button>
+              </Button>
             )
           })}
           {broken.map((plugin) => (
@@ -245,7 +255,8 @@ function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCom
         </section>
       </main>
 
-      <footer className="flex items-center gap-2 border-t border-border px-3 py-1 font-mono text-[9px] tracking-widest text-muted-foreground">
+      <Separator className="shrink-0" />
+      <footer className="flex items-center gap-2 px-3 py-1 font-mono text-[9px] tracking-widest text-muted-foreground">
         {renderSlot('xaihi.status')}
         <span>{panels.length} {t('status.loaded')}</span>
         {notice !== null && <span>{notice}</span>}
