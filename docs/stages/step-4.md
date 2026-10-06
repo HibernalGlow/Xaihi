@@ -1474,3 +1474,15 @@ hostRequirements 是 `os-native + external-process + recursive-enumeration + fil
    `plugins/*/package.json`、`packages/ui-host/package.json`（`@tailwindcss/oxide`）一起提，
    并在仓库外 worktree 里用 `pnpm install --frozen-lockfile` 复验
    （HEAD 现在因 `importers["plugins/hello"]` 缺失而红，这条一直挂着）。
+
+### 更正一条我自己刚写错的读数
+
+上面"24 份通过"是用截断输出数的，**错**。完整跑一次（`docs/port/verbatim-debt-2026-10-06.txt` 是它的原样输出）：
+比对 26 份，红 **6** 份、通过 **20** 份。六份分别是
+`findz`（并发 lane 的包）、`gifu`（代理到点停，内核还没搬完 ⇒ 这条红是对的）、
+以及 `linedup`、`linku`、`logx`、`recycleu` —— 后四份是**本仓早已提交的包**，
+它们的差异是 `?.` 与 `?? ""` 这一类**由 `noUncheckedIndexedAccess` 逼出来的可选链让步**，
+上游同位置会在 undefined 上直接抛。这类不该被塞进尺的通用允许项（它确实改行为：
+上游会崩的那条路，本仓变成给空串），也不该被当成"移植坏了"——它需要的是**逐包申报**，
+像搬运尺那样有一份 `ours` 指纹的差量台账。这一步本预算内做不完，所以先把原样输出落成账：
+`docs/port/verbatim-debt-2026-10-06.txt`，尺本身保持红（不降标准、不加白名单）。
