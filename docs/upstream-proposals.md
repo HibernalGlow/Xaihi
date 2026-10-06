@@ -180,3 +180,19 @@ DSH 0.2.0-rc.2 的设置标准面只有五个动词（实测
 
 **我们现在的绕法**：不绕开标准面去自建第二份配置存储；那 13 条在桥的握手里以
 `no-provider` 露出，界面上是可读回的退化状态（ADR-0011 决定 4 的降级铁律）。
+
+**2026-10-06 在真宿主里补的三条读数**（独立 home + 端口 3399，父页 = DSH 客户端，
+调用从 Xaihi 文档里穿过 `xaihi.bridge/1` 落进 `ctx.remote.settings`，所以这三条同时也是桥的读数）：
+
+| 试的东西 | 结果 | 这条为什么重要 |
+|---|---|---|
+| `settings.update` 写我们**自己声明过**的 ns（`xaihi-core`，字段 `verbose`） | **成功**，97 ms，回来的 `SettingsNamespaceView` 带着该 ns 的 schema 与 `value` | 标准面确实能当持久出口用，不是只读装饰 |
+| 写一个**没声明的 ns**（`xaihi`、`no-such-ns`） | 拒：`settings/rejected: No configurable plugin entry "…"` | 名字表就是这道闸；我们的 ns 只能从 bundle 的 config schema 长出来 |
+| 在**已声明的 ns 里写一个没声明的字段**（`__xaihi_probe_unknown__`） | 拒：`settings/rejected: Config field "…" is not volatile` | **这条定住了"节点数据能不能借设置面存"**：字段必须事先在 schema 里声明成 volatile，任意 JSON 塞不进去。要拿设置面当 `state.getData/patchData/replaceData` 的落点，就得先在本仓的 config schema 里声明一个装得下节点数据的 volatile 字段（形状是"每个节点一份 JSON"），而那件事属于 ADR-0013 的边界决定，不是桥这边可以顺手做的 |
+
+推论（写在这里是为了下一轮不用重测）：桥的 `state` 那一组今天**必须由外壳提供**（上游那九个接口里
+`state.*` 是宿主持久的节点数据），而它现在在握手里的读数是 `refused=[state]` + `必给却没兑现：state`。
+可选的两条路只有这两条：① 按上表第三行声明一个 volatile 的节点数据字段，把 `state.*` 映射到
+`update`/`replace`/`mutate`；② 走第 3 条建议里那句"明说历史与节点数据属于业务包 + 给规定的存储面"。
+两条都要人拍，因为②改的是 ADR-0013 那句话有没有明文。
+

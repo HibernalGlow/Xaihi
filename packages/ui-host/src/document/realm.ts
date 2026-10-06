@@ -10,7 +10,7 @@
  */
 
 import { version as reactVersion } from 'react'
-import { NODE_CAPABILITY_IDS } from '@hibernalglow/xaihi-sdk/bridge'
+import { NODE_CAPABILITY_IDS, REQUIRED_CAPABILITIES } from '@hibernalglow/xaihi-sdk/bridge'
 import { createDocumentBridge, type DocumentBridge } from '@hibernalglow/xaihi-sdk/bridge'
 
 /** 由 `/xaihi/ui/<rev>/index.html` 那份文档壳写进 window 的启动信息。 */
@@ -84,7 +84,16 @@ export function startRealm(): Realm | null {
     const ready = bridge.ready()
     if (ready !== null) {
       clearInterval(timer)
+      // degraded 要分两行念：必给的三组（contract/state/env）里任何一条被拒，文档里的节点表面就跑不
+      // 起来；其余那几组是"今天外壳确实没有对应物"。混成一句"必给却没兑现"会把没接的东西说成缺勤，
+      // 而 workspace/runner/clipboard 这些本来就在提案账上（P1 等）。
+      const requiredSet = new Set<string>(REQUIRED_CAPABILITIES)
+      const required = ready.refused.filter((id) => requiredSet.has(id))
+      const others = ready.refused.filter((id) => !requiredSet.has(id))
+      const reasonOf = (id: string) => ready.degraded.find((row) => row.capability === id)?.reason ?? '外壳没有提供这一组'
       report(`xaihi realm: rev=${boot.rev} React=${reactVersion} granted=[${ready.granted.join(', ')}] refused=[${ready.refused.join(', ')}]`)
+      if (required.length > 0) report(`必给却没兑现：${required.map((id) => `${id}: ${reasonOf(id)}`).join(' | ')}`)
+      if (others.length > 0) report(`其余没接（在提案账上）：${others.map((id) => `${id}: ${reasonOf(id)}`).join(' | ')}`)
       void probeRoundTrip()
       return
     }
