@@ -19,6 +19,11 @@
  *   ['browser','module','main']`（想把 `lucide-react` 从 `dist/cjs` 逼到 `dist/esm`）
  *   重建后同一批 Node require 照旧，产物还涨到 3.24 MB ⇒ 该改动已撤回。
  *
+ * - 也不是 lucide-react 的 CJS 入口：把 alias 指到 lucide-react/dist/esm/lucide-react.js
+ *   之后构建直接报 Could not resolve 'lucide-react' in src/components/workspace/AlphabetNodeRail.tsx
+ *   —— 说明这个包没有声明成 ui-host 的依赖，现在只是靠 store 里的位置被解析到。
+ *   那条边要搬运那一侧补声明（它同时也是一颗随时会掉的地雷）。
+ *
  * 定位办法（可复现）：在失败产物里对每条 `require("node:…")` 往前找最近的 `//#region`，
  * 命中的是 `\0rolldown/runtime.js` —— 也就是垫片由打包器自己插入。下一步要查的是
  * **它替谁插的**（哪个模块在 CJS 图里被当成外部/混合格式），而不是继续换依赖入口。
