@@ -1606,3 +1606,43 @@ pnpm run typecheck                      rc=1  10 条 TS 错，全部落在 src/b
 
 `pnpm test` 里仍然**不接**这条：它现在是红的，接进去就是把别人的红变成全仓的红。
 接线时机是七条红各自要么改回逐字、要么申报完（`check:verbatim` 这条脚本已经存在，只差并进 `test` 那一行）。
+
+## 终端面第一次被"跑起来"证明，以及我自己一条没量就说的账（2026-10-07 03:05）
+
+### 新尺 `check:cliface`：注册表里每一条都得真起得来
+
+`scripts/gen-cli-registry.mjs --check` 证的还是**静态**的账——表与 `plugins/<id>/package.json`
+那四个字段逐条对得上。一个包完全可以四样齐全、`lib/cli.js` 却是空文件或不存在，表照样绿；
+本仓已经吃过一次这个形状（`marku`：tsdown 报 `UNRESOLVED_IMPORT` 而 rc=0，产物一跑就
+`ERR_MODULE_NOT_FOUND`）。所以判据换成**跑一次**：新增 `scripts/check-cli-face.mjs`，
+从生成物 `packages/cli/src/node-cli-registry.generated.ts` 读那张表（量的是运行期真吃的那份，
+不是再造一份期望），逐条 spawn `node plugins/<id>/lib/cli.js --help`，三条缺一即红：
+产物存在、rc=0、**输出里带着自己的 bin 名**（只会 `console.log('ok')` 的桩不算面）。
+超时按 20 秒：这条量"起得来"，卡住与失败同罪——一个永不返回的 `--help` 对使用者就是终端面不存在。
+
+阳性对照 5 条夹具（临时目录里造，不落进 `plugins/`，免得被别的尺当真节点包）：
+好的放行 / 只印 `ok` 的判 `no-name` / `process.exit(3)` 的判 `rc` / `setTimeout` 卡住的判 `timeout` /
+表里有但 `lib/` 不存在的判 `no-artifact`。实测 `--self-check` rc=0；
+夹具第一次跑就红过一条（`require('node:fs')` 写在 ESM 里），那是尺自己的 bug，不是判据的。
+
+**真实读数**：`node scripts/check-cli-face.mjs` rc=0，**26 个 bin 全部跑得起来**
+（`bandia … trename`，逐条 ✓）。这是终端面这一条腿第一次由执行证明而不是由清单证明。
+已接进根 `test`：`… && pnpm check:nodebundle && pnpm check:cliface && pnpm -r run typecheck && …`
+——放在 `check:nodebundle` 之后，因为两条都吃 `lib/` 产物，构建没落成文件时它们一起红，
+而不是让这条去量一个不存在的东西。
+
+### 我这一轮里说错的一条，以及它是怎么被抓回来的
+
+我在叙述里写过"文档构建从 3 条涨到 22 条错，全是 `@xiranite/node-<id>/help` 那一类（G7 落地了），
+所以要把 `nodeCoreAliases()` 的子路径名单加上 `help.ts`"。**这条没量过就说出口**，
+是本仓明令禁止的形状（"报告里的事次要带 rc + 真实输出"）。现测两处就把我否了：
+
+- `rg -c "@xiranite/node-[a-z]+/help" packages/ui-host/src` ⇒ **0 命中**（这些 specifier 根本不在搬运树里）；
+- `pnpm run build:document` ⇒ rc=1、**3 条 `ERROR in`，全部在 `src/components/views/settings/RuntimeSection.tsx`**，
+  `Can't resolve` 只有 `./NodeMemoryProtectionSettings` 这一种（另两条是同文件的另两处悬空 import）。
+
+所以那条"加 `help.ts` 到别名表"的改动**没有做**，`build-aliases.mjs:94` 仍是
+`['core.ts', 'interaction.ts']`。顺带记下这次的工具坑：`rg -rln '<pat>'` 里的 `-r`
+把**下一个参数**当替换文本（我那句 `-rln` 被解析成"把匹配替换成 `ln`"），
+于是打印出来的文件名成了 `modules/ln.ts` 这种不存在的东西——标识符是被工具改写的，
+不是仓库里的名字；要准确文本就 Read（本仓 `docs/` 里那条"rg 输出会把标识符换成 n"是同一个坑的另一副面孔）。
