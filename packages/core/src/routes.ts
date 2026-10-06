@@ -28,6 +28,10 @@ export const MIME: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  // 构建那侧的 `?url` 规则同时收 `.jpg` 与 `.jpeg`（`rspack.document.mjs` 的资源规则），
+  // 表里少一条的后果是"图落在产物目录里但路由不肯发"——症状是界面上少一张图，
+  // 而控制台上只有一条 404。这条由 `tests/asset-mime.spec.ts` 钉住，不靠人记得住。
+  '.jpeg': 'image/jpeg',
   '.webp': 'image/webp',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
