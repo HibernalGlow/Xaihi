@@ -149,3 +149,87 @@ same: 27        stale: 0        unreadable: 2（xaihi-core、xaihi-ui：它们�
    而那条 lane 的 findz 有 26 份文件在未提交区（`native/findz-go/` 整个目录也是新落的）。
    尺保持红、不加白名单，等它落地后复跑再接线。
 3. 使用者当场点头的那一次模型调用（第 5 节第 1 条）。
+
+## 7 客户端半边在真宿主里的形状（同日追加，因为这条差点被我读成缺陷）
+
+先说结论：**工作台客户端半边被宿主投递、被浏览器取回，都是实测到的**；
+而"节点界面上屏"仍然不成立（第 5 节那条 503 就是它的读数）。
+
+### 7.1 我先把一个陈旧宿主读成了"客户端 404"
+
+在一个跑了 6 小时的宿主上，四种写法全 404：
+
+```
+/plugins/@hibernalglow/xaihi-ui/client.js     HTTP 404
+/plugins/%40hibernalglow/xaihi-ui/client.js   HTTP 404
+/plugins/@hibernalglow%2Fxaihi-ui/client.js   HTTP 404
+/plugins/xaihi-ui/client.js                   HTTP 404
+```
+
+我差点把这写成"我们的 `dsh.client` 半边没接上"。停下来的原因是先去看生产者怎么拼 URL
+（`desktop/dsh/packages/client/modules/src/index.ts:249` ⇒ `/plugins/${id}/${file}?rev=${rev}`，
+`:311` 与 `:1088` 是同一形状的两个用法）——**rev 是必需的**，而那条 404 是
+不带 rev 的必然结果。带 rev 的正确形状要从宿主的 boot 文档里读，而那份文档要 token
+（`/` 回 `401 dsh web authentication required; reopen the URL printed by dsh web.`）。
+
+重启我自己的开发宿主（`--profile xaihi` 那台；端口 3199 是脚本里烧好的开发宿主端口，
+DSH_HOME 是 `../.scratch/dsh-xaihi-home`——日常宿主在别处，见 AGENTS.md 的隔离条）之后，
+boot 文档里就有我们那一行：
+
+```
+{"id":"@hibernalglow/xaihi-ui","url":"plugins/??@hibernalglow/xaihi-ui/client.js&rev=0afdaf545d4b","rev":"…"}
+```
+
+⇒ **实测到的不对称，值得记住**：我们自己的 `/xaihi/manifest.json` 是**每次请求现读** profile 目录
+（第 1、2 节：装完不重启，注册数从 7 变 27 就看见了）；
+DSH 的客户端模块表是**启动时组合**的——改了客户端产物必须重启宿主才投递。
+以后"我构建了但界面没变"这一类，先按这条分流。
+
+（顺手一条并发纪律：杀进程前先看 `-ww -o command=`。我杀掉 3199 那两个之后 `pgrep` 还剩一个，
+读回来是 `--profile xaihi-realm`——别的会话的宿主，没动它。）
+
+### 7.2 投递判据：取回的字节与仓库那份是不是同一个产物
+
+```
+$ curl -o /dev/null -w "%{http_code} %{size_download} %{content_type}" \
+    "http://127.0.0.1:3199/plugins/??@hibernalglow/xaihi-ui/client.js&rev=0afdaf545d4b"
+200 bytes=1434493 ct=text/javascript; charset=utf-8          # 不带 cookie 也是 200 ⇒ /plugins 这条不鉴权
+$ … &rev=000000000000
+404 bytes=0                                                  # DSH 自己的 rev 闸门，作用在我们产物上
+$ head -c 120 取回的那份
+window.__ModuleLoader__.load({
+	id: "@hibernalglow/xaihi-ui",
+	factory: (require) => {
+```
+
+逐字节比仓库 `packages/ui-host/lib/client.js`（1,434,449 B）：**前 1,434,414 个字节完全相同**，
+差的是尾部那一行 source-map 引用——宿主把我们写的相对 `//# sourceMappingURL=client.js.map`
+换成 combo 形式 `??@hibernalglow/xaihi-ui/client.js.map&rev=0afdaf545d4b`（`prepareSource()`，
+`index.ts:305-313`），净差 **+44 B**。
+⇒ 判"投的是不是我们这份"要比**前缀相同 + 只换 map 行**，不能要求整文件 sha 相等；
+这条也解释了为什么 `--frozen` 的拷贝档在第 3 节那种 sha 比对里对客户端半边不适用。
+
+**没做成判据的一条，说明原因**：我想把 rev 从产物本身推出来，好让实机尺不需要 token。
+实测 `sha256` / `sha1` / `sha512` 三种对 `lib/client.js` 的前缀都不是 `0afdaf545d4b`
+（`95d65ff7…` / `a221cca7…` / `54caa62d…`），map 那份也不是 ⇒ DSH 的 rev 不是产物摘要，
+不猜。所以 `check-remotes-live.mjs` 不判客户端那一行，只判我们自己那四条面。
+
+### 7.3 两条新的实机判据（不需要 token，也不需要知道 rev）
+
+```
+$ curl -s http://127.0.0.1:3199/xaihi/ui/000000000000/index.html
+503 xaihi ui bundle is not configured (config core.uiBundleDir is empty)
+$ curl -s http://127.0.0.1:3199/xaihi/history.json
+200 {"schema":"xaihi.ledger/1","durable":true,"reason":null,"records":[]}
+```
+
+- 文档壳那两条腿**必须**是 200 给真 HTML，或者 503 把原因写在正文里——这就是
+  ADR-0011 决定 4 的"可以退化，不许静默/伪造"在实机上的读数；现在它是 503，
+  和 `check-node-face` 的红是同一件事的两侧（产物没建，宿主就明说没配）。
+- `/xaihi/history.json` 是运行账本那条面（计划 4.2 的 checkpoint/ledger）第一次在真宿主里被读到：
+  `durable:true` 说明它真落盘而不是内存摆设，`records:[]` 说明还没有一次运行被记进去。
+
+两条都进了尺：`node scripts/check-remotes-live.mjs` 现跑多打一行
+`· 另外两条面现读：文档壳 503（判据通过） · 运行账本 200（判据通过）`，
+`--self-check` 从 12 条夹具涨到 **20 条**，其中必须红的四条新增"503 不说原因"
+"200 回 JSON 冒充 HTML""200 空正文""500"与"账本 durable 不是布尔""正文不是 JSON"。

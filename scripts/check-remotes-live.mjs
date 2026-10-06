@@ -12,7 +12,10 @@
  *  3. 每个注册项**同级 chunk**（从它自己那份 frontendDir 现读，不手抄文件名）也 200——
  *     ADR-0001 那条"rev 必须在路径里"就是为这个 chunk 才成立的；
  *  4. 把 rev 改成邻近的一个值必须 404（阳性对照：取陈旧产物必须是可见失败）；
- *  5. `..` 与 `%2e%2e%2f` 两种写法都不许把 frontendDir 之外的文件发出来。
+ *  5. `..` 与 `%2e%2e%2f` 两种写法都不许把 frontendDir 之外的文件发出来，
+ *     且**编码那一版**的拒绝必须来自我们自己的 handler（否则那条腿不再测解析器）；
+ *  6. `/xaihi/ui/**` 要么 200 给真 HTML，要么 503 把原因写出来——退化必须读得回来（ADR-0011 决定 4）；
+ *  7. `/xaihi/history.json` 必须是形态说得清的运行账本（schema、durable 是真布尔、records 是数组）。
  *
  * 用法：
  *   pnpm host                                  # 另开终端，把宿主起到 127.0.0.1:3199
@@ -78,6 +81,42 @@ export function judgeHandlerRefusal(response) {
   return ''
 }
 
+/**
+ * `/xaihi/ui/<rev>/…` 这一族必须"读得回状态"（ADR-0011 决定 4：可以退化，不许崩、不许静默、不许伪造）。
+ *
+ * 判据故意不问配置值：产物目录配没配，答案应当从**响应本身**读回来——
+ * 200 必须是真 HTML，503 必须带着原因，别的一律算红。实测未配时是
+ * `503 xaihi ui bundle is not configured (config core.uiBundleDir is empty)`。
+ */
+export function judgeUiDocument(response) {
+  if (response.status === 503) {
+    return /not configured|unusable/i.test(response.body)
+      ? ''
+      : `文档腿 503 但正文没写原因（${JSON.stringify(response.body.slice(0, 60))}）⇒ 退化读不回来`
+  }
+  if (response.status === 200) {
+    if (!/text\/html/.test(response.contentType)) return `文档腿 200 但不是 HTML（${response.contentType}）`
+    if (response.body.trim() === '') return '文档腿 200 但正文是空的'
+    return ''
+  }
+  return `文档腿 ${response.status} ⇒ 只接受 200（有产物）或 503（带原因说没产物）`
+}
+
+/** 运行账目那条面必须现读得到一个说得清自己形态的 JSON。 */
+export function judgeHistory(response) {
+  if (response.status !== 200) return `账本腿 ${response.status}`
+  let body
+  try {
+    body = JSON.parse(response.body)
+  } catch {
+    return `账本腿 200 但正文不是 JSON（${JSON.stringify(response.body.slice(0, 40))}）`
+  }
+  if (body.schema !== 'xaihi.ledger/1') return `账本腿 schema 不是 xaihi.ledger/1（${String(body.schema)}）`
+  if (typeof body.durable !== 'boolean') return '账本腿的 durable 不是布尔 ⇒ 读不出它是真落了还是内存里'
+  if (!Array.isArray(body.records)) return '账本腿没有 records 数组'
+  return ''
+}
+
 function flipRev(rev) {
   const last = rev.slice(-1)
   return rev.slice(0, -1) + (last === 'a' ? 'b' : 'a')
@@ -136,6 +175,14 @@ if (process.argv.includes('--self-check')) {
     { name: '编码腿被 handler 拒绝 ⇒ 放行', got: judgeHandlerRefusal({ status: 404, contentType: 'text/plain; charset=utf-8', body: 'not found' }), expect: '' },
     { name: '编码腿的拒绝其实来自路由（这条腿不再测解析器）⇒ 必须判红', got: judgeHandlerRefusal({ status: 404, contentType: undefined, body: '' }), expect: '穿越腿的拒绝不是 /xaihi/remotes handler 给的（404 正文 ""）⇒ 这条腿没在测解析器' },
     { name: '编码腿被 handler 拒绝但换了文案 ⇒ 也判红（文案漂了要说）', got: judgeHandlerRefusal({ status: 404, contentType: 'text/plain', body: 'forbidden' }), expect: '穿越腿的拒绝不是 /xaihi/remotes handler 给的（404 正文 "forbidden"）⇒ 这条腿没在测解析器' },
+    { name: '文档腿 503 带原因 ⇒ 放行（这就是眼下真实的退化）', got: judgeUiDocument({ status: 503, contentType: 'text/plain; charset=utf-8', body: 'xaihi ui bundle is not configured (config core.uiBundleDir is empty)' }), expect: '' },
+    { name: '文档腿 503 不说原因 ⇒ 必须判红', got: judgeUiDocument({ status: 503, contentType: 'text/plain', body: '' }), expect: '文档腿 503 但正文没写原因（""）⇒ 退化读不回来' },
+    { name: '文档腿 200 但回 JSON ⇒ 判红（拿 API 响应冒充界面）', got: judgeUiDocument({ status: 200, contentType: 'application/json', body: '{}' }), expect: '文档腿 200 但不是 HTML（application/json）' },
+    { name: '文档腿 200 空正文 ⇒ 判红', got: judgeUiDocument({ status: 200, contentType: 'text/html', body: '  \n' }), expect: '文档腿 200 但正文是空的' },
+    { name: '文档腿 500 ⇒ 判红', got: judgeUiDocument({ status: 500, contentType: 'text/plain', body: 'boom' }), expect: '文档腿 500 ⇒ 只接受 200（有产物）或 503（带原因说没产物）' },
+    { name: '账本腿形态对 ⇒ 放行', got: judgeHistory({ status: 200, contentType: 'application/json', body: '{"schema":"xaihi.ledger/1","durable":true,"reason":null,"records":[]}' }), expect: '' },
+    { name: '账本腿 durable 不是布尔 ⇒ 判红', got: judgeHistory({ status: 200, contentType: 'application/json', body: '{"schema":"xaihi.ledger/1","durable":"yes","records":[]}' }), expect: '账本腿的 durable 不是布尔 ⇒ 读不出它是真落了还是内存里' },
+    { name: '账本腿 200 但正文不是 JSON ⇒ 判红', got: judgeHistory({ status: 200, contentType: 'text/plain', body: 'ok' }), expect: '账本腿 200 但正文不是 JSON（"ok"）' },
   ]
   const problems = []
   for (const c of cases) {
@@ -221,9 +268,22 @@ if (!quiet) {
     console.log(`  · ${registration.package} rev ${registration.rev} → ${registration.frontendDir}`)
   }
 }
+
+// 两条不问认证、不靠 rev 猜的面：文档壳（可以没有产物，但退化必须读得回来）与运行账本。
+const documentResponse = await requestRaw(port, '/xaihi/ui/000000000000/index.html')
+const documentProblem = judgeUiDocument(documentResponse)
+if (documentProblem) failures.push(`文档壳：${documentProblem}`)
+const historyResponse = await requestRaw(port, '/xaihi/history.json')
+const historyProblem = judgeHistory(historyResponse)
+if (historyProblem) failures.push(`运行账本：${historyProblem}`)
+
 console.log(
   `check-remotes-live: 宿主 127.0.0.1:${port} 注册 ${registrations.length} 项，判了 ${chunksJudged} 条同级 chunk，`
   + `跳过 ${skipped.length} 条（没有同级 chunk 可判）；负控每项 1 条改 rev + 2 条穿越。`,
+)
+console.log(
+  `  · 另外两条面现读：文档壳 ${documentResponse.status}${documentProblem ? '（判红）' : '（判据通过）'} · `
+  + `运行账本 ${historyResponse.status}${historyProblem ? '（判红）' : '（判据通过）'}`,
 )
 console.log(`  · 穿越两层的实际判决：${[...refusalLayers].map(([k, v]) => `${k} → ${v}`).join('；')}`)
 for (const line of skipped) console.log(`  · 跳过：${line}`)
