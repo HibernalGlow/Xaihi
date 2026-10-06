@@ -59,14 +59,32 @@
    也就是说 TUI 不是"另一套界面"，而是 `src/nodes/<id>` 那套组件在终端里的渲染目标——搬运节点 UI 时
    它的两个渲染面（DOM 与 OpenTUI）要一起过去，不能只搬 DOM 那份。
 
-   **DSH 侧未解决的一条**（本机实测，不猜）：`@deepseek-ai/dsh@0.2.0-rc.2` 的 `--help` 例子写着
-   `dsh tui --patch ./extra.yml`、`dsh tui --resume <session>`，但
-   `dsh --profile tui --dump-config` 直接报
-   `Error: dsh: profile "tui" does not exist; create it with 'dsh plugin --profile tui add <package>'`
-   ——这台机器上**没有随包发布的 tui profile 模板**，`lib/` 里也只解析到 `@deepseek-ai/dsh-app-boot`。
-   所以"TUI 宿主能不能装载插件 UI"目前是**未证**状态：要么上游有 tui bundle 我们没装到，
-   要么 TUI 入口得由 Xaihi 自己带（那就是一条新的 ADR，不能顺手做）。
-   判据留在 `docs/roadmap.md` R11。
+   **安装的形状（用户 2026-10-06 讲清，我先前理解错了）**：三面**共享同一个核心、各自独立安装、同一个仓一起维护**——
+   不是"Xaihi 再自带一个壳"，也不是"由 DSH 的 tui 宿主来装插件"。实测到的依赖方向：
+
+   ```
+   @xiranite/cli          依赖 21 个 @xiranite/node-*（核心）+ @xiranite/cli-runtime   ← 独立 bin
+   @xiranite/cli-runtime  依赖 @xiranite/api + @xiranite/contract + @opentui/{core,react}
+   网页 UI (src/nodes/<id> 的组件)  import packages/nodes/<id> 的核心实现
+   ```
+
+   `packages/cli/**` 与 `packages/cli-runtime/**` 里**没有一处 import `src/nodes/*` 的 React 组件**
+   （唯一命中是一句注释），也就是说 TUI 不是网页组件的另一种渲染，而是**同一核心的另一个前端**；
+   共享点在 `contract` / `api` / `packages/nodes/*` 这一层。
+
+   由此三条直接落到 Xaihi 的结构上：
+
+   1. **节点核心要能当包被依赖**。现在我是把核心直接写在 `plugins/<id>/src/core.ts` 里（自包含，
+      ADR-0002），网页面能用，但 CLI/TUI 没法 `import` 它 ⇒ 核心拆成
+      `packages/nodes/<id>`（对齐 Xiranite 的 `@xiranite/node-*`），插件包在**打包期内联**它
+      （`noExternal`），自包含这条仍然成立，不新增运行时依赖。
+   2. **DSH 的 React 18.3.1 只约束网页那一面**；CLI/TUI 自带 React 19，不需要为宿主降级。
+   3. **原则不冲突**：`不做独立桌面壳 / 不重造 runtime` 指的是壳与 runtime；共享核心的命令行与终端前端
+      属于"节点能力的另一种用法"，按 ADR-0002 的自包含口径各装各的即可。
+
+   上一版留的那条"未证"仍然记着但不重要了：本机 `dsh --profile tui --dump-config` 报
+   `profile "tui" does not exist`（`--help` 例子却有 `dsh tui …`）——TUI 走自己独立安装，
+   不依赖 DSH 提供 tui 宿主。判据与安装边界在 `docs/roadmap.md` R11。
 
 ## 后果
 
