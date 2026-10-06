@@ -11,9 +11,20 @@
       "types": "./lib/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
     "./locale/*.json": "./locale/*.json",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
+  },
+  "bin": {
+    "xlinedup": "./lib/cli.js"
   },
   "files": [
     "lib/**",

@@ -11,9 +11,20 @@
       "types": "./lib/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
     "./locale/*.json": "./locale/*.json",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
+  },
+  "bin": {
+    "xdissolvef": "./lib/cli.js"
   },
   "files": [
     "lib/**",
@@ -31,7 +42,7 @@
     "schema": "xaihi.manifest/1",
     "id": "xaihi-dissolvef",
     "title": {
-      "zh": "\u6587\u4ef6\u5f52\u5e76\u6574\u7406",
+      "zh": "文件归并整理",
       "en": "Dissolve folders"
     },
     "ui": {
@@ -42,7 +53,7 @@
       {
         "id": "xaihi.workspace.dissolvef",
         "title": {
-          "zh": "\u6587\u4ef6\u5f52\u5e76\u9762\u677f",
+          "zh": "文件归并面板",
           "en": "Dissolve panel"
         },
         "area": "workspace",
@@ -54,55 +65,55 @@
       "definitionVersion": 1,
       "nodeId": "dissolvef",
       "title": {
-        "zh": "\u6587\u4ef6\u5f52\u5e76\u6574\u7406",
+        "zh": "文件归并整理",
         "en": "Dissolve folders"
       },
       "description": {
-        "zh": "\u628a\u4e00\u4e2a\u76ee\u5f55\u91cc\u7684\u5b50\u6587\u4ef6\u5939\u6309\"\u5d4c\u5957 / \u5a92\u4f53 / \u538b\u7f29\u5305 / \u76f4\u63a5\u6587\u4ef6\"\u56db\u79cd\u7b56\u7565\u5f52\u5e76\u5230\u4e0a\u5c42\uff0c\u5148\u51fa\u8ba1\u5212\u518d\u843d\u5730\uff0c\u5e76\u7559\u4e0b\u53ef\u64a4\u9500\u7684 undo journal\u3002",
+        "zh": "把一个目录里的子文件夹按\"嵌套 / 媒体 / 压缩包 / 直接文件\"四种策略归并到上层，先出计划再落地，并留下可撤销的 undo journal。",
         "en": "Dissolve subfolders of a directory up one level using nested / media / archive / direct strategies. Plan first, then apply, with an undo journal."
       },
       "actions": [
         {
           "id": "plan",
           "label": {
-            "zh": "\u51fa\u8ba1\u5212",
+            "zh": "出计划",
             "en": "Plan"
           },
           "description": {
-            "zh": "\u53ea\u8bfb\uff1a\u5217\u51fa\u6253\u7b97\u600e\u4e48\u5f52\u5e76\uff0c\u4e0d\u52a8\u4efb\u4f55\u6587\u4ef6\u3002",
+            "zh": "只读：列出打算怎么归并，不动任何文件。",
             "en": "Read-only: show the plan without touching files."
           }
         },
         {
           "id": "dissolve",
           "label": {
-            "zh": "\u6267\u884c\u5f52\u5e76",
+            "zh": "执行归并",
             "en": "Dissolve"
           },
           "description": {
-            "zh": "\u6309\u8ba1\u5212\u79fb\u52a8\u6587\u4ef6\u5e76\u5199\u64a4\u9500\u8d26\u672c\u3002\u4f1a\u6539\u52a8\u78c1\u76d8\uff0c\u9700\u8981\u6279\u51c6\u3002",
+            "zh": "按计划移动文件并写撤销账本。会改动磁盘，需要批准。",
             "en": "Apply the plan and record an undo journal. Mutates disk, so it needs approval."
           }
         },
         {
           "id": "undo",
           "label": {
-            "zh": "\u64a4\u9500",
+            "zh": "撤销",
             "en": "Undo"
           },
           "description": {
-            "zh": "\u6309 undoId \u628a\u4e00\u6b21\u5f52\u5e76\u8fd8\u539f\u3002",
+            "zh": "按 undoId 把一次归并还原。",
             "en": "Restore one dissolve by undoId."
           }
         },
         {
           "id": "history",
           "label": {
-            "zh": "\u770b\u5386\u53f2",
+            "zh": "看历史",
             "en": "History"
           },
           "description": {
-            "zh": "\u5217\u51fa\u64a4\u9500\u8d26\u672c\u91cc\u8bb0\u8fc7\u7684\u64cd\u4f5c\u3002",
+            "zh": "列出撤销账本里记过的操作。",
             "en": "List operations recorded in the undo journal."
           }
         }
@@ -113,35 +124,35 @@
           "kind": "select",
           "isActionSelector": true,
           "label": {
-            "zh": "\u52a8\u4f5c",
+            "zh": "动作",
             "en": "Action"
           },
           "options": [
             {
               "value": "plan",
               "label": {
-                "zh": "\u51fa\u8ba1\u5212",
+                "zh": "出计划",
                 "en": "Plan"
               }
             },
             {
               "value": "dissolve",
               "label": {
-                "zh": "\u6267\u884c\u5f52\u5e76",
+                "zh": "执行归并",
                 "en": "Dissolve"
               }
             },
             {
               "value": "undo",
               "label": {
-                "zh": "\u64a4\u9500",
+                "zh": "撤销",
                 "en": "Undo"
               }
             },
             {
               "value": "history",
               "label": {
-                "zh": "\u770b\u5386\u53f2",
+                "zh": "看历史",
                 "en": "History"
               }
             }
@@ -151,7 +162,7 @@
           "id": "path",
           "kind": "text",
           "label": {
-            "zh": "\u76ee\u5f55",
+            "zh": "目录",
             "en": "Directory"
           },
           "rules": [
@@ -177,7 +188,7 @@
           "id": "mode",
           "kind": "select",
           "label": {
-            "zh": "\u5f52\u5e76\u7b56\u7565",
+            "zh": "归并策略",
             "en": "Strategy"
           },
           "default": "nested",
@@ -185,28 +196,28 @@
             {
               "value": "nested",
               "label": {
-                "zh": "\u5d4c\u5957\u76ee\u5f55",
+                "zh": "嵌套目录",
                 "en": "Nested folders"
               }
             },
             {
               "value": "media",
               "label": {
-                "zh": "\u89c6\u9891\u76ee\u5f55",
+                "zh": "视频目录",
                 "en": "Media folders"
               }
             },
             {
               "value": "archive",
               "label": {
-                "zh": "\u538b\u7f29\u5305\u76ee\u5f55",
+                "zh": "压缩包目录",
                 "en": "Archive folders"
               }
             },
             {
               "value": "direct",
               "label": {
-                "zh": "\u76f4\u63a5\u6563\u6587\u4ef6",
+                "zh": "直接散文件",
                 "en": "Loose files"
               }
             }
@@ -229,7 +240,7 @@
           "id": "exclude",
           "kind": "text",
           "label": {
-            "zh": "\u6392\u9664\u540d\u5355\uff08\u9017\u53f7\u6216\u6362\u884c\u5206\u9694\uff09",
+            "zh": "排除名单（逗号或换行分隔）",
             "en": "Exclude list (comma or newline separated)"
           },
           "visible": {
@@ -250,7 +261,7 @@
           "id": "fileConflict",
           "kind": "select",
           "label": {
-            "zh": "\u6587\u4ef6\u51b2\u7a81",
+            "zh": "文件冲突",
             "en": "File conflict"
           },
           "default": "auto",
@@ -258,28 +269,28 @@
             {
               "value": "auto",
               "label": {
-                "zh": "\u81ea\u52a8",
+                "zh": "自动",
                 "en": "Auto"
               }
             },
             {
               "value": "skip",
               "label": {
-                "zh": "\u8df3\u8fc7",
+                "zh": "跳过",
                 "en": "Skip"
               }
             },
             {
               "value": "overwrite",
               "label": {
-                "zh": "\u8986\u76d6",
+                "zh": "覆盖",
                 "en": "Overwrite"
               }
             },
             {
               "value": "rename",
               "label": {
-                "zh": "\u6539\u540d",
+                "zh": "改名",
                 "en": "Rename"
               }
             }
@@ -302,7 +313,7 @@
           "id": "dirConflict",
           "kind": "select",
           "label": {
-            "zh": "\u76ee\u5f55\u51b2\u7a81",
+            "zh": "目录冲突",
             "en": "Folder conflict"
           },
           "default": "auto",
@@ -310,28 +321,28 @@
             {
               "value": "auto",
               "label": {
-                "zh": "\u81ea\u52a8",
+                "zh": "自动",
                 "en": "Auto"
               }
             },
             {
               "value": "skip",
               "label": {
-                "zh": "\u8df3\u8fc7",
+                "zh": "跳过",
                 "en": "Skip"
               }
             },
             {
               "value": "overwrite",
               "label": {
-                "zh": "\u8986\u76d6",
+                "zh": "覆盖",
                 "en": "Overwrite"
               }
             },
             {
               "value": "rename",
               "label": {
-                "zh": "\u6539\u540d",
+                "zh": "改名",
                 "en": "Rename"
               }
             }
@@ -354,7 +365,7 @@
           "id": "undoId",
           "kind": "text",
           "label": {
-            "zh": "\u64a4\u9500\u54ea\u4e00\u6b21\uff08\u7559\u7a7a=\u6700\u8fd1\u4e00\u6b21\uff09",
+            "zh": "撤销哪一次（留空=最近一次）",
             "en": "Undo id (blank = most recent)"
           },
           "visible": {
@@ -375,7 +386,7 @@
         {
           "id": "main",
           "label": {
-            "zh": "\u5f52\u5e76",
+            "zh": "归并",
             "en": "Dissolve"
           },
           "fieldIds": [
@@ -478,7 +489,7 @@
       "publishesOutputPath": false,
       "help": {
         "whenToUse": {
-          "zh": "\u4e00\u5806\u5b50\u6587\u4ef6\u5939\u8981\u62cd\u5230\u4e0a\u4e00\u5c42\uff08\u6f2b\u753b\u753b\u96c6\u3001\u89c6\u9891\u5305\u3001\u538b\u7f29\u5305\u76ee\u5f55\uff09\uff0c\u5e76\u4e14\u8981\u80fd\u53cd\u6094\u7684\u65f6\u5019\u7528\u3002\u5148 plan \u518d dissolve\u3002",
+          "zh": "一堆子文件夹要拍到上一层（漫画画集、视频包、压缩包目录），并且要能反悔的时候用。先 plan 再 dissolve。",
           "en": "Use when a pile of subfolders should be lifted one level (art collections, video packs, archive folders) and the result must be reversible. Plan first, then dissolve."
         }
       }

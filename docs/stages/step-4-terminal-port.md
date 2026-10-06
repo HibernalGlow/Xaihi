@@ -131,6 +131,62 @@ PROBE_OK exports=257 runtime=node 26.10.0        rc=0
 也验过 `ok:true` 时文案必须是空串）。
 **没有验过**的：真在 TTY 里渲染一屏（`packages/cli` 还不入 workspace，跑不起来，见第四节）。
 
+## 九、三个已迁节点的终端面：`./cli` 与 `./help` 两条子路径都亮了
+
+聚合 CLI 派发靠两条动态 import（`packages/cli/src/index.ts:196` 的 `${pkg}/cli`、`:205` 的
+`${pkg}/help`），而 Xaihi 的插件此前只导出 `.`/`./locale/*`/`./cordis.patch.yml`/`./package.json`
+⇒ 实测 8 个同名包 **0 个有需要的导出**。这一轮把 `sleept` / `linedup` / `dissolvef` 补齐。
+
+**两份 vendored 文件，各自有理由，且都有尺。**
+
+1. `plugins/<id>/src/cli-support.ts`（每包一份，实测 19.7 KB）。
+   为什么不能共享：ADR-0002 禁止装进 profile 的包引用仓内包，而 `@xiranite/cli-runtime`
+   一写进依赖全仓 pnpm 就解不出树。所以按上游 `packages/cli-runtime/src/{index,interaction,tui/index}.ts`
+   里**本包用得到的那几颗**复刻，文件头逐条写出处，并标两处有意偏离
+   （不引 `string-width`/`chalk`；环境变量叫 `XAIHI_*` 不叫 `XIRANITE_*`）。
+   复制三份的代价是漂，所以新增尺 `scripts/check-vendored.mjs`：抹掉 `@module` 行之后逐字节比，
+   `--self-check` 用"追加一行"证明这把尺看得见单文件改动（实测 rc=0，报出 17972 vs 17954 字节）。
+2. `plugins/<id>/src/help.ts`（每包 12 行）不再抄文案，而是调
+   `@hibernalglow/xaihi-sdk` 新增的 `nodeHelpFromManifest()` **从 `package.json#xaihi.node` 推导**。
+   为什么必须推导：上游那份 `help.ts`（sleept 120 行 / linedup 186 行 / dissolvef 120 行）
+   是手抄的第二真源，**实测已经漂**——上游 sleept 那份还在说 "System timer for countdown,
+   scheduled time, network, and CPU triggers"，命令名还是 `xiranite sleept`。
+   照搬就是把过时描述发到使用者屏幕上。
+   命名撞车也顺手记一条：`node-sdk/src/node.ts` 里已有一个 `NodeHelp`（清单里的 `help` 块），
+   与终端载荷是两件事，同名会让 dts 打结（实测两个类型都从 barrel 导出名单里消失，
+   症状是 TS4023 + MISSING_EXPORT）⇒ 终端这份统一叫 `Terminal*`。
+   可选性也按契约来：`NodeAction.description?` 是可选的（实测上游 `node-definitions/linedup.json`
+   唯一的动作 `filter` 就没写描述），所以缺描述只是那条例子不带 `description`，
+   写了却只写一种语言才抛——"文案没填"不该升级成"这个节点不能用"。
+
+**顺手抓到并改掉的一个真缺陷**：`sleept` 的 `at` 子命令原本带 `required: true` 的参数校验，
+于是未接的功能先报 `Missing required argument: target.`——使用者读到的是"我参数没给对"，
+而事实是"这块内核没搬"。与本文件顶部那条「静默消失比响亮拒绝更糟」同一类误导、方向相反，
+所以去掉那四个未接子命令的 `required`，让它们一律走未接分支（`tests/cli.spec.ts` 钉住）。
+
+**证据**
+
+```
+$ pnpm --filter …/plugins/{sleept,linedup,dissolvef} exec tsdown        三份 build rc=0（含 lib/cli.js 与 lib/help.js）
+$ pnpm --filter @hibernalglow/xaihi-sdk exec vitest run
+ Test Files  5 passed (5) / Tests  50 passed (50)        # 含新增 help.spec.ts 4 条（带正控）    rc=0
+$ plugins/sleept    vitest run → 29 passed   rc=0
+$ plugins/linedup   vitest run → 15 passed   rc=0
+$ plugins/dissolvef vitest run → 14 passed   rc=0
+$ node lib/cli.js --help / status --json / countdown / block   四种走法都按文档返回：
+   --help rc=0 列六动作+四条未接；status rc=2 且 executed:false、理由点名 ctx.subprocess；
+   countdown rc=2 说"定时器内核未迁"；block 无 --minutes rc=1 点名 Config.blockDefaultMinutes
+$ node scripts/check-vendored.mjs            rc=0（3 份一致）
+$ node scripts/check-pins / check-skills / check-installable   全部 rc=0
+$ plugins/{sleept,linedup,dissolvef} tsc --noEmit               rc=0
+```
+
+**没验到的**：按**包名**的动态派发（`import('@hibernalglow/xaihi-sleept/cli')`）——
+仓库里没有任何包依赖这三个插件（入口 bundle 故意不依赖，见 ADR-0005），
+而 `packages/cli` 还没入 workspace，所以名字解析这一步现在无从跑。
+子路径导出与产物本身已按相对路径加载验证过。
+
+
 ## 七、下一步（已经派出去的部分）
 
 `plugins/{sleept,linedup,dissolvef}` 各补 `src/cli.ts` + `./cli` 导出 + `bin`

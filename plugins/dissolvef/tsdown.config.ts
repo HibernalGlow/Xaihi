@@ -2,7 +2,7 @@ import { defineConfig } from 'tsdown'
 
 /** 宿主半边；SDK 与 dsh-tools 的关系见 node-sdk 的说明。 */
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/cli.ts', 'src/help.ts'],
   outDir: 'lib',
   format: ['esm'],
   platform: 'node',
