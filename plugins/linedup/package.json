@@ -1,0 +1,208 @@
+{
+  "name": "@hibernalglow/xaihi-linedup",
+  "version": "0.0.0",
+  "description": "Xaihi node Line dedup: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-linedup",
+    "title": {
+      "zh": "行去重过滤",
+      "en": "Line dedup"
+    },
+    "ui": {
+      "remote": "linedup",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.linedup",
+        "title": {
+          "zh": "行去重过滤面板",
+          "en": "Line dedup panel"
+        },
+        "area": "workspace",
+        "remote": "linedup",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "linedup",
+      "title": {
+        "zh": "行去重过滤",
+        "en": "Line dedup"
+      },
+      "description": {
+        "zh": "对多行文本去重并按过滤行剔除，返回保留与剔除两部分及计数。",
+        "en": "Deduplicate multiline text and drop lines matching filters, returning kept and removed sets with counts."
+      },
+      "actions": [
+        {
+          "id": "filter",
+          "label": {
+            "zh": "文本过滤",
+            "en": "Text filter"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "sourceText",
+          "kind": "multiline",
+          "label": {
+            "zh": "源文本",
+            "en": "Source text"
+          },
+          "rules": [
+            {
+              "type": "atLeastLines",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": "filterText",
+          "kind": "multiline",
+          "label": {
+            "zh": "过滤行",
+            "en": "Filter lines"
+          }
+        },
+        {
+          "id": "caseSensitive",
+          "kind": "boolean",
+          "label": {
+            "zh": "区分大小写",
+            "en": "Case sensitive"
+          },
+          "default": true
+        },
+        {
+          "id": "sort",
+          "kind": "boolean",
+          "label": {
+            "zh": "排序输出",
+            "en": "Sort output"
+          },
+          "default": true
+        }
+      ],
+      "groups": [
+        {
+          "id": "filter",
+          "label": {
+            "zh": "过滤",
+            "en": "Filter"
+          },
+          "fieldIds": [
+            "sourceText",
+            "filterText",
+            "caseSensitive",
+            "sort"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "sourceText",
+          "slot": "sourceText",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "filterText",
+          "slot": "filterText",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "caseSensitive",
+          "slot": "caseSensitive",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "sort",
+          "slot": "sort",
+          "transform": "asBoolean"
+        }
+      ],
+      "danger": {
+        "type": "none"
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": false,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "要把一份多行清单按另一份清单剔除交集时使用。",
+          "en": "Use to subtract one line list from another."
+        },
+        "workflows": {
+          "ui": [
+            "工作台 linedup 面板"
+          ],
+          "cli": [
+            "linedup filter"
+          ],
+          "tips": [
+            "区分大小写默认开"
+          ]
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3"
+  }
+}
