@@ -63,9 +63,32 @@ DSH 的插槽每条目都有独立错误边界，所以两次崩溃都只吃掉�
 2. **外壳与面板之间是消息桥，不是 props**：locale / 主题变量 / 宿主调用（工具、命令、审批）
    都要过 envelope。要一并量的事：消息大小与频率上限、焦点与滚动（跨文档）、CSS 隔离
    （主题变量得**两边都写**：外壳 DOM 上一份、iframe 文档里一份）。
-3. **未证的一条，下一步先量**：DSH 的 web 宿主能不能把这种独立文档装进来——它的浏览器信任栅栏
-   （`--trusted-host`）与 `/plugins` 前缀独占都还没对 iframe/srcdoc 这条路过一遍；
-   判据挂在 `docs/roadmap.md` 的 R12，量不出来就先提 proposal，不许绕。
+3. **"DSH 能不能装独立文档"这条已经量掉了（22:2x，隔离宿主 pid 15264，
+   `--profile xaihi --no-open --port 3199`）**，答案是**能，而且不是 DSH 的缺口，不用提 proposal**：
+
+   | 证据 | 读数 |
+   |---|---|
+   | 实时表头 `GET /` | 只有 `cache-control: no-store` + `content-type` + node 默认，**没有** `content-security-policy` / `x-frame-options` / `permissions-policy`（带错 token 也一样，401 那趟就是同一套头） |
+   | 实时表头 `GET /xaihi/debug.json`、`/xaihi/manifest.json` | 200，头同上（manifest 多一条 `x-content-type-options: nosniff`）⇒ 我们自己的具名路由也不带 CSP |
+   | 构建好的客户端文档 `@deepseek-ai/dsh-web-frontend/dist/index.html`（825 B） | `<meta>` 只有 `charset` 与 `viewport`，**没有 `http-equiv` 的 CSP** |
+   | `@deepseek-ai/dsh-host-frontend-static/lib/index.js:73` | 索引响应只写 `res.writeHead(200, { "content-type": type })`；`renderIndex` 只做 `<head>` 注入与加 `<base href="./">` |
+   | 全量安装目录搜 `Content-Security-Policy\|frame-ancestors\|X-Frame-Options` | 只有两处命中，且都与我们无关：`dsh-api-session-controller/lib/index.js:2342` 给**不可信媒体预览**发 `sandbox; default-src 'none'`；`dsh-client-ui-sidebar-documentpreview/lib/client.js:3845` 是它**自己那份预览文档**里设的 meta |
+   | `dsh-client-ui-sidebar-browser/README.md:107` | DSH 自己的侧栏就在框**外部站点**，并讨论对方 `X-Frame-Options`/CSP 会静默失败 ⇒ 客户端文档本身没被沙箱化 |
+
+   ⇒ 剩下的不是"DSH 让不让"，而是下面两条**我们自己的代价**，必须写进契约：
+
+   3a. **`/xaihi/*` 具名路由不经 `authorizeIndex`**：`dsh-client-connection/lib/index.js:388` 只在
+       `pathname === "/"` 且查询里恰好 1 个 launch token 时才放行索引。所以 plugin-host 文档与它的
+       JS **本机任何进程都能取到**——文档里不许有密钥，`capabilities` / `requiredApi` / `pin`
+       只表达"允许装载什么"，任何有副作用的调用都要回到宿主侧再鉴权。
+   3b. **同 origin 的 iframe 会带着操作者的会话 Cookie**：会话是 `dsh-auth-<sha256(authority)>`，
+       属性为 `Path=/; HttpOnly; SameSite=Strict`（`index.js:297`），Strict 只挡跨站、**不挡同源嵌套**；
+       `authorizeIndex` 认这个 Cookie（`:380-381` 原话"a valid cookie lets [it] through"）。
+       ⇒ framed 文档里发出的请求会被当成**操作者发言**。DSH 的 `webServer.host` 只有
+       `127.0.0.1` / `0.0.0.0` 两种值，给不出第二个 origin，所以只能立规矩：
+       **插件文档内不许直接打 DSH 的 API**，一切宿主调用走 `postMessage` 由外壳那半边发起
+       （外壳才是 launch token / Cookie 的正当持有者）。这条正好和后果 2 的"消息桥不是 props"是同一条。
+
 4. 本 ADR 只是**记账 + 建议**：V1/V2 的两次失败已经把"看起来能省事的两种做法"排掉了，
    但落哪一条要使用者点头，因为 (a) 会改掉插件 UI 契约（连带 `xaihi.manifest/1` 的
    `panels[].remote/export` 字段形状），而那正是刚判定"以 `AppNodeEntry` / 他的契约为准"的东西。
