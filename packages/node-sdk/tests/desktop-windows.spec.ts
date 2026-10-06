@@ -88,4 +88,35 @@ describe('openNodeWindow 的本地闸门与透传', () => {
     const scope = scopeWith({ dshDesktop: { protocolVersion: 1 } })
     expect(await openNodeWindow(scope, 'xaihi-hello')).toEqual({ ok: false, reason: 'stock-shell' })
   })
+
+  // 0007 的转达分支：产品文档替被嵌的 Xaihi 帧来问，路径由调用方给、本地先按形状收住。
+  it('自家文档路径逐字透传给壳，缺省时第二参数是 undefined', async () => {
+    const seen: Array<[string, string | undefined]> = []
+    const scope = scopeWith({
+      dshDesktop: {
+        xaihiWindow: {
+          open: async (node: string, documentPath?: string) => {
+            seen.push([node, documentPath])
+            return { windowId: 4, alreadyOpen: false }
+          },
+        },
+      },
+    })
+    const path = '/xaihi/ui/0123456789ab/index.html'
+    expect(await openNodeWindow(scope, 'xaihi-sleept', path)).toEqual({ ok: true, opening: { windowId: 4, alreadyOpen: false } })
+    await openNodeWindow(scope, 'xaihi-linedup')
+    expect(seen).toEqual([['xaihi-sleept', path], ['xaihi-linedup', undefined]])
+  })
+
+  it('坏路径在本地就拒，不喂给 IPC', async () => {
+    let calls = 0
+    const scope = scopeWith({
+      dshDesktop: { xaihiWindow: { open: async () => { calls += 1; return { windowId: 1, alreadyOpen: false } } } },
+    })
+    for (const bad of ['', '/xaihi/ui/../index.html', '/xaihi/ui/ZZZZ/index.html', 'https://example.com/x',
+      '/xaihi/ui/0123456789ab/index.html?node=x', '/xaihi/ui/0123456789a/index.html', '/other/index.html']) {
+      expect(await openNodeWindow(scope, 'xaihi-hello', bad)).toEqual({ ok: false, reason: 'invalid-document-path' })
+    }
+    expect(calls).toBe(0)
+  })
 })
