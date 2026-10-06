@@ -18,7 +18,7 @@
  */
 
 import { createServer } from 'node:http'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
@@ -62,8 +62,18 @@ const caps = {
 }
 
 const bridge = createShellBridge(caps, (message) => frame.contentWindow.postMessage(message, '*'), window.location.origin)
+let swallowed = 0
 window.addEventListener('message', (event) => {
   if (event.source !== frame.contentWindow) return
+  // 故意吞掉带这条标记的请求：桥的 30 秒超时是契约的一部分，而它**只能**在真浏览器里量——
+  // 在 happy-dom 里量到的是「我的假件按时报了错」，不是「这条桥真的会等到放弃」。
+  // 只吞带 __swallow__ 标记那一条，同一个方法另外那一条照常回答，两侧互为对照。
+  // （这一串注释不能写反引号：整页是一个模板字符串，反引号会提前把它关掉。这个坑我今天踩了第二次。）
+  const data = event.data
+  if (data?.kind === 'request' && data.method === 'config.get' && Array.isArray(data.args) && data.args.includes('__swallow__')) {
+    swallowed += 1
+    return
+  }
   void bridge.receive(event.data, event.origin)
 })
 
@@ -89,6 +99,10 @@ function report(text) {
   add('没授予的组报 refused', doc.refusedReason === 'refused', String(doc.refusedReason))
   add('授予了但没提供者报 no-provider', doc.noProviderReason === 'no-provider', String(doc.noProviderReason))
   add('畸形 method 整条不理', doc.badMethodIgnored === true, String(doc.badMethodIgnored))
+  // 超时这条要连"用了多久"一起断：只断 reason 的话，一个立刻拒绝的实现也能过，
+  // 而那量的就不是上界了。同一方法的另一条（不带标记）在前面正常答到，互为对照。
+  add('无应答的请求按上界报 timeout', doc.timeoutReason === 'timeout' && doc.timeoutMs >= 29000,
+    'reason=' + String(doc.timeoutReason) + ' 等了=' + String(doc.timeoutMs) + 'ms 外壳吞掉=' + String(swallowed) + ' 条')
   add('外壳真的被调到了两次 settings', calls.filter((c) => c === 'describe').length === 1
     && calls.filter((c) => Array.isArray(c)).length === 1, JSON.stringify(calls.map(String)))
   // 阳性对照：上面任何一条判据失败时，这里必须是 FAIL。全绿时这一条本身是"能失败"的自证。
@@ -167,6 +181,13 @@ const before = bridge.ready()?.granted?.length
 window.parent.postMessage({ schema: 'xaihi.bridge/1', kind: 'request', id: 'bad', method: 'config.ge', args: [] }, window.location.origin)
 await new Promise((resolve) => setTimeout(resolve, 120))
 out.badMethodIgnored = bridge.ready()?.granted?.length === before
+// 被吞掉的那一条：等真超时。这一段会占用约 30 秒，而那正是这条判据的内容——
+// 快起来的"失败"说明量的不是上界，是别的东西。
+step('等 timeout（约 30s）')
+const timeoutAt = Date.now()
+out.timeoutReason = await reason(bridge.call('config.get', 'sleept', '__swallow__'))
+out.timeoutMs = Date.now() - timeoutAt
+step('timeout 回来了=' + String(out.timeoutReason))
 step('准备回报')
 
 // 报告要交给**外壳那一份文档**的函数：两个文档同源，但全局对象不是同一个。
@@ -181,8 +202,6 @@ const routes = {
   '/': parentPage,
   '/child.html': childPage,
   '/stub-dsh-tools.js': stub,
-  '/sdk/index.js': () => readFileSync(`${sdkDir}/index.js`, 'utf8'),
-  '/sdk/operations.js': () => readFileSync(`${sdkDir}/operations.js`, 'utf8'),
 }
 
 const server = createServer((req, res) => {
@@ -193,6 +212,21 @@ const server = createServer((req, res) => {
     // 一个畸形请求打不死取证服务：它一死，页面只会停在「未开始」，那就又是"看着像没违规"。
     res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' })
     res.end('bad request path')
+    return
+  }
+  // SDK 的产物会有分片（rolldown 会拆出 bridge-shell-<hash>.js 这类文件），
+  // 所以整条 /sdk/ 前缀按目录发，而不是列两个固定名 —— 固定名会在**下一次重新构建**之后静默 404，
+  // 症状是子页停在「等握手」而 nobody 想到是取件路径写窄了（今天就是这么坏的）。
+  if (path.startsWith('/sdk/')) {
+    const rel = path.slice('/sdk/'.length)
+    const file = `${sdkDir}/${rel}`
+    if (!/^[A-Za-z0-9._-]+(\.[A-Za-z0-9]+)?$/.test(rel) || !existsSync(file)) {
+      res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' })
+      res.end('no sdk file: ' + rel)
+      return
+    }
+    res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' })
+    res.end(readFileSync(file, 'utf8'))
     return
   }
   const entry = routes[path]
