@@ -42,18 +42,30 @@ export interface RouteSource {
 }
 
 /**
+ * URL 相对路径的形状闸：段数、穿越、后缀白名单。
+ * 两个服务面（插件 remote 产物、Xaihi 自己的 UI 产物）共用这一条，否则会出现
+ * "同一类穿越在一边被拒、在另一边被放行"。
+ * @param relative - URL 前缀之后的部分（已 decode）。
+ * @returns 拆好的段，或 null 表示拒绝。
+ */
+function guardRelative(relative: string): string[] | null {
+  if (relative === '' || relative.startsWith('/') || relative.includes('\0')) return null
+  const segments = relative.split('/')
+  if (segments.some((segment) => segment === '' || segment === '.' || segment === '..')) return null
+  const extensionIndex = relative.lastIndexOf('.')
+  if (extensionIndex === -1 || MIME[relative.slice(extensionIndex)] === undefined) return null
+  return segments
+}
+
+/**
  * 把请求路径解析成磁盘文件。
  * @param registration - 目标插件登记项。
  * @param relative - URL 里 `<slug>/` 之后的部分（已 decode）。
  * @returns 可服务的绝对路径，或 null 表示拒绝。
  */
 export function resolveServedFile(registration: ServedRegistration, relative: string): string | null {
-  if (relative === '' || relative.startsWith('/') || relative.includes('\0')) return null
-  const segments = relative.split('/')
-  if (segments.some((segment) => segment === '' || segment === '.' || segment === '..')) return null
-  const extensionIndex = relative.lastIndexOf('.')
-  const extension = extensionIndex === -1 ? '' : relative.slice(extensionIndex)
-  if (MIME[extension] === undefined) return null
+  const segments = guardRelative(relative)
+  if (segments === null) return null
   const candidate = join(registration.frontendDir, ...segments)
   if (!existsSync(candidate)) return null
   const realDir = realpathSync(registration.frontendDir)
@@ -63,9 +75,138 @@ export function resolveServedFile(registration: ServedRegistration, relative: st
   return realFile
 }
 
+/**
+ * 把请求路径解析成 Xaihi 自己产物目录里的文件（没有 entryFile 那条例外）。
+ * @param dir - 产物根目录的绝对路径。
+ * @param relative - URL 里 `<rev>/` 之后的部分（已 decode）。
+ * @returns 可服务的绝对路径，或 null 表示拒绝。
+ */
+export function resolveUiFile(dir: string, relative: string): string | null {
+  const segments = guardRelative(relative)
+  if (segments === null) return null
+  const candidate = join(dir, ...segments)
+  if (!existsSync(candidate)) return null
+  const realFile = realpathSync(candidate)
+  if (!realFile.startsWith(realpathSync(dir) + sep)) return null
+  if (!statSync(realFile).isFile()) return null
+  return realFile
+}
+
 const send = (res: ServerResponse, status: number, body: string | Buffer, type: string, cache: string): void => {
   res.writeHead(status, { 'content-type': type, 'cache-control': cache, 'x-content-type-options': 'nosniff' })
   res.end(body)
+}
+
+/** Xaihi 自己那份 UI 文档的前缀（ADR-0009：边界切在 DSH↔Xaihi 这一刀）。 */
+export const UI_PATH_PREFIX = '/xaihi/ui'
+
+/** 文档壳里引用的产物名；构建那侧要按这两个名字出。 */
+export const UI_ENTRY_SCRIPT = 'main.js'
+export const UI_ENTRY_STYLE = 'main.css'
+
+/** rev 只接受 computeRev 那种 12 位十六进制：它会被写进内联脚本，不接受任意字符串。 */
+const REV_PATTERN = /^[0-9a-f]{12}$/
+
+/**
+ * 节点寻址段的形状（ADR-0011 决定 3：节点各自成窗用的是**同一份文档 + 寻址参数**，
+ * 不是每个节点一份产物）。清单 id 就是这个小写段，所以闸也按它收。
+ */
+const NODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/
+
+/** UI 产物目录与其修订号的来源。 */
+export interface UiBundleSource {
+  /** 产物根目录的绝对路径；空串代表没配。 */
+  dir: () => string
+  /** 当前产物修订号。 */
+  rev: () => string
+}
+
+/**
+ * 生成文档壳。
+ *
+ * 这是整个 Xaihi 界面唯一一份 HTML：React 19 与工作台、L2 原子层、每节点的 remote
+ * 都活在它里面，跨 realm 的桥只在这一层外面（DSH 的 slot 里只放一个 `<iframe>`）。
+ * 形状照搬运源仓那份装载器：URL 决定装载什么、读不到的东西显示成可见失败。
+ * @param rev - 写进 boot 对象的修订号，必须是 12 位十六进制。
+ * @param node - 要打开哪个节点的表面；空串表示"整个工作台"。
+ * @returns 文档正文。
+ */
+export function renderUiDocument(rev: string, node = ''): string {
+  if (!REV_PATTERN.test(rev)) return '<!doctype html><html><body>xaihi ui rev is unusable</body></html>'
+  const base = `${UI_PATH_PREFIX}/${rev}/`
+  const boot = JSON.stringify(node === '' ? { rev, apiBase: '/xaihi', bundleBase: base } : { rev, apiBase: '/xaihi', bundleBase: base, node })
+  return [
+    '<!doctype html>',
+    '<html lang="zh">',
+    '<head>',
+    '<meta charset="utf-8" />',
+    '<meta name="viewport" content="width=device-width, initial-scale=1" />',
+    '<title>Xaihi</title>',
+    `<link rel="stylesheet" href="./${UI_ENTRY_STYLE}" />`,
+    `<script>window.__XAIHI_UI__=${boot}</script>`,
+    `<script type="module" src="./${UI_ENTRY_SCRIPT}"></script>`,
+    '</head>',
+    '<body><div id="xaihi-ui-root"></div></body>',
+    '</html>',
+  ].join('\n')
+}
+
+/**
+ * `/xaihi/ui/<rev>/<file>`：文档壳 + 它的产物。
+ *
+ * 与 `/xaihi/remotes` 的区别只有两点，都是被形状逼出来的：
+ * 1. 这里要多发一份 `text/html`，而 HTML 不在 `MIME` 白名单里（把 `.html` 放进去
+ *    等于允许目录里任何一份 HTML 出门），所以文档壳由代码现生成，其余文件仍走白名单。
+ * 2. 产物目录没配时必须**先**报这条，不能掉进 rev 不匹配的 404——后者会让人以为
+ *    是缓存问题，而真正的原因是 `core.uiBundleDir` 是空串。
+ */
+export function uiBundleHandler(source: UiBundleSource) {
+  return (req: IncomingMessage, res: ServerResponse): void => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      send(res, 405, 'method not allowed', 'text/plain; charset=utf-8', 'no-store')
+      return
+    }
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1')
+    if (!url.pathname.startsWith(`${UI_PATH_PREFIX}/`)) {
+      send(res, 404, 'not found', 'text/plain; charset=utf-8', 'no-store')
+      return
+    }
+    const dir = source.dir()
+    if (dir === '') {
+      send(res, 503, 'xaihi ui bundle is not configured (config core.uiBundleDir is empty)', 'text/plain; charset=utf-8', 'no-store')
+      return
+    }
+    const rev = source.rev()
+    const segments = url.pathname.slice(UI_PATH_PREFIX.length + 1).split('/')
+    const requested = segments.shift() ?? ''
+    const relative = segments.join('/')
+    if (requested === '' || relative === '') {
+      send(res, 404, 'not found', 'text/plain; charset=utf-8', 'no-store')
+      return
+    }
+    if (!REV_PATTERN.test(rev) || requested !== rev) {
+      send(res, 404, `rev mismatch (current ${REV_PATTERN.test(rev) ? rev : 'unreadable'})`, 'text/plain; charset=utf-8', 'no-store')
+      return
+    }
+    if (relative === 'index.html') {
+      const node = url.searchParams.get('node') ?? ''
+      if (node !== '' && !NODE_PATTERN.test(node)) {
+        // 不回显收到的值：这一格的形状规则说清楚就够了，而把未净化的输入写进响应体
+        // 正是这条路由接下来要防的那类事。
+        send(res, 400, 'node must be a manifest id matching [a-z0-9][a-z0-9_-]{0,63}', 'text/plain; charset=utf-8', 'no-store')
+        return
+      }
+      send(res, 200, req.method === 'HEAD' ? '' : renderUiDocument(rev, node), 'text/html; charset=utf-8', 'no-store')
+      return
+    }
+    const served = resolveUiFile(dir, decodeURIComponent(relative))
+    if (served === null) {
+      send(res, 404, 'not found', 'text/plain; charset=utf-8', 'no-store')
+      return
+    }
+    const extensionIndex = served.lastIndexOf('.')
+    send(res, 200, req.method === 'HEAD' ? '' : readFileSync(served), MIME[served.slice(extensionIndex)] ?? 'application/octet-stream', IMMUTABLE)
+  }
 }
 
 /** `/xaihi/manifest.json`：exact 路由，禁止缓存，浏览器每次启动读最新的登记表。 */

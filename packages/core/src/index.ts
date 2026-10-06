@@ -21,8 +21,9 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context, Volatile } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import { buildRegistrations, buildWorkspaceDocument, type ServedRegistration } from './registry.ts'
-import { manifestHandler, remoteHandler } from './routes.ts'
+import { buildRegistrations, buildWorkspaceDocument, computeRev, type ServedRegistration } from './registry.ts'
+import { manifestHandler, remoteHandler, uiBundleHandler, UI_PATH_PREFIX, type UiBundleSource } from './routes.ts'
+import type { UiBundleFace } from '@hibernalglow/xaihi-sdk'
 import { createJournal, operationsSnapshotHandler, operationsStreamHandler } from './operations.ts'
 import { historyHandler, openLedger, type DomainFacilityLike, type RunLedger } from './history.ts'
 import {
@@ -44,10 +45,17 @@ export const provide = [OPERATIONS_SERVICE]
 export interface Config {
   /** 每次清单请求打一行诊断日志。 */
   verbose: Volatile<boolean>
+  /**
+   * Xaihi 自己那份 UI 文档的产物根目录（绝对路径）。
+   * 空串是合法值，含义是"还没有第二个构建目标"，此时 `/xaihi/ui/**` 一律 503 并把
+   * 这条原因说出来，而不是装出一个空壳（ADR-0009 的边界这一侧）。
+   */
+  uiBundleDir: string
 }
 
 export const Config = Schema.object({
   verbose: Schema.boolean().default(false).volatile(),
+  uiBundleDir: Schema.string().default(''),
 })
 
 /** loader 行的最小结构面（cordis-plugin-loader 的 Entry.options 子集）。 */
@@ -270,9 +278,32 @@ export function apply(ctx: HostContext, config: Config): void {
     }
     return registrations
   }
+  // Xaihi 那份 UI 文档（React 19 住在里面，ADR-0009）此刻装不装得出来，要作为字段
+  // 出现在清单里，而不是等面板去试：空产物与产物读不了是两种不同的症状。
+  const uiSource: UiBundleSource = {
+    dir: () => config.uiBundleDir,
+    rev: () => {
+      if (config.uiBundleDir === '') return 'missing'
+      try {
+        return computeRev(config.uiBundleDir)
+      } catch {
+        return 'unreadable'
+      }
+    },
+  }
+  const uiFace = (): UiBundleFace => {
+    const rev = uiSource.rev()
+    if (rev === 'missing') {
+      return { documentUrl: '', rev, problems: ['xaihi ui bundle is not configured (config core.uiBundleDir is empty)'] }
+    }
+    if (rev === 'unreadable') {
+      return { documentUrl: '', rev, problems: [`xaihi ui bundle directory is not readable: ${config.uiBundleDir}`] }
+    }
+    return { documentUrl: `${UI_PATH_PREFIX}/${rev}/index.html`, rev }
+  }
   const source = {
     registrations: snapshot,
-    document: () => buildWorkspaceDocument(snapshot()),
+    document: () => buildWorkspaceDocument(snapshot(), uiFace()),
   }
 
   ctx.effect(() => ctx.webServer.register({
@@ -297,6 +328,13 @@ export function apply(ctx: HostContext, config: Config): void {
     path: '/xaihi/remotes',
     handler: remoteHandler(source),
   }), 'xaihi-core: remote files route')
+
+  // 边界只切在这一刀：DSH 的 slot 里只放一个 <iframe>，它的 src 就是这条路由（ADR-0009）。
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'prefix',
+    path: UI_PATH_PREFIX,
+    handler: uiBundleHandler(uiSource),
+  }), 'xaihi-core: ui document route')
 
   // 事件流的合法性来自宿主文档对 WebRoute.handler 的原话："may hold the response open,
   // e.g. SSE"。快照路由是它的兜底：不是所有宿主形态都允许长连接（桌面壳走 IPC 桥）。
@@ -365,13 +403,16 @@ export function apply(ctx: HostContext, config: Config): void {
     },
     async execute() {
       const registrations = snapshot()
-      const document = buildWorkspaceDocument(registrations)
+      const document = buildWorkspaceDocument(registrations, uiFace())
       if (document.plugins.length === 0) return 'no xaihi nodes are installed and enabled'
-      return document.plugins.map((plugin) => {
+      const header = document.ui.documentUrl === ''
+        ? `ui document: unavailable (${document.ui.problems?.[0] ?? 'unknown'})`
+        : `ui document: ${document.ui.documentUrl}`
+      return [header, ...document.plugins.map((plugin) => {
         const panels = (plugin.manifest.panels ?? []).map((panel) => panel.id).join(', ') || 'no panels'
         const problems = plugin.problems ? ` PROBLEMS: ${plugin.problems.join('; ')}` : ''
         return `${plugin.manifest.id} (${plugin.package}) panels: ${panels}${problems}`
-      }).join('\n')
+      })].join('\n')
     },
   }))
 }

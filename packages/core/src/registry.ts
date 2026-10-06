@@ -15,7 +15,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { validateManifest, type WorkspaceDocument, type XaihiManifest } from '@hibernalglow/xaihi-sdk'
+import { validateManifest, type UiBundleFace, type WorkspaceDocument, type XaihiManifest } from '@hibernalglow/xaihi-sdk'
 
 /** 已定位的包：package.json 路径与其解析结果。 */
 export interface LocatedPackage {
@@ -142,9 +142,10 @@ function basenameOf(path: string): string {
 /**
  * 把登记项折叠成浏览器可消费的文档。
  * @param registrations - buildRegistrations 的结果。
+ * @param ui - Xaihi 自己那份 UI 文档此刻的可装载信息（ADR-0009 的那一刀）。
  * @returns 聚合文档；整体 rev 由条目 rev 组成，浏览器可据此判断是否需要重载 remote。
  */
-export function buildWorkspaceDocument(registrations: readonly ServedRegistration[]): WorkspaceDocument {
+export function buildWorkspaceDocument(registrations: readonly ServedRegistration[], ui: UiBundleFace): WorkspaceDocument {
   const plugins = registrations.map((registration) => {
     const remotes: Record<string, string> = {}
     if (registration.remote && registration.rev !== 'missing' && registration.rev !== 'unreadable') {
@@ -157,5 +158,5 @@ export function buildWorkspaceDocument(registrations: readonly ServedRegistratio
   const rev = createHash('sha1')
     .update(`xaihi-workspace\u0000${registrations.map((entry) => `${entry.package}:${entry.rev}`).join('\n')}`)
     .digest('hex').slice(0, 12)
-  return { schema: 'xaihi.workspace/1', rev, plugins }
+  return { schema: 'xaihi.workspace/1', rev, plugins, ui }
 }

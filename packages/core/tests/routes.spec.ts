@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { describe, expect, it } from 'vitest'
 import { MANIFEST_SCHEMA, type WorkspaceDocument, type XaihiManifest } from '@hibernalglow/xaihi-sdk'
-import { manifestHandler, remoteHandler, resolveServedFile } from '../src/routes.ts'
+import { manifestHandler, remoteHandler, renderUiDocument, resolveServedFile, resolveUiFile, uiBundleHandler } from '../src/routes.ts'
 import type { ServedRegistration } from '../src/registry.ts'
 
 const tree = realpathSync(fileURLToPath(new URL('./fixtures/remote-tree/', import.meta.url)))
@@ -30,7 +30,7 @@ const registration: ServedRegistration = {
 
 const source = {
   registrations: () => [registration],
-  document: (): WorkspaceDocument => ({ schema: 'xaihi.workspace/1', rev: REV, plugins: [] }),
+  document: (): WorkspaceDocument => ({ schema: 'xaihi.workspace/1', rev: REV, plugins: [], ui: { documentUrl: '', rev: 'missing' } }),
 }
 
 class FakeResponse {
@@ -117,5 +117,74 @@ describe('manifestHandler', () => {
     expect(res.status).toBe(200)
     expect(res.headers['cache-control']).toBe('no-store')
     expect(JSON.parse(res.body).schema).toBe('xaihi.workspace/1')
+  })
+})
+
+describe('uiBundleHandler（ADR-0009 那一刀的文档侧）', () => {
+  const uiSource = { dir: () => tree, rev: () => REV }
+  const uiUrl = (file: string, rev = REV) => `/xaihi/ui/${rev}/${file}`
+
+  it('文档壳按 HTML 出、禁缓存，并把 rev 烧进 boot 对象', () => {
+    const res = call(uiBundleHandler(uiSource), uiUrl('index.html'))
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toContain('text/html')
+    expect(res.headers['cache-control']).toBe('no-store')
+    expect(res.body).toContain('"rev":"0123456789ab"')
+    expect(res.body).toContain('./main.js')
+  })
+
+  it('产物目录没配时是 503 并点名配置项，而不是掉进 rev 不匹配的 404', () => {
+    const res = call(uiBundleHandler({ dir: () => '', rev: () => 'missing' }), '/xaihi/ui/0123456789ab/index.html')
+    expect(res.status).toBe(503)
+    expect(res.body).toContain('core.uiBundleDir')
+  })
+
+  it('陈旧 rev 一律 404（文档壳钉着 rev，接受旧 rev 会让界面停留在旧产物上）', () => {
+    const res = call(uiBundleHandler(uiSource), uiUrl('index.html', 'stalestalest'))
+    expect(res.status).toBe(404)
+    expect(res.body).toContain(`current ${REV}`)
+  })
+
+  it('rev 不是 12 位十六进制时不进 boot 对象（它会被写进内联脚本）', () => {
+    const hostile = { dir: () => tree, rev: () => 'a";alert(1);//' }
+    expect(call(uiBundleHandler(hostile), '/xaihi/ui/whatever/index.html').status).toBe(404)
+    expect(renderUiDocument('a";alert(1;//')).not.toContain('alert')
+  })
+
+  // 这一条专门守"当前 rev 自己就不是十六进制"那一格：只比 requested !== rev 是不够的，
+  // 因为此时两边可以相等，然后 200 一份什么都装不出来的 HTML。
+  it('当前 rev 本身不可用时是 404 并说 unreadable，而不是 200 一份空壳', () => {
+    const broken = { dir: () => tree, rev: () => 'missing' }
+    const res = call(uiBundleHandler(broken), '/xaihi/ui/missing/index.html')
+    expect(res.status).toBe(404)
+    expect(res.body).toContain('current unreadable')
+  })
+
+  // ADR-0011 决定 3：节点各自成窗 = 同一份文档 + 寻址参数，所以参数要能进 boot 而不能进路径。
+  it('?node= 被原样带进 boot 对象（同一份产物开不同节点的窗）', () => {
+    const res = call(uiBundleHandler(uiSource), `${uiUrl('index.html')}?node=sleept`)
+    expect(res.status).toBe(200)
+    expect(res.body).toContain('"node":"sleept"')
+    expect(call(uiBundleHandler(uiSource), uiUrl('index.html')).body).not.toContain('"node"')
+  })
+
+  it('节点段形状不合法就 400，且不落进内联脚本（它是会被执行的字符串）', () => {
+    const res = call(uiBundleHandler(uiSource), `${uiUrl('index.html')}?node=${encodeURIComponent('a";alert(1;//')}`)
+    expect(res.status).toBe(400)
+    expect(res.body).not.toContain('alert(1')
+    expect(res.body).toContain('[a-z0-9]')
+    expect(renderUiDocument(REV, '')).not.toContain('"node"')
+  })
+
+  it('目录里的 HTML 不出门：只有文档壳这一份 text/html 是代码生成的', () => {
+    expect(call(uiBundleHandler(uiSource), uiUrl('notes.txt')).status).toBe(404)
+    expect(resolveUiFile(tree, 'remoteEntry.js')).toBe(`${tree}/remoteEntry.js`)
+  })
+
+  it('穿越与缺段都被拒（与 remote 那条面同一条闸）', () => {
+    expect(call(uiBundleHandler(uiSource), uiUrl('..%2Foutside-of-tree.txt')).status).toBe(404)
+    expect(call(uiBundleHandler(uiSource), '/xaihi/ui/').status).toBe(404)
+    expect(call(uiBundleHandler(uiSource), `/xaihi/ui/${REV}`).status).toBe(404)
+    expect(call(uiBundleHandler(uiSource), uiUrl('chunk.js'), 'POST').status).toBe(405)
   })
 })

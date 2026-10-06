@@ -54,9 +54,15 @@ describe('buildRegistrations', () => {
 
   it('聚合文档给出 remote → 带 rev 的 URL，装载器据此注册', () => {
     const registrations = buildRegistrations(['@fixture/xaihi-thing'], locateFor({ xaihi: manifest }))
-    const document = buildWorkspaceDocument(registrations)
+    const document = buildWorkspaceDocument(registrations, { documentUrl: '', rev: 'missing' })
     expect(document.schema).toBe('xaihi.workspace/1')
     expect(document.plugins[0]?.remotes.fixture).toBe(`/xaihi/remotes/${slugOf('@fixture/xaihi-thing')}/${registrations[0]?.rev}/remoteEntry.js`)
+  })
+
+  it('UI 文档那一侧的信息原样进文档（面板靠它决定 iframe 的 src，缺了要看得见）', () => {
+    const face = { documentUrl: '', rev: 'missing', problems: ['xaihi ui bundle is not configured (config core.uiBundleDir is empty)'] }
+    const document = buildWorkspaceDocument([], face)
+    expect(document.ui).toEqual(face)
   })
 })
 
