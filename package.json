@@ -12,14 +12,15 @@
     "typecheck": "pnpm -r run typecheck",
     "test:unit": "pnpm -r --no-bail run test:unit",
     "check:pins": "node scripts/check-pins.mjs",
-    "test": "pnpm check:pins && pnpm -r run build && pnpm -r run typecheck && pnpm -r --no-bail run test:unit",
+    "test": "pnpm check:pins && pnpm check:skills && pnpm -r run build && pnpm -r run typecheck && pnpm -r --no-bail run test:unit",
     "dsh": "pnpm exec dsh",
     "host": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh --profile xaihi --no-open",
     "host:headless": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh xaihi-headless",
     "plugin:add": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh plugin --profile xaihi add",
     "profile:dump": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh --profile xaihi --dump-config",
     "plugin:install": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh plugin --profile xaihi install",
-    "plugin:remove": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh plugin --profile xaihi remove"
+    "plugin:remove": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh plugin --profile xaihi remove",
+    "check:skills": "node scripts/check-skills.mjs"
   },
   "devDependencies": {
     "@deepseek-ai/dsh": "0.2.0-rc.2",

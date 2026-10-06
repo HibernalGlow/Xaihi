@@ -20,6 +20,7 @@ jobs:
       # 干净检出：lib/ 与 dist/ 都不在版本控制里，产物必须由这一步重新生成。
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:pins
+      - run: pnpm check:skills
       # 顺序是有意的：typecheck 与 test:unit 都要读 node-sdk 的 d.ts，
       # 而 purity / bundle 两条闸门断言的是产物本身，所以 build 必须在它们前面。
       - run: pnpm -r run build
