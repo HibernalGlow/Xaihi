@@ -1,0 +1,112 @@
+From a00200c4b145220b30391f39c180b7dd87fc0695 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 07:31:20 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20Xaihi=20=E6=96=87=E6=A1=A3=E7=AA=97?=
+ =?utf-8?q?=E7=9A=84=E5=B0=BA=E5=AF=B8/=E4=BD=8D=E7=BD=AE=E5=8F=98?=
+ =?utf-8?q?=E5=8C=96=E6=8E=A8=E7=BB=99=E4=BA=A7=E5=93=81=E6=96=87=E6=A1=A3?=
+ =?utf-8?q?=EF=BC=88Xaihi=20patch=200012=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/ipc.ts         | 15 +++++++++++++++
+ apps/desktop/src/main.ts        | 18 ++++++++++++++++++
+ apps/desktop/src/preload-app.ts |  5 +++++
+ 3 files changed, 38 insertions(+)
+
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+index 14bbe4a..6baf228 100644
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -38,6 +38,7 @@ export const DESKTOP_IPC = {
+   xaihiWindowClose: 'dsh-desktop:xaihi-window-close',
+   xaihiWindowGetBounds: 'dsh-desktop:xaihi-window-get-bounds',
+   xaihiWindowSetBounds: 'dsh-desktop:xaihi-window-set-bounds',
++  xaihiWindowFrameChanged: 'dsh-desktop:xaihi-window-frame-changed',
+ } as const
+ 
+ /** Desktop release update state rendered by desktop-owned UI. */
+@@ -123,6 +124,20 @@ export interface DshDesktopProductApi {
+      * 所以值由构造窗口时那份 `titleBarStyle` 推出来，不是两边各猜一次。
+      */
+     getCapabilities(): Promise<XaihiWindowCapabilities>
++    /**
++     * Xaihi patch 0012: 窗被挪动/改尺寸时收事件，对应基线的 `subscribeFrameChanges`
++     * （`Xiranite/src/backend/runtime/runtime.ts:150`）。为什么需要它：记住"哪个节点窗多大在哪"
++     * 的是 Xaihi 自己（ADR-0013 走 DSH 的 settings 面），而窗是壳建的 —— 没有这条推送，
++     * 界面就只能在开的那一瞬间知道尺寸，之后使用者拖走了它无从得知，也就没东西可存。
++     * 事件只发给产品主窗（那份文档是工作台的宿主），返回的是退订函数。
++     */
++    subscribeFrameChanges(listener: (event: {
++      readonly windowId: number
++      readonly x: number
++      readonly y: number
++      readonly width: number
++      readonly height: number
++    }) => void): () => void
+     focus(windowId: number): Promise<{ readonly windowId: number }>
+     close(windowId: number): Promise<{ readonly windowId: number }>
+     getBounds(windowId: number): Promise<{ readonly x: number, readonly y: number, readonly width: number, readonly height: number }>
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index 17e9ada..3716015 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -210,6 +210,12 @@ function platformLoginUrl(authorizeUrl: string): string {
+ // 不参与主窗的 hide-on-close；重复请求聚焦既有的那一个，而不是叠第二个窗。
+ const xaihiDocumentWindows = new Map<string, BrowserWindow>()
+ 
++// Xaihi patch 0012: 尺寸/位置变化的发信口。它是个变量而不是直接引用 mainWindow，
++// 因为登记表的 `openXaihiDocumentWindow` 住在模块作用域，而 `mainWindow` 是那个工作区的局部量；
++// 由 `createMainWindow` 每次建主窗时把发信函数装进来（主窗被恢复出来时也不会指着旧的窗发信）。
++type XaihiFrameEvent = { readonly windowId: number, readonly x: number, readonly y: number, readonly width: number, readonly height: number }
++let xaihiFrameSink: ((frame: XaihiFrameEvent) => void) | undefined
++
+ /** Xaihi patch 0011: 每个自家窗的标题栏形状（'inset' mac 红绿灯在内容里 / 'overlay' Windows 由渲染方画 / 'native' 原生框）。 */
+ const xaihiCaptionKinds = new WeakMap<BrowserWindow, 'inset' | 'overlay' | 'native'>()
+ 
+@@ -263,6 +269,14 @@ function openXaihiDocumentWindow (preload: string, target: string, size?: XaihiW
+   window.setTitle(`Xaihi \u00b7 ${key}`)
+   xaihiDocumentWindows.set(key, window)
+   window.on('closed', () => { if (xaihiDocumentWindows.get(key) === window) xaihiDocumentWindows.delete(key) })
++  // Xaihi patch 0012: 拖走与改尺寸都往产品主窗发一份（界面无从自己观测别的窗）。
++  const publishFrame = (): void => {
++    if (window.isDestroyed()) return
++    const { x, y, width, height } = window.getBounds()
++    xaihiFrameSink?.({ windowId: window.id, x, y, width, height })
++  }
++  window.on('resize', publishFrame)
++  window.on('move', publishFrame)
+   void window.loadURL(target)
+   return { window, alreadyOpen: false }
+ }
+@@ -1266,6 +1280,10 @@ async function main(): Promise<void> {
+   }
+   const createMainWindow = (): BrowserWindow => {
+     const window = createWindow(appPreload, false, true)
++    // Xaihi patch 0012: 主窗在这儿，发信口也在这儿装（见 xaihiFrameSink 的注释）。
++    xaihiFrameSink = (frame): void => {
++      if (!window.isDestroyed()) window.webContents.send(DESKTOP_IPC.xaihiWindowFrameChanged, frame)
++    }
+     mainWindow = window
+     browserGuests.bind(window, (guest, name) => shortcuts.attachGuest(window, guest, name))
+     shortcuts.attach(window)
+diff --git a/apps/desktop/src/preload-app.ts b/apps/desktop/src/preload-app.ts
+index b383abb..3d450f5 100644
+--- a/apps/desktop/src/preload-app.ts
++++ b/apps/desktop/src/preload-app.ts
+@@ -20,6 +20,11 @@ function createProductApi(): DshDesktopProductApi {
+     xaihiWindow: {
+       open: (node: string, options?: { documentPath?: string, width?: number, height?: number }) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowOpen, node, options) as Promise<{ readonly windowId: number, readonly alreadyOpen: boolean }>,
+       getCapabilities: () => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowCapabilities) as Promise<XaihiWindowCapabilities>,
++      subscribeFrameChanges(listener: (event: { windowId: number, x: number, y: number, width: number, height: number }) => void) {
++        const handle = (_event: Electron.IpcRendererEvent, frame: { windowId: number, x: number, y: number, width: number, height: number }): void => { listener(frame) }
++        ipcRenderer.on(DESKTOP_IPC.xaihiWindowFrameChanged, handle)
++        return () => { ipcRenderer.off(DESKTOP_IPC.xaihiWindowFrameChanged, handle) }
++      },
+       focus: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowFocus, windowId) as Promise<{ readonly windowId: number }>,
+       close: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowClose, windowId) as Promise<{ readonly windowId: number }>,
+       getBounds: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowGetBounds, windowId) as Promise<{ readonly x: number, readonly y: number, readonly width: number, readonly height: number }>,
+-- 
+2.55.0
+

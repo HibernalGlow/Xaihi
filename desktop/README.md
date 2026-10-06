@@ -515,7 +515,8 @@ settings / storage 面，壳不另开一份存储。校验放在纯模块里（`
 | `getCapabilities()` | ✅ 0011：`xaihiWindow.getCapabilities()` 逐字段回基线那七个键，值由**建窗那份 `titleBarStyle`** 推（不是两处各猜）；非自家壳那一侧仍由 SDK 的 `readXaihiWindowCapability` 报三种原因，对上 `componentWindows` 的 `native / unsupported / browser-popup`（`Xiranite/src/backend/adapters/web.ts:206` 是 `browser-popup`） | N 段活体：键集与基线逐字相同、mac 这侧 `captionOwner=system` + `captionInset={16,18}` |
 | `focus(id)` / `close(id)` | ✅ 0010：`xaihiWindow.focus(windowId)` 与 `.close(windowId)`，只认自家那张登记表里的窗 | M 段活体，含两条边界对照：拿主窗 id 来问也被拒、关掉之后同 id 读不回来 |
 | `getFrame(id)` / `setFrame(frame, id)` | ✅ 0010：`.getBounds(windowId)` 与 `.setBounds(windowId, rect)`，回读的是**生效后**量出来的矩形（屏幕会 clamp，报回去的必须是界面实际拿到的那份） | M 段：`1100x850` 与主进程自己 `getBounds()` 的四元组逐字相同；小数坐标按形状拒 |
-| `controlMain` / `controlComponent` / `openDevTools` / `subscribeFrameChanges` / `startDragging` | ❌ 未提供（0010 补的是寻址四条，不是这几条） | 无 |
+| `subscribeFrameChanges(handler)` | ✅ 0012：自家文档窗被挪动/改尺寸时把**当前量到的**矩形推给产品文档；订阅返回退订函数 | O 段活体：载荷五个键逐字对、退订后再挪一次不再收 |
+| `controlMain` / `controlComponent` / `openDevTools` / `startDragging` | ❌ 未提供。**其中 `startDragging` 我们这侧是真的不适用**（自家窗都有原生框，`frameless=false`）—— 等界面真问到时该回"不支持"，不许做一个返回成功的假动词 | 无 |
 
 ⇒ 搬运那刀接 `windowService.ts` 时，除 `open` 之外每一条都要**先接降级再接触点**：
 按决定 4，探测不到就画"这一格没有提供者"，不许把 `controlComponent` 之类写成"成功但什么都没做"。
@@ -582,3 +583,30 @@ mac 上 `captionOwner=system`、`captionInset={x:16,y:18}`、`nativeWindowContro
 窗内 `focus(自己)` ⇒ `{windowId:15}`；`getBounds(产品主窗 id=1)` ⇒ `unknown window`；
 `close(15)` ⇒ `windowStillThere=false`、`createdAfterClose=0`，再 `getBounds(15)` ⇒ `unknown window`。
 纯函数那一侧是 `--verify` 的 8 条矩形用例（`x:'40'`、`y:60.5`、缺 `x`、`x:200000`、尺寸越界、`undefined`）。
+
+## 0012 与 0013：尺寸推得到、退订真断（2026-10-07 07:3x）
+
+基线的 `subscribeFrameChanges`（`Xiranite/src/backend/runtime/runtime.ts:150`）不是"锦上添花的事件流"：
+**没有它，Xaihi 就存不了几何。** 窗是壳建的、尺寸变了界面无从知道 ⇒ "下次把这个节点的窗开回原处"
+在数据上就没有来源；同理也收不到"那个窗被关了"。按 ADR-0013 几何归 Xaihi 存（DSH 的 settings 面），
+所以变化必须由壳送出来。
+
+实现照壳**自己已有**那套订阅写法（`keyboard.subscribe` / `updates.subscribe`：`ipcRenderer.on` + 返回退订），
+不另发明一种：`ipc.ts` 加推送通道 `dsh-desktop:xaihi-window-frame-changed`；建自家窗时挂 `resize` + `move`，
+两个都发**当场量到的**矩形（`window.getBounds()`，不是调用方给的那份）；发信口是模块级变量 `xaihiFrameSink`，
+由 `createMainWindow` 每次建主窗时装进去 —— 登记表那个函数住在模块作用域，而 `mainWindow` 是那个工作区的局部量，
+直接引用会指到已经被换掉的旧窗。
+
+实机（O 段六条，`node desktop/live-check.mjs` ⇒ **79 条 OK、0 FAIL、rc=0**）：`subscribeFrameChanges` 返回
+`function`；开一个节点窗后 `setBounds(210,230,1024,768)` ⇒ 产品文档至少收到一条、`windowId` 全是我们的窗、
+载荷键**逐字就是** `{windowId,x,y,width,height}`、最后一条是生效后的 `210,230,1024,768`；
+**退订之后再挪一次（330,350）事件数不再涨**。"收得到"与"不再收"两条缺一条都不算证：前者不响就是
+"订阅了但永远不响"，后者不断就是监听器泄漏。
+
+0013 是同轮的措辞修正：0011 那句"寻址动词有几条由真通道表数出来"在 0012 加了推送通道之后**开始名不符实**
+（把推送通道算成寻址动词）⇒ 改成在消息里直接写那四条名字。教训：**从一个集合派生出来的读数，
+要么集合语义精确到位，要么别派生** —— 拿一个会随无关改动增长的数当判据，等于自己埋一条假信号。
+
+再记一条我自己又踩的老毛病：产物判据一开始搜 `'move'` 恒假 —— 打包器把单引号规范成双引号
+（**0006 那次已经记过同一条**），改成只搜与引号无关的标识符（`xaihiFrameSink` / `publishFrame` /
+`xaihiWindowFrameChanged`）。尺红的时候先怀疑它犯过的那个错，这次答案正是"犯过"。

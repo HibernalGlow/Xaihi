@@ -753,6 +753,58 @@ const N = await evaluateMain(`(async () => {
 })()`)
 console.log('N 段（能力协商：值、形状、以及自家窗里也读得到）⇒ ' + JSON.stringify(N))
 
+// O 段：0012 的推送。这条要证的是"界面真的收得到，而且退订真的断了"——
+// 收不到就是"订阅了但永远不响"，退订不断就是监听器泄漏，两种都不会让开窗本身变红。
+const O = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 600))
+  const ready = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL('dsh-app://app/')
+  await Promise.race([ready, new Promise((r) => setTimeout(r, 6000))])
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const nodes = manifest.plugins.map((p) => p.manifest.id)
+  const docPath = manifest.ui.documentUrl
+  const subscribed = await app.webContents.executeJavaScript(
+    '(() => { window.__frameEvents = []; window.__unsub = window.dshDesktop.xaihiWindow.subscribeFrameChanges('
+    + ' (e) => window.__frameEvents.push(e)); return typeof window.__unsub })()', true)
+  const opened = await app.webContents.executeJavaScript(
+    'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(nodes[0]) + ', '
+    + JSON.stringify({ documentPath: docPath }) + ')', true)
+  await new Promise((r) => setTimeout(r, 900))
+  const id = opened.windowId
+  const moved = await app.webContents.executeJavaScript(
+    'window.dshDesktop.xaihiWindow.setBounds(' + String(id) + ', '
+    + JSON.stringify({ x: 210, y: 230, width: 1024, height: 768 }) + ')', true)
+  await new Promise((r) => setTimeout(r, 900))
+  const whileSubscribed = await app.webContents.executeJavaScript('window.__frameEvents.slice()', true)
+  await app.webContents.executeJavaScript('window.__unsub()', true)
+  const countAtUnsub = whileSubscribed.length
+  const moved2 = await app.webContents.executeJavaScript(
+    'window.dshDesktop.xaihiWindow.setBounds(' + String(id) + ', '
+    + JSON.stringify({ x: 330, y: 350, width: 1024, height: 768 }) + ')', true)
+  await new Promise((r) => setTimeout(r, 900))
+  const afterUnsub = await app.webContents.executeJavaScript('window.__frameEvents.slice()', true)
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 700))
+  return {
+    id, subscribed, moved, moved2,
+    whileSubscribedCount: whileSubscribed.length,
+    lastEvent: whileSubscribed.length === 0 ? null : whileSubscribed[whileSubscribed.length - 1],
+    eventKeys: whileSubscribed.length === 0 ? [] : Object.keys(whileSubscribed[0]).sort(),
+    everyEventOurs: whileSubscribed.every((e) => e.windowId === id),
+    afterUnsubCount: afterUnsub.length, countAtUnsub,
+    ownedLeft: openedWins().length,
+  }
+})()`)
+console.log('O 段（尺寸推送真到达、退订真断）⇒ ' + JSON.stringify(O))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -899,12 +951,25 @@ need('N: mac 的 hiddenInset ⇒ captionOwner=system 且位置是建窗那份 16
 need('N: 能力位说的是实话（native 组件窗、有系统窗控、不是无边框）',
   nval.supported === true && nval.componentWindows === 'native'
   && nval.nativeWindowControls === true && nval.frameless === false)
-need('N: 寻址动词条数由真表推（消息里那句要跟着实际那四条）',
-  typeof nval.message === 'string' && nval.message.includes('4 verbs'))
+need('N: 消息里写明了那四条寻址动词（界面读得到能做什么，不靠猜）',
+  typeof nval.message === 'string' && nval.message.includes('focus, close, getBounds, setBounds'))
 need('N: 自家文档窗里读到同一份（发起者闸与寻址四条共用）',
   nn.fromChild?.kind === 'ok' && nn.fromChild?.value?.captionOwner === nval.captionOwner
   && JSON.stringify(nn.fromChild?.value) === JSON.stringify(nval))
 need('N: 收尾把自家窗清干净', nn.ownedLeft === 0)
+
+const oo = O.ok === true ? O.value : {}
+need('O: 订阅返回的是退订函数', oo.subscribed === 'function')
+need('O: 改完尺寸，产品文档真的收到事件（至少一条，且都是我们那个窗的）',
+  oo.whileSubscribedCount >= 1 && oo.everyEventOurs === true)
+need('O: 事件载荷就是那五个键',
+  JSON.stringify(oo.eventKeys) === JSON.stringify(['height', 'width', 'windowId', 'x', 'y']))
+need('O: 最后一条事件报的是生效后的矩形',
+  oo.lastEvent?.x === 210 && oo.lastEvent?.y === 230
+  && oo.lastEvent?.width === 1024 && oo.lastEvent?.height === 768)
+need('O: 退订之后不再收（监听器不泄漏）',
+  typeof oo.afterUnsubCount === 'number' && oo.afterUnsubCount === oo.countAtUnsub)
+need('O: 收尾把自家窗清干净', oo.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {

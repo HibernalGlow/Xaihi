@@ -1,0 +1,54 @@
+From 08143eb7e4545c7e723e45cd8898c47be8c7d8a1 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 07:32:07 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E5=8D=8F=E5=95=86=E6=B6=88=E6=81=AF?=
+ =?utf-8?q?=E5=86=99=E6=98=8E=E9=82=A3=E5=9B=9B=E6=9D=A1=E5=AF=BB=E5=9D=80?=
+ =?utf-8?q?=E5=8A=A8=E8=AF=8D=EF=BC=8C=E4=B8=8D=E5=86=8D=E4=BB=8E=E9=80=9A?=
+ =?utf-8?q?=E9=81=93=E8=A1=A8=E6=95=B0=E6=9D=A1=E6=95=B0=EF=BC=88Xaihi=20p?=
+ =?utf-8?q?atch=200013=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/main.ts                | 2 --
+ apps/desktop/src/xaihi-window-policy.ts | 3 +--
+ 2 files changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index 3716015..b3cfa5b 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -893,8 +893,6 @@ async function main(): Promise<void> {
+     return xaihiWindowCapabilities(
+       kind,
+       kind === 'inset' ? DARWIN_TRAFFIC_LIGHT_POSITION : undefined,
+-      // 条数从真那张通道表推（改天补一条动词，这里跟着变），不写死一个会漂移的数。
+-      Object.keys(DESKTOP_IPC).filter((name) => name.startsWith('xaihiWindow') && name !== 'xaihiWindowCapabilities' && name !== 'xaihiWindowOpen').length,
+     )
+   })
+   ipcMain.handle(DESKTOP_IPC.xaihiWindowFocus, (event, windowId: unknown) => {
+diff --git a/apps/desktop/src/xaihi-window-policy.ts b/apps/desktop/src/xaihi-window-policy.ts
+index 2200022..8f6fcbd 100644
+--- a/apps/desktop/src/xaihi-window-policy.ts
++++ b/apps/desktop/src/xaihi-window-policy.ts
+@@ -142,7 +142,6 @@ export interface XaihiWindowCapabilities {
+ export function xaihiWindowCapabilities (
+   frame: 'inset' | 'overlay' | 'native',
+   captionInset?: { x: number, y: number },
+-  addressingVerbs = 0,
+ ): XaihiWindowCapabilities {
+   return {
+     supported: true,
+@@ -153,7 +152,7 @@ export function xaihiWindowCapabilities (
+     captionOwner: frame === 'overlay' ? 'renderer' : 'system',
+     ...(frame === 'inset' && captionInset !== undefined ? { captionInset } : {}),
+     componentWindows: 'native',
+-    message: `Xaihi desktop shell: native component windows; ${String(addressingVerbs)} verbs address one window by id`,
++    message: 'Xaihi desktop shell: native component windows; address by windowId: focus, close, getBounds, setBounds',
+   }
+ }
+ /** 一条窗的位置与尺寸；`x`/`y` 是屏幕坐标，可以带符号。 */
+-- 
+2.55.0
+

@@ -211,9 +211,9 @@ if (flag('verify')) {
   // 之所以能直接跑：ipc.ts 的三条 import 全是 `import type`，剥掉类型后不依赖 node_modules。
   const probe = await import('./dsh/apps/desktop/src/ipc.ts')
   const want = 'dsh-desktop:xaihi-window-open'
-  const EXPECTED_CHANNELS = 31
+  const EXPECTED_CHANNELS = 32
   // 0010 那四条通道名要点得出名字：只数条数会漏掉"少一条功能、多一条别的"这种漂移。
-  const commandChannels = ['xaihiWindowFocus', 'xaihiWindowClose', 'xaihiWindowGetBounds', 'xaihiWindowSetBounds', 'xaihiWindowCapabilities']
+  const commandChannels = ['xaihiWindowFocus', 'xaihiWindowClose', 'xaihiWindowGetBounds', 'xaihiWindowSetBounds', 'xaihiWindowCapabilities', 'xaihiWindowFrameChanged']
   const missingChannels = commandChannels.filter((name) => probe.DESKTOP_IPC[name] === undefined)
   const gotChannels = Object.keys(probe.DESKTOP_IPC).length
   // 先报现场，再报结论：这条尺红过一次是因为**话术**把"表里少四条"说成"减法对照没落地"，
@@ -341,8 +341,8 @@ if (flag('verify')) {
   }
 
   // 0011 的协商形状：逐字段照基线，且**没给位置就不许造一个位置出来**。
-  const capsInset = policy.xaihiWindowCapabilities('inset', { x: 16, y: 18 }, 4)
-  const capsOverlay = policy.xaihiWindowCapabilities('overlay', undefined, 4)
+  const capsInset = policy.xaihiWindowCapabilities('inset', { x: 16, y: 18 })
+  const capsOverlay = policy.xaihiWindowCapabilities('overlay')
   const capsNoInset = policy.xaihiWindowCapabilities('inset')
   console.log(`verify: 0011 协商 inset=${capsInset.captionOwner}/${capsInset.captionInset ? '有位置' : '无位置'}`
     + ` overlay=${capsOverlay.captionOwner}/${capsOverlay.captionInset === undefined ? '无位置(对)' : '有位置(错)'}`
@@ -354,7 +354,7 @@ if (flag('verify')) {
   if (capsOverlay.captionInset !== undefined) fail('verify: 0011 给 overlay 窗编了一个红绿灯位置')
   if (capsNoInset.captionInset !== undefined) fail('verify: 0011 位置没给也照样报了一个（编数据）')
   if (capsInset.componentWindows !== 'native' || capsInset.supported !== true) fail('verify: 0011 的基本能力位不对')
-  if (!capsInset.message.includes('4 verbs')) fail('verify: 0011 的寻址条数没进消息（界面读不到真数）')
+  if (!capsInset.message.includes('focus, close, getBounds, setBounds')) fail('verify: 0011 的消息里没写出那四条寻址动词')
 
   // 0010 的矩形校验：坐标与尺寸都得是整数，尺寸那一半复用 0009 的上下界（别在两处各写一遍数）。
   const boundsTable = [
@@ -405,6 +405,9 @@ if (flag('verify')) {
     const panelWired = mainJs.includes('document path must match') && mainJs.includes('isMainDocument')
     const commandWired = mainJs.includes('xaihiWindowSetBounds') && mainJs.includes('unknown window')
     const capsWired = mainJs.includes('nativeWindowControls') && mainJs.includes('xaihiCaptionKinds')
+    // 0012 的推送:发信口与两个挂点都得在产物里,少一个就是"订阅了但永远不响"。
+    const frameWired = mainJs.includes('xaihiFrameSink') && mainJs.includes('publishFrame')
+      && mainJs.includes('xaihiWindowFrameChanged')
     // 0006 只在这个函数体里查：整个 bundle 里 "page-title-updated" 是上游自己也用的词，
     // 全局搜会得到一个与我的改动无关的绿 —— 减法对照实测就抓到了这一点（摘掉 0006 重建产物，
     // main.js 里仍有 1 处 page-title-updated，来自别的上游模块被打包进来）。
@@ -422,6 +425,7 @@ if (flag('verify')) {
     if (!panelWired) fail('verify: 0007 的产品文档转达分支没进 lib/main.js ⇒ 产物比系列旧')
     if (!commandWired) fail('verify: 0010 的寻址四条没进 lib/main.js ⇒ 产物比系列旧')
     if (!capsWired) fail('verify: 0011 的协商那条没进 lib/main.js ⇒ 产物比系列旧')
+    if (!frameWired) fail('verify: 0012 的尺寸推送没进 lib/main.js ⇒ 订阅了也不会响')
     if (titleControl) fail('verify: 0006 的判据是瞎的（抹掉那一行还读得到）')
     if (!titleWired) fail('verify: 0006 的标题保护没进 lib/main.js 的 openXaihiDocumentWindow ⇒ 产物比系列旧')
     if (!inMain || !inPreload) fail('verify: 通道没进产物 ⇒ 那条源码改动没被编译，或 patch 被静默跳过')
