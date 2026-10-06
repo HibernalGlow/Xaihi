@@ -241,6 +241,20 @@ if (flag('verify')) {
   if (policy.resolveXaihiDocumentTarget({ url: 'https://example.com', openerUrl: good }) !== undefined) {
     fail('verify: 0002 的判策是瞎的（外链居然被放行）')
   }
+  // 0003 的判策也是纯函数：给了名字走 profiles/<name>，缺省 desktop，坏形状要抛。
+  const paths = await import('./dsh/apps/desktop/src/paths.ts')
+  process.env.XAIHI_DESKTOP_PROFILE = 'xaihi-desktop-probe'
+  const chosen = paths.resolveDesktopPaths('/tmp/home').profile
+  process.env.XAIHI_DESKTOP_PROFILE = 'Bad Name!'
+  let threw = ''
+  try { paths.resolveDesktopPaths('/tmp/home') } catch (error) { threw = String(error.message) }
+  delete process.env.XAIHI_DESKTOP_PROFILE
+  const dflt = paths.resolveDesktopPaths('/tmp/home').profile
+  console.log(`verify: 0003 chosen=${chosen} default=${dflt} bad_shape_rejected=${String(threw.includes('must match'))}`)
+  if (chosen !== '/tmp/home/profiles/xaihi-desktop-probe') fail('verify: 0003 没让壳选 profile')
+  if (dflt !== '/tmp/home/profiles/desktop') fail('verify: 0003 改坏了缺省值')
+  if (!threw.includes('must match')) fail('verify: 0003 对坏形状太宽容（静默退回默认值算缺陷）')
+
   // 第二阶段：产物判据。lib/ 是上游 tsc 吐出来的，存在就说明这条通道真被编进了壳的
   // 主进程与 preload —— 源码里有定义 ≠ 落进了产物（这是构建绿却跑错代码那一类病的解药）。
   // 新文件要真进 program：tsc -b 的产物在 lib/types/，bundle 的在 lib/ —— 只查后者会漏掉新模块。
@@ -261,7 +275,9 @@ if (flag('verify')) {
     // 减法对照：一个不存在的通道名必须两个产物都找不到，否则这判据是白名单式的假绿。
     const ghost = mainJs.includes('dsh-desktop:xaihi-window-DOES-NOT-EXIST') || preload.includes('dsh-desktop:xaihi-window-DOES-NOT-EXIST')
     console.log(`verify: 产物 main.js=${String(inMain)} preload-app.cjs=${String(inPreload)} ghost_absent=${String(!ghost)}`)
-    console.log(`verify: 0002 已接进 bundle=${String(policyWired)}`)
+    const profileWired = mainJs.includes('XAIHI_DESKTOP_PROFILE')
+    console.log(`verify: 0002 已接进 bundle=${String(policyWired)} 0003 已接进 bundle=${String(profileWired)}`)
+    if (!profileWired) fail('verify: 0003 没进 lib/main.js ⇒ 又是只跑 tsc 没跑 bundle')
     if (!inMain || !inPreload) fail('verify: 通道没进产物 ⇒ 那条源码改动没被编译，或 patch 被静默跳过')
     if (!policyWired) fail('verify: 0002 的判策没进 lib/main.js ⇒ 只跑了 tsc 没跑 bundle，产物是半截的')
     if (ghost) fail('verify: 产物判据是瞎的（不存在的通道名也能搜到）')

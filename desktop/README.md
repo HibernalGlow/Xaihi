@@ -25,6 +25,7 @@ submodule **只负责"拿源码 + 锁 upstream commit"**，不负责 Desktop 运
 node desktop/sync-dsh.mjs              # submodule 对齐 pin + 依次 git am 打全部 patch
 node desktop/sync-dsh.mjs --check      # 报 want_pin / head / tree / patch 数 / 脏文件 + gitlink 是否等于 pin
 node desktop/sync-dsh.mjs --verify     # 0001 是否真落进壳的 IPC 面（自带减法对照）
+node desktop/live-check.mjs        # 对着跑着的壳验活体：13 条判据，含真 Xaihi 文档进第二窗
 node desktop/sync-dsh.mjs --sparse     # 按 Desktop 的 workspace 闭包裁检出（默认不开）
 node desktop/sync-dsh.mjs --sparse-off # 恢复整棵树（跑上游构建或 tsc 前必须开回来）
 node desktop/sync-dsh.mjs --reset      # 回到 pin，丢弃 patch 提交（手工脏改动要 --force）
@@ -83,6 +84,41 @@ specified` ⇒ 只有 `process.getBuiltinModule('module').createRequire(…)` �
 
 **这一格仍未验**：B 段用的是合成文档（Host 那边没装 Xaihi 时会回 404），证的是**壳侧代码路径与
 原生窗创建**，不证 Xaihi 真内容渲染在第二窗里——那一格仍挂在 R9（发布）或应用内插件管理器上。
+
+### 0003 与"真内容进第二窗"（同日 04:0x，全绿）
+
+patch 0003 = `XAIHI_DESKTOP_PROFILE`：给了就按 `profiles/<name>` 解析，缺省仍是上游的 `desktop`，
+形状不合 `[a-z0-9][a-z0-9_-]{0,63}` **直接抛**（不静默退回默认）。三条都在 `paths.ts` 里，
+纯函数可脱离 Electron 执行。为什么要它：`args.ts:84-85` 把 `desktop` 判给 Electron 独占，
+实测 `plugin --profile desktop add` ⇒ `managed exclusively by the Electron application`，
+同一条命令换自定义名字 ⇒ **rc=0 并把 `@hibernalglow/xaihi-core` 落进 profile**。
+
+`node desktop/live-check.mjs` 十三条全绿（rc=0），B 段不再是合成 URL：
+
+- profile 选中的是 `xaihi`（`.scratch/dsh-xaihi-desktop-home`），manifest 200、
+  `ui.rev = b6a8cb8bc96f`、`ui.documentUrl = /xaihi/ui/b6a8cb8bc96f/index.html`。
+- 主窗导过去之后正文是 **`Xaihi 文档 realm 探针（不是工作台） rev=b6a8cb8bc96f · node=xaihi-linedup …`**，
+  引用的入口是 `./main.js` ⇒ 这是我们自己的文档在渲染，不是错误页。
+- 从这份文档调 `open('xaihi-linedup')` ⇒ `RESOLVED windowId=4`，窗口数 **2 → 3**，
+  新窗 URL 与正文和主窗那份一致（同 `main.js`）⇒ **原生第二窗里跑的是真 Xaihi 文档**。
+- 观察记录：`globalThis.__XAIHI__` 在这份文档里是 `undefined`（observatory 在 ui-host 装载器那一侧，
+  不在这个 realm 探针页里），所以判据用的是"服务端给的规范 URL + 入口产物被引用 + 正文非空"，
+  不是猜某个全局变量。
+
+### 攒下来的 profile 装配笔记（这轮一条条撞出来的）
+
+1. **拷 profile 是坏的**：直接 `cp -R` 一份 profile 到新 home，再 `plugin add` 就
+   `Failed to resolve dependency tree`（锁文件绑着原安装上下文）。要么从零装，要么连锁一起重来。
+2. **`allowBuilds` 是每 profile 自己的状态**：新 profile 的 `pnpm-workspace.yaml` 里
+   `koffi: set this to true or false` 是占位串，不填就 `ERR_PNPM_IGNORED_BUILDS`、整次安装判失败。
+3. **`dsh plugin` 只把参数转发给 pnpm**（`error: plugin needs pnpm arguments to forward`），
+   所以**没有 `enable` 这个动词**；启用集是 profile `package.json` 的 `dsh.profile.bundles`。
+   add 完不进 bundles 就等于没装：Host 会报 `xaihi-core: pending (waiting for service: webServer)`。
+4. **`@deepseek-ai/dsh-web-app` 的 `latest` 标签停在 0.0.1-rc.1**，按名字加会失败；
+   点名 `@0.2.0-rc.2` 才有（与 `check:pins` 那条同一个病的又一处现场）。
+5. **manifest 顶层 `rev` 不是 UI 的 rev**：UI 用 `ui.rev` / `ui.documentUrl`
+   （`computeRev(uiBundleDir)`）。拿错就会得到 `rev mismatch (current …)` 这种诚实但绕人的 404。
+6. **产物判据要按整个 lib 目录看**：`xaihi/ui` 在 `routes.js` 与共享 chunk 里，只 grep `index.js` 会误判。
 
 ## 与门禁的关系（别把 vendor 扫进去）
 

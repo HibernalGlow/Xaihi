@@ -1,0 +1,54 @@
+From 99283ecec4a34c100d400ad47124c2419ef59db2 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 03:34:27 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E8=AE=A9=E5=A3=B3=E8=87=AA=E5=B7=B1?=
+ =?utf-8?q?=E9=80=89=20profile=EF=BC=88Xaihi=20patch=200003=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+XAIHI_DESKTOP_PROFILE 给定时按它解析 profiles/<name>，缺省仍是上游的 desktop；形状不合 [a-z0-9][a-z0-9_-]{0,63} 直接抛，不静默退回默认值。对应 docs/upstream-proposals.md P6 第 1 条。
+
+为什么要它：apps/cli/src/args.ts:84-85 把 profile "desktop" 判给 Electron 独占，npm 装的 dsh 既不能 boot 也不能写它（实测：plugin --profile desktop add ⇒ "managed exclusively by the Electron application"；同一条命令换成自定义名字 ⇒ rc=0 并把 @hibernalglow/xaihi-core 落进 profile）。有了可配的 profile 名，壳才能直接 boot 一个装着本地 Xaihi bundle 的形态，而不用手写 profiles/desktop 里的文件。
+---
+ apps/desktop/src/paths.ts | 23 +++++++++++++++++++++--
+ 1 file changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/apps/desktop/src/paths.ts b/apps/desktop/src/paths.ts
+index cf03e38..ef45cbf 100644
+--- a/apps/desktop/src/paths.ts
++++ b/apps/desktop/src/paths.ts
+@@ -14,9 +14,28 @@ export interface DesktopPaths {
+  * @param dshHome - Harness home shared with npm-installed dsh.
+  * @returns immutable desktop path set.
+  */
++// Xaihi patch 0003: 壳可以自己选 profile（对应 docs/upstream-proposals.md 的 P6 第 1 条）。
++// 默认仍是上游的 `desktop`；给错形状就直接拒绝，不静默退回默认值。
++const XAIHI_PROFILE_ENV = 'XAIHI_DESKTOP_PROFILE'
++const XAIHI_PROFILE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/u
++
++/**
++ * The profile directory name this Electron shell owns.
++ * @returns `desktop` unless `XAIHI_DESKTOP_PROFILE` names a valid profile.
++ */
++export function resolveDesktopProfileName(): string {
++  const value = process.env[XAIHI_PROFILE_ENV]
++  if (value === undefined || value === '') return 'desktop'
++  if (!XAIHI_PROFILE_PATTERN.test(value)) {
++    throw new Error(`xaihi desktop: ${XAIHI_PROFILE_ENV} must match [a-z0-9][a-z0-9_-]{0,63}, got ${JSON.stringify(value)}`)
++  }
++  return value
++}
++
+ export function resolveDesktopPaths(dshHome: string = resolveDshHome()): DesktopPaths {
++  const profile = join(dshHome, 'profiles', resolveDesktopProfileName())
+   return {
+-    profile: join(dshHome, 'profiles', 'desktop'),
+-    lock: join(dshHome, 'profiles', 'desktop', 'lock'),
++    profile,
++    lock: join(profile, 'lock'),
+   }
+ }
+-- 
+2.55.0
+

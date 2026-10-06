@@ -1,27 +1,26 @@
 #!/usr/bin/env node
 /**
- * 活体判据：对着**正在跑**的 Xaihi 壳（`desktop/dsh` 里 `start:desktop` 起的那个）验 0001/0002 的运行时行为。
+ * 活体判据：对着**正在跑**的 Xaihi 壳验 0001/0002/0003 的运行时行为。
  *
- * 前置：壳必须已经起来，并且开着主进程 inspector（上游 dev 启动器默认给 9229）。
- *   cd desktop/dsh/apps/desktop && DSH_HOME=<隔离 home> pnpm exec tsx scripts/dev.ts --skip-build
+ * 前置：壳已经起来并开着主进程 inspector（上游 dev 启动器默认 9229），并且那个 profile 里装了 Xaihi：
+ *   DSH_HOME=<隔离 home> XAIHI_DESKTOP_PROFILE=<profile 名> \\
+ *     pnpm --filter @deepseek-ai/dsh-desktop exec tsx scripts/dev.ts --skip-build
  * 判据：node desktop/live-check.mjs [--port 9229]
  *
- * 为什么走主进程：renderer 的 CDP（9222）需要 `--remote-allow-origins`，上游启动器不给这个参数，
- * Node 的 WebSocket 连上去会挂住；主进程 inspector 没有那道闸，而且能直接数窗口——比数 target 硬。
- * 为什么用 createRequire：Electron 的主进程是 ESM 入口，inspector 的求值域里没有 require/module，
- * `import()` 又报 "A dynamic import callback was not specified"；`process.getBuiltinModule('module')`
- * 是唯一能拿到 electron API 的路子。
+ * 为什么走主进程：renderer 的 CDP（9222）要 `--remote-allow-origins`，上游启动器不给，WS 会挂；
+ * 主进程 inspector 没有那道闸，而且能直接数窗口——比数 target 硬。
+ * 为什么 createRequire：主进程是 ESM 入口，inspector 求值域里没有 require/module，
+ * `import()` 报 "A dynamic import callback was not specified"；`process.getBuiltinModule('module')` 是唯一路子。
  */
 
 const portArg = process.argv.indexOf('--port')
 const PORT = portArg === -1 ? 9229 : Number(process.argv[portArg + 1])
-const SYNTHETIC = 'dsh-app://app/xaihi/ui/0123456789ab/index.html'
 const ELECTRON = `process.getBuiltinModule('module').createRequire(process.cwd() + '/probe.js')('electron')`
 
 const targets = await (await fetch(`http://127.0.0.1:${String(PORT)}/json/list`)).json()
 const target = targets.find((t) => typeof t.webSocketDebuggerUrl === 'string')
 if (target === undefined) {
-  console.error(`live-check: ${String(PORT)} 上没有可连的 target ⇒ 壳没起来，或 inspector 端口不是这个`)
+  console.error(`live-check: ${String(PORT)} 上没有可连的 target ⇒ 壳没起来，或 inspector 端口不对`)
   process.exit(1)
 }
 
@@ -39,8 +38,13 @@ const send = (method, params) => new Promise((resolve) => {
   pending.set(id, resolve)
   ws.send(JSON.stringify({ id, method, params }))
 })
+const EVAL_TIMEOUT_MS = 30_000
 async function evaluateMain (expression) {
-  const reply = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })
+  // 宿主起不来的时候 executeJavaScript 会永远挂着；判据必须自己超时并报警，
+  // 否则"没结论"会被读成"没失败"。
+  const timer = new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), EVAL_TIMEOUT_MS))
+  const reply = await Promise.race([send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }), timer])
+  if (reply?.timeout === true) return { ok: false, text: `求值超时（${String(EVAL_TIMEOUT_MS / 1000)} 秒）⇒ 宿主或文档没到 ready` }
   const detail = reply.result?.exceptionDetails
   if (detail !== undefined) {
     return { ok: false, text: detail.exception?.description?.split('\n')[0] ?? detail.text ?? 'unknown' }
@@ -67,27 +71,52 @@ const A = await evaluateMain(`(async () => {
 })()`)
 console.log('A 段（真产品文档）⇒ ' + JSON.stringify(A))
 
-// B 段：把主窗导到形状合法的自家文档 URL 上（Host 那边没装 Xaihi 时会回 404，但判策按 URL 形状判等），
-// 再请求开窗 —— 放行分支必须真的多出一个原生窗。收摊时关掉它并把主窗导回产品文档。
+// B 段：Xaihi 的**真文档**。先读 manifest 拿真 rev（0003 选中的 profile 里有 xaihi-core 才有这条），
+// 再导过去确认它真是 Xaihi 的文档壳，然后开第二窗并验那一个窗里跑的也是 Xaihi。
 const B = await evaluateMain(`(async () => {
   const { BrowserWindow } = ${ELECTRON}
-  const wins = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed())
-  const app = wins.find((w) => w.webContents.getURL().startsWith('dsh-app://app/'))
+  const all = () => BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed())
+  const app = all().find((w) => w.webContents.getURL() === 'dsh-app://app/'
+    || w.webContents.getURL().startsWith('dsh-app://app/xaihi/ui/'))
   if (app === undefined) return { skipped: '没有 app 文档' }
-  const before = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed()).length
-  const synthetic = ${JSON.stringify(SYNTHETIC)}
-  try { await app.webContents.loadURL(synthetic) } catch (error) { console.log('loadURL 抛了：' + String(error)) }
-  const openerUrl = app.webContents.getURL()
+  const manifest = await app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => ({ status: r.status, body: r.status === 200 ? await r.json() : null }))", true)
+  if (manifest.status !== 200) return { manifestStatus: manifest.status, reason: 'profile 里没有 xaihi-core 或路由没挂上' }
+  // 必须用服务端自己给的 ui.documentUrl：manifest 顶层 rev 是插件/远端那一层，
+  // UI 产物的 rev 是 computeRev(uiBundleDir)，两个不是一回事（踩过：拿错 rev 会得到 "rev mismatch"）。
+  const uiRev = manifest.body.ui?.rev
+  const documentPath = manifest.body.ui?.documentUrl
+  const node = manifest.body.plugins[0].manifest.id
+  const before = all().length
+  const docUrl = 'dsh-app://app' + documentPath + '?node=' + node
+  const loaded = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL(docUrl)
+  await loaded
+  const opener = {
+    url: app.webContents.getURL(),
+    xaihiGlobal: await app.webContents.executeJavaScript('typeof globalThis.__XAIHI__', true),
+    entryScript: await app.webContents.executeJavaScript(
+      "Array.from(document.querySelectorAll('script')).map((s) => s.getAttribute('src')).join(',')", true),
+    text: await app.webContents.executeJavaScript("document.body ? document.body.innerText.replace(/\\s+/g, ' ').slice(0, 80) : ''", true),
+  }
   const res = await app.webContents.executeJavaScript(
-    'window.dshDesktop.xaihiWindow.open("findz").then((r) => "RESOLVED windowId=" + r.windowId, (e) => "REJECTED: " + String(e && e.message ? e.message : e))', true)
-  await new Promise((r) => setTimeout(r, 900))
-  const list = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed())
-  const urls = list.map((w) => w.webContents.getURL())
-  for (const w of list) if (w.webContents.getURL().startsWith(synthetic) && w !== app) w.close()
+    'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(node) + ')'
+    + '.then((r) => "RESOLVED windowId=" + r.windowId, (e) => "REJECTED: " + String(e && e.message ? e.message : e))', true)
+  await new Promise((r) => setTimeout(r, 1500))
+  const list = all()
+  const child = list.find((w) => w !== app && w.webContents.getURL().includes('node=' + node))
+  const childProbe = child === undefined ? null : {
+    url: child.webContents.getURL(),
+    xaihiGlobal: await child.webContents.executeJavaScript('typeof globalThis.__XAIHI__', true),
+    entryScript: await child.webContents.executeJavaScript(
+      "Array.from(document.querySelectorAll('script')).map((s) => s.getAttribute('src')).join(',')", true),
+    text: await child.webContents.executeJavaScript("document.body ? document.body.innerText.slice(0, 60) : ''", true),
+  }
+  if (child !== undefined) child.close()
   await app.webContents.loadURL('dsh-app://app/')
-  return { openerUrl, before, after: list.length, res, urls }
+  return { uiRev, documentPath, node, before, after: list.length, res, opener, childProbe, docUrl }
 })()`)
-console.log('B 段（放行分支）⇒ ' + JSON.stringify(B))
+console.log('B 段（Xaihi 真文档）⇒ ' + JSON.stringify(B))
 
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
@@ -99,14 +128,18 @@ need('A: 对照——既有 browser 成员仍在', a.browserMember === 'object')
 need('A: 0001 的 xaihiWindow 在活体上存在', a.xaihiWindowMember === 'object')
 need('A: open 是函数', a.openIsFunction === 'function')
 need('A: 0002 的拒绝分支按原因被拒', typeof a.denyBranch === 'string' && a.denyBranch.includes('only the Xaihi UI document'))
-need('B: 发起者确实是自家文档形状', typeof b.openerUrl === 'string' && b.openerUrl.includes('/xaihi/ui/0123456789ab/index.html'))
+need('B: manifest 200 且 ui.rev 是 12 位十六进制（0003 选中的 profile 里真有 Xaihi）', typeof b.uiRev === 'string' && /^[0-9a-f]{12}$/u.test(b.uiRev))
+need('B: 导的是服务端给的规范文档 URL', typeof b.docUrl === 'string' && b.opener?.url === b.docUrl)
+need('B: 文档引的是我们那份入口产物', typeof b.opener?.entryScript === 'string' && b.opener.entryScript.includes('main.js'))
+need('B: 文档正文非空（不是 rev mismatch / 503 那种错误页）', typeof b.opener?.text === 'string' && b.opener.text.length > 0)
 need('B: open 被放行', typeof b.res === 'string' && b.res.startsWith('RESOLVED'))
-need('B: 真的多出一个原生窗', b.after === b.before + 1)
+need('B: 窗口数 +1', typeof b.before === 'number' && b.after === b.before + 1)
+need('B: 第二窗引的也是同一份入口产物', typeof b.childProbe?.entryScript === 'string' && b.childProbe.entryScript.includes('main.js') && b.childProbe?.url === b.docUrl)
 
 ws.close()
 if (failures > 0) {
   console.error(`live-check: ${String(failures)} 条不成立 ⇒ 别把这条写成"实机验过"`)
+  if (b.reason !== undefined) console.error(`live-check: B 段没跑成的原因：${b.reason}`)
   process.exit(1)
 }
-console.log('live-check: 九条全绿（含对照）。注意 B 段用的是 URL 形状合法的**合成文档**（Host 未装 Xaihi 时回 404），')
-console.log('            所以它证的是壳侧代码路径与原生窗创建，不证 Xaihi 真内容在第二窗里渲染——那一格仍挂在发布前置上。')
+console.log('live-check: 全部判据绿（含对照；B 段用的是 Xaihi 真文档，不是合成 URL）')
