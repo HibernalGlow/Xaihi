@@ -87,6 +87,25 @@ function checkNodeKey(node: unknown): string | null {
   return null
 }
 
+/**
+ * 从 `describe()` 里取**一个**命名空间的读数。
+ * @param settings - 注入的设置面。
+ * @param ns - 要哪一格（= loader 行的 id，如 `xaihi-sleept`）。
+ * @returns `{ ns, value, revision }`；那一格不存在时是 null。
+ * schema/base/user 不带回：过桥的东西越小越好，而界面要的只是"现在的值 + 第几版"
+ * （同一条教训见 `projectWriteAck`：应答体积的上界是桥自己的）。
+ */
+async function readNamespace(settings: SettingsFace, ns: string): Promise<{ ns: string, value: unknown, revision?: number } | null> {
+  const described = await settings.describe()
+  const rows = (described as { namespaces?: unknown }).namespaces
+  if (!Array.isArray(rows)) return null
+  const row = rows.find((entry) => (entry as { ns?: unknown }).ns === ns) as
+    | { value?: unknown, revision?: unknown }
+    | undefined
+  if (row === undefined) return null
+  return { ns, value: row.value ?? null, ...(typeof row.revision === 'number' ? { revision: row.revision } : {}) }
+}
+
 /** 设置文档里我们那一段的形状。 */
 interface NodeSnapshot {
   /** 这个节点此刻存的 JSON 文本；没存过是 undefined。 */
@@ -159,13 +178,28 @@ async function evaluate(method: BridgeMethod, args: readonly unknown[], caps: Sh
     // 直接把 Promise 交给 postMessage 会在那侧炸成"结构化克隆失败"。
     return { ok: true, value: await caps.settings.describe() }
   }
+  if (method === 'config.getUi') {
+    if (caps.settings === undefined) return unavailable(method)
+    const [ns] = args as [unknown]
+    if (typeof ns !== 'string' || ns === '') {
+      return { ok: false, reason: 'bad-args', detail: 'config.getUi 收 (设置命名空间)——它必须是 loader 行的 id（如 xaihi-sleept），不是节点的短名' }
+    }
+    // 只把问的那一格发回去：整份 `describe()` 会把**所有**插件的 schema 与值都带上，
+    // 而 256 KiB 这条上界是桥自己的（同一条教训见 `projectWriteAck` 的注释）。
+    const view = await readNamespace(caps.settings, ns)
+    if (view === null) return { ok: false, reason: 'config-namespace-missing', detail: `设置里没有 "${ns}" 这一格（DSH 的命名空间 = loader 行的 id）` }
+    return { ok: true, value: view }
+  }
   if (method === 'config.save' || method === 'config.saveUi') {
     if (caps.settings === undefined) return unavailable(method)
     const [ns, patch, revision] = args as [string, Record<string, unknown>, number | undefined]
     if (typeof ns !== 'string' || ns === '' || patch === null || typeof patch !== 'object') {
       return { ok: false, reason: 'bad-args', detail: 'config.save 收 (namespace, patch, expectedRevision?)' }
     }
-    return { ok: true, value: await caps.settings.update(ns, patch, revision) }
+    // 应答同样只留 revision：DSH 的 `update` 回的是整份 `SettingsNamespaceView`，
+    // 而写 `xaihi-core` 时那份里就带着 `nodeState`（2026-10-06 实测到同一条桥上
+    // 200 KiB 的写**落盘成功却回 too-large**，见 `projectWriteAck`）。
+    return { ok: true, value: projectWriteAck(await caps.settings.update(ns, patch, revision)) }
   }
   if (method === 'config.openFile') {
     if (caps.settings?.openDocument === undefined) return unavailable(method)

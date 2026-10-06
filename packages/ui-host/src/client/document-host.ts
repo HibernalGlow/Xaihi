@@ -45,10 +45,18 @@ export interface DocumentHostDeps {
   state: LocalState
   workspace: LocalWorkspace
   /**
-   * 这份界面属于哪个节点，用来把外壳那侧"整个设置文档"缩到本节点那一段。
-   * 空串 = 工作台自己（它读写的不是某个节点的配置）。
+   * 这份界面**在设置文档里那一格的 id**（= DSH loader 行的 id，如 `xaihi-sleept`）。
+   * `config.get` / `config.save` / `config.getUi` / `config.saveUi` 四条都带它，不带就一律拒。
+   *
+   * 为什么不能拿 `node` 顶替：2026-10-06 在真设置面上量过 —— `config.save('sleept', …)`
+   * 被 DSH 当场拒成 `No configurable plugin entry "sleept"`（命名空间必须等于 loader 行的 id）。
+   * 也就是说"节点短名 == 设置命名空间"这个猜测是错的；猜错的后果是每个节点面板的
+   * 配置读写都撞一条读不出所以然的 DSH 拒绝。所以这里宁可明说没带，也不替调用方猜。
+   *
+   * 谁给：每节点一窗是**独立的一份文档**（ADR-0011 决定 3 的 `?node=` 寻址），
+   * 所以一个字符串就够——它对应的就是这份文档正在渲染的那个节点那一行。
    */
-  node: string
+  settingsNs?: string
 }
 
 /** 上游 `NodeHostApi` 的本仓对应形状（九组，方法名逐字对齐）。 */
@@ -116,12 +124,27 @@ const requireReady = (bridge: DocumentBridge) => {
 }
 
 /**
+ * 取设置命名空间；没带就抛一条点名原因的错。
+ *
+ * 这里**不做任何兜底**（不拿节点短名顶替、也不退回 `xaihi-core`）：兜底会把"这一格其实没接线"
+ * 变成一条看起来合法的写入，而那正是 2026-10-06 量出来的那个错形状 —— DSH 只认 loader 行的 id。
+ * @param ns - 装配侧带进来的命名空间。
+ * @returns 可用的命名空间。
+ */
+function requireSettingsNs(ns: string | undefined): string {
+  if (typeof ns !== 'string' || ns === '') {
+    throw new BridgeError('no-provider', '这份界面没带设置命名空间（config.get/save 与 getUi/saveUi 需要 DSH loader 行的 id，如 xaihi-sleept；拿节点短名会被当场拒掉，所以这里不猜）')
+  }
+  return ns
+}
+
+/**
  * 组一个 `host`。
  * @param deps - 桥与两个文档本地面。
  * @returns 与上游九组同形的对象；每条跨界方法在握手完成前调用会得到 `not-ready`。
  */
 export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
-  const { bridge, node } = deps
+  const { bridge } = deps
   const granted = (): readonly NodeCapabilityId[] => requireReady(bridge).granted
   const call = (method: Parameters<DocumentBridge['call']>[0], ...args: readonly unknown[]): Promise<unknown> => bridge.call(method, ...args)
 
@@ -192,10 +215,13 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
     config: {
       // 上游的 save(config) 只有一个参数：同 realm 时"这是哪个节点的配置"由宿主自己知道。
       // 过桥之后这件事必须显式带上，否则外壳收到的是一份没有归属的 patch。
+      // 带的**必须是 loader 行的 id**而不是节点短名：2026-10-06 在真设置面上量过，
+      // `config.save('sleept', …)` 与 `('core', …)` 都被 DSH 拒成 `No configurable plugin entry`，
+      // 只有 `('xaihi-core', …)` 成立（DSH 自己的写法是 `ctx.fiber.entry?.options.id`）。
       // expectedRevision 是 DSH 侧的乐观并发数（ADR-0013：写要带它，冲突要能读回），
       // 所以这里比上游多一个**可选**尾参——不破坏按上游形状写的调用点。
-      get: () => call('config.get', node),
-      save: (config, expectedRevision?: number) => call('config.save', node, config, expectedRevision),
+      get: async () => call('config.get', requireSettingsNs(deps.settingsNs)),
+      save: async (config, expectedRevision?: number) => call('config.save', requireSettingsNs(deps.settingsNs), config, expectedRevision),
       getPresets: () => call('config.getPresets'),
       createPreset: (input) => call('config.createPreset', input),
       updatePreset: (presetId, input) => call('config.updatePreset', presetId, input),
@@ -209,8 +235,8 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
       getHistoryRepository: () => call('config.getHistoryRepository'),
       setHistoryRemote: (url) => call('config.setHistoryRemote', url),
       syncHistory: (direction) => call('config.syncHistory', direction),
-      getUi: () => call('config.getUi', node),
-      saveUi: (config, expectedRevision?: number) => call('config.saveUi', node, config, expectedRevision),
+      getUi: async () => call('config.getUi', requireSettingsNs(deps.settingsNs)),
+      saveUi: async (config, expectedRevision?: number) => call('config.saveUi', requireSettingsNs(deps.settingsNs), config, expectedRevision),
       openFile: async () => {
         await call('config.openFile')
       },

@@ -16,7 +16,7 @@ import {
   type BridgeMessage,
   type SettingsFace,
 } from '@hibernalglow/xaihi-sdk/bridge'
-import { createPersistedState } from '../src/client/document-host.ts'
+import { createPersistedState, type PersistedState } from '../src/client/document-host.ts'
 
 const ORIGIN = 'http://127.0.0.1:3199'
 
@@ -25,7 +25,7 @@ interface Rig {
   calls: string[]
   /** 外壳那边设置面收到的写载荷，按顺序。 */
   writes: Record<string, unknown>[]
-  state: ReturnType<typeof createPersistedState>
+  state: PersistedState
   flushMicrotasks: () => Promise<void>
 }
 
@@ -54,7 +54,7 @@ const rig = (options: {
       revision += 1
       return { revision }
     },
-    mutate: async (ns, ops) => {
+    mutate: async (_ns, ops) => {
       calls.push('mutate')
       writes.push({ ops: ops.map((op) => ({ op: op.op, path: op.path as readonly string[], value: op.value })) })
       if (options.failWritesWith !== undefined) throw Object.assign(new Error('conflict'), options.failWritesWith)

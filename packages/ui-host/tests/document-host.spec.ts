@@ -33,6 +33,7 @@ const build = (options: {
   env?: { theme: 'light' | 'dark'; platform: string }
   handshake?: boolean
   node?: string
+  settingsNs?: string
 } = {}): Harness => {
   const shellCalls: string[] = []
   const sent: BridgeMessage[] = []
@@ -51,7 +52,9 @@ const build = (options: {
   const settings: SettingsFace = options.settings ?? {
     describe: () => {
       shellCalls.push('describe')
-      return { namespaces: ['xaihi'] }
+      // 行形状按 2026-10-06 从真设置面读回来的那份写（`namespaces[]` 带 `ns`/`value`/`revision`），
+      // 不是字符串数组——`config.getUi` 的投影只认前者，用后者的话这条用例就只是在测自己。
+      return { namespaces: [{ ns: options.settingsNs ?? options.node ?? 'sleept', value: { panel: 'wide' }, revision: 5 }] }
     },
     update: async (ns, patch, revision) => {
       shellCalls.push(`update:${ns}:${JSON.stringify(patch)}:${revision ?? ''}`)
@@ -74,7 +77,7 @@ const build = (options: {
   const state = { mode: 'block' as string, hits: 0 }
   const host = createDocumentHost({
     bridge: doc,
-    node: options.node ?? 'sleept',
+    ...(options.settingsNs === undefined ? {} : { settingsNs: options.settingsNs }),
     state: {
       getData: () => {
         state.hits += 1
@@ -165,24 +168,39 @@ describe('本地的事不过桥', () => {
 })
 
 describe('跨界调用带的归属', () => {
-  it('config.get 把"这是哪个节点的配置"带到外壳（不带就等于交一份没有归属的读请求）', async () => {
-    const { host, sent } = build()
+  it('config.get 带的是**设置命名空间**（loader 行的 id），不是节点短名', async () => {
+    const { host, sent } = build({ settingsNs: 'xaihi-sleept' })
     await host.config.get()
     const request = sent.find((message): message is Extract<BridgeMessage, { kind: 'request' }> =>
       message.kind === 'request' && message.method === 'config.get')
-    expect(request?.args).toEqual(['sleept'])
+    expect(request?.args).toEqual(['xaihi-sleept'])
   })
 
-  it('config.save 把节点、补丁、expectedRevision 三段都送到', async () => {
-    const { host, shellCalls } = build()
+  it('config.save 把命名空间、补丁、expectedRevision 三段都送到', async () => {
+    const { host, shellCalls } = build({ settingsNs: 'xaihi-sleept' })
     await host.config.save({ blockSleep: true }, 7)
-    expect(shellCalls).toEqual(['update:sleept:{"blockSleep":true}:7'])
+    expect(shellCalls).toEqual(['update:xaihi-sleept:{"blockSleep":true}:7'])
   })
 
-  it('config.saveUi 走的是同一个 (node, patch, revision) 形状', async () => {
-    const { host, shellCalls } = build()
+  it('config.getUi/saveUi 走同一个命名空间（一窗一节点，所以一个串就够）', async () => {
+    const { host, shellCalls, sent } = build({ settingsNs: 'xaihi-sleept' })
+    const view = await host.config.getUi()
+    expect(view).toEqual({ ns: 'xaihi-sleept', value: { panel: 'wide' }, revision: 5 })
     await host.config.saveUi({ panel: 'wide' }, 2)
-    expect(shellCalls).toEqual(['update:sleept:{"panel":"wide"}:2'])
+    expect(shellCalls).toEqual(['describe', 'update:xaihi-sleept:{"panel":"wide"}:2'])
+    const saved = sent.filter((message): message is Extract<BridgeMessage, { kind: 'request' }> =>
+      message.kind === 'request' && message.method === 'config.saveUi')
+    expect(saved[0]?.args).toEqual(['xaihi-sleept', { panel: 'wide' }, 2])
+  })
+
+  it('没带命名空间时四条一律 no-provider，且一条消息都不发（不拿节点短名顶一次）', async () => {
+    const { host, sent } = build()
+    const before = sent.length
+    expect(await reasonOf(host.config.get())).toBe('no-provider')
+    expect(await reasonOf(host.config.save({ blockSleep: true }))).toBe('no-provider')
+    expect(await reasonOf(host.config.getUi())).toBe('no-provider')
+    expect(await reasonOf(host.config.saveUi({ panel: 'wide' }))).toBe('no-provider')
+    expect(sent).toHaveLength(before)
   })
 })
 

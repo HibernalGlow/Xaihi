@@ -291,3 +291,88 @@ describe('请求求值', () => {
     expect(await bridge.receive(null, ORIGIN)).toBe(false)
   })
 })
+
+/**
+ * `config.getUi` / `config.saveUi` 这两条走的是**设置命名空间**，不是节点短名。
+ *
+ * 出处（2026-10-06，3399 隔离宿主上的真设置面）：`config.save('sleept', …)` 与
+ * `config.save('core', …)` 都被 DSH 拒成 `No configurable plugin entry "…"`，
+ * 只有 `config.save('xaihi-core', …)` 成立 —— DSH 的命名空间就是 loader 行的 id
+ * （它自己的写法见 `desktop/dsh/packages/llm/llm-deepseek-api-key/src/index.ts:37`：
+ * `settingsNs: ctx.fiber.entry?.options.id ?? name`）。
+ * 这一格同时钉另一件事：`getUi` 曾被登记在"外壳已提供"表里却回 `no-provider`，
+ * 那种"表上写了、面上没有"的分歧只能靠真动词的用例来堵。
+ */
+describe('设置命名空间那两条', () => {
+  /** 按 DSH 真回的 `SettingsNamespaceView` 形状写：schema/base/user/value/secrets/revision 全带上。 */
+  const row = (ns: string, revision: number, pad = 0) => ({
+    ns,
+    autoGenerate: true,
+    schema: { type: 'object', pad: 'p'.repeat(pad) },
+    value: { panel: 'wide', nodeState: { sleept: '{}' } },
+    base: { panel: 'narrow' },
+    user: { panel: 'wide' },
+    applies: 'live' as const,
+    secrets: [{ key: 'token', configured: false }],
+    revision,
+  })
+  const faceOf = (calls: string[], rows: unknown[]): SettingsFace => ({
+    describe: () => {
+      calls.push('describe')
+      return { namespaces: rows }
+    },
+    update: async (ns, patch, revision) => {
+      calls.push(`update:${ns}:${JSON.stringify(patch)}:${revision ?? ''}`)
+      // 应答是整份 view（真实形状），撑大到不缩就必然过不了桥自己的上界。
+      return row(ns, 11, 300 * 1024)
+    },
+  })
+
+  it('config.getUi 真被打到面上，且只回问的那一格（别的插件的 schema 不过桥）', async () => {
+    const calls: string[] = []
+    const { sent, bridge } = harness({ settings: faceOf(calls, [row('xaihi-core', 5), row('llm-deepseek', 2)]) })
+    await bridge.receive(hello(), ORIGIN)
+    await bridge.receive(request('config.getUi', ['xaihi-core']), ORIGIN)
+    expect(calls).toEqual(['describe'])
+    const reply = sent.filter((m) => m.kind === 'response').at(-1)
+    if (reply?.kind !== 'response') throw new Error('unreachable')
+    expect(reply.ok).toBe(true)
+    expect(reply.value).toEqual({ ns: 'xaihi-core', value: { panel: 'wide', nodeState: { sleept: '{}' } }, revision: 5 })
+  })
+
+  it('config.getUi 收空参数 ⇒ bad-args，文案点名"不是节点的短名"', async () => {
+    const calls: string[] = []
+    const { sent, bridge } = harness({ settings: faceOf(calls, [row('xaihi-core', 5)]) })
+    await bridge.receive(hello(), ORIGIN)
+    await bridge.receive(request('config.getUi', []), ORIGIN)
+    const reply = sent.filter((m) => m.kind === 'response').at(-1)
+    if (reply?.kind !== 'response') throw new Error('unreachable')
+    expect(reply.error?.reason).toBe('bad-args')
+    expect(reply.error?.detail).toContain('不是节点的短名')
+    expect(calls).toEqual([])
+  })
+
+  it('问的那一格不存在 ⇒ config-namespace-missing，把格名念回去（这条就是短名当命名空间的落点）', async () => {
+    const calls: string[] = []
+    const { sent, bridge } = harness({ settings: faceOf(calls, [row('xaihi-core', 5)]) })
+    await bridge.receive(hello(), ORIGIN)
+    await bridge.receive(request('config.getUi', ['sleept']), ORIGIN)
+    const reply = sent.filter((m) => m.kind === 'response').at(-1)
+    if (reply?.kind !== 'response') throw new Error('unreachable')
+    expect(reply.error?.reason).toBe('config-namespace-missing')
+    expect(reply.error?.detail).toContain('"sleept"')
+  })
+
+  it('config.saveUi 落盘了，但过桥的应答只剩 revision（写成了≠要回一整份文档）', async () => {
+    const calls: string[] = []
+    const { sent, bridge } = harness({ settings: faceOf(calls, [row('xaihi-core', 5)]) })
+    await bridge.receive(hello(), ORIGIN)
+    await bridge.receive(request('config.saveUi', ['xaihi-core', { panel: 'narrow' }, 5]), ORIGIN)
+    expect(calls).toEqual(['update:xaihi-core:{"panel":"narrow"}:5'])
+    const reply = sent.filter((m) => m.kind === 'response').at(-1)
+    if (reply?.kind !== 'response') throw new Error('unreachable')
+    expect(reply.ok).toBe(true)
+    expect(reply.value).toEqual({ revision: 11 })
+    expect(messageBytes(reply)).toBeLessThan(BRIDGE_MAX_MESSAGE_BYTES)
+  })
+})
