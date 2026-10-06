@@ -119,8 +119,18 @@ function workflowsFromHelp(help: unknown, language: 'zh' | 'en'): TerminalHelpWo
     if (block === null || typeof block !== 'object') continue
     const surface = (key: 'ui' | 'cli' | 'tips'): readonly string[] | undefined => {
       const raw = (block as Record<string, unknown>)[key]
-      if (!Array.isArray(raw)) return undefined
-      const lines = raw.map((line) => helpLine(line, language)).filter((line): line is string => line !== undefined)
+      // 两种形状都摊得开：行数组；或上游 `node-definitions/*.json` 用的 `{zh:[],en:[]}` 双语并列
+      // （挑请求语言那一份，那份空就取另一份，两边都没有才算这一面没内容）。
+      let list: unknown[]
+      if (Array.isArray(raw)) list = raw
+      else if (raw !== null && typeof raw === 'object') {
+        const pair = raw as { zh?: unknown, en?: unknown }
+        const preferred = language === 'zh' ? pair.zh : pair.en
+        const fallback = language === 'zh' ? pair.en : pair.zh
+        const preferredList = Array.isArray(preferred) ? preferred : []
+        list = preferredList.length > 0 ? preferredList : (Array.isArray(fallback) ? fallback : [])
+      } else return undefined
+      const lines = list.map((entryLine) => helpLine(entryLine, language)).filter((entryLine): entryLine is string => entryLine !== undefined)
       return lines.length > 0 ? lines : undefined
     }
     const entry: TerminalHelpWorkflow = {

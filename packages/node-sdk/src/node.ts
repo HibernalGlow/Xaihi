@@ -167,10 +167,16 @@ export type LocalizedLine = string | LocalizedText
 export interface NodeHelpWorkflow {
   title?: LocalizedText
   summary?: LocalizedText
-  ui?: readonly LocalizedLine[]
-  cli?: readonly LocalizedLine[]
-  tips?: readonly LocalizedLine[]
+  /** 逐行的数组，或上游那种 `{zh:[],en:[]}` 双语并列——两种都是既有真实数据。 */
+  ui?: LocalizedSurface
+  cli?: LocalizedSurface
+  tips?: LocalizedSurface
 }
+
+/** 一个使用面的两种真实形状：行数组，或按语言并列的两份行数组。 */
+export type LocalizedSurface =
+  | readonly LocalizedLine[]
+  | { zh?: readonly LocalizedLine[], en?: readonly LocalizedLine[] }
 
 /** 使用说明，按使用面分组。 */
 export interface NodeHelp {
@@ -360,11 +366,24 @@ export function validateNodeDefinition(raw: unknown): NodeValidation {
           for (const surface of HELP_SURFACES) {
             const steps = entry[surface]
             if (steps === undefined) continue
-            if (!Array.isArray(steps)) {
-              errors.push(`help.workflows[${at}].${surface} 必须是数组`)
+            // 面里的值有**两种合法形状**：逐行的数组，或上游那种 `{zh:[],en:[]}` 双语并列。
+            // 只收前者会把上游自己的定义判成非法——实测 `check:vocab` 从 27/27 掉到 0/27 就是这么来的
+            // （它拿上游定义喂我们的校验器，证的就是"我们的词表装不装得下他们的形状"）。
+            const asObject = isPlainObject(steps)
+              ? [(steps as { zh?: unknown }).zh, (steps as { en?: unknown }).en]
+              : []
+            const lists = Array.isArray(steps) ? [steps] : asObject
+            if (!Array.isArray(steps) && !isPlainObject(steps)) {
+              errors.push(`help.workflows[${at}].${surface} 必须是数组，或 {zh:[],en:[]} 两份`)
               continue
             }
-            for (const [index, step] of steps.entries()) line(step, `[${at}].${surface}[${index}]`)
+            for (const list of lists) {
+              if (!Array.isArray(list)) {
+                errors.push(`help.workflows[${at}].${surface} 的 zh/en 两份都必须是数组`)
+                continue
+              }
+              for (const [index, step] of list.entries()) line(step, `[${at}].${surface}[${index}]`)
+            }
           }
         }
       } else if (isPlainObject(workflows)) {
