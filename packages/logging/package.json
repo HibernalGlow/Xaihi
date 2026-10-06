@@ -1,0 +1,52 @@
+{
+  "name": "@xiranite/logging",
+  "version": "0.1.0",
+  "type": "module",
+  "private": false,
+  "description": "Shared structured logging, JSONL parsing, querying, rotation, CLI, and TUI for Xiranite.",
+  "license": "UNLICENSED",
+  "bin": {
+    "xlogs": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.ts",
+      "default": "./dist/cli.js"
+    },
+    "./tui": {
+      "types": "./dist/tui-runner.d.ts",
+      "default": "./dist/tui-runner.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:tsc": "tsc -p tsconfig.json",
+    "test": "vitest run src --exclude src/Tui.bun.test.tsx --maxWorkers=1",
+    "test:tui": "bun test src/Tui.bun.test.tsx"
+  },
+  "dependencies": {
+    "@opentui/core": "0.4.5",
+    "@opentui/react": "0.4.5",
+    "@xiranite/cli-runtime": "workspace:*",
+    "react": "^19.2.4",
+    "rotating-file-stream": "^3.2.9",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.0",
+    "@types/react": "^19.2.14",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,937 @@
+{
+  "source": "https://termcn.dev/r/registry.json",
+  "syncedAt": "2026-07-11T17:47:31.095Z",
+  "count": 155,
+  "items": [
+    {
+      "name": "opentui/types",
+      "type": "registry:file",
+      "title": "Types",
+      "description": "Shared terminal theme and provider types."
+    },
+    {
+      "name": "opentui/alert",
+      "type": "registry:ui",
+      "title": "Alert",
+      "description": "Alert box with success/error/warning/info variants"
+    },
+    {
+      "name": "opentui/app-shell",
+      "type": "registry:ui",
+      "title": "App Shell",
+      "description": "Full-screen TUI layout with header, tip bar, full-width input, scrollable content, and hints footer"
+    },
+    {
+      "name": "opentui/aspect-ratio",
+      "type": "registry:ui",
+      "title": "Aspect Ratio",
+      "description": "Constrains children to a given aspect ratio"
+    },
+    {
+      "name": "opentui/badge",
+      "type": "registry:ui",
+      "title": "Badge",
+      "description": "Semantic status indicator badge (success/error/warning/info)"
+    },
+    {
+      "name": "opentui/banner",
+      "type": "registry:ui",
+      "title": "Banner",
+      "description": "Full-width announcement banner"
+    },
+    {
+      "name": "opentui/bar-chart",
+      "type": "registry:ui",
+      "title": "Bar Chart",
+      "description": "Horizontal and vertical bar chart with labels"
+    },
+    {
+      "name": "opentui/big-text",
+      "type": "registry:ui",
+      "title": "Big Text",
+      "description": "Figlet-style large ASCII art text"
+    },
+    {
+      "name": "opentui/box",
+      "type": "registry:ui",
+      "title": "Box",
+      "description": "Enhanced flexbox container with theme-aware borders"
+    },
+    {
+      "name": "opentui/breadcrumb",
+      "type": "registry:ui",
+      "title": "Breadcrumb",
+      "description": "Breadcrumb navigation trail"
+    },
+    {
+      "name": "opentui/bullet-list",
+      "type": "registry:ui",
+      "title": "Bullet List",
+      "description": "Nested structured content with ●/└/□ bullet prefixes"
+    },
+    {
+      "name": "opentui/card",
+      "type": "registry:ui",
+      "title": "Card",
+      "description": "Card with header, body, and footer slots"
+    },
+    {
+      "name": "opentui/center",
+      "type": "registry:ui",
+      "title": "Center",
+      "description": "Centers children horizontally and vertically"
+    },
+    {
+      "name": "opentui/chat-message",
+      "type": "registry:ui",
+      "title": "Chat Message",
+      "description": "Chat message bubble with role label, streaming indicator, and collapsible content"
+    },
+    {
+      "name": "opentui/chat-thread",
+      "type": "registry:ui",
+      "title": "Chat Thread",
+      "description": "Scrollable container for stacking ChatMessage components in a conversation thread"
+    },
+    {
+      "name": "opentui/checkbox",
+      "type": "registry:ui",
+      "title": "Checkbox",
+      "description": "Checkbox with indeterminate state"
+    },
+    {
+      "name": "opentui/checkbox-group",
+      "type": "registry:ui",
+      "title": "Checkbox Group",
+      "description": "Checkbox group with min/max selection"
+    },
+    {
+      "name": "opentui/clipboard",
+      "type": "registry:ui",
+      "title": "Clipboard",
+      "description": "Copy-to-clipboard button with success feedback"
+    },
+    {
+      "name": "opentui/clock",
+      "type": "registry:ui",
+      "title": "Clock",
+      "description": "Real-time clock display with 12h/24h and date"
+    },
+    {
+      "name": "opentui/code",
+      "type": "registry:ui",
+      "title": "Code",
+      "description": "Syntax-highlighted code block (50+ languages)"
+    },
+    {
+      "name": "opentui/color-picker",
+      "type": "registry:ui",
+      "title": "Color Picker",
+      "description": "Color picker with palette, hex, and RGB input"
+    },
+    {
+      "name": "opentui/columns",
+      "type": "registry:ui",
+      "title": "Columns",
+      "description": "Multi-column layout with configurable widths"
+    },
+    {
+      "name": "opentui/command-palette",
+      "type": "registry:ui",
+      "title": "Command Palette",
+      "description": "VS Code–style command palette with fuzzy search"
+    },
+    {
+      "name": "opentui/confirm",
+      "type": "registry:ui",
+      "title": "Confirm",
+      "description": "Yes/No confirmation prompt"
+    },
+    {
+      "name": "opentui/data-grid",
+      "type": "registry:ui",
+      "title": "Data Grid",
+      "description": "Advanced data grid with sorting, filtering, pagination, and cell editing"
+    },
+    {
+      "name": "opentui/date-picker",
+      "type": "registry:ui",
+      "title": "Date Picker",
+      "description": "Calendar date picker with keyboard navigation"
+    },
+    {
+      "name": "opentui/definition",
+      "type": "registry:ui",
+      "title": "Definition",
+      "description": "Term–description definition list"
+    },
+    {
+      "name": "opentui/dialog",
+      "type": "registry:ui",
+      "title": "Dialog",
+      "description": "Confirmation dialog with OK/Cancel actions"
+    },
+    {
+      "name": "opentui/diff-view",
+      "type": "registry:ui",
+      "title": "Diff View",
+      "description": "Unified, split, and inline diff viewer with LCS-based diff algorithm and line numbers"
+    },
+    {
+      "name": "opentui/digits",
+      "type": "registry:ui",
+      "title": "Digits",
+      "description": "Box-drawing character numerals"
+    },
+    {
+      "name": "opentui/directory-tree",
+      "type": "registry:ui",
+      "title": "Directory Tree",
+      "description": "Filesystem browser with expand/collapse"
+    },
+    {
+      "name": "opentui/divider",
+      "type": "registry:ui",
+      "title": "Divider",
+      "description": "Horizontal or vertical divider / rule"
+    },
+    {
+      "name": "opentui/drawer",
+      "type": "registry:ui",
+      "title": "Drawer",
+      "description": "Slide-in panel from any edge"
+    },
+    {
+      "name": "opentui/email-input",
+      "type": "registry:ui",
+      "title": "Email Input",
+      "description": "Email input with validation and domain suggestions"
+    },
+    {
+      "name": "opentui/embedded-terminal",
+      "type": "registry:ui",
+      "title": "Embedded Terminal",
+      "description": "Embedded PTY terminal panel (requires node-pty peer)"
+    },
+    {
+      "name": "opentui/error-boundary",
+      "type": "registry:ui",
+      "title": "Error Boundary",
+      "description": "React error boundary with graceful terminal display"
+    },
+    {
+      "name": "opentui/file-change",
+      "type": "registry:ui",
+      "title": "File Change",
+      "description": "Interactive file-change review list with diff expansion, per-file accept/reject actions, and accept-all shortcut"
+    },
+    {
+      "name": "opentui/file-picker",
+      "type": "registry:ui",
+      "title": "File Picker",
+      "description": "Interactive file browser and picker"
+    },
+    {
+      "name": "opentui/form",
+      "type": "registry:ui",
+      "title": "Form",
+      "description": "Form container with validation, Ctrl+S submit, and dirty tracking"
+    },
+    {
+      "name": "opentui/form-field",
+      "type": "registry:ui",
+      "title": "Form Field",
+      "description": "Form field wrapper with label, hint, and error"
+    },
+    {
+      "name": "opentui/gauge",
+      "type": "registry:ui",
+      "title": "Gauge",
+      "description": "Arc/speedometer gauge meter"
+    },
+    {
+      "name": "opentui/git-status",
+      "type": "registry:ui",
+      "title": "Git Status",
+      "description": "Git status display (branch, staged, modified, ahead/behind)"
+    },
+    {
+      "name": "opentui/gradient",
+      "type": "registry:ui",
+      "title": "Gradient",
+      "description": "Color gradient text"
+    },
+    {
+      "name": "opentui/grid",
+      "type": "registry:ui",
+      "title": "Grid",
+      "description": "Rows × columns grid layout"
+    },
+    {
+      "name": "opentui/heading",
+      "type": "registry:ui",
+      "title": "Heading",
+      "description": "h1–h4 styled headings with optional figlet ASCII art"
+    },
+    {
+      "name": "opentui/heat-map",
+      "type": "registry:ui",
+      "title": "Heat Map",
+      "description": "Grid heatmap with color intensity scale"
+    },
+    {
+      "name": "opentui/help",
+      "type": "registry:ui",
+      "title": "Help",
+      "description": "Auto-generated help panel from a keymap"
+    },
+    {
+      "name": "opentui/help-screen",
+      "type": "registry:ui",
+      "title": "Help Screen",
+      "description": "Figlet banner + tagline + aligned Options/Commands help sections"
+    },
+    {
+      "name": "opentui/image",
+      "type": "registry:ui",
+      "title": "Image",
+      "description": "Image renderer with iTerm2/Kitty protocol and ASCII fallback"
+    },
+    {
+      "name": "opentui/info-box",
+      "type": "registry:ui",
+      "title": "Info Box",
+      "description": "Bordered info panel with header, key-value rows, and tree-prefix rows"
+    },
+    {
+      "name": "opentui/json",
+      "type": "registry:ui",
+      "title": "JSON",
+      "description": "Pretty-printed JSON with collapsible nodes"
+    },
+    {
+      "name": "opentui/key-value",
+      "type": "registry:ui",
+      "title": "Key Value",
+      "description": "Aligned key–value pairs"
+    },
+    {
+      "name": "opentui/keyboard-shortcuts",
+      "type": "registry:ui",
+      "title": "Keyboard Shortcuts",
+      "description": "Formatted keyboard shortcut reference table"
+    },
+    {
+      "name": "opentui/line-chart",
+      "type": "registry:ui",
+      "title": "Line Chart",
+      "description": "ASCII line chart with axes and multi-series support"
+    },
+    {
+      "name": "opentui/link",
+      "type": "registry:ui",
+      "title": "Link",
+      "description": "OSC 8 clickable hyperlink"
+    },
+    {
+      "name": "opentui/list",
+      "type": "registry:ui",
+      "title": "List",
+      "description": "Navigable list with optional filtering"
+    },
+    {
+      "name": "opentui/log",
+      "type": "registry:ui",
+      "title": "Log",
+      "description": "Scrolling log viewer with severity levels and filtering"
+    },
+    {
+      "name": "opentui/login-flow",
+      "type": "registry:ui",
+      "title": "Login Flow",
+      "description": "Full-page onboarding/login screen with announcement banner, big ASCII title, description, and numbered select"
+    },
+    {
+      "name": "opentui/markdown",
+      "type": "registry:ui",
+      "title": "Markdown",
+      "description": "Full markdown renderer for terminal"
+    },
+    {
+      "name": "opentui/masked-input",
+      "type": "registry:ui",
+      "title": "Masked Input",
+      "description": "Masked input for phone, date, credit card formats"
+    },
+    {
+      "name": "opentui/menu",
+      "type": "registry:ui",
+      "title": "Menu",
+      "description": "Dropdown menu with nested submenus"
+    },
+    {
+      "name": "opentui/modal",
+      "type": "registry:ui",
+      "title": "Modal",
+      "description": "Focus-trapped overlay modal, close with Esc"
+    },
+    {
+      "name": "opentui/model-selector",
+      "type": "registry:ui",
+      "title": "Model Selector",
+      "description": "Keyboard-navigable list for selecting an AI model, with optional provider grouping and context-window display"
+    },
+    {
+      "name": "opentui/multi-progress",
+      "type": "registry:ui",
+      "title": "Multi Progress",
+      "description": "Parallel progress display for package managers, build pipelines, and deploy tools"
+    },
+    {
+      "name": "opentui/multi-select",
+      "type": "registry:ui",
+      "title": "Multi Select",
+      "description": "Multi-select list with checkboxes and select-all"
+    },
+    {
+      "name": "opentui/notification-badge",
+      "type": "registry:ui",
+      "title": "Notification Badge",
+      "description": "Notification Badge component for OpenTUI React."
+    },
+    {
+      "name": "opentui/notification-center",
+      "type": "registry:block",
+      "title": "Notification Center",
+      "description": "Persistent queue-based notification panel with useNotifications hook"
+    },
+    {
+      "name": "opentui/number-input",
+      "type": "registry:ui",
+      "title": "Number Input",
+      "description": "Numeric input with increment/decrement and bounds"
+    },
+    {
+      "name": "opentui/pagination",
+      "type": "registry:ui",
+      "title": "Pagination",
+      "description": "Page navigation with prev/next and jump"
+    },
+    {
+      "name": "opentui/panel",
+      "type": "registry:ui",
+      "title": "Panel",
+      "description": "Titled bordered panel"
+    },
+    {
+      "name": "opentui/password-input",
+      "type": "registry:ui",
+      "title": "Password Input",
+      "description": "Password input with masked characters and reveal toggle"
+    },
+    {
+      "name": "opentui/path-input",
+      "type": "registry:ui",
+      "title": "Path Input",
+      "description": "Filesystem path input with tab autocomplete"
+    },
+    {
+      "name": "opentui/pie-chart",
+      "type": "registry:ui",
+      "title": "Pie Chart",
+      "description": "Unicode block pie chart with legend"
+    },
+    {
+      "name": "opentui/popover",
+      "type": "registry:ui",
+      "title": "Popover",
+      "description": "Positioned popover with arbitrary content"
+    },
+    {
+      "name": "opentui/progress-bar",
+      "type": "registry:ui",
+      "title": "Progress Bar",
+      "description": "Determinate progress bar with percent and value/total display"
+    },
+    {
+      "name": "opentui/progress-circle",
+      "type": "registry:ui",
+      "title": "Progress Circle",
+      "description": "Circular progress indicator using Unicode braille"
+    },
+    {
+      "name": "opentui/qr-code",
+      "type": "registry:ui",
+      "title": "QR Code",
+      "description": "Unicode block QR code generator"
+    },
+    {
+      "name": "opentui/radio-group",
+      "type": "registry:ui",
+      "title": "Radio Group",
+      "description": "Mutually exclusive radio button group"
+    },
+    {
+      "name": "opentui/scroll-view",
+      "type": "registry:ui",
+      "title": "Scroll View",
+      "description": "Scrollable container with scrollbar"
+    },
+    {
+      "name": "opentui/search-input",
+      "type": "registry:ui",
+      "title": "Search Input",
+      "description": "Fuzzy search input with autocomplete"
+    },
+    {
+      "name": "opentui/select",
+      "type": "registry:ui",
+      "title": "Select",
+      "description": "Single-select dropdown with arrow-key navigation"
+    },
+    {
+      "name": "opentui/setup-flow",
+      "type": "registry:ui",
+      "title": "Setup Flow",
+      "description": "@clack-style step flow with ◇/◆/│ visual language, badge, info steps, and multi-select"
+    },
+    {
+      "name": "opentui/sidebar",
+      "type": "registry:ui",
+      "title": "Sidebar",
+      "description": "Collapsible navigation sidebar panel"
+    },
+    {
+      "name": "opentui/skeleton",
+      "type": "registry:ui",
+      "title": "Skeleton",
+      "description": "Shimmer loading placeholder"
+    },
+    {
+      "name": "opentui/spacer",
+      "type": "registry:ui",
+      "title": "Spacer",
+      "description": "Flexible space between flex children"
+    },
+    {
+      "name": "opentui/sparkline",
+      "type": "registry:ui",
+      "title": "Sparkline",
+      "description": "Inline Unicode braille sparkline chart"
+    },
+    {
+      "name": "opentui/spinner",
+      "type": "registry:ui",
+      "title": "Spinner",
+      "description": "Animated spinner with 12+ styles"
+    },
+    {
+      "name": "opentui/splash-screen",
+      "type": "registry:ui",
+      "title": "Splash Screen",
+      "description": "Styled startup banner with big ASCII art title, subtitle, author credit, and status line"
+    },
+    {
+      "name": "opentui/stack",
+      "type": "registry:ui",
+      "title": "Stack",
+      "description": "Vertical/horizontal stack with gap"
+    },
+    {
+      "name": "opentui/status-message",
+      "type": "registry:ui",
+      "title": "Status Message",
+      "description": "Inline status message with icon and color"
+    },
+    {
+      "name": "opentui/stopwatch",
+      "type": "registry:ui",
+      "title": "Stopwatch",
+      "description": "Count-up stopwatch with laps and reset"
+    },
+    {
+      "name": "opentui/streaming-text",
+      "type": "registry:ui",
+      "title": "Streaming Text",
+      "description": "Token-by-token streaming text with blinking cursor and optional typing animation"
+    },
+    {
+      "name": "opentui/tabbed-content",
+      "type": "registry:ui",
+      "title": "Tabbed Content",
+      "description": "Tab bar wired to content panels"
+    },
+    {
+      "name": "opentui/table",
+      "type": "registry:ui",
+      "title": "Table",
+      "description": "Sortable, selectable, paginated data table"
+    },
+    {
+      "name": "opentui/tabs",
+      "type": "registry:ui",
+      "title": "Tabs",
+      "description": "Tab bar with left/right arrow and tab-key navigation"
+    },
+    {
+      "name": "opentui/tag",
+      "type": "registry:ui",
+      "title": "Tag",
+      "description": "Removable chip/tag"
+    },
+    {
+      "name": "opentui/tag-input",
+      "type": "registry:ui",
+      "title": "Tag Input",
+      "description": "Add and remove tags inline"
+    },
+    {
+      "name": "opentui/text-area",
+      "type": "registry:ui",
+      "title": "Text Area",
+      "description": "Multi-line text editor with word wrap"
+    },
+    {
+      "name": "opentui/text-input",
+      "type": "registry:ui",
+      "title": "Text Input",
+      "description": "Single-line text input with placeholder, validation, mask"
+    },
+    {
+      "name": "opentui/theme-provider",
+      "type": "registry:ui",
+      "title": "Theme Provider",
+      "description": "Terminal theme provider, design tokens, and theme helpers."
+    },
+    {
+      "name": "opentui/thinking-block",
+      "type": "registry:ui",
+      "title": "Thinking Block",
+      "description": "Collapsible block for displaying extended thinking / reasoning content from an AI model"
+    },
+    {
+      "name": "opentui/time-picker",
+      "type": "registry:ui",
+      "title": "Time Picker",
+      "description": "Time picker with hour/minute/second spinners"
+    },
+    {
+      "name": "opentui/timer",
+      "type": "registry:ui",
+      "title": "Timer",
+      "description": "Countdown timer with pause/resume and auto-start"
+    },
+    {
+      "name": "opentui/toast",
+      "type": "registry:ui",
+      "title": "Toast",
+      "description": "Auto-dismissing toast notification"
+    },
+    {
+      "name": "opentui/toggle",
+      "type": "registry:ui",
+      "title": "Toggle",
+      "description": "Toggle/switch component with on/off labels"
+    },
+    {
+      "name": "opentui/token-usage",
+      "type": "registry:ui",
+      "title": "Token Usage",
+      "description": "Compact token counter showing prompt and completion usage with optional cost estimate; also exports ContextMeter for visualising context window fill"
+    },
+    {
+      "name": "opentui/tool-approval",
+      "type": "registry:ui",
+      "title": "Tool Approval",
+      "description": "Interactive approval prompt for AI tool calls with risk-level badge, args display, and auto-deny timeout"
+    },
+    {
+      "name": "opentui/tool-call",
+      "type": "registry:ui",
+      "title": "Tool Call",
+      "description": "Displays an AI tool invocation with status indicator, args, result, and elapsed time"
+    },
+    {
+      "name": "opentui/tooltip",
+      "type": "registry:ui",
+      "title": "Tooltip",
+      "description": "Contextual tooltip on focus or hover"
+    },
+    {
+      "name": "opentui/tree",
+      "type": "registry:ui",
+      "title": "Tree",
+      "description": "Expandable/collapsible tree view"
+    },
+    {
+      "name": "opentui/tree-select",
+      "type": "registry:ui",
+      "title": "Tree Select",
+      "description": "Hierarchical tree selection"
+    },
+    {
+      "name": "opentui/usage-monitor",
+      "type": "registry:ui",
+      "title": "Usage Monitor",
+      "description": "Real-time dashboard with diamond header, progress metrics, burn rate, predictions, and status bar"
+    },
+    {
+      "name": "opentui/virtual-list",
+      "type": "registry:ui",
+      "title": "Virtual List",
+      "description": "Virtualized list for 10k+ items"
+    },
+    {
+      "name": "opentui/welcome-screen",
+      "type": "registry:ui",
+      "title": "Welcome Screen",
+      "description": "Two-panel welcome dashboard with titled border, logo, greeting, and sections"
+    },
+    {
+      "name": "opentui/wizard",
+      "type": "registry:ui",
+      "title": "Wizard",
+      "description": "Multi-step wizard with per-step validation"
+    },
+    {
+      "name": "opentui/theme-catppuccin",
+      "type": "registry:file",
+      "title": "Catppuccin",
+      "description": "A Catppuccin theme for rich terminal UI previews."
+    },
+    {
+      "name": "opentui/theme-default",
+      "type": "registry:file",
+      "title": "Default",
+      "description": "The default termcn terminal theme."
+    },
+    {
+      "name": "opentui/theme-dracula",
+      "type": "registry:file",
+      "title": "Dracula",
+      "description": "A purple-heavy Dracula theme for terminal UI components."
+    },
+    {
+      "name": "opentui/theme-high-contrast",
+      "type": "registry:file",
+      "title": "High Contrast",
+      "description": "High contrast themes for dark and light terminal backgrounds."
+    },
+    {
+      "name": "opentui/theme-monokai",
+      "type": "registry:file",
+      "title": "Monokai",
+      "description": "A classic Monokai-inspired theme for terminal apps."
+    },
+    {
+      "name": "opentui/theme-nord",
+      "type": "registry:file",
+      "title": "Nord",
+      "description": "A cool Nord palette tuned for terminal contrast."
+    },
+    {
+      "name": "opentui/theme-one-dark",
+      "type": "registry:file",
+      "title": "One Dark",
+      "description": "A One Dark theme for terminal components."
+    },
+    {
+      "name": "opentui/theme-solarized",
+      "type": "registry:file",
+      "title": "Solarized",
+      "description": "A Solarized theme for terminal components."
+    },
+    {
+      "name": "opentui/theme-tokyo-night",
+      "type": "registry:file",
+      "title": "Tokyo Night",
+      "description": "Tokyo Night colors for terminal interfaces."
+    },
+    {
+      "name": "opentui/theme-amoled",
+      "type": "registry:file",
+      "title": "AMOLED",
+      "description": "AMOLED - high contrast dark theme with pure black."
+    },
+    {
+      "name": "opentui/theme-aura",
+      "type": "registry:file",
+      "title": "Aura",
+      "description": "Aura - soft elegant theme with pastel purple."
+    },
+    {
+      "name": "opentui/theme-ayu",
+      "type": "registry:file",
+      "title": "Ayu",
+      "description": "Ayu - clean modern terminal theme."
+    },
+    {
+      "name": "opentui/theme-carbonfox",
+      "type": "registry:file",
+      "title": "Carbonfox",
+      "description": "Carbonfox - minimal dark theme."
+    },
+    {
+      "name": "opentui/theme-catppuccin-frappe",
+      "type": "registry:file",
+      "title": "Catppuccin Frappe",
+      "description": "Catppuccin Frappe - soothing pastel."
+    },
+    {
+      "name": "opentui/theme-catppuccin-macchiato",
+      "type": "registry:file",
+      "title": "Catppuccin Macchiato",
+      "description": "Catppuccin Macchiato - deeper pastel tones."
+    },
+    {
+      "name": "opentui/theme-cobalt2",
+      "type": "registry:file",
+      "title": "Cobalt2",
+      "description": "Cobalt2 - vibrant blue and gold."
+    },
+    {
+      "name": "opentui/theme-cursor",
+      "type": "registry:file",
+      "title": "Cursor",
+      "description": "Cursor IDE theme."
+    },
+    {
+      "name": "opentui/theme-everforest",
+      "type": "registry:file",
+      "title": "Everforest",
+      "description": "Everforest - warm forest theme."
+    },
+    {
+      "name": "opentui/theme-flexoki",
+      "type": "registry:file",
+      "title": "Flexoki",
+      "description": "Flexoki - versatile theme."
+    },
+    {
+      "name": "opentui/theme-github",
+      "type": "registry:file",
+      "title": "GitHub",
+      "description": "GitHub official dark theme."
+    },
+    {
+      "name": "opentui/theme-gruvbox",
+      "type": "registry:file",
+      "title": "Gruvbox",
+      "description": "Gruvbox - retro earth tones."
+    },
+    {
+      "name": "opentui/theme-kanagawa",
+      "type": "registry:file",
+      "title": "Kanagawa",
+      "description": "Kanagawa - Japanese wave theme."
+    },
+    {
+      "name": "opentui/theme-lucent-orng",
+      "type": "registry:file",
+      "title": "Lucent Orng",
+      "description": "Lucent Orng - warm orange theme."
+    },
+    {
+      "name": "opentui/theme-material",
+      "type": "registry:file",
+      "title": "Material",
+      "description": "Material Design colors."
+    },
+    {
+      "name": "opentui/theme-matrix",
+      "type": "registry:file",
+      "title": "Matrix",
+      "description": "Matrix - green code rain."
+    },
+    {
+      "name": "opentui/theme-mercury",
+      "type": "registry:file",
+      "title": "Mercury",
+      "description": "Mercury - clean minimal theme."
+    },
+    {
+      "name": "opentui/theme-nightowl",
+      "type": "registry:file",
+      "title": "Night Owl",
+      "description": "Night Owl - late night coding."
+    },
+    {
+      "name": "opentui/theme-oc-2",
+      "type": "registry:file",
+      "title": "OC-2",
+      "description": "OC-2 - clean minimal theme."
+    },
+    {
+      "name": "opentui/theme-onedarkpro",
+      "type": "registry:file",
+      "title": "One Dark Pro",
+      "description": "One Dark Pro - VS Code version."
+    },
+    {
+      "name": "opentui/theme-opencode",
+      "type": "registry:file",
+      "title": "OpenCode",
+      "description": "OpenCode official theme."
+    },
+    {
+      "name": "opentui/theme-orng",
+      "type": "registry:file",
+      "title": "Orng",
+      "description": "Orng - vibrant orange theme."
+    },
+    {
+      "name": "opentui/theme-osaka-jade",
+      "type": "registry:file",
+      "title": "Osaka Jade",
+      "description": "Osaka Jade - Japanese jade theme."
+    },
+    {
+      "name": "opentui/theme-palenight",
+      "type": "registry:file",
+      "title": "Palenight",
+      "description": "Palenight - React Native purple."
+    },
+    {
+      "name": "opentui/theme-rosepine",
+      "type": "registry:file",
+      "title": "Rose Pine",
+      "description": "Rose Pine - warm rose tones."
+    },
+    {
+      "name": "opentui/theme-shadesofpurple",
+      "type": "registry:file",
+      "title": "Shades of Purple",
+      "description": "Shades of Purple - bold purple."
+    },
+    {
+      "name": "opentui/theme-synthwave84",
+      "type": "registry:file",
+      "title": "Synthwave '84",
+      "description": "Synthwave '84 - retro neon."
+    },
+    {
+      "name": "opentui/theme-vercel",
+      "type": "registry:file",
+      "title": "Vercel",
+      "description": "Vercel brand colors."
+    },
+    {
+      "name": "opentui/theme-vesper",
+      "type": "registry:file",
+      "title": "Vesper",
+      "description": "Vesper - minimal high contrast."
+    },
+    {
+      "name": "opentui/theme-zenburn",
+      "type": "registry:file",
+      "title": "Zenburn",
+      "description": "Zenburn - low contrast for long sessions."
+    },
+    {
+      "name": "opentui/theme-high-contrast-light",
+      "type": "registry:file",
+      "title": "High Contrast Light",
+      "description": "WCAG-friendly light high-contrast theme."
+    }
+  ]
+}

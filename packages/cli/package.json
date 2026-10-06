@@ -1,0 +1,65 @@
+{
+  "name": "@xiranite/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "private": false,
+  "description": "Aggregate Xiranite CLI that dispatches to installed node package commands.",
+  "license": "UNLICENSED",
+  "bin": {
+    "xiranite": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:tsc": "tsc -p tsconfig.json",
+    "test": "vitest run src/index.test.ts src/workspace-tui-model.test.ts && bun test src/Tui.bun.test.tsx"
+  },
+  "dependencies": {
+    "@opentui/core": "0.4.5",
+    "@opentui/react": "0.4.5",
+    "@xiranite/api": "workspace:*",
+    "@xiranite/cli-runtime": "workspace:*",
+    "@xiranite/logging": "workspace:*",
+    "@xiranite/shared": "workspace:*",
+    "@xiranite/node-bandia": "workspace:*",
+    "@xiranite/node-cleanf": "workspace:*",
+    "@xiranite/node-crashu": "workspace:*",
+    "@xiranite/node-czkawka": "workspace:*",
+    "@xiranite/node-dissolvef": "workspace:*",
+    "@xiranite/node-encodeb": "workspace:*",
+    "@xiranite/node-enginev": "workspace:*",
+    "@xiranite/node-findz": "workspace:*",
+    "@xiranite/node-formatv": "workspace:*",
+    "@xiranite/node-kavvka": "workspace:*",
+    "@xiranite/node-lata": "workspace:*",
+    "@xiranite/node-linedup": "workspace:*",
+    "@xiranite/node-logx": "workspace:*",
+    "@xiranite/node-linku": "workspace:*",
+    "@xiranite/node-marku": "workspace:*",
+    "@xiranite/node-migratef": "workspace:*",
+    "@xiranite/node-movea": "workspace:*",
+    "@xiranite/node-mvz": "workspace:*",
+    "@xiranite/node-owithu": "workspace:*",
+    "@xiranite/node-rawfilter": "workspace:*",
+    "@xiranite/node-recycleu": "workspace:*",
+    "@xiranite/node-repacku": "workspace:*",
+    "@xiranite/node-samea": "workspace:*",
+    "@xiranite/node-scoolp": "workspace:*",
+    "@xiranite/node-seriex": "workspace:*",
+    "@xiranite/node-sleept": "workspace:*",
+    "@xiranite/node-trename": "workspace:*",
+    "react": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.0",
+    "typescript": "^7.0.2"
+  }
+}

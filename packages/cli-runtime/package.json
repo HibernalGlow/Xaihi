@@ -1,0 +1,66 @@
+{
+  "name": "@xiranite/cli-runtime",
+  "version": "0.1.0",
+  "type": "module",
+  "private": false,
+  "description": "Small CLI helpers for Xiranite node packages.",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n.d.ts",
+      "default": "./dist/i18n.js"
+    },
+    "./interaction": {
+      "types": "./dist/interaction.d.ts",
+      "default": "./dist/interaction.js"
+    },
+    "./terminal": {
+      "types": "./dist/terminal.d.ts",
+      "default": "./dist/terminal.js"
+    },
+    "./terminal/opentui": {
+      "types": "./dist/terminal-opentui.d.ts",
+      "default": "./dist/terminal-opentui.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:tsc": "tsc -p tsconfig.json",
+    "sync:termcn": "node scripts/sync-termcn-opentui-registry.mjs",
+    "test": "vitest run src/index.test.ts src/browser-boundary.test.ts src/tui/interaction-cli.test.ts && bun test src/tui/opentui/app.bun.test.tsx src/tui/opentui/image-preview.bun.test.ts src/tui/opentui/path-diff.bun.test.ts src/tui/opentui/slider.bun.test.tsx"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.7.0",
+    "@opentui/core": "0.4.5",
+    "@opentui/react": "0.4.5",
+    "@xiranite/api": "workspace:*",
+    "@xiranite/contract": "workspace:*",
+    "boxen": "^8.0.1",
+    "chalk": "^5.6.2",
+    "citty": "^0.1.6",
+    "cli-spinners": "^3.4.0",
+    "i18next": "^26.3.4",
+    "lru-cache": "11.5.2",
+    "p-queue": "9.3.1",
+    "react": "^19.2.4",
+    "sharp": "0.35.3",
+    "sixel": "0.16.0",
+    "string-width": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.0",
+    "@types/react": "^19.2.14",
+    "typescript": "^7.0.2"
+  }
+}

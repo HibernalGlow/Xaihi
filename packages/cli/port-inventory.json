@@ -1,0 +1,1589 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "ccf465fe",
+  "sourceWorktree": "/Users/glow/Base/Code/Freya/.scratch/xiranite-noxide (tag noxide, read-only, unmodified)",
+  "note": {
+    "noUpstreamTuiPackage": "upstream has NO packages/tui. The TUI face is packages/cli/src/{Tui.tsx,tui-runner.tsx,workspace-tui-model.ts} plus packages/cli-runtime/src/tui/** (31 files, 19 of them .tsx; packages/cli-runtime/src as a whole holds 22 .tsx), published through the public entrypoint @xiranite/cli-runtime/terminal/opentui. cli-runtime was therefore copied whole under its own name (packages/cli-runtime), because step 2 requires preserving internal layout and imports; renaming the directory to packages/tui is a pure `mv` away and needs no source edit.",
+    "nodeCoreSharing": "Three faces share one core inside each node package: nodes/<id>/src/core.ts is imported relatively by cli.ts and Tui.tsx; the aggregate CLI reaches a node only through the generated data registry packages/cli/src/node-cli-registry.generated.ts ({id,packageName,bin,description}, zero imports of node code) and a dynamic await import(`${packageName}/cli`). No /core import, no service registry, no IPC."
+  },
+  "copied": [
+    {
+      "from": "packages/cli",
+      "to": "packages/cli",
+      "files": 10,
+      "lines": 1098,
+      "packageName": "@xiranite/cli",
+      "upstreamRole": "aggregate CLI + workspace TUI entry (bin xiranite)"
+    },
+    {
+      "from": "packages/cli-runtime",
+      "to": "packages/cli-runtime",
+      "files": 206,
+      "lines": 10364,
+      "packageName": "@xiranite/cli-runtime",
+      "upstreamRole": "terminal runtime: CLI helpers + the whole OpenTUI TUI face (src/tui/** = 31 files, 19 .tsx) and the termcn registry snapshot (termcn-registry/opentui, 156 json = 880K)"
+    },
+    {
+      "from": "packages/api",
+      "to": "packages/api",
+      "files": 10,
+      "lines": 1813,
+      "packageName": "@xiranite/api",
+      "upstreamRole": "typed HTTP client used by the CLI/TUI workspace + task queue"
+    },
+    {
+      "from": "packages/contract",
+      "to": "packages/contract",
+      "files": 3,
+      "lines": 635,
+      "packageName": "@xiranite/contract",
+      "upstreamRole": "node contracts (NodeHelp/CliCommand/localizeNodeHelp)"
+    },
+    {
+      "from": "packages/shared",
+      "to": "packages/shared",
+      "files": 13,
+      "lines": 1293,
+      "packageName": "@xiranite/shared",
+      "upstreamRole": "DTOs/schemas shared by all faces"
+    },
+    {
+      "from": "packages/logging",
+      "to": "packages/logging",
+      "files": 15,
+      "lines": 1226,
+      "packageName": "@xiranite/logging",
+      "upstreamRole": "structured logs face, `xiranite logs` + xlogs bin"
+    }
+  ],
+  "bins": [
+    {
+      "package": "@xiranite/cli",
+      "binName": "xiranite",
+      "entry": "./dist/index.js",
+      "sourceEntry": "packages/cli/src/index.ts",
+      "runtimeNeeds": [
+        "@xiranite/cli-runtime",
+        "@xiranite/cli-runtime/terminal",
+        "@xiranite/api/client",
+        "@xiranite/contract (UNDECLARED in package.json)",
+        "@xiranite/shared",
+        "@elysiajs/eden",
+        "react",
+        "@opentui/core + @opentui/react (only via dynamic ./tui-runner.js import)",
+        "bun on PATH for `xiranite ui`",
+        "@xiranite/node-<id>/cli per node command",
+        "@xiranite/logging/cli for `xiranite logs`"
+      ]
+    },
+    {
+      "package": "@xiranite/logging",
+      "binName": "xlogs",
+      "entry": "./dist/cli.js",
+      "sourceEntry": "packages/logging/src/cli.ts",
+      "runtimeNeeds": [
+        "@xiranite/cli-runtime",
+        "@opentui/core",
+        "@opentui/react",
+        "react",
+        "rotating-file-stream",
+        "zod"
+      ]
+    }
+  ],
+  "thirdParty": [
+    {
+      "specifier": "@opentui/react",
+      "version": "0.4.5",
+      "usedBy": {
+        "cli": 3,
+        "cli-runtime": 9,
+        "logging": 3
+      },
+      "notes": "252K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - react-reconciler based terminal JSX (jsxImportSource @opentui/react)",
+      "declaredIn": {
+        "cli": "0.4.5",
+        "cli-runtime": "0.4.5",
+        "logging": "0.4.5"
+      }
+    },
+    {
+      "specifier": "react",
+      "version": "^19.2.4",
+      "usedBy": {
+        "cli": 2,
+        "cli-runtime": 26,
+        "logging": 2
+      },
+      "notes": "252K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - 19.2.4 on the terminal faces (DSH GUI face is pinned to 18.3.1)",
+      "declaredIn": {
+        "cli": "^19.2.4",
+        "cli-runtime": "^19.2.4",
+        "logging": "^19.2.4"
+      }
+    },
+    {
+      "specifier": "@opentui/core",
+      "version": "0.4.5",
+      "usedBy": {
+        "cli": 1,
+        "cli-runtime": 5,
+        "logging": 1
+      },
+      "notes": "12M measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - OpenTUI renderer (createCliRenderer). Contains 5 tree-sitter .wasm grammars under assets/ = 3.3M of the 12M. peerDep web-tree-sitter 0.25.10",
+      "declaredIn": {
+        "cli": "0.4.5",
+        "cli-runtime": "0.4.5",
+        "logging": "0.4.5"
+      }
+    },
+    {
+      "specifier": "cli-spinners",
+      "version": "^3.4.0",
+      "usedBy": {
+        "cli-runtime": 1
+      },
+      "notes": "48K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - spinner glyphs",
+      "declaredIn": {
+        "cli-runtime": "^3.4.0"
+      }
+    },
+    {
+      "specifier": "i18next",
+      "version": "^26.3.4",
+      "usedBy": {
+        "cli-runtime": 1
+      },
+      "notes": "544K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - terminal i18n (cli-runtime/src/tui/i18n.ts)",
+      "declaredIn": {
+        "cli-runtime": "^26.3.4"
+      }
+    },
+    {
+      "specifier": "@clack/prompts",
+      "version": "^1.7.0",
+      "usedBy": {
+        "cli-runtime": 1
+      },
+      "notes": "128K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - Clack prompts: guided-mode terminal forms (interaction.ts)",
+      "declaredIn": {
+        "cli-runtime": "^1.7.0"
+      }
+    },
+    {
+      "specifier": "boxen",
+      "version": "^8.0.1",
+      "usedBy": {
+        "cli-runtime": 1
+      },
+      "notes": "940K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - rich help panels (renderRichPanel)",
+      "declaredIn": {
+        "cli-runtime": "^8.0.1"
+      }
+    },
+    {
+      "specifier": "chalk",
+      "version": "^5.6.2",
+      "usedBy": {
+        "cli-runtime": 1
+      },
+      "notes": "72K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - colour for rich panels",
+      "declaredIn": {
+        "cli-runtime": "^5.6.2"
+      }
+    },
+    {
+      "specifier": "string-width",
+      "version": "^8.1.0",
+      "usedBy": {
+        "cli-runtime": 1
+      },
+      "notes": "44K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - cell width measurement",
+      "declaredIn": {
+        "cli-runtime": "^8.1.0"
+      }
+    },
+    {
+      "specifier": "citty",
+      "version": "^0.1.6",
+      "usedBy": {
+        "cli-runtime": 1
+      },
+      "notes": "56K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - defineCommand/runMain re-exported from packages/cli-runtime/src/index.ts; the command shape every node CLI face builds on (transitive: consola)",
+      "declaredIn": {
+        "cli-runtime": "^0.1.6"
+      }
+    },
+    {
+      "specifier": "sharp",
+      "version": "0.35.3",
+      "usedBy": {
+        "cli-runtime": 2
+      },
+      "notes": "1.0M measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - image-preview.tsx; pulls @img/sharp-darwin-arm64 300K + @img/sharp-libvips-darwin-arm64 17M + @img/colour 92K",
+      "declaredIn": {
+        "cli-runtime": "0.35.3"
+      }
+    },
+    {
+      "specifier": "sixel",
+      "version": "0.16.0",
+      "usedBy": {
+        "cli-runtime": 1
+      },
+      "notes": "1.3M measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - pure JS sixel encoder in image-preview.tsx (no native binding, no deps)",
+      "declaredIn": {
+        "cli-runtime": "0.16.0"
+      }
+    },
+    {
+      "specifier": "lru-cache",
+      "version": "11.5.2",
+      "usedBy": {
+        "cli-runtime": 1
+      },
+      "notes": "2.9M measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - terminal image decode cache",
+      "declaredIn": {
+        "cli-runtime": "11.5.2"
+      }
+    },
+    {
+      "specifier": "p-queue",
+      "version": "9.3.1",
+      "usedBy": {
+        "cli-runtime": 1
+      },
+      "notes": "120K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - terminal task queue",
+      "declaredIn": {
+        "cli-runtime": "9.3.1"
+      }
+    },
+    {
+      "specifier": "@elysiajs/eden",
+      "version": "^1.4.9",
+      "usedBy": {
+        "api": 1
+      },
+      "notes": "308K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - treaty() client used by @xiranite/api/client, which is a STATIC import of the CLI entry",
+      "declaredIn": {
+        "api": "^1.4.9"
+      }
+    },
+    {
+      "specifier": "elysia",
+      "version": "^1.4.29",
+      "usedBy": {
+        "api": 2
+      },
+      "notes": "1.3M measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - only needed by @xiranite/api '.', not by /client; the CLI never builds the server",
+      "declaredIn": {
+        "api": "^1.4.29"
+      }
+    },
+    {
+      "specifier": "csv-parse",
+      "version": "^7.0.1",
+      "usedBy": {
+        "shared": 1
+      },
+      "notes": "1.6M measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - shared package DTO helpers",
+      "declaredIn": {
+        "shared": "^7.0.1"
+      }
+    },
+    {
+      "specifier": "zod",
+      "version": "^4.3.6",
+      "usedBy": {
+        "shared": 2,
+        "logging": 1
+      },
+      "notes": "6.0M measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - shared + logging schemas",
+      "declaredIn": {
+        "shared": "^4.3.6",
+        "logging": "^4.3.6"
+      }
+    },
+    {
+      "specifier": "json-rules-engine",
+      "version": "7.3.1",
+      "usedBy": {
+        "shared": 1
+      },
+      "notes": "160K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - shared/src rules engine",
+      "declaredIn": {
+        "shared": "7.3.1"
+      }
+    },
+    {
+      "specifier": "rotating-file-stream",
+      "version": "^3.2.9",
+      "usedBy": {
+        "logging": 1
+      },
+      "notes": "96K measured in /Users/glow/Base/Code/Freya/Xiranite/node_modules - @xiranite/logging only (xlogs / `xiranite logs`)",
+      "declaredIn": {
+        "logging": "^3.2.9"
+      }
+    }
+  ],
+  "xiraniteDeps": [
+    {
+      "specifier": "@xiranite/cli-runtime",
+      "subpath": ".",
+      "usedByFiles": {
+        "cli": 3,
+        "logging": 3
+      },
+      "xaihiCounterpart": "@xiranite/cli-runtime (copied to packages/cli-runtime)",
+      "exportExists": true,
+      "note": "bare package import; runtime value imports (createCliHost, defineCommand, rich, nodeCliName). Not a Tauri/Wails face."
+    },
+    {
+      "specifier": "@xiranite/cli-runtime",
+      "subpath": "./terminal",
+      "usedByFiles": {
+        "cli": 3
+      },
+      "xaihiCounterpart": "@xiranite/cli-runtime (packages/cli-runtime)",
+      "exportExists": true,
+      "note": "Node-safe terminal layer: task queue + bun re-exec. Re-exports ./tui/index.js; does NOT pull @opentui."
+    },
+    {
+      "specifier": "@xiranite/cli-runtime",
+      "subpath": "./terminal/opentui",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": "@xiranite/cli-runtime (packages/cli-runtime)",
+      "exportExists": true,
+      "note": "Bun/OpenTUI-only entrypoint; static import of cli/src/Tui.tsx:13, hence sharp + sixel + @opentui land on the TUI path only."
+    },
+    {
+      "specifier": "@xiranite/api",
+      "subpath": "./client",
+      "usedByFiles": {
+        "cli": 1,
+        "cli-runtime": 1
+      },
+      "xaihiCounterpart": "@xiranite/api (copied to packages/api)",
+      "exportExists": true,
+      "note": "runtime needs only @elysiajs/eden + @xiranite/shared; the ./ index (Elysia server) is never imported by the terminal faces."
+    },
+    {
+      "specifier": "@xiranite/contract",
+      "subpath": ".",
+      "usedByFiles": {
+        "cli": 1,
+        "cli-runtime": 7
+      },
+      "xaihiCounterpart": "@xiranite/contract (copied to packages/contract)",
+      "exportExists": true,
+      "note": "localizeNodeHelp is a runtime value (packages/cli/src/index.ts:7, packages/cli-runtime/src/help.ts:1, tui/opentui/help-screen.tsx:3). MISSING from packages/cli/package.json#dependencies even though the CLI entry imports it statically -> the layer-2 hard failure. Note packages/cli-runtime DOES declare it, so only cli is broken."
+    },
+    {
+      "specifier": "@xiranite/shared",
+      "subpath": ".",
+      "usedByFiles": {
+        "cli": 4,
+        "api": 5,
+        "contract": 1
+      },
+      "xaihiCounterpart": "@xiranite/shared (copied to packages/shared)",
+      "exportExists": true,
+      "note": "appendUrlPath (runtime value) + WorkspaceSnapshotDTO/ComponentDTO/NodeOperation* (type-only)."
+    },
+    {
+      "specifier": "@xiranite/logging",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": "@xiranite/logging (copied to packages/logging)",
+      "exportExists": true,
+      "note": "dynamic await import() behind the `logs` subcommand (packages/cli/src/index.ts:101)."
+    },
+    {
+      "specifier": "@xiranite/file-operations",
+      "subpath": ".",
+      "usedByFiles": {
+        "api": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "packages/api/src/client.ts:3 (import type) and :9 (export type) - erased at runtime; NOT copied (no Xaihi counterpart), so `tsc -p packages/api` fails even though the CLI can run without it. Declared as a workspace:* dependency, which is what breaks the install at layer 0."
+    },
+    {
+      "specifier": "@xiranite/services",
+      "subpath": ".",
+      "usedByFiles": {
+        "api": 3
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "type-only (XiraniteServices, ConfigVersion, ConfigHistoryRepositoryStatus...). Not copied. Same build-only breakage plus a dangling workspace:* dep."
+    },
+    {
+      "specifier": "@xiranite/node-arcthumb",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node arcthumb not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-arcthumb",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node arcthumb not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-audiov",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node audiov not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-audiov",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node audiov not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-bandia",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node bandia not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-bandia",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node bandia not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-bitv",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node bitv not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-bitv",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node bitv not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-classf",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node classf not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-classf",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node classf not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-classq",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node classq not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-classq",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node classq not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-cleanf",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node cleanf not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-cleanf",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node cleanf not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-clipm",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node clipm not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-clipm",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node clipm not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-coveru",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node coveru not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-coveru",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node coveru not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-crashu",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node crashu not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-crashu",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node crashu not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-czkawka",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node czkawka not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-czkawka",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node czkawka not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-dissolvef",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": "@hibernalglow/xaihi-dissolvef",
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "counterpart @hibernalglow/xaihi-dissolvef exports only [\".\",\"./locale/*.json\",\"./cordis.patch.yml\",\"./package.json\"]; the required ./cli subpath is absent. Loaded with await import(`${packageName}/cli`) at packages/cli/src/index.ts:196 (NOT wrapped in try/catch)."
+    },
+    {
+      "specifier": "@xiranite/node-dissolvef",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": "@hibernalglow/xaihi-dissolvef",
+      "exportExists": false,
+      "note": "optional: awaited inside try/catch at packages/cli/src/index.ts:205, falls back to `<node> --help`"
+    },
+    {
+      "specifier": "@xiranite/node-encodeb",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node encodeb not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-encodeb",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node encodeb not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-enginev",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node enginev not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-enginev",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node enginev not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-envuconfig",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node envuconfig not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-envuconfig",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node envuconfig not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-findz",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": "@hibernalglow/xaihi-findz",
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "counterpart @hibernalglow/xaihi-findz exports only [\".\",\"./locale/*.json\",\"./cordis.patch.yml\",\"./package.json\"]; the required ./cli subpath is absent. Loaded with await import(`${packageName}/cli`) at packages/cli/src/index.ts:196 (NOT wrapped in try/catch)."
+    },
+    {
+      "specifier": "@xiranite/node-findz",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": "@hibernalglow/xaihi-findz",
+      "exportExists": false,
+      "note": "optional: awaited inside try/catch at packages/cli/src/index.ts:205, falls back to `<node> --help`"
+    },
+    {
+      "specifier": "@xiranite/node-formatv",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node formatv not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-formatv",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node formatv not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-gifu",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node gifu not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-gifu",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node gifu not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-jellypot",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node jellypot not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-jellypot",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node jellypot not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-kavvka",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node kavvka not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-kavvka",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node kavvka not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-linedup",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": "@hibernalglow/xaihi-linedup",
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "counterpart @hibernalglow/xaihi-linedup exports only [\".\",\"./locale/*.json\",\"./cordis.patch.yml\",\"./package.json\"]; the required ./cli subpath is absent. Loaded with await import(`${packageName}/cli`) at packages/cli/src/index.ts:196 (NOT wrapped in try/catch)."
+    },
+    {
+      "specifier": "@xiranite/node-linedup",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": "@hibernalglow/xaihi-linedup",
+      "exportExists": false,
+      "note": "optional: awaited inside try/catch at packages/cli/src/index.ts:205, falls back to `<node> --help`"
+    },
+    {
+      "specifier": "@xiranite/node-linku",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node linku not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-linku",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node linku not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-logx",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node logx not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-logx",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node logx not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-lorat",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node lorat not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-lorat",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node lorat not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-marku",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node marku not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-marku",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node marku not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-melodeck",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node melodeck not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-melodeck",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node melodeck not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-migratef",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node migratef not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-migratef",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node migratef not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-movea",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node movea not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-movea",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node movea not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-mvz",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node mvz not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-mvz",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node mvz not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-nameu",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node nameu not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-nameu",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node nameu not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-neoview",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node neoview not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-neoview",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node neoview not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-owithu",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node owithu not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-owithu",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node owithu not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-rawfilter",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node rawfilter not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-rawfilter",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node rawfilter not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-recycleu",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node recycleu not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-recycleu",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node recycleu not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-repacku",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node repacku not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-repacku",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node repacku not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-samea",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node samea not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-samea",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node samea not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-seriex",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node seriex not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-seriex",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node seriex not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-sleept",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": "@hibernalglow/xaihi-sleept",
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "counterpart @hibernalglow/xaihi-sleept exports only [\".\",\"./locale/*.json\",\"./cordis.patch.yml\",\"./package.json\"]; the required ./cli subpath is absent. Loaded with await import(`${packageName}/cli`) at packages/cli/src/index.ts:196 (NOT wrapped in try/catch)."
+    },
+    {
+      "specifier": "@xiranite/node-sleept",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": "@hibernalglow/xaihi-sleept",
+      "exportExists": false,
+      "note": "optional: awaited inside try/catch at packages/cli/src/index.ts:205, falls back to `<node> --help`"
+    },
+    {
+      "specifier": "@xiranite/node-smartzip",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node smartzip not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-smartzip",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node smartzip not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-snf",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node snf not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-snf",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node snf not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-soundw",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node soundw not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-soundw",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node soundw not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-synct",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node synct not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-synct",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node synct not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-timeu",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node timeu not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-timeu",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node timeu not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-transq",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node transq not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-transq",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node transq not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-trename",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": true,
+      "note": "no Xaihi counterpart (node trename not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-trename",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node trename not migrated"
+    },
+    {
+      "specifier": "@xiranite/node-xlchemy",
+      "subpath": "./cli",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "declaredInCliPackageJson": false,
+      "note": "no Xaihi counterpart (node xlchemy not migrated); dynamic import at packages/cli/src/index.ts:196"
+    },
+    {
+      "specifier": "@xiranite/node-xlchemy",
+      "subpath": "./help",
+      "usedByFiles": {
+        "cli": 1
+      },
+      "xaihiCounterpart": null,
+      "exportExists": false,
+      "note": "optional: try/catch at packages/cli/src/index.ts:205; node xlchemy not migrated"
+    }
+  ],
+  "blockedOnMissingNodes": [
+    "@xiranite/node-arcthumb/cli - node \"arcthumb\" is not migrated at all; no @hibernalglow/xaihi-arcthumb package exists in the workspace",
+    "@xiranite/node-audiov/cli - node \"audiov\" is not migrated at all; no @hibernalglow/xaihi-audiov package exists in the workspace",
+    "@xiranite/node-bandia/cli - node \"bandia\" is not migrated at all; no @hibernalglow/xaihi-bandia package exists in the workspace",
+    "@xiranite/node-bitv/cli - node \"bitv\" is not migrated at all; no @hibernalglow/xaihi-bitv package exists in the workspace",
+    "@xiranite/node-classf/cli - node \"classf\" is not migrated at all; no @hibernalglow/xaihi-classf package exists in the workspace",
+    "@xiranite/node-classq/cli - node \"classq\" is not migrated at all; no @hibernalglow/xaihi-classq package exists in the workspace",
+    "@xiranite/node-cleanf/cli - node \"cleanf\" is not migrated at all; no @hibernalglow/xaihi-cleanf package exists in the workspace",
+    "@xiranite/node-clipm/cli - node \"clipm\" is not migrated at all; no @hibernalglow/xaihi-clipm package exists in the workspace",
+    "@xiranite/node-coveru/cli - node \"coveru\" is not migrated at all; no @hibernalglow/xaihi-coveru package exists in the workspace",
+    "@xiranite/node-crashu/cli - node \"crashu\" is not migrated at all; no @hibernalglow/xaihi-crashu package exists in the workspace",
+    "@xiranite/node-czkawka/cli - node \"czkawka\" is not migrated at all; no @hibernalglow/xaihi-czkawka package exists in the workspace",
+    "@xiranite/node-dissolvef/cli - name maps to @hibernalglow/xaihi-dissolvef, but that package exposes only [\".\",\"./locale/*.json\",\"./cordis.patch.yml\",\"./package.json\"]: the required ./cli export does not exist, so the node terminal face is unreachable even though the node itself is migrated",
+    "@xiranite/node-encodeb/cli - node \"encodeb\" is not migrated at all; no @hibernalglow/xaihi-encodeb package exists in the workspace",
+    "@xiranite/node-enginev/cli - node \"enginev\" is not migrated at all; no @hibernalglow/xaihi-enginev package exists in the workspace",
+    "@xiranite/node-envuconfig/cli - node \"envuconfig\" is not migrated at all; no @hibernalglow/xaihi-envuconfig package exists in the workspace",
+    "@xiranite/node-findz/cli - name maps to @hibernalglow/xaihi-findz, but that package exposes only [\".\",\"./locale/*.json\",\"./cordis.patch.yml\",\"./package.json\"]: the required ./cli export does not exist, so the node terminal face is unreachable even though the node itself is migrated",
+    "@xiranite/node-formatv/cli - node \"formatv\" is not migrated at all; no @hibernalglow/xaihi-formatv package exists in the workspace",
+    "@xiranite/node-gifu/cli - node \"gifu\" is not migrated at all; no @hibernalglow/xaihi-gifu package exists in the workspace",
+    "@xiranite/node-jellypot/cli - node \"jellypot\" is not migrated at all; no @hibernalglow/xaihi-jellypot package exists in the workspace",
+    "@xiranite/node-kavvka/cli - node \"kavvka\" is not migrated at all; no @hibernalglow/xaihi-kavvka package exists in the workspace",
+    "@xiranite/node-linedup/cli - name maps to @hibernalglow/xaihi-linedup, but that package exposes only [\".\",\"./locale/*.json\",\"./cordis.patch.yml\",\"./package.json\"]: the required ./cli export does not exist, so the node terminal face is unreachable even though the node itself is migrated",
+    "@xiranite/node-linku/cli - node \"linku\" is not migrated at all; no @hibernalglow/xaihi-linku package exists in the workspace",
+    "@xiranite/node-logx/cli - node \"logx\" is not migrated at all; no @hibernalglow/xaihi-logx package exists in the workspace",
+    "@xiranite/node-lorat/cli - node \"lorat\" is not migrated at all; no @hibernalglow/xaihi-lorat package exists in the workspace",
+    "@xiranite/node-marku/cli - node \"marku\" is not migrated at all; no @hibernalglow/xaihi-marku package exists in the workspace",
+    "@xiranite/node-melodeck/cli - node \"melodeck\" is not migrated at all; no @hibernalglow/xaihi-melodeck package exists in the workspace",
+    "@xiranite/node-migratef/cli - node \"migratef\" is not migrated at all; no @hibernalglow/xaihi-migratef package exists in the workspace",
+    "@xiranite/node-movea/cli - node \"movea\" is not migrated at all; no @hibernalglow/xaihi-movea package exists in the workspace",
+    "@xiranite/node-mvz/cli - node \"mvz\" is not migrated at all; no @hibernalglow/xaihi-mvz package exists in the workspace",
+    "@xiranite/node-nameu/cli - node \"nameu\" is not migrated at all; no @hibernalglow/xaihi-nameu package exists in the workspace",
+    "@xiranite/node-neoview/cli - node \"neoview\" is not migrated at all; no @hibernalglow/xaihi-neoview package exists in the workspace",
+    "@xiranite/node-owithu/cli - node \"owithu\" is not migrated at all; no @hibernalglow/xaihi-owithu package exists in the workspace",
+    "@xiranite/node-rawfilter/cli - node \"rawfilter\" is not migrated at all; no @hibernalglow/xaihi-rawfilter package exists in the workspace",
+    "@xiranite/node-recycleu/cli - node \"recycleu\" is not migrated at all; no @hibernalglow/xaihi-recycleu package exists in the workspace",
+    "@xiranite/node-repacku/cli - node \"repacku\" is not migrated at all; no @hibernalglow/xaihi-repacku package exists in the workspace",
+    "@xiranite/node-samea/cli - node \"samea\" is not migrated at all; no @hibernalglow/xaihi-samea package exists in the workspace",
+    "@xiranite/node-seriex/cli - node \"seriex\" is not migrated at all; no @hibernalglow/xaihi-seriex package exists in the workspace",
+    "@xiranite/node-sleept/cli - name maps to @hibernalglow/xaihi-sleept, but that package exposes only [\".\",\"./locale/*.json\",\"./cordis.patch.yml\",\"./package.json\"]: the required ./cli export does not exist, so the node terminal face is unreachable even though the node itself is migrated",
+    "@xiranite/node-smartzip/cli - node \"smartzip\" is not migrated at all; no @hibernalglow/xaihi-smartzip package exists in the workspace",
+    "@xiranite/node-snf/cli - node \"snf\" is not migrated at all; no @hibernalglow/xaihi-snf package exists in the workspace",
+    "@xiranite/node-soundw/cli - node \"soundw\" is not migrated at all; no @hibernalglow/xaihi-soundw package exists in the workspace",
+    "@xiranite/node-synct/cli - node \"synct\" is not migrated at all; no @hibernalglow/xaihi-synct package exists in the workspace",
+    "@xiranite/node-timeu/cli - node \"timeu\" is not migrated at all; no @hibernalglow/xaihi-timeu package exists in the workspace",
+    "@xiranite/node-transq/cli - node \"transq\" is not migrated at all; no @hibernalglow/xaihi-transq package exists in the workspace",
+    "@xiranite/node-trename/cli - node \"trename\" is not migrated at all; no @hibernalglow/xaihi-trename package exists in the workspace",
+    "@xiranite/node-xlchemy/cli - node \"xlchemy\" is not migrated at all; no @hibernalglow/xaihi-xlchemy package exists in the workspace"
+  ],
+  "reactVersion": {
+    "terminal": "^19.2.4 (packages/cli, packages/cli-runtime, packages/logging)",
+    "guiHost": "^18.3.1 (Xaihi packages/ui-host + plugins/*, DSH constraint)",
+    "note": "the two React versions cannot share one node_modules resolution for the same import specifier; the terminal faces keep their own 19.2.4"
+  },
+  "engines": {
+    "upstreamCli": "none declared by packages/cli or packages/cli-runtime",
+    "upstreamWorkspace": "root packageManager bun@1.3.0 (bun workspaces, hoisted node_modules)",
+    "xaihiConvention": "^22.19.0 || >=24.0.0 (Xaihi root and every package)",
+    "tuiHardRequirement": "Bun runtime: packages/cli/src/index.ts:122 and packages/cli-runtime/src/tui/bun-runtime.ts:14 refuse OpenTUI under Node and re-exec via a bare `bun` spawn (bun 1.4.2 is on PATH here)",
+    "toolchainConflict": "copied packages declare typescript ^7.0.2 and @types/node ^24.12.0; Xaihi uses typescript ^6.0.3 and @types/node ^22.20.0 and builds with tsdown, not tsc"
+  },
+  "measuredSizes": {
+    "sourceOfTruth": "/Users/glow/Base/Code/Freya/Xiranite/node_modules (flat install of the same project; @opentui/core 0.4.5, @opentui/react 0.4.5, react 19.2.4, sharp 0.35.3, sixel 0.16.0, @clack/prompts 1.7.0, citty 0.1.6, elysia 1.4.29, zod 4.3.6 all match noxide package.json)",
+    "method": "du -shL per package directory (follows symlinks)",
+    "measured": {
+      "@opentui/core": "12M (of which assets/*.wasm tree-sitter grammars, 5 files = 3.3M)",
+      "@opentui/core-darwin-arm64": "3.6M (libopentui.dylib)",
+      "@opentui/react": "252K",
+      "@opentui subtree total": "16M",
+      "web-tree-sitter": "5.7M (peer of @opentui/core)",
+      "sharp": "1.0M + @img/sharp-darwin-arm64 300K + @img/sharp-libvips-darwin-arm64 17M + @img/colour 92K = ~18.4M",
+      "sixel": "1.3M",
+      "react": "252K",
+      "react-dom": "7.1M measured, but 0 imports in the copied terminal packages (GUI face only)",
+      "@elysiajs/eden": "308K",
+      "elysia": "1.3M",
+      "zod": "6.0M",
+      "lru-cache": "2.9M",
+      "csv-parse": "1.6M",
+      "react-reconciler": "1.6M",
+      "diff": "968K",
+      "boxen": "940K",
+      "marked": "448K",
+      "i18next": "544K",
+      "@clack/prompts": "128K",
+      "p-queue": "120K",
+      "rotating-file-stream": "96K",
+      "chalk": "72K",
+      "bun-ffi-structs": "64K",
+      "cli-spinners": "48K",
+      "string-width": "44K",
+      "strip-ansi": "20K",
+      "json-rules-engine": "160K"
+    },
+    "terminalOnlyFloor": "~16M (@opentui subtree) + 5.7M (web-tree-sitter peer) + ~18.4M (sharp subtree incl. 17M libvips) + 1.3M (sixel) + ~10M (react/zod/eden/lru-csv misc) = ~51M of first-party+peer payload on darwin-arm64, of which the TUI image path (sharp+sixel = ~19.7M) and the tree-sitter wasm (3.3M inside @opentui/core + 5.7M peer) are the two largest single reasons the ADR dedupe argument matters",
+    "notMeasured": [
+      "the noxide worktree itself has no node_modules (deps were never installed there)",
+      "Xaihi's node_modules contains only @deepseek-ai/*, tsdown, typescript, vitest, @types - none of the terminal deps are installed",
+      "linux/x64 and win32/x64 variants of libopentui and libvips (ADR-0004 platform split)"
+    ]
+  },
+  "reachability": {
+    "verdict": "cannot start. The very first failure is at INSTALL time, not import time: packages/cli/package.json declares 27 @xiranite/node-* dependencies with the workspace:* protocol and packages/api declares 2 (@xiranite/file-operations, @xiranite/services), and none of those 29 packages exist in the Xaihi workspace - pnpm refuses the whole install (verified by enumerating every workspace:* specifier against the 16 package names in packages/* + plugins/*). Nothing was installed or built, so dist/index.js (the bin target) does not exist either.",
+    "layers": [
+      {
+        "layer": 0,
+        "gate": "pnpm install",
+        "status": "blocked",
+        "detail": "29 dangling workspace:* refs (cli: 27 @xiranite/node-*, api: @xiranite/file-operations + @xiranite/services). pnpm answers these with ERR_PNPM_WORKSPACE_PKG_NOT_FOUND (\"Cannot find package with name X in workspace\", the documented behaviour for a workspace:* specifier with no matching workspace package) - stated from pnpm's documented contract, deliberately NOT verified by running install, which is out of scope here. Either those packages are ported, or the lines are dropped/renamed - which is the rename decision reserved to the user."
+      },
+      {
+        "layer": 1,
+        "gate": "build (tsc -p packages/cli)",
+        "status": "blocked",
+        "detail": "no dist/ exists and builds were deliberately not run. packages/api cannot typecheck until file-operations/services exist (their imports are type-only, so they are erased at runtime but not at compile time). Toolchain also differs: copied packages want typescript ^7.0.2 + @types/node ^24.12.0, Xaihi uses typescript ^6 + @types/node ^22 + tsdown."
+      },
+      {
+        "layer": 2,
+        "gate": "module load of dist/index.js",
+        "status": "first hard import failure",
+        "detail": "packages/cli/src/index.ts:7 - import { localizeNodeHelp } from \"@xiranite/contract\". @xiranite/contract is NOT in packages/cli/package.json#dependencies (verified: 34 deps, no contract). It resolves in noxide only because bun workspaces hoist everything to the root node_modules; Xaihi is pnpm@12.6.0 with the default strict/isolated layout, so packages/cli gets no contract link and the entry dies with ERR_MODULE_NOT_FOUND before any command is parsed. This is the only undeclared workspace specifier in the whole copied set. Fix is one dependency line, not a code change."
+      },
+      {
+        "layer": 3,
+        "gate": "node command dispatch",
+        "status": "dynamic registry lookup",
+        "detail": "await import(`${registration.packageName}/cli`) at packages/cli/src/index.ts:196 is unguarded (loadNodeCli has no try/catch; it bubbles to the top-level catch at :412-418, which prints the message and sets exitCode=1). With @xiranite/* kept as written, all 46 registry entries hit ERR_MODULE_NOT_FOUND. After mapping to @hibernalglow/xaihi-<id>, the 4 migrated nodes hit ERR_PACKAGE_PATH_NOT_EXPORTED because those packages export only ., ./locale/*.json, ./cordis.patch.yml, ./package.json - no ./cli. The /help lookup at :205 IS wrapped in try/catch and degrades to `<node> --help`."
+      }
+    ],
+    "worksAfterLayers0to2": [
+      "xiranite --help / -h / no-args-on-non-TTY",
+      "xiranite list - the registry (packages/cli/src/node-cli-registry.generated.ts) is 282 lines of static DATA with exactly one import (@xiranite/cli-runtime for nodeCliName); it never imports node code, so listing all 46 commands works without a single node package installed",
+      "xiranite help <node> once a node exposes /help",
+      "xiranite logs <...> - dynamic await import(\"@xiranite/logging/cli\") at :101, satisfied by the copied packages/logging"
+    ],
+    "tui": "xiranite ui is reachable WITHOUT any node package: cli/src/index.ts:122 demands Bun (it re-execs a bare `bun` via packages/cli-runtime/src/tui/bun-runtime.ts:14-37 when process.versions.bun is missing; bun 1.4.2 is on PATH here), then dynamically imports ./tui-runner.js (OpenTUI createCliRenderer + @xiranite/cli-runtime/terminal/opentui, which drags in sharp + sixel). With XIRANITE_BACKEND_URL unset it degrades to a read-only offline workbench (cli/src/index.ts:127-139) instead of failing, so the TUI shell itself is the most portable part of this port - it needs no node cores.",
+    "withOnlyThe4MigratedNodes": "the CLI surface you can actually drive end to end is `--help`, `list`, `logs`, and 0 of the 46 node commands, because none of the four migrated Xaihi halves exposes ./cli. The node terminal faces (cli.ts / Tui.tsx / interaction.ts / help.ts) still live only in noxide's packages/nodes/<id>/src and were not copied per instructions."
+  },
+  "desktopShellAssumptions": {
+    "finding": "0 Tauri/Wails/Electron RUNTIME imports in the copied terminal sources: no @tauri-apps/*, no @wailsio/runtime, no electron, no window.__TAURI__ read anywhere in cli/cli-runtime/api/contract/shared/logging outside test fixtures. The Wails+Go shell lives only in the noxide repo root *.go files and packages/backend, neither of which was copied. So the CLI/TUI ports as plain Node/Bun code.",
+    "nearMisses": [
+      {
+        "at": "packages/shared/src/http-url.test.ts:7 and :12",
+        "what": "test fixtures hard-code the retired Wails origin http://wails.localhost/_xiranite/backend; the function under test is host-agnostic, so these are stale expectations, not a shell dependency"
+      },
+      {
+        "at": "packages/api/src/client.test.ts:59 and :63",
+        "what": "same wails.localhost origin asserted for the generated Eden client base URL"
+      },
+      {
+        "at": "packages/contract/src/index.ts:428",
+        "what": "platform: \"web\" | \"electron\" | \"node\" | string - a DTO string union, no shell import"
+      },
+      {
+        "at": "packages/cli-runtime/components.json:8",
+        "what": "\"css\": \"../../src/index.css\" points at the deleted repo-root GUI app stylesheet; shadcn/termcn tooling (sync:termcn) would write into a path that does not exist in Xaihi"
+      },
+      {
+        "at": "packages/cli-runtime/scripts/sync-termcn-opentui-registry.mjs:13",
+        "what": "fetches https://termcn.dev/r/registry.json at build-adjacent time (network, not a shell)"
+      },
+      {
+        "at": "packages/cli/src/index.ts:122 + packages/cli-runtime/src/tui/bun-runtime.ts:14",
+        "what": "hard Bun requirement for OpenTUI; plain Node cannot render the TUI"
+      },
+      {
+        "at": "packages/cli-runtime/src/tui/opentui/image-preview.tsx:10-11",
+        "what": "static imports of sixel + sharp (native libvips 17M) land on the TUI import path via terminal/opentui -> cli/src/Tui.tsx:13"
+      },
+      {
+        "at": "packages/cli/package.json:23 (\"test\": \"vitest run ... && bun test src/Tui.bun.test.tsx\")",
+        "what": "tests assume a root vitest plus `bun test`; packages/cli and packages/cli-runtime declare no vitest devDep (only packages/logging does), and 6 *.bun.test.* files exist across cli/cli-runtime/logging"
+      }
+    ]
+  },
+  "counts": {
+    "registryNodeEntries": 46,
+    "declaredNodeDeps": 27,
+    "undeclaredNodeDeps": 21,
+    "declaredButNotInRegistry": [
+      "@xiranite/node-lata",
+      "@xiranite/node-scoolp"
+    ],
+    "xaihiCounterpartsWithExport": 0,
+    "xaihiCounterpartsByNameOnly": 4,
+    "workspacePackageNamesInXaihi": 16,
+    "danglingWorkspaceRefs": {
+      "total": 29,
+      "cli": 27,
+      "api": 2
+    },
+    "copiedPackages": 6,
+    "totalCopiedFiles": 257,
+    "totalCopiedLines": 16429,
+    "thirdPartySpecifiersDirectlyImported": 20,
+    "bunTestFiles": 6
+  }
+}
