@@ -129,3 +129,16 @@ mac 那份 `.node` 的 dav1d 怎么带（打进包 + `@rpath`，还是关 featur
 决定 3 里"按平台预编译随包分发"那句在 mac 上的那一步由这里补齐，不需要额外裁定。
 **剩下挡批次的只有使用者那两句话**：删除动作归 `trash` 还是 `recycleu`，
 以及引擎缓存目录（旧品牌 + 绕开 storage domain）怎么处置。
+
+**2026-10-07 再追加：缓存那句也消掉了。** `czkawka_core` 12.0.0 的
+`src/common/config_cache_path.rs` 现读写着 `CZKAWKA_CACHE_PATH` / `CZKAWKA_CONFIG_PATH` 两个 env
+优先于 `ProjectDirs::from("pl","Qarmin",…)` 那一路默认，且 `resolve_folder` 里带 `create_dir_all`
+（实测三层都不存在的目录会被自己建出来，缓存落在那里，品牌目录逐字节未变）。
+⇒ 那份缓存是**可再生的哈希缓存**，不属于"改名 = 数据迁移"那一类：起子进程时把两个变量指到
+storage domain `xaihi_kisaki` 即可，**没有新品牌落盘，也不需要白名单**。
+两条附带事实记在 `docs/stages/kisaki-engine-measurements.md` §6：回落分支只在
+"路径存在但不是目录 / canonicalize 失败"时走，且只往 czkawka 自己的 warnings 里说一声
+（子进程那侧看不见 ⇒ 回读判据要用"缓存文件真出现在我们目录里"，不是"我设过 env"）；
+`DuplicateScanOptions.use_cache` 还能整次扫描不带缓存。
+**所以开批只剩一件事**：`trashPath` / `listTrashItems` / `restoreTrashItem` / `getTrashCapabilities`
+这四条导出与已迁的 `recycleu` 是同一件事的两个实现，归谁是用者的产品裁定。

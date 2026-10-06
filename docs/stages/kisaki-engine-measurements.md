@@ -366,3 +366,76 @@ Windows 侧那个 zip 的装载（本机没有 Windows；PTEROSAUR 那台是跑 
 napi 的 `.node` 装载证据要另开一次）；`--no-default-features` 关掉 `libavif` 的对照构建
 （要证"不带会怎样"的话需要它，本轮没做，所以上面只写代价不写症状）；
 `cargo test`（同 §4 的自留项）。
+
+## 6 测量 4（2026-10-07）· 引擎缓存那条不是裁定，是一个环境变量
+
+§0 与 §1.6 记的那条"越界副作用"（`set_config_cache_path("xiranite","xiranite")` ⇒
+`~/Library/Caches/pl.Qarmin.xiranite/cache_duplicates_Blake3_prehash_120.bin`）当时被判成
+"要么按 ADR-0010 逐地点名、要么按 ADR-0013 走 storage domain"的两难。**读了 `czkawka_core` 12.0.0
+自己的源码之后，这个两难不成立**：那份文件（`~/.cargo/registry/src/*/czkawka_core-12.0.0/src/common/config_cache_path.rs`）里
+
+```rust
+let config_folder_env = env::var("CZKAWKA_CONFIG_PATH")… ;
+let cache_folder_env  = env::var("CZKAWKA_CACHE_PATH")…  ;
+let default_cache_folder = ProjectDirs::from("pl", "Qarmin", cache_name)…   // 兜底才是品牌目录
+let cache_folder = resolve_folder(&cache_folder_env, default_cache_folder, "Cache", &mut warnings);
+```
+
+`resolve_folder` 里还有 `fs::create_dir_all(&folder_path)` ⇒ **目录不存在会自己建**；
+只有"路径存在但不是目录"或"canonicalize 失败"才回落到默认（品牌）那一路，
+且回落时只往 czkawka 自己的 `warnings` 里塞一条——**子进程那侧看不见**，所以回读判据不能是"我设过 env 了"。
+另有两个同文件的杠杆：`DuplicateScanOptions.use_cache: Option<bool>`（整次扫描可以不带缓存）、
+`minimal_cache_file_size` / `minimal_prehash_cache_file_size`（低于阈值不入缓存）。
+`set_config_cache_path(cache_name: &'static str, …)` 那两个 `&'static str` 是**编译期**的默认名——
+想改默认名要重编 Rust；但走 env 不需要，这正是我们只用 `ctx.subprocess` 起进程的那一侧。
+
+### 6.1 三段实测（用的是使用者自己那份 `master` 产物的装载面，只测机制不取实现）
+
+第一段是**我自己的探针写错了**，如实记下来：那条命令里我只在 shell 里 `mkdir` 了目录，
+**没有把两个变量 export 给 `node`**，结果扫描成功（`groups= 1`，2 个文件真被判重）而缓存落进品牌目录
+（两枚 `.bin` 的 sha 与 mtime 都变了）。这既证明"不设 env 时确实写到品牌目录"，
+也说明"设了 env"这句话必须先证明它真的到了子进程环境里。
+⇒ 那次跑动**更新了使用者机器上 `~/Library/Caches/pl.Qarmin.xiranite/` 里两份缓存**（可再生的缓存，
+不是用户数据；但账要记在这），后面两次跑品牌目录一个字节都没再动。
+
+第二段（把变量真给出去，指向 `.scratch/kisaki-env-probe/{cache,config}`）：
+
+```
+scan OK; groups= 1
+.cache/:  cache_duplicates_Blake3_120.bin  277 B
+          cache_duplicates_Blake3_prehash_120.bin  415 B
+=== brand dir byte-identical now? ===
+IDENTICAL: 带 env 时品牌目录一个字节都没动
+```
+
+第三段（最刁的那条：指向一个**三层都不存在**的路径 `$P/missing/deeper`，`$P/missing` 先 `rm -rf`）：
+
+```
+scan OK; groups= 0        # 两个随机文件不是重复，判 0 组是对的行为
+=== dir auto-created? ===
+cache_duplicates_Blake3_prehash_120.bin     ← 目录被自己建出来了
+=== brand dir touched by the fallback? ===
+IDENTICAL(没回落)
+```
+
+### 6.2 于是 §3/§0 里那句话要改
+
+- **不需要**"改名 = 数据迁移"的裁定：这是一份**可再生的哈希缓存**（不是用户的删除记录、不是配置），
+  新宿主从空缓存开始重算即可；ADR-0010 那条红线在这里的落点是 **env**，不是产物文件名，也不是门禁白名单。
+- 批次仍然挡着的只有**一件事**：删除动作归 `trash` 那一族还是 `recycleu`。实测到的 exports 里躺着
+  `trashPath`、`listTrashItems`、`restoreTrashItem`、`getTrashCapabilities` 四条——它们与已迁的
+  `recycleu` 说的是同一件事的两个实现，选哪个是使用者的产品裁定，测量替不了。
+- 接线时要做对的三件（出处都在本节）：起子进程时把 `CZKAWKA_CACHE_PATH` / `CZKAWKA_CONFIG_PATH`
+  指到 storage domain `xaihi_kisaki` 的目录；回读判据用**缓存文件真出现在我们那份目录里**
+  ——不是"我设过 env 了"（第一段那次就是设了没 export），也不是 czkawka 的 warnings（那条我们看不见）；
+  目录由我们自己 mkdir，不去赌 `create_dir_all`。
+- 一处副作用要交账：第一段那次没 export 变量的探针**真改动了使用者机器上
+  `~/Library/Caches/pl.Qarmin.xiranite/` 里两份缓存**（sha 与 mtime 都变了）。那是可再生缓存、不是用户数据，
+  但它是我的探针造成的，写在纸上；后两段跑完品牌目录逐字节未变（diff 报 IDENTICAL）。
+  探针目录 `.scratch/kisaki-env-probe` 已删（`test -e` 为空）。
+
+### 6.3 这一节没跑的
+
+没有对 `native/` 里那份胶水做任何修改（测量走的是使用者 `master` 那份预编译产物的装载面）；
+没有验证 `use_cache: false` 这条杠杆（它只需要一次扫描，但结论不改变上面任何一条）；
+`CZKAWKA_*` 两个变量在 Windows 那份 `.node` 上的行为（本机 mac；那台 PTEROSAUR 是 Rust 用的）。

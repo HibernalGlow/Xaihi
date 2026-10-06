@@ -276,3 +276,33 @@ trim       blank     => ""          trimOrOmit  blank     => undefined
 - **没跑全仓 `pnpm test`**（别人在飞，不可归因）。只跑了 `xaihi-sdk`（85 passed）、`xaihi-logx`（18）、`xaihi-cleanf`（49）、`xaihi-ui build`、7 把 `check:*` 尺与 `check:cliface`，全部 rc=0。
 - **G9 那三处文件本轮正被别的 lane 重写**（`node-mount.tsx` 未跟踪、`surface.tsx` 状态自相、`workspace.tsx` MM）：它的读数只代表 03:12–03:30 那一份盘。
 - **`packages/api` / `cli` / `cli-runtime` / `contract` / `logging` / `shared` 全在 workspace 之外**，所以任何落在这些包里的判断（G2 的 `TerminalPreferenceController`、G8 的 `defaultValue` 显示）都只是"读到的声明"，从未被构建或执行过。
+
+## 追加（2026-10-07 晚）：`help.workflows` 整块没搬，27 个包里 24 个是空的
+
+新尺 `scripts/check-cli-commands.mjs`（子代理跑、我复核）报"有终端面但清单一条 CLI 承诺都没写"的包有 23 个。
+那不是遗漏几行，是**整块没搬**：现读两侧数字——
+
+```
+本仓包数: 27   上游 help.workflows 块合计: 54   本仓: 0（undefined 24 个 / 另外 3 个用的是我们自己的扁平形状）
+```
+
+两边形状本来就不同，这条要先说清楚再动手：
+
+- **上游**（`<Xiranite>/node-definitions/<id>.json`）：`help.workflows` 是**数组**，
+  每块 `{title:{zh,en}, summary:{zh,en}, ui:[…], cli:{zh:[…],en:[…]}}`。
+- **本仓契约**（`packages/node-sdk/src/node.ts:158`）：
+  `workflows?: Partial<Record<(typeof HELP_SURFACES)[number], string[]>>`——按使用面分组的扁平字符串数组。
+  已在用的三份是 `linedup`、`logx`（`ui`/`cli`/`tips`）与 `recycleu`（`ui`/`cli`），形状与契约一致。
+
+⇒ 这是**搬运缺口**，不是"上游本来就没有"：54 个块（其中带 `cli` 的 26 个）里，
+本仓一个字都没接。面板上的"怎么用"和终端面的用例表都从这张表读，所以它同时是 WebUI 腿与 CLI 腿的缺口。
+
+一条附带事实（我自己复核过，别在下一轮又被当成"子命令不存在也没关系"）：
+`node plugins/bandia/lib/cli.js totally-bogus --help` **rc=0**，打的是父级屏
+（`xbandia — Bandizip batch archive workflow…`）。所以只看退出码会把臆造的命令洗白；
+`check-cli-commands.mjs` 的判据因此是"必须出现在子命令表里 + `--help` 打的是它自己那一屏"。
+
+处置：已派代理把 54 个块按我们的契约逐包落进 `package.json#xaihi.node.help.workflows`
+（排除 `findz`——那条 lane 在改；`kisaki` 尚不存在），每条 CLI 行都改写成本包 `bin` 的真实子命令，
+验收是 `check-cli-commands` 里 `absent` 必须为 0、`check:brand` 必须 rc=0（上游原文里满是旧名字）、
+以及生成物 `packageModules.generated.ts` 与清单同批（`gen-node-registry --check` rc=0）。
