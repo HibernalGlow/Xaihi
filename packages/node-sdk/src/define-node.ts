@@ -203,13 +203,25 @@ export function toolName(definition: NodeDefinition, actionId: string): string {
   return `${definition.nodeId}_${actionId}`
 }
 
+/** `defineNode` 的返回：一套动作的调用入口。 */
+export interface NodeHandle {
+  /**
+   * 按 `inputBindings` 绑好输入并跑一个动作，运行账目与工具路径同一套记账。
+   * 命令、面板按钮这类非模型入口都走它，不要自己再开一条运行。
+   * @param actionId - 节点定义里的动作 id。
+   * @param args - 字段值（表单形状，不是执行槽位）。
+   */
+  invoke(actionId: string, args?: Record<string, unknown>): Promise<string>
+}
+
 /**
  * 注册一个节点：每个动作一个工具，外加一条把危险动作转成 `ask` 的 pre-execute 监听。
  * @param ctx - 宿主上下文（需要 `tools`）。
  * @param options - 定义、实现与可选的危险判定。
+ * @returns 动作的调用入口（供命令 / UI 复用同一条路径）。
  * @throws 定义不合法时抛出全部校验问题；缺动作实现或 `pluginExport` 缺判定函数时抛配置错误。
  */
-export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): void {
+export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): NodeHandle {
   const validation = validateNodeDefinition(options.definition)
   if (!validation.ok) throw new Error(`xaihi.node/v1 invalid: ${validation.errors.join('; ')}`)
   const definition = validation.value
@@ -229,9 +241,26 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): vo
     throw new Error(`xaihi.node/v1: node "${definition.nodeId}" declares danger.type "pluginExport" but defineNode got no dangerCheck`)
   }
 
+  /** 一次动作调用：开运行、绑输入、跑实现、结算。工具与命令共用这一份记账。 */
+  const invoke = async (actionId: string, raw: Record<string, unknown> = {}): Promise<string> => {
+    const handler = options.handlers[actionId]
+    if (handler === undefined) throw new Error(`xaihi.node/v1: no handler for action "${actionId}"`)
+    const journal = resolve()
+    if (journal === undefined) warnNoJournal()
+    const run = journal?.open({ nodeId: definition.nodeId, actionId }) ?? NULL_RUN
+    try {
+      const result = await handler({ args: raw, inputs: bindInputs(definition, raw), run })
+      journal?.finish(run.runId)
+      return result
+    } catch (error) {
+      journal?.fail(run.runId, error instanceof Error ? error.message : String(error))
+      // 原样抛出：把失败咽成一次成功输出，症状会是"面板显示了空结果"。
+      throw error
+    }
+  }
+
   for (const action of definition.actions) {
-    const handler = options.handlers[action.id]
-    if (handler === undefined) throw new Error(`xaihi.node/v1: no handler for action "${action.id}"`)
+    if (options.handlers[action.id] === undefined) throw new Error(`xaihi.node/v1: no handler for action "${action.id}"`)
     ctx.tools.register(defineTool({
       name: toolName(definition, action.id),
       description: `${definition.title.en} · ${action.label.en} — ${action.description?.en ?? definition.description.en}`,
@@ -240,31 +269,22 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): vo
         schema: { type: 'string' },
         render: (_args, value) => [{ type: 'text', text: value }],
       },
-      async execute(args) {
-        const record = (args ?? {}) as Record<string, unknown>
-        const journal = resolve()
-        if (journal === undefined) warnNoJournal()
-        const run = journal?.open({ nodeId: definition.nodeId, actionId: action.id }) ?? NULL_RUN
-        try {
-          const result = await handler({ args: record, inputs: bindInputs(definition, record), run })
-          journal?.finish(run.runId)
-          return result
-        } catch (error) {
-          journal?.fail(run.runId, error instanceof Error ? error.message : String(error))
-          // 原样抛出：把失败咽成一次成功输出，症状会是"面板显示了空结果"。
-          throw error
-        }
-      },
+      execute: (args) => invoke(action.id, (args ?? {}) as Record<string, unknown>),
     }))
   }
 
-  if (definition.danger === undefined || definition.danger.type === 'none') return
-  const names = new Set(definition.actions.map((action) => toolName(definition, action.id)))
-  ctx.on('tools/pre-execute', async (exec, next) => {
-    if (!names.has(exec.name)) return next()
-    const actionId = exec.name.slice(exec.name.lastIndexOf('_') + 1)
-    const reason = dangerFor(definition, options.dangerCheck, actionId, (exec.arguments ?? {}) as Record<string, unknown>)
-    if (reason === undefined) return next()
-    return { kind: 'ask', reason: reason.en, displayReason: { en: reason.en, zh: reason.zh } }
-  })
+  if (definition.danger !== undefined && definition.danger.type !== 'none') {
+    const names = new Set(definition.actions.map((action) => toolName(definition, action.id)))
+    ctx.on('tools/pre-execute', async (exec, next) => {
+      if (!names.has(exec.name)) return next()
+      const actionId = exec.name.slice(exec.name.lastIndexOf('_') + 1)
+      const reason = dangerFor(definition, options.dangerCheck, actionId, (exec.arguments ?? {}) as Record<string, unknown>)
+      if (reason === undefined) return next()
+      return { kind: 'ask', reason: reason.en, displayReason: { en: reason.en, zh: reason.zh } }
+    })
+  }
+
+  // 注意：`invoke` 不走 `tools/pre-execute`，所以它绕过了危险闸门。
+  // 非模型入口（命令、面板按钮）必须自己先问 `dangerFor`，别把危险动作接到它上面。
+  return { invoke }
 }

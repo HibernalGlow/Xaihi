@@ -110,6 +110,8 @@ export interface Discovery {
   registrations: ServedRegistration[]
   /** 可选服务的可用性，现读。 */
   services: Record<string, boolean>
+  /** 宿主认识的命令名（用来看插件的宿主半边到底跑没跑起来）。 */
+  commands: ReturnType<typeof probeCommands>
 }
 
 /** 单个候选的定位结果。 */
@@ -179,7 +181,16 @@ export function discover(ctx: DiscoverContext): Discovery {
       ? { specifier, pkgPath, hasXaihi: true, problems }
       : { specifier, pkgPath, hasXaihi: true })
   }
-  return { baseUrl, rows, candidates: specifiers, subpaths, located, registrations, services: probeOptionalServices(ctx) }
+  return {
+    baseUrl,
+    rows,
+    candidates: specifiers,
+    subpaths,
+    located,
+    registrations,
+    services: probeOptionalServices(ctx),
+    commands: probeCommands(ctx),
+  }
 }
 
 /**
@@ -189,6 +200,27 @@ export function discover(ctx: DiscoverContext): Discovery {
 export function isSubpathSpecifier(name: string): boolean {
   const segments = name.split('/')
   return name.startsWith('@') ? segments.length > 2 : segments.length > 1
+}
+
+/**
+ * 读回宿主认识的命令名。
+ *
+ * 存在的理由：一个插件行的 `apply` 跑了没有，外面是看不见的（manifest 只证明包装好了、
+ * loader 行只证明了声明）。命令注册是 apply 的最后一步，所以"命令在不在列表里"就是
+ * "半边宿主跑没跑起来"的可读回路径。读不到就说读不到，不猜。
+ * @param ctx - 宿主上下文。
+ */
+export function probeCommands(ctx: DiscoverContext): { ok: boolean; names: string[]; reason: string | null } {
+  const commands = ctx.get('commands') as { list?: (...args: never[]) => unknown } | undefined
+  if (commands === undefined) return { ok: false, names: [], reason: 'no commands service' }
+  if (typeof commands.list !== 'function') return { ok: false, names: [], reason: 'commands.list is not callable' }
+  try {
+    const listed = commands.list() as Array<{ name?: string }> | Iterable<{ name?: string }>
+    const names = [...(listed as Iterable<{ name?: string }>)].map((entry) => entry.name ?? '?')
+    return { ok: true, names, reason: null }
+  } catch (error) {
+    return { ok: false, names: [], reason: error instanceof Error ? `${error.name}: ${error.message}` : String(error) }
+  }
 }
 
 /**

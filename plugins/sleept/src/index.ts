@@ -14,8 +14,11 @@
 
 import { createRequire } from 'node:module'
 import type { Context, Volatile } from '@deepseek-ai/cordis'
+// 只取类型：它的 `declare module '@deepseek-ai/cordis'` 补上 `ctx.commands`，
+// 运行时实现由宿主提供，本包不在产物里引它。
+import type { CommandResult } from '@deepseek-ai/dsh-commands'
 import Schema from '@deepseek-ai/schemastery'
-import { defineNode, OPERATIONS_SERVICE, type OperationJournal } from '@hibernalglow/xaihi-sdk'
+import { defineNode, dangerFor, OPERATIONS_SERVICE, validateNodeDefinition, type OperationJournal } from '@hibernalglow/xaihi-sdk'
 import { createInhibitor, createRunner, type InhibitorState } from './exec.ts'
 import {
   parseHibernateEnabled,
@@ -30,7 +33,7 @@ import {
 
 export const name = '@hibernalglow/xaihi-sleept'
 
-export const inject = ['tools', 'subprocess']
+export const inject = ['tools', 'subprocess', 'commands']
 
 export interface Config {
   /** `block` 不带时长时用多少分钟。 */
@@ -119,8 +122,13 @@ export function apply(ctx: Context, config: Config): void {
     return command
   }
 
-  defineNode(ctx, {
-    definition: ownNodeDefinition(),
+  // 定义先校验一次：命令侧要用它算危险闸门，而这里必须是同一个真源，不能另写一张表。
+  const validated = validateNodeDefinition(ownNodeDefinition())
+  if (!validated.ok) throw new Error(`xaihi.node/v1 invalid: ${validated.errors.join('; ')}`)
+  const nodeDefinition = validated.value
+
+  const node = defineNode(ctx, {
+    definition: nodeDefinition,
     journal: () => ctx.get(OPERATIONS_SERVICE) as OperationJournal | undefined,
     handlers: {
       async status({ run }) {
@@ -181,4 +189,31 @@ export function apply(ctx: Context, config: Config): void {
       },
     },
   })
+
+  /**
+   * 不经过模型的入口：composer 里输入 `/sleept status` 就直接执行
+   * （`docs/subsystems/commands.md`："Execute against the receiving agent without sending
+   * the command to the model"）。这也是面板按钮要走的同一条路。
+   *
+   * 它**不能**成为危险动作的后门：`node.invoke` 不过 `tools/pre-execute`，所以定义里
+   * 标危险的动作在这里一律拒绝，要跑就得走带审批的工具路径。
+   */
+  ctx.effect(() => ctx.commands.register({
+    name: 'sleept',
+    description: 'Xaihi 休眠管理 / sleep control: /sleept status | block [minutes] | unblock',
+    async handler({ rawInput }): Promise<CommandResult> {
+      const parts = rawInput.trim().split(/\s+/).filter((part) => part !== '')
+      const action = parts[0] ?? 'status'
+      const args: Record<string, unknown> = { action }
+      if (action === 'block' && parts[1] !== undefined) args.minutes = Number.parseInt(parts[1], 10)
+      if (dangerFor(nodeDefinition, undefined, action, args) !== undefined) {
+        return { kind: 'error', text: `refused /sleept ${action}: gated as dangerous, run it through the agent so DSH can ask for approval` }
+      }
+      try {
+        return { kind: 'success', text: await node.invoke(action, args) }
+      } catch (error) {
+        return { kind: 'error', text: `sleept ${action} failed: ${String(error instanceof Error ? error.message : error)}` }
+      }
+    },
+  }), 'sleept: slash command')
 }

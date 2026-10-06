@@ -169,7 +169,9 @@
             "predicate": {
               "test": {
                 "type": "actionIs",
-                "allowed": ["block"]
+                "allowed": [
+                  "block"
+                ]
               },
               "negated": false
             }
@@ -191,7 +193,9 @@
             "predicate": {
               "test": {
                 "type": "actionIs",
-                "allowed": ["sleep"]
+                "allowed": [
+                  "sleep"
+                ]
               },
               "negated": false
             }
@@ -205,7 +209,11 @@
             "zh": "电源",
             "en": "Power"
           },
-          "fieldIds": ["action", "minutes", "allowHibernate"]
+          "fieldIds": [
+            "action",
+            "minutes",
+            "allowHibernate"
+          ]
         }
       ],
       "inputBindings": [
@@ -223,7 +231,9 @@
             "predicate": {
               "test": {
                 "type": "actionIs",
-                "allowed": ["block"]
+                "allowed": [
+                  "block"
+                ]
               },
               "negated": false
             }
@@ -238,7 +248,9 @@
             "predicate": {
               "test": {
                 "type": "actionIs",
-                "allowed": ["sleep"]
+                "allowed": [
+                  "sleep"
+                ]
               },
               "negated": false
             }
@@ -248,7 +260,9 @@
       "danger": {
         "type": "actionIn",
         "actionField": "action",
-        "dangerous": ["sleep"]
+        "dangerous": [
+          "sleep"
+        ]
       },
       "resultExport": "result_view",
       "reportsProgress": false,
@@ -271,6 +285,7 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "dependencies": {
+    "@deepseek-ai/dsh-commands": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "~3.18.4"
   },
   "peerDependencies": {

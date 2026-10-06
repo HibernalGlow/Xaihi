@@ -272,3 +272,42 @@ Material You 桥与 UI Kit、`.dsh/skills`。
 写入-重启-读回的完整耐久回路要等**一次真运行**（同上，缺模型凭据）。目前证明的是
 "缝开得住"，还没证明"字节落得下"——差别说在这里，不含糊过去。
 
+## 11 非模型入口：节点动作也能从命令进来
+
+### 改了什么
+
+- `defineNode` 现在返回 `NodeHandle { invoke(actionId, args) }`，工具的 `execute` 与
+  非模型入口共用同一份记账（开运行、绑输入、结算），不再是两套。
+- `sleept` 注册了 `/sleept status|block [minutes]|unblock`（`ctx.commands.register`），
+  并且**按定义算闸门**：`dangerFor` 判危险的动作在命令入口直接 `kind:'error'` 拒绝，
+  留给带审批的 agent 路径。`invoke` 不过 `tools/pre-execute`，这一点写在返回处的注释里。
+- `core` 新增 `probeCommands(ctx)`，`/xaihi/debug.json` 里多出 `commands`：宿主认识的命令名。
+
+### 为什么这样设计
+
+DSH 的命令是"**不送给模型**就在接收 agent 上执行"的入口（`commands.md` 的
+`CommandDefinition.handler` 注释原话），这也是面板按钮该走的路，不是第二条 RPC。
+危险动作在命令入口拒绝而不是在命令入口再实现一遍审批：Xaihi 没有权限系统，也不该有。
+
+`probeCommands` 存在的理由是补一个真实缺口：manifest 只证明包装好了、loader 行只证明声明了，
+**插件的 `apply` 到底跑没跑完是看不见的**。命令注册在 apply 最后一步，所以"命令在列表里"
+就是"宿主半边起来了"的可读回路径。
+
+### 证据
+
+1. `/xaihi/debug.json` → `commands = {"ok":true,"names":["export","feedback","permission","sleept"]}`
+   —— `sleept` 在里面，这是"节点宿主半边确实激活并跑完 apply"的直接证据（之前只能靠
+   "面板渲染出来了"这种客户端侧的间接推断）。
+2. 门禁 `pnpm test` rc=0（core 50 / node-sdk 23 / sleept 22 / ui-host 9 / create 4 = 108）。
+
+### 没证到的（不含糊）
+
+- **浏览器里点一下真的跑起来**：没做到。合成输入（paste / beforeinput + 发送）在 composer
+  里落进了普通消息路径，没触发命令分派；而面板侧要经 `ctx.remote.commands.execute`，
+  它的客户端代理到底怎么绑 `agent` 参数我没读证（主机签名是
+  `execute(agent, line, signal)`）。
+  我**没有**为此在 `/xaihi` 下自建一条"执行节点动作"的路由——那是绕开宿主分派语义的假证据，
+  违反第一条原则。这条留作下一步：先测客户端 `remote` 的真实形状，再接面板按钮。
+- 因此 §10 的"写入-重启-读回"仍缺一次真运行（命令入口通了，但触发它需要 UI 或凭据）。
+
+
