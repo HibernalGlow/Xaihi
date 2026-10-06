@@ -139,11 +139,11 @@ bundle/profile 那套取代（ADR-0002），**不该搬**；`theme-provider.tsx`
 | 谁能兑现哪条动词 | `SHELL_SERVED_METHODS` + `providerOf` 那张表；DSH 的 settings 面实测只有五个动词 ⇒ 18 条 `config.*` 里 **13 条今天没人能提供** | 已落 + 钉成测试（关守卫即红）；缺的那批走提案 **P7** |
 | 两半桥 | `bridge-shell.ts`（在 DSH realm 那一侧）与 `bridge-document.ts`（文档那一侧），加 13 条两半互发的往返测 | 已落 + 已测（36 passed） |
 | 节点 UI 一行不改的关键 | `document-host.ts`：给得出上游那九组形状的 `host`；`state`/`workspace`/`downloads`/`localFiles.getUrl` 留在文档本地不过桥 | 已落 + 已测（12 passed） |
-| 文档的构建目标 | `packages/ui-host/rspack.document.mjs`（第三份产物 `dist-ui/main.js` + `main.css`，`react` **别名到本包的 `react-19`**，无 MF、无共享表）+ 入口 `src/document/main.tsx` + `build:document` 脚本 | **构建还没绿**：`rspack build` rc=1、106 条错（见下"文档构建的账"）。产物名已与 core 的 `UI_ENTRY_SCRIPT` / `UI_ENTRY_STYLE` 对齐 |
+| 文档的构建目标 | `packages/ui-host/rspack.document.mjs`（第三份产物 `dist-ui/main.js` + `main.css`，`react` **别名到本包的 `react-19`**，无 MF、无共享表）+ 入口 `src/document/main.tsx` + `build:document` 脚本 | 入口这一侧**已经干净**（`main.tsx` 零错）；整包 `rspack build` rc=1、**34 条错**（从 110 降下来，全部分类在下表，剩下的都在搬运树里，不在这份配置里） |
 | **还没做** | ① 把文档构建从 106 条错做到 0；② 装配那一刀：DSH 的 slot 里换成一个 `<iframe src=documentUrl>`，并把 `ctx.remote.settings` / 运行面注入 `bridge-shell`；③ 实机一次真往返 | ①的阻塞在搬运批：见下面的分类。②③ 在 ① 之前做会把正在跑的界面换成一个只会报 503 的框 |
 
 
-### 文档构建的账（23:42 实测，`rspack build -c rspack.document.mjs` rc=1，106 条错）
+### 文档构建的账（23:42 首测 106 条 → 23:48 复测 **34 条**，`rspack build -c rspack.document.mjs`）
 
 | 成因 | 条数 | 归谁 |
 |---|---|---|
@@ -151,14 +151,32 @@ bundle/profile 那套取代（ADR-0002），**不该搬**；`theme-provider.tsx`
 | `export ... was not found` | 10 | 搬运批（`@xiranite/contract` 里缺 `checkContractVersion` 那一类） |
 | `Reading from "node:fs" / "node:module" / "node:os" is not handled` | 3(+3 Unhandled scheme) | 浏览器 realm 里的 Node 依赖，属端口设计题（要走桥还是走我们已有的 SSE），不是配置开关能糊的 |
 
-两条**这次就修掉**的配置事实，记下来免得再撞：
-1. 这份产物**用不了 tsdown**：它直答 `CSS file ... was encountered but @tsdown/css is not installed`
-   与 `UNLOADABLE_DEPENDENCY: src/assets/tldraw-zh-cn.json?url`，而搬进来的界面树里
-   `src/index.css` / `dockview.css` / `gridstack.min.css` / `findz/treemap.css` 是真 import。
-   rspack 原生吃这两类（`type: 'css/mini-extract'`、`asset/resource` + `resourceQuery`），
-   而且本仓的浏览器 UI 本来就用 rspack（每个节点包自己的 `rspack.config.mjs`）——不是新机制。
-2. 块注释里写路径 glob 会把注释提前关掉：我那句 `plugins/*/rspack.config.mjs` 里的 `*/`
-   让 rspack 报 `ParseError: Missing semicolon`，指向我自己的配置文件。写文档性 glob 用 `plugins/<id>/…`。
+
+
+读数变化全部有出处：首测 106 → 批次 E 落下四个节点界面后 110（注册表那条从 52 降到 48，但新文件带进 9 条新的）
+→ 修掉我自己配置里的三条 bug 后 56 → 再修两条后 **34**，且入口 `src/document/main.tsx` 现在**零错**。
+
+我自己那五条 bug 逐条记着（都是「配置看着对、跑起来不对」那一类，不记就会再撞）：
+① 块注释里写路径 glob `plugins/<星号>/…` 那个 `*/` 把注释提前关掉，rspack 报 `ParseError: Missing semicolon`；
+② 别名 `react-dom` 指到包根目录后，`react-dom/client` 被**前缀规则吃掉**，报
+   `Cannot find module 'react-dom/client' for matched aliased key 'react-dom'` ⇒ 整名匹配要写 `react-dom$`；
+③ 用脚本生成配置时 `test: /\\.m?js$/` 那层转义写错，规则实际没生效（`fullySpecified` 那 10 条一次没动）；
+④ `type: 'css/mini-extract'` 这台 rspack 直答 `No parser registered for 'css/mini-extract'` ⇒ 换 `css/auto` + `experiments.css`；
+⑤ 别名表**从 `tsconfig.ported.json` 的 paths 现读**，不在配置里再抄一份——抄一份就会漂成「类型检查绿、构建红」。
+
+另有一条装机事实要盯着：`react-dom-19` 被 pnpm 解析成 `react-dom@19.2.4_react@18.3.1`（peer 记的是 18）。
+产物里 `react$` 别名指向真的 19，所以那张图仍应是一整张 19——但**这条只有真产出才证得了**，
+而它现在还没产出（下面剩下的 34 条），所以本节把它写成待证而不是写成已证。
+
+**剩下 34 条的归属（23:48 实测分类，全都不在这份配置里）**：
+- 14 条 `Can't resolve`：未声明的 npm 依赖 `zod`(2)、`@radix-ui/react-tabs`(1)、`tldraw`(1) + `tldraw/tldraw.css`(1)；
+  以及搬运树里缺的本地文件 `source-thumbnail-client.js` / `schema.js` / `jsonl.js` / `query.js` / `http-url.js` /
+  `NodeMemoryProtectionSettings`（各 1）。
+- 12 条 `export ... was not found`：`@xiranite/shared` 缺 `appendUrlPath`(3)、`@xiranite/logging` 缺
+  `createLogEnvelope`(2) 与 `createLogSession`(1)、`@xiranite/contract` 缺 `isResourceOriginAllowed`(2)、
+  `checkContractVersion`(1)、`classifyPluginArtifacts`(1)、`enumeratePluginArtifacts`(1)、
+  `@xiranite/api/client` 缺 `createSourceThumbnailClient`(1)。
+- 3 条 `Reading from "node:fs" / "node:os" / "node:module"`：浏览器 realm 里的 Node 依赖，属设计题（走桥还是走我们已有的 SSE）。
 
 ### 一条已经能证的"必炸"，不用等实机（23:43）
 
