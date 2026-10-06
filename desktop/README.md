@@ -23,7 +23,8 @@ submodule **只负责"拿源码 + 锁 upstream commit"**，不负责 Desktop 运
 
 ```sh
 node desktop/sync-dsh.mjs              # submodule 对齐 pin + 依次 git am 打全部 patch
-node desktop/sync-dsh.mjs --check      # 报 want_pin / head / tree / patch 数 / 脏文件
+node desktop/sync-dsh.mjs --check      # 报 want_pin / head / tree / patch 数 / 脏文件 + gitlink 是否等于 pin
+node desktop/sync-dsh.mjs --verify     # 0001 是否真落进壳的 IPC 面（自带减法对照）
 node desktop/sync-dsh.mjs --sparse     # 按 Desktop 的 workspace 闭包裁检出（默认不开）
 node desktop/sync-dsh.mjs --sparse-off # 恢复整棵树（跑上游构建或 tsc 前必须开回来）
 node desktop/sync-dsh.mjs --reset      # 回到 pin，丢弃 patch 提交（手工脏改动要 --force）
@@ -40,7 +41,7 @@ node desktop/sync-dsh.mjs --proxy http://127.0.0.1:7890   # 上游在本机要�
 | `--sparse` 之后 | 101.0 MiB，**省 50.6 MiB（33%）**；裁掉的是 `docs` 21.7、`.agents` 17.7、`snapshots` 6.6、`scripts` 4.0（`scripts` 已改回必带） |
 | 重放幂等 | 连跑两次 `sync` ⇒ `head` 与 `tree` 哈希**逐字相同**（`0b04cd40` / `28898fc8c8d9`）；这条以前不成立，是提交时间没钉住导致的，现在 `git am` 的 `GIT_COMMITTER_DATE` 钉在 pin 上 |
 
-三条阳性对照都跑过，全部按预期变红：丢掉 patch 后 `--check` 红（`patch 数不符：树上有 0 个，
+四条阳性对照都跑过，全部按预期变红（`--verify` 的 rc 是不带管道单独测的：无 patch ⇒ rc=1，有 patch ⇒ rc=0）：丢掉 patch 后 `--check` 红（`patch 数不符：树上有 0 个，
 patches/dsh 里有 1 个`）；`--pin` 给错 sha 时红且 **HEAD 未移动**（先验 tag 再 checkout）；
 扰动 patch 的**上下文行**后 `sync` 红、`git am --abort`、树退回 pin 且脏文件 0。
 
@@ -72,6 +73,10 @@ vendor 里那份上游 workspace 定义不会自动并进来。
 
 - 0001 只给了"主文档发起、按 `node` 开窗"这一格：二级窗不接 `shortcuts.attach` / `browserGuests.bind`，
   也不能再开第三级窗（守卫是 `assertProductSender`，主语是主窗）。
-- 未跑上游 `tsc`：三处改动只做到 `node --check` rc=0（且扰动对照能抓 ⇒ 尺看得见），
-  类型层要 `pnpm install` 整个 vendor 才有结论。别把它写成"已编译验证"。
+- **验证强度**：三处改动 `node --check` rc=0，且扰动对照能抓（rc=1）⇒ 语法是真的；
+  `ipc.ts` 的三条 import 全是 `import type`（会被剥掉），所以它能直接跑：
+  `node --experimental-strip-types` 加载后断言 `DESKTOP_IPC` **26 条通道**、
+  `xaihiWindowOpen === 'dsh-desktop:xaihi-window-open'`、`browserAcquire` 仍在 ⇒ **rc=0**，
+  把期望值换成错值 ⇒ **rc=1**（对照）。类型层与 `main.ts` 的运行时行为仍未验 ——
+  那要 `pnpm install` 整个 vendor 才有结论，别把它写成"已编译验证"或"已实机验过"。
 - 上游 bump ⇒ patch series 重放；重放红就是红，不许 `--3way` 蒙。

@@ -200,6 +200,28 @@ const pinned = readPin()
 const pin = valueOf('pin') !== undefined ? { tag: pinned.tag, sha: valueOf('pin') } : pinned
 if (!/^[0-9a-f]{40}$/u.test(String(pin.sha))) fail(`pin 需要 40 位 sha，收到 ${JSON.stringify(pin.sha)}`)
 
+if (flag('verify')) {
+  // 0001 的落地判据：patch 打上后，壳的 IPC 面必须真的多出那一条通道。
+  // 之所以能直接跑：ipc.ts 的三条 import 全是 `import type`，剥掉类型后不依赖 node_modules。
+  const probe = await import('./dsh/apps/desktop/src/ipc.ts')
+  const want = 'dsh-desktop:xaihi-window-open'
+  const satisfied = (table) => Object.keys(table).length === 26
+    && table.xaihiWindowOpen === want
+    && Object.keys(table).includes('browserAcquire')
+  // 减法对照：把那条通道删掉，同一条判据必须说"不满足"，否则它不算尺。
+  const mutated = { ...probe.DESKTOP_IPC }
+  delete mutated.xaihiWindowOpen
+  if (satisfied(mutated)) fail('verify 是瞎的：删掉 xaihiWindowOpen 之后它照样报绿')
+  if (Object.keys(mutated).length !== 25) fail('verify 的减法对照没落地（删完还是 26 条？）')
+  console.log(`verify: channels=${String(Object.keys(probe.DESKTOP_IPC).length)} want=${want} `
+    + `satisfied=${String(satisfied(probe.DESKTOP_IPC))} control_after_delete=red`)
+  if (!satisfied(probe.DESKTOP_IPC)) {
+    fail('patch 0001 没落地到 IPC 面（通道数或通道名不对）⇒ 它被静默跳过，或上游改了 apps/desktop/src/ipc.ts')
+  }
+  console.log('verify: 绿（含减法对照）')
+  process.exit(0)
+}
+
 if (flag('size')) {
   if (!existsSync(VENDOR)) fail('还没有 desktop/dsh')
   console.log(`git_bytes=${bytes(join(VENDOR, '.git'))} tree_bytes=${bytes(VENDOR)} total=${mib(bytes(VENDOR))}（含 .git）`)
