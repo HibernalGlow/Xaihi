@@ -24,6 +24,15 @@
 - **host（宿主）**：在 Xaihi 文档里指 **Xaihi ui-host**（工作台半边）；在 DSH 文档里指 DeepSeek Harness 进程。两个意思分开用，不混写。
 - **theme bridge**：把 Material You 生成的 token 层交给 DSH 的 `ctx.theme.overrideTokens(source, tokens)`。**Xaihi 没有第二套主题引擎**；主题绝不进远程模块。
 - **observatory**：装载器留在 `globalThis.__XAIHI__` 的事实（装载了哪些 remote、每个模块的 React 与宿主是否同一个）。没有 Probe 导出的远端记为 `unknown`，不假装通过。
+- **UI Kit（上色出口）**：`@hibernalglow/xaihi-ui-kit`。节点面板**唯一**允许出现颜色的地方是它
+  的 `ALIAS` 兜底位；面板不许自带颜色类名（`check-panels` 是这条的尺）。kit 在打包期内联进每个
+  remote（自包含，ADR-0002），所以"共享组件"共享的是**规则**，不是运行时实例。
+- **layered fallback（分层回落）**：一处颜色写成
+  `var(--xaihi-*, var(--dsw-alias-*, 兜底字面量))`。第一层是 Material You 桥叠上的值，第二层是
+  DSH 主题自己的值，第三层只在两套主题都不在场时用。**第二层的名字只能实测**（这台装配的 CSSOM
+  里有 107 个 `--dsw-alias-*`，照前缀规律拼出来的 `--dsw-alias-text-primary` 之类一律 `unset`）。
+- **state layer（状态层）**：M3 的悬停/按下/聚焦反馈——在容器上叠一层**前景色**（`currentColor`），
+  hover 8%、pressed/focus 12%，而不是改背景亮度。所以三个按钮变体不需要各写一条规则。
 - **debug 端点 `/xaihi/debug.json`**：发现过程的可读回路径 —— loader 行、候选、每条定位失败原因。症状"没有节点"必须能读出原因。
 - **run（运行）**：一次节点动作调用的生命周期单位。`started` / `finished` / `failed` 由 `defineNode` 自动补，节点只管 `progress` / `preview` / `result_view`（经 `call.run`）。
 - **operation journal（运行账本）**：core 提供的服务 `xaihiOperations`。事件 `seq` 单调、缓冲区有界，且**截断必须可读**（`truncated` / `oldestSeq`），否则"没有历史"与"没拿到历史"分不清。
@@ -46,5 +55,10 @@
 
 - **check-pins**：所有 `@deepseek-ai/dsh*` 必须精确 `0.2.0-rc.2`。原因是 npm 上若干 `dsh-client-*` 的 `latest` 标签还停在 `0.0.1-rc.1`。
 - **purity**：浏览器半边不得 value-import 模块表基线之外的 harness 包（会被内联成第二份上下文）；产物里的 `require` 必须落在基线内。
+- **check-panels**：`plugins/*/frontend/Panel.tsx` 剥掉注释后不许出现 hex、`rgb()/hsl()` 颜色函数、
+  `--dsw-` 引用或自建 React root，且必须从 UI Kit 取组件；样式表里每处 `var(--dsw-` 必须紧跟在
+  `var(--xaihi-…, ` 之后（**逐次出现判，不按整行判**——同一行混着合法与裸引用时按行判会放过裸的）。
+  尺自带 `--self-check`：三种形状（裸的要抓、带层的要放过、同行混着要抓到那一次）+ 枚举漏口
+  （有 `frontend/` 却没有 `Panel.tsx` 的包要报）。
 - **自包含**：装进 profile 的包不许引用 `@hibernalglow/*`（profile 解析不了仓内包，见 ADR-0002）。
 - **阳性对照**：每条尺都必须有一个"关掉防御就变红"的用例，否则该判据视为不存在。
