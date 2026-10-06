@@ -1419,3 +1419,27 @@ hostRequirements 是 `os-native + external-process + recursive-enumeration + fil
 顺手写进尺自己的两个真错（都是这把尺自己的 `--self-check` 抓的，不是人看出来的）：
 块注释里写 glob `plugins/*/lib/**/*.js` 会把注释提前关掉（`*/`），文件直接 SyntaxError；
 第一版把 `import type` 的跳过漏掉了，夹具那条"类型说明符不该算 value 依赖"当场红。
+
+## 新尺 `check-verbatim`：内核"逐字搬"从此是可证的，不是形容词（2026-10-07 01:58）
+
+`diff -u` 量不出这件事：上游 `classf` 里有 200+ 字符的单行接口成员，搬过来一换行，
+`diff` 就报"删了 24 行"，看着像改了逻辑；反过来"只改了 import"也不等于没改逻辑。
+`scripts/check-verbatim.mjs` 做的是**归一化比较**：去注释、压空白，再把五类**声明过的形状差异**
+从两侧一起抹掉——① import 说明符文本（条数与顺序仍然算）、② `| undefined`、
+③ 未使用形参的 `_` 前缀、④ 非空断言 `x!` / `arr[i]!`（上游自己写了若干，所以两侧一起抹才是对称比较）、
+⑤ `.js`→`.ts` 后缀。剩下的任何不等都红，并打印两侧从不等处起的一段原文。
+`--self-check` 9 条夹具：改一个字符、`!==` 改成 `!=`、多加一条 import、删一条分支都**必须红**，
+两处 `| undefined`/非空断言/换说明符必须放行。基线 worktree 不在时也**判红**而不是"零个内核，全绿"。
+
+读数（真跑，比对 26 份）：**24 份通过**；两份红且归因清楚——
+- `plugins/findz/src/core.ts`：与本仓基线的差异里有一条是**少了一行 import**（`getFindzWorkerClient`），
+  这是并发 lane 的包，且 `findz` 按 ADR-0004 本来就不是"从 noxide 逐字搬 TS 内核"那一族；
+  等那一侧自己申报它该对哪份基线、差异是什么，这条尺才有资格去量它。
+- `plugins/gifu/src/core.ts`：代理还在搬（在飞）。
+
+这条尺**暂时不接进 `pnpm test`**（与 `check:brand` 同一类"故意不接线"的记账）：
+接进去的那一天的判据是"这两条红都各自有了归属与交代"，不是"它刚好能绿"。
+
+顺带被这把尺抓出来的第一条真账：`plugins/classf/src/core.ts` 的文件头原先写着
+"本文件不需要让步 / `!` 没有新增"，实测有两个形参写成了 `_input`。
+文件头已改成如实的两条（并指回这条尺），代码一行没动（`--only classf` rc=0、32 条测绿、tsc 与 build 各 rc=0）。
