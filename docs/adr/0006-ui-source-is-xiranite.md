@@ -2,7 +2,8 @@
 
 状态：接受（2026-10-06）
 决策人：HibernalGlow
-相关：ADR-0001（UI 传输）、ADR-0002（自包含与自带 patch）、`docs/service-mapping.md`、
+相关：ADR-0001（UI 传输）、ADR-0002（自包含与自带 patch）、**ADR-0007（组件放置：四层落点）**、
+`docs/service-mapping.md`、
 `<Xiranite>/docs/adr/0069-keep-node-cli-tui-gui-triad-with-clap-ratatui-react.md`
 
 ## 背景
@@ -147,11 +148,15 @@ Xaihi 这边与之对应的东西**全是我自己造的**：`packages/ui-kit`�
 1. **带 `bin` 的包能被当 DSH bundle 装上**：临时给 `plugins/sleept/package.json` 加
    `"bin": {"xaihi-sleept": "./bin/probe.js"}` ⇒ `dsh plugin --profile xaihi add file:…` **rc=0**，
    没有 "only bundles are managed" 那类拒绝；测完把该文件退回（`bin` 已不在包内）。
-2. **代价要量着处理**：TUI 依赖若进 `dependencies`，只想要面板的使用者也得下载
-   `@opentui/core` **12 MB** + `@opentui/core-darwin-arm64` **3.6 MB**（平台原生件）+
-   `@opentui/react` 252 KB + `react-dom` **7.1 MB**，另有若干 tree-sitter `.wasm`。
-   ⇒ TUI 那部分走 **`optionalDependencies`**（装不上就退化成"这个包没有终端界面"，CLI 与插件不受影响），
-   平台原生件沿用 ADR-0004 的 `/<pkg>-<platform>-<arch>` 路子，而不是让每个 DSH 使用者吞 20 MB。
+2. **依赖不会被装 N 份**（我上一条写"每个使用者吞 20 MB"是错的，按用户纠正复核后收回）：
+   pnpm 是**内容寻址单一 store + 每个包链接/克隆过去**，本机实测
+   `~/Library/pnpm/store/v11` 只有一份（1.6 GB 装下全部：仓 + 两个 profile + 所有 `@deepseek-ai/*`），
+   而今天每一次装机日志都是 `reused NNN, downloaded 0`（如 `resolved 0, reused 639, downloaded 0`、
+   `resolved 249, reused 245, downloaded 0`）——**装了 6 个节点包也只下一份依赖**。
+   ⇒ 结论反过来了：TUI 依赖就放普通 `dependencies`（与 Xiranite 的 `@xiranite/cli` /
+   `@xiranite/cli-runtime` 一致），**不要**为了省磁盘做 `optionalDependencies`；
+   自用场景里那 20 MB 只会落在 store 里一次。平台原生件仍按 ADR-0004 走 `/<pkg>-<platform>-<arch>`，
+   那是"内核可执行文件"的问题，与依赖去重无关。
 3. **全局 `npm i -g` 要等发布**：走 registry 与 ADR-0005 是同一条前提（`workspace:*` 只在
    `pnpm publish` 时被改写成真实版本）；开发期只能 `npm i -g file:…/plugins/<node>` 或 tarball。
 

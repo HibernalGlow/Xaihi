@@ -23,8 +23,8 @@ Step 1 的 API 研究结论**不在** `docs/dsh-api-notes.md`（计划里写的�
 |---|---|---|---|
 | R1 | ~~`xaihi-ui-kit` 补 M3 state layer / focus ring / ripple~~ | 无 | **作废**：ui-kit 方向由 ADR-0006 撤掉，组件层不该存在；共享形状只从 Xiranite `src/nodes/shared/` 搬 |
 | R2 | 对比度门禁的**判法**转给设计语言契约 | `design-theme` 移植 | 待重做：AA 的配对表与三条对照可以留着，但对象改成每套语言的 token 集（Xiranite 已有 `contrast.ts` 49 行做工具用） |
-| R10 | **移植 Xiranite 的工作台与节点 UI**（先工作台外壳，再按节点分批，每批带自己的测试） | ADR-0006 | 未开始：实测规模 231 个 `.tsx`（四个主目录）+ 31 个 `src/nodes/<id>`；动词是搬运接线，不是设计 |
-| R11 | **移植 CLI 与 TUI**：与网页面**同一个 npm 包**分发（`bin` + 包内相对 import 共享核心），三面各自独立安装、同仓维护 | ADR-0006「分发形状」一节 | 前置=包里加 `bin`（实测带 bin 的 bundle 能装，rc=0）+ TUI 依赖进 `optionalDependencies`（否则只想要面板的使用者要吞 @opentui/core 12 MB + 平台件 3.6 MB + react-dom 7.1 MB）；全局 `npm i -g` 等发布（ADR-0005 同一条前提） |
+| R10 | **移植 Xiranite 的工作台与节点 UI**（先工作台外壳，再按节点分批，每批带自己的测试） | ADR-0006、**ADR-0007（组件放哪一层；决定 6 = 方案甲：L1+L2+L4 同一个客户端包）** | **未开始，但已解阻塞**（甲于 2026-10-06 22:03 拍定）。规模实测：231 个 `.tsx`（四个主目录）+ 31 个 `src/nodes/<id>`；**上游本来就是"UI 双树"**（`src/nodes/` 纯 UI、`packages/nodes/*/src/` 宿主，两侧只走纯数据叶子），所以是照抄拓扑不是设计。第一步 = 建工作台客户端包骨架（含 UI 源树与 Tailwind v4 的 `@source` 覆盖）+ 生成器（扫 `plugins/*/package.json#xaihi` 出懒装载表），再搬 L1/L2；L4 按节点分批 |
+| R11 | **移植 CLI 与 TUI**：与网页面**同一个 npm 包**分发（`bin` + 包内相对 import 共享核心），三面各自独立安装、同仓维护 | ADR-0006 §「裁定：终端面（CLI / TUI）纳入搬运，与 GUI 同批」＋「分发形状」一节、ADR-0007 决定 6 | 前置只有一件：包里加 `bin`（实测带 bin 的 bundle 能装，rc=0）。**TUI 依赖不用做 optional**（我上一条的"吞 20 MB"是错的）：pnpm 是单一内容寻址 store，本机实测每次装机都是 `reused …, downloaded 0`，六个节点包共用一份 `@opentui/*` 只有一份字节；`dependencies` 直接写。全局 `npm i -g` 等发布（ADR-0005 同一条前提） |
 | R3 | 资源调度器 + 缩略图协调器 + 节点内存保护 | 批次 C/D 的真实负载 | 后置（计划 D14 明写） |
 | R4 | 可恢复删除 + 删除历史 | R3、`dissolvef` 的 checkpoint 载荷 | 后置（同上） |
 | R5 | 平台可选依赖包 `@hibernalglow/xaihi-findz-<platform>-<arch>` 的发布流程 | ADR-0004 的"后果 1" | **未定**：发布流程没拍，现在只有开发期显式 `hostBinary` |
