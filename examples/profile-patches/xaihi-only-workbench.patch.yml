@@ -1,0 +1,47 @@
+# 让 Xaihi 工作台当唯一主视图：关掉 DSH 自带的对话面
+#
+# 用法（两种，都实测过）：
+#   一次性：dsh --profile <name> --patch $(pwd)/examples/profile-patches/xaihi-only-workbench.patch.yml
+#   常驻：  把下面这些条目录进 `$DSH_HOME/profiles/<name>/cordis.patch.yml`
+#
+# 为什么是这 8 行，而不是只关一行：`ui-conversation` **提供 `uiConversation` 服务**，
+# 另有 6 个内置行依赖它。只关 `ui-conversation` 时宿主进 "Failed to load plugins" 诊断页，
+# 页面原文逐字是 `@deepseek-ai/dsh-client-ui-workflow-run: pending (waiting for service:
+# uiConversation)`（goal / plan / user-questions / trajectory / deliverables 同）。
+# 所以要么这 6 行一起关，要么留着对话面。
+#
+# 实测结果（0.2.0-rc.2，profile `xaihi`，端口 3199）：8 行全关后
+#   - 宿主正常起（日志里没有 failed/pending 行）；
+#   - 侧栏只剩 打开侧边栏 / 新建会话 / 插件 / Xaihi 工作台 / 搜索会话 / 设置；
+#   - 页面上 `textarea,[contenteditable]` 计数为 0 —— 对话输入框确实没了。
+#
+# 故意**不关**的两行，别顺手加进来：
+#   - `ui-plugin-manager`：这是"装卸/开关节点包"的入口（Plugins 页 Add plugin：包名 / Git /
+#     tarball / 绝对本地路径）。关了就等于把自己的安装路径也关了。
+#   - `ui-settings-*`：节点的 config 编辑面在这里；Xaihi 的节点配置（如 findz 的 indexDir、
+#     sleept 的 blockDefaultMinutes）没有别的改法。
+
+- id: ui-chat
+  name: '@deepseek-ai/dsh-client-ui-chat'
+  disabled: true
+- id: ui-conversation
+  name: '@deepseek-ai/dsh-client-ui-conversation'
+  disabled: true
+- id: ui-workflow-run
+  name: '@deepseek-ai/dsh-client-ui-workflow-run'
+  disabled: true
+- id: ui-goal
+  name: '@deepseek-ai/dsh-client-ui-goal'
+  disabled: true
+- id: ui-plan
+  name: '@deepseek-ai/dsh-client-ui-plan'
+  disabled: true
+- id: ui-user-questions
+  name: '@deepseek-ai/dsh-client-ui-user-questions'
+  disabled: true
+- id: ui-trajectory
+  name: '@deepseek-ai/dsh-client-ui-trajectory'
+  disabled: true
+- id: ui-deliverables
+  name: '@deepseek-ai/dsh-client-ui-deliverables'
+  disabled: true
