@@ -223,3 +223,24 @@ $ plugins/{sleept,linedup,dissolvef} tsc --noEmit               rc=0
 
 `nodeCoreAliases()`（`packages/ui-host/build-aliases.mjs`）已经是"从 `plugins/*/src` 现读自动长表"的形状，
 所以第 3 步在**类型检查与浏览器产物**这一侧不需要人工同步；需要人工的只有 `packages/cli` 那份依赖表。
+
+### 十.1 第 1 步已做：假承诺由生成器堵住，而不是由人记得删
+
+新增 `scripts/gen-cli-registry.mjs`（`--check` 是尺、`--self-check` 是阳性对照，
+已接进根 `package.json` 的 `check:cliregistry` 并排进 `pnpm test`）。
+表的输入只有一个真相源：`plugins/<id>/package.json` 的 `bin` + `exports["./cli"]` + `exports["./help"]`
++ `xaihi.node.description.en`，四样齐才进表，缺一就不进（不回退成猜测）。
+
+现读结果：**46 条 → 21 条**。少掉的 25 条就是"帮助里印得出来、`await import()` 当场 module not found"
+的入口——`packages/cli/src/index.ts:200` 正是按 `${packageName}/cli` 动态装载的。
+顺带把这条量成事实：**`findz` 不在 21 条里**，因为批次 D 那个包现在
+`bin` 是 `undefined`、`exports` 只有 `.` / `./locale/*.json` / `./cordis.patch.yml` / `./package.json`
+——即"这个节点还没有终端面"，这把尺第一次让它可查而不是靠人记。
+
+`packages/cli/package.json` 里那 7 条指向已出局功能的依赖（`czkawka kavvka lata movea owithu scoolp seriex`，
+台账判 `removed` ×6 + `hold-unmigrated` ×1）一并删掉；`@xiranite/*` 边数因此从 31 降到 24。
+减法跑测：往生成物里塞一条 `ghost` 假条目后 `--check` rc=1 并点名"现读 21 条"，重新生成后 rc=0。
+
+还剩两步（有依赖顺序，不能顺手做完）：第 2 步是 `@xiranite/{file-operations,services}` 那两条
+按 ADR-0013 判定不接之后 `packages/api` 怎么改；第 3 步是把 `packages/{api,contract,shared,logging,cli-runtime}`
+的包名从上游名换成 `@hibernalglow/xaihi-*`，换完才能解掉 `pnpm-workspace.yaml` 里那批负向条目。
