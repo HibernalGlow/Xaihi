@@ -1041,4 +1041,67 @@ P1 一旦落地，要改的只有 `resolveAgent()` 里"从哪儿取值"这一处
 常量叠加）与 `#xaihi-ui-kit` 的规则仍不含 checkbox/switch/slider。可见浏览器那一次要补的读数是：
 悬停后 `::after` 的 opacity 从 0 变 .08、Tab 聚焦后 `outline` 宽 2px。
 
+## 23 入口 bundle 到底装不装得上：在干净 profile 上复现，并把边界变成门禁
+
+### 改了什么
+
+- 新建一次性 profile `xaihi-bundle`（`dsh xaihi-bundle --from-default-profile web`），只往里装
+  `@hibernalglow/xaihi` ⇒ **rc=1**，拿到权威诊断（ADR-0002 记的是同一条原因，这次是新 profile、
+  新日志路径上的复现，不是复述）。取证后删掉该 profile，不留在隔离 home 里冒充"装过的宿主"。
+- 新门禁 `scripts/check-installable.mjs`（根脚本 `check:installable`，进 `pnpm test` 与 CI）：
+  带 `dsh.bundle.patch` 的包不许有 `workspace:*` **运行时**依赖；例外只允许
+  `@hibernalglow/xaihi`，并且**例外名单里的项如果不再是 bundle 包就报错**（防止名单烂在里面）。
+- `docs/adr/0005-entry-bundle-reachability.md`：决定"入口包是发布期产物"，并写下发布后必须跑的
+  证明形状。`docs/roadmap.md` 加 R9。
+- `packages/bundle` 的 `description` 原文是 "Install this bundle, then add node bundles…"，
+  这是一条今天做不到的承诺 ⇒ 改成明说"发布之后才成为入口"。
+
+### 证据
+
+1. 复现（隔离 home，`DSH_HOME=.scratch/dsh-xaihi-home`）：
+   ```
+   dsh plugin --profile xaihi-bundle add file:…/packages/bundle   → rc=1
+     Failed to resolve dependency tree: In …/profiles/xaihi-bundle:
+     "@hibernalglow/xaihi-core@workspace:*" is in the dependencies
+     but no package named "@hibernalglow/xaihi-core" is present in the workspace
+   ```
+   对照事实：同一台宿主里 `dsh plugin --profile xaihi add file:…/{packages/core,packages/ui-host,plugins/*}`
+   一路 rc=0 —— 差别就在"谁带 `workspace:*` 运行时依赖"。
+2. 全仓形状（脚本现读，不靠记忆）：带 bundle patch 的包 9 个，**只有入口包**带 `workspace:*`
+   运行时依赖；其余 8 个干净。kit 与 sdk 在插件里是 `devDependencies`，而 `file:` 安装不装
+   依赖包的 devDeps ⇒ 它们只在打包期内联、不参与解析（这正是 ADR-0002 的自包含形状）。
+3. 门禁：`pnpm check:installable` rc=0（`8 个 bundle 包都能被 file: 安装，例外 1 个`）、
+   `--self-check` rc=0（workspace 依赖必须被抓、registry 版本必须被放过、例外名单必须被认）。
+   **真文件减法跑测**：往 `packages/core/package.json` 注入
+   `"@hibernalglow/xaihi-ui-kit": "workspace:*"` ⇒ rc=1 并点名
+   `@hibernalglow/xaihi-core: bundle 却带 workspace:* 运行时依赖`；撤回后 `shasum` 与探针前一致
+   （`14fc85f52cf2e5affe544842253c333816a5a744`），重跑 rc=0。
+
+### 为什么这样设计
+
+入口包不改成写死版本，也不把 core/ui 内联进来：`pnpm publish` 会把 `workspace:*` 改写成真实
+版本，那时这条路自然通；而现在写死或内联，都是**为了让一条将来才成立的路今天就"看着能用"**。
+开发期的真口径是 profile 逐行列 core 与 ui（这台隔离宿主里就是这么配的）。把它写成口径而不是
+遮掩，症状"用户装不上入口包"就会在发布检查那一次被抓，而不是被 README 的承诺盖过去。
+
+### 与 DSH API 的关系
+
+`dsh plugin --profile <name> <pnpm args>` 是 pnpm 转发器 + 按已安装状态重算
+`dsh.profile.bundles`；`package.json#dsh.bundle.patch` 决定一个包是不是 bundle。本次没有绕任何
+一层：失败发生在 pnpm 的依赖树解析，处置是改**我们自己**的发布与装机口径。
+
+### 后续扩展方式
+
+alpha 发布时按 ADR-0005 写好的形状跑一次："新 profile 只装入口包" ⇒ `--dump-config` 出现 xaihi
+两行、`/xaihi/manifest.json` 200、`main` 面板挂上并且能 `selectPanel`。跑过才允许 README 把它
+写成入口。
+
+### 没做
+
+- 没有为了"今天就能装"把 `workspace:*` 换成 `file:` 相对路径或 `link:` —— 那会让发布后的包
+  带着一台机器的绝对路径。
+- 例外名单只放了入口包一项，**没有**给任何节点包开后门（节点包本来就是干净的）。
+- 入口包的装机证明没跑（前提不成立）；这条如实挂在 R9，不当已验。
+
+
 

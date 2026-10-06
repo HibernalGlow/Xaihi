@@ -1,7 +1,7 @@
 {
   "name": "@hibernalglow/xaihi",
   "version": "0.0.0",
-  "description": "Xaihi for DeepSeek Harness: a workspace extension framework — panel host, layout, Material You theme bridge, and node ecosystem. Install this bundle, then add node bundles like @hibernalglow/xaihi-hello.",
+  "description": "Xaihi for DeepSeek Harness: a workspace extension framework — panel host, layout, Material You theme bridge, and node ecosystem. This is the publish-time entry package: once @hibernalglow/* is on a registry, installing it gives you the workbench (pnpm rewrites workspace:* on publish). Until then install @hibernalglow/xaihi-core and @hibernalglow/xaihi-ui as separate bundle rows - see docs/adr/0005-entry-bundle-reachability.md.",
   "license": "MIT",
   "type": "module",
   "exports": {

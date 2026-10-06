@@ -23,6 +23,8 @@ jobs:
       - run: pnpm check:skills
       # 面板只许经 ui-kit 上色：先跑尺的阳性对照（--self-check），再跑真文件。
       - run: pnpm check:panels
+      # bundle 包不许带 workspace:* 运行时依赖（file: 安装会在解析依赖树时被拒）。
+      - run: pnpm check:installable
       # 顺序是有意的：typecheck 与 test:unit 都要读 node-sdk 的 d.ts，
       # 而 purity / bundle 两条闸门断言的是产物本身，所以 build 必须在它们前面。
       - run: pnpm -r run build

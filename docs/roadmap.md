@@ -26,6 +26,7 @@ Step 1 的 API 研究结论**不在** `docs/dsh-api-notes.md`（计划里写的�
 | R6 | OS 壁纸动态取色（Material You 的第二档 seed 来源） | 已迁的 subprocess 通路 | 已排（计划 D12 推后项） |
 | R7 | `flow-plugin`：节点间数据流的编排面 | ≥3 个节点真跑通 | **只立项，不实现** |
 | R8 | 桌面壳适配后的 GUI 验收（计划 D9 推迟的那一段） | DSH 桌面端 | 等外部条件。**要带的读数已写死**：悬停后 `.xaihi-btn::after` 的 opacity 0 → .08、Tab 聚焦后 `outline` 宽 2px、真 agent 调用一次、面板按钮派发一次 |
+| R9 | 入口 bundle `@hibernalglow/xaihi` 的装机证明 | alpha 发布（`workspace:*` 会被 `pnpm publish` 改写成真实版本） | **未验，且今天必然装不上**：`file:` 安装被 pnpm 拒在依赖树解析（实测诊断与处置见 `docs/adr/0005-entry-bundle-reachability.md`）。发布后要跑的是"新 profile 只装这一个包" ⇒ `--dump-config` 出现 xaihi 两行、`/xaihi/manifest.json` 200、`main` 面板挂上。在那之前文档里不许把它写成"可安装的入口" |
 
 ### R7 的立项边界（为什么现在不做）
 
