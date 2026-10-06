@@ -82,6 +82,7 @@
 | G10 | **`inputBindings` 的 `trim` 把"省略"折成空串**。内核写 `input.x ?? 默认` 判不出"用户没填"与"填了空" | `bitv` 因此发现：`transferMode` 省略 ⇒ `''`，而 `''` 会走 `move` 那条 **unlink** 分支——真会删源文件。修法是在该节点的白名单里把空串折回默认（`bitv`/`crashu` 同条纪律），并各有测试钉住；根修在 `packages/node-sdk/src/define-node.ts` 的折叠处 | `plugins/bitv/src/index.ts`（`TRANSFER_MODES` 白名单）与其 `tests/core.spec.ts` 那条"源文件不在了：这一趟走的是 move 那条腿" |
 | G11 | **`xaihi.node/v1` 的 `help.workflows` / `help.commands` 是单语 `string[]`**，装不下上游那份 `{zh, en}` 数组 | 那两块整块不搬（它们本来就在教人被拒的终端腿），但这表达能力的缺口留着 | `plugins/bitv/src/help.ts`、上游 `packages/nodes/bitv/src/help.ts` |
 | G12 | **vendored `cli-support.ts` 的 flag 语法窄于上游**：没有位置参数、没有短 flag、重复 flag 取后者 | 终端面因此不接受上游那种 `xbitv a.mp4 b.mp4`；这是有意的取舍（一份 vendored 件比 26 份方言好），但要写进账，别让它以后被当成 bug | `plugins/linedup/src/cli-support.ts`（26 份一致，`check-vendored` 守） |
+| G13 | **`danger` 谓词里的 `actionIs` 在否定式上会反噬**：`conditions.ts` 见 `actionField` 只读 `args['action']`，而 `define-node.ts` 不把动作选择器放进参数表 ⇒ 拿到的是空串，`negated: true` 的那条**恒真** | 实测上游 `cleanf` 的清单里 `undo`+`preview:false` 因此**也要批准**（它本该是"非撤销才危险"）。方向是"多问一次"，不是"少问"，所以不危险但**错**；同时暴露两处不一致：`actionIn`（`define-node.ts:186`）有 actionId 回退而 `actionIs` 没有，`fields[].rules[].when` 那份 `actionField` 目前从不求值，界面侧一旦求值会同一条病 | `plugins/cleanf/src/contract.ts` 与其 `tests/definition.spec.ts` 那格（含"把 `actionField` 塞回自己清单必须红"的正控） |
 **共同形状**：G1/G2/G6 都是同一条边界的两面——DSH 的服务缝活在插件进程里，
 而"能装进 `$PATH` 的那一面"活在它外面。要么给 DSH 提提案（非主机进程的 fs/settings/approval 入口），
 要么接受"bin 面 = 计划器 + 只读查询"这一条明确的口径；两种都比在 bin 里私开一套强。

@@ -1,0 +1,381 @@
+{
+  "name": "@hibernalglow/xaihi-cleanf",
+  "version": "0.0.0",
+  "description": "Xaihi node Cleanf: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "xcleanf": "./lib/cli.js"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-cleanf",
+    "title": {
+      "zh": "Cleanf",
+      "en": "Cleanf"
+    },
+    "ui": {
+      "remote": "cleanf",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.cleanf",
+        "title": {
+          "zh": "Cleanf面板",
+          "en": "Cleanf panel"
+        },
+        "area": "workspace",
+        "remote": "cleanf",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "cleanf",
+      "title": {
+        "zh": "Cleanf",
+        "en": "Cleanf"
+      },
+      "description": {
+        "zh": "预览并清理空文件夹、备份文件、临时文件夹、垃圾文件和常用清理预设。",
+        "en": "Preview and remove empty folders, backup files, temp folders, trash files, and cleanup presets."
+      },
+      "actions": [
+        {
+          "id": "clean",
+          "label": {
+            "zh": "清理",
+            "en": "Clean"
+          }
+        },
+        {
+          "id": "undo",
+          "label": {
+            "zh": "撤销上次清理",
+            "en": "Undo last cleanup"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "操作",
+            "en": "Action"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "clean",
+              "label": {
+                "zh": "清理",
+                "en": "Clean"
+              }
+            },
+            {
+              "value": "undo",
+              "label": {
+                "zh": "撤销上次清理",
+                "en": "Undo last cleanup"
+              }
+            }
+          ],
+          "default": {
+            "text": "clean"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": true
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "pathsText",
+          "label": {
+            "zh": "清理路径",
+            "en": "Cleanup paths"
+          },
+          "kind": "path-list",
+          "lines": 5,
+          "placeholder": {
+            "zh": "每行一个文件夹",
+            "en": "One folder per line"
+          },
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "undo"
+                    ]
+                  },
+                  "negated": true
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "presetsText",
+          "label": {
+            "zh": "清理预设",
+            "en": "Cleanup presets"
+          },
+          "kind": "multiline",
+          "lines": 2,
+          "placeholder": {
+            "zh": "每行或逗号分隔一个预设",
+            "en": "One preset per line or comma"
+          },
+          "default": {
+            "text": "empty_folders\nbackup_files\ntemp_folders\ntrash_files\nhb_txt_files"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "exclude",
+          "label": {
+            "zh": "排除关键词",
+            "en": "Exclude keywords"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "preview",
+          "label": {
+            "zh": "仅预览",
+            "en": "Preview only"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "pathsText",
+          "slot": "paths",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "presetsText",
+          "slot": "presets",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "exclude",
+          "slot": "exclude",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "preview",
+          "slot": "preview",
+          "transform": "asBoolean"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "undo"
+              ]
+            },
+            "negated": true
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "preview"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认清理",
+          "en": "Confirm cleanup"
+        },
+        "body": {
+          "zh": "匹配到的文件和目录将移入系统回收站，之后可撤销恢复。",
+          "en": "Matching files and folders will be moved to the recycle bin and can be restored afterward."
+        },
+        "confirmLabel": {
+          "zh": "移入回收站",
+          "en": "Move to recycle bin"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "图片、归档或视频批处理后，需要清理生成目录里的临时残留。 需要删除 .bak、.trash、temp_ 文件夹、[#hb] 文本、日志或 upscale 缓存等已知垃圾项。 同一套清理预设既要在工作区 UI 里用，也要能放进终端自动化。",
+          "en": "Clean generated folders after image, archive, or video processing batches. Remove known temporary files such as .bak, .trash, temp_ folders, [#hb] text files, or log/upscale leftovers. Run the same cleanup preset from the workspace UI and from terminal automation."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "destructive": {
+            "zh": [
+              "preview=false 的 run 会将文件和文件夹移入系统回收站，并记录可撤销批次。",
+              "complete 和 upscale 预设组合包含更宽的清理规则。"
+            ],
+            "en": [
+              "run with preview=false moves files and folders to the system recycle bin and records an undo batch.",
+              "Preset combinations complete and upscale include broader cleanup rules."
+            ]
+          },
+          "notes": {
+            "zh": [
+              "新目录树第一次使用时务必先预览。",
+              "对归档根目录、源文件夹或项目目录使用排除关键词保护。"
+            ],
+            "en": [
+              "Always run preview before live cleanup on a new folder tree.",
+              "Use exclude keywords for archive roots, source folders, or project folders that should be preserved."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
