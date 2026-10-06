@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+    // 与 `plugins/crashu/tsconfig.json` / `plugins/formatv/tsconfig.json` 不同，本包**没有**关掉
+    // `noUncheckedIndexedAccess` 与 `exactOptionalPropertyTypes`：那 838 行内核（基线 tag `noxide` 的
+    // `packages/nodes/trename/src/core.ts`）本来就写满了 `paths[index]!` 与 `match[1]!`，
+    // 在这个仓的默认两面旗下一句都不红（实测 `pnpm exec tsc --noEmit` 只对测试报过错，见
+    // `docs/service-mapping.md` 与本文件）。旗子关掉等于替下一个搬运批次默认"内核必须放松"，
+    // 所以这里保持基线档；哪天逐字移植过不来，再在这里逐条写明是哪一行逼的。
+  },
+  "include": ["src", "frontend", "tests", "rspack.config.mjs"]
+}

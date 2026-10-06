@@ -1,0 +1,747 @@
+{
+  "name": "@hibernalglow/xaihi-trename",
+  "version": "0.0.0",
+  "description": "Xaihi node Trename: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-trename",
+    "title": {
+      "zh": "Trename",
+      "en": "Trename"
+    },
+    "ui": {
+      "remote": "trename",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.trename",
+        "title": {
+          "zh": "Trename面板",
+          "en": "Trename panel"
+        },
+        "area": "workspace",
+        "remote": "trename",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "trename",
+      "title": {
+        "zh": "Trename",
+        "en": "Trename"
+      },
+      "description": {
+        "zh": "将文件夹扫描为重命名 JSON，校验翻译目标，执行重命名并撤销。",
+        "en": "Scan folders into rename JSON, validate translated targets, rename, and undo."
+      },
+      "actions": [
+        {
+          "id": "scan",
+          "label": {
+            "zh": "扫描",
+            "en": "Scan"
+          }
+        },
+        {
+          "id": "import",
+          "label": {
+            "zh": "导入",
+            "en": "Import"
+          }
+        },
+        {
+          "id": "validate",
+          "label": {
+            "zh": "校验",
+            "en": "Validate"
+          }
+        },
+        {
+          "id": "rename",
+          "label": {
+            "zh": "重命名",
+            "en": "Rename"
+          }
+        },
+        {
+          "id": "undo",
+          "label": {
+            "zh": "撤销",
+            "en": "Undo"
+          }
+        },
+        {
+          "id": "history",
+          "label": {
+            "zh": "历史",
+            "en": "History"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "工作流",
+            "en": "Workflow"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "scan",
+              "label": {
+                "zh": "扫描",
+                "en": "Scan"
+              }
+            },
+            {
+              "value": "import",
+              "label": {
+                "zh": "导入",
+                "en": "Import"
+              }
+            },
+            {
+              "value": "validate",
+              "label": {
+                "zh": "校验",
+                "en": "Validate"
+              }
+            },
+            {
+              "value": "rename",
+              "label": {
+                "zh": "重命名",
+                "en": "Rename"
+              }
+            },
+            {
+              "value": "undo",
+              "label": {
+                "zh": "撤销",
+                "en": "Undo"
+              }
+            },
+            {
+              "value": "history",
+              "label": {
+                "zh": "历史",
+                "en": "History"
+              }
+            }
+          ],
+          "default": {
+            "text": "scan"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "paths",
+          "label": {
+            "zh": "扫描目录",
+            "en": "Folders"
+          },
+          "description": {
+            "zh": "每行一个目录，也支持粘贴多行",
+            "en": "One folder per line"
+          },
+          "kind": "path-list",
+          "lines": 4,
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "scan"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "scan"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "jsonContent",
+          "label": {
+            "zh": "Rename JSON",
+            "en": "Rename JSON"
+          },
+          "description": {
+            "zh": "可直接编辑扫描或翻译后的 JSON",
+            "en": "Edit scanned or translated JSON"
+          },
+          "kind": "multiline",
+          "lines": 8,
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "import",
+                  "validate",
+                  "rename"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "nonBlank"
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "import",
+                      "validate",
+                      "rename"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "basePath",
+          "label": {
+            "zh": "基准目录",
+            "en": "Base path"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "validate",
+                  "rename"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "includeHidden",
+          "label": {
+            "zh": "包含隐藏项",
+            "en": "Include hidden"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "scan"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "includeRoot",
+          "label": {
+            "zh": "包含根目录",
+            "en": "Include root"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "scan"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "mode",
+          "label": {
+            "zh": "扫描规则",
+            "en": "Scan rule"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "normal",
+              "label": {
+                "zh": "常规",
+                "en": "Normal"
+              }
+            },
+            {
+              "value": "leak",
+              "label": {
+                "zh": "泄漏前缀清理",
+                "en": "Leak prefix"
+              }
+            }
+          ],
+          "default": {
+            "text": "normal"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "scan"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "maxLines",
+          "label": {
+            "zh": "分段行数",
+            "en": "Lines per segment"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "step": 100
+          },
+          "default": {
+            "number": 1000
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "scan"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerAtLeast",
+                "minimum": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "compact",
+          "label": {
+            "zh": "紧凑 JSON",
+            "en": "Compact JSON"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "scan"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "仅预演",
+            "en": "Dry run"
+          },
+          "description": {
+            "zh": "关闭后会真实移动文件",
+            "en": "Turning this off moves files"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "rename"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "batchId",
+          "label": {
+            "zh": "批次 ID（留空撤销最近）",
+            "en": "Batch ID"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "undo"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "undoPath",
+          "label": {
+            "zh": "撤销记录",
+            "en": "Undo store"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "undo",
+                  "history",
+                  "rename"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "source",
+          "label": {
+            "zh": "来源",
+            "en": "Source"
+          },
+          "fieldIds": [
+            "action",
+            "paths",
+            "jsonContent",
+            "basePath"
+          ]
+        },
+        {
+          "id": "options",
+          "label": {
+            "zh": "选项与安全",
+            "en": "Options & safety"
+          },
+          "fieldIds": [
+            "includeHidden",
+            "includeRoot",
+            "mode",
+            "maxLines",
+            "compact",
+            "dryRun",
+            "batchId",
+            "undoPath"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "paths",
+          "slot": "paths",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "jsonContent",
+          "slot": "jsonContent",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "basePath",
+          "slot": "basePath",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "includeHidden",
+          "slot": "includeHidden",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "includeRoot",
+          "slot": "includeRoot",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "mode",
+          "slot": "mode",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "maxLines",
+          "slot": "maxLines",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "compact",
+          "slot": "compact",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "batchId",
+          "slot": "batchId",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "undoPath",
+          "slot": "undoPath",
+          "transform": "trimOrOmit"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "rename"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认真实重命名",
+          "en": "Confirm live rename"
+        },
+        "body": {
+          "zh": "文件将被移动。请先检查路径差异与冲突列表。",
+          "en": "Files will be moved. Review all diffs and conflicts first."
+        },
+        "confirmLabel": {
+          "zh": "确认移动文件",
+          "en": "Move files"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "需要从工作区 UI 或 CLI 使用该节点的文件流程时，可使用 Trename。",
+          "en": "Use Trename when you need this node's file workflow from either the workspace UI or CLI."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "notes": {
+            "zh": [
+              "更改文件前优先使用预览或试运行模式。",
+              "处理大文件夹时保留备份或撤销记录。"
+            ],
+            "en": [
+              "Prefer preview or dry-run modes before changing files.",
+              "Keep backups or undo records when processing large folders."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "bin": {
+    "xtrename": "./lib/cli.js"
+  }
+}
