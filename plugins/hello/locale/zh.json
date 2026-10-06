@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Xaihi 示例节点",
+    "description": "最小的 Xaihi 节点：一个宿主工具，加一个由插件自带 UI 模块渲染的工作台面板。"
+  }
+}

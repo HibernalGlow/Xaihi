@@ -21,6 +21,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:pins
       - run: pnpm check:skills
+      # 面板只许经 ui-kit 上色：先跑尺的阳性对照（--self-check），再跑真文件。
+      - run: pnpm check:panels
       # 顺序是有意的：typecheck 与 test:unit 都要读 node-sdk 的 d.ts，
       # 而 purity / bundle 两条闸门断言的是产物本身，所以 build 必须在它们前面。
       - run: pnpm -r run build

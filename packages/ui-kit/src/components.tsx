@@ -49,7 +49,8 @@ export interface XPanelProps {
   actions?: React.ReactNode
   status?: string
   statusTone?: 'info' | 'error'
-  children: React.ReactNode
+  /** 可以没有正文：只有动作行与状态行的面板是合法形状，不是待填。 */
+  children?: React.ReactNode
 }
 
 export function XPanel({ title, actions, status, statusTone = 'info', children }: XPanelProps): React.ReactElement {

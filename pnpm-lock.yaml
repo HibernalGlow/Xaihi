@@ -358,6 +358,9 @@ importers:
       '@hibernalglow/xaihi-sdk':
         specifier: workspace:*
         version: link:../../packages/node-sdk
+      '@hibernalglow/xaihi-ui-kit':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit
       '@module-federation/enhanced':
         specifier: 2.9.2
         version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
@@ -462,6 +465,9 @@ importers:
       '@hibernalglow/xaihi-sdk':
         specifier: workspace:*
         version: link:../../packages/node-sdk
+      '@hibernalglow/xaihi-ui-kit':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit
       '@module-federation/enhanced':
         specifier: 2.9.2
         version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
@@ -489,6 +495,9 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(vite@8.3.2(@types/node@22.20.5)(jiti@2.4.2)(yaml@2.9.1))
 
   plugins/linedup:
     dependencies:
@@ -505,6 +514,9 @@ importers:
       '@hibernalglow/xaihi-sdk':
         specifier: workspace:*
         version: link:../../packages/node-sdk
+      '@hibernalglow/xaihi-ui-kit':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit
       '@module-federation/enhanced':
         specifier: 2.9.2
         version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
@@ -532,6 +544,9 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(vite@8.3.2(@types/node@22.20.5)(jiti@2.4.2)(yaml@2.9.1))
 
   plugins/sleept:
     dependencies:

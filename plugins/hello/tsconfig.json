@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["src", "frontend", "rspack.config.mjs"]
+  "include": ["src", "frontend", "tests", "rspack.config.mjs"]
 }

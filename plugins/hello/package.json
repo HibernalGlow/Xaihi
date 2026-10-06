@@ -55,6 +55,7 @@
   "scripts": {
     "build": "tsdown && rspack build",
     "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
     "clean": "rm -rf lib dist"
   },
   "engines": {
@@ -72,6 +73,7 @@
     "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "~3.18.4",
     "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@hibernalglow/xaihi-ui-kit": "workspace:*",
     "@module-federation/enhanced": "2.9.2",
     "@rspack/cli": "2.2.8",
     "@rspack/core": "2.2.8",
@@ -80,6 +82,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsdown": "^0.22.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
   }
 }

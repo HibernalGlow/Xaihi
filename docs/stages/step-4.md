@@ -802,3 +802,77 @@ P1 一旦落地，要改的只有 `resolveAgent()` 里"从哪儿取值"这一处
   `{"schema":"xaihi.ledger/1","durable":true,"reason":null,"records":[]}` —— **`durable:true`
   只证明缝开得住，`records:[]` 就是一条真运行都还没落过盘**。这一点与"面板按钮按不动"是
   两个独立缺口：前者缺触发入口（模型凭据或宿主侧命令派发），后者缺客户端身份。
+
+## 20 面板上色收口：五个面板全走 kit，并把规则变成门禁
+
+### 改了什么
+
+- `plugins/{hello,linedup,dissolvef}/frontend/Panel.tsx` 从"裸 `<div>` + inline `opacity`"
+  改写成 `XPanel` / `XField` / `XButton` + `registerKitStyles()`；三个包的 `devDependencies`
+  补 `@hibernalglow/xaihi-ui-kit`。现在**五个节点面板**（含 §18 的 sleept 与批次 D 的 findz）
+  都不自带颜色。
+- 新门禁 `scripts/check-panels.mjs`，挂在根 `check:panels` 与 CI（`pnpm test` 链里排在
+  build 之前）：对 `plugins/*/frontend/Panel.tsx` 剥掉注释后禁
+  `hex` / `--dsw-` / `rgb(a|hsl|hwb)(` / `createRoot|hydrateRoot`，并要求它从 kit 取组件。
+- `packages/ui-kit/src/components.tsx`：`XPanelProps.children` 改为可选（"只有动作行和状态行"
+  是合法面板，不是待填）。
+- 补上两个**从来没有过测试**的包：`plugins/linedup/tests/core.spec.ts`（9 条，钉 noxide
+  那份内核的行为）与 `plugins/hello/tests/manifest.spec.ts`（4 条，钉清单/容器名/工具名/文案）。
+  两个包的 `tsconfig.json` 的 `include` 加上 `tests`，否则新 spec 不会被 `typecheck` 覆盖。
+- 修掉一条真缺陷：`plugins/hello/locale/` 只有 `en.json`，中文界面里这个包的元信息整段是英文。
+  补 `zh.json`，并由用例钉住"两份语言的 meta 都存在"。
+
+### 证据
+
+1. `pnpm check:panels` rc=0 ⇒ `check-panels OK（5 个面板都只经 kit 上色）`。
+   **尺本身能红**：`--self-check` rc=0（4 条规则各被抓到一次，命中 5 处）；真文件减法跑测——
+   往 `plugins/hello/frontend/Panel.tsx` 塞一行
+   `const LEAK = { color: '#b3261e', background: 'rgba(0,0,0,.2)' }` ⇒ rc=1 并点名
+   `Panel.tsx:11 hex-color` 与 `css-color-fn`；撤回后 `shasum` 与探针前一致
+   （`cbc47e061fc6bbab667083402d370dce136bf7eb`），重跑 rc=0。
+2. 仓库门禁：`pnpm test` rc=0 —— 含 `check:pins`、`check:skills`、`check:panels`、
+   `pnpm -r run build`（16 条完成行）、`typecheck`、`test:unit`（**10 个包**：ui-kit 6、
+   node-sdk 23、create 6、dissolvef 7、core 50、ui-host 19、**hello 4**、**linedup 9**、
+   sleept 24、findz 66）。
+3. 装机 + 实机（同一隔离宿主，profile `xaihi`）：`dsh plugin --profile xaihi add file:…/{hello,linedup,dissolvef}`
+   rc=0 后重启，依次挂三个面板，读回
+   - `document.querySelectorAll('#xaihi-ui-kit').length === 1`。**这条同时是去重守卫的阳性对照**：
+     三个面板各自内联了一份 kit 的 JS 与 CSS，若守卫不生效，换面板就会追加到 3 个 `<style>`；
+   - 三张卡片计算样式同为 `rgb(20, 18, 24)` / 圆角 `12px`（同一个 `--xaihi-surface` 源）；
+   - `__XAIHI__.modules` 三条都是 `reactVersion 18.3.1 / sameReactAsHost true`。
+4. 一处我一开始写错的断言（记下来防重犯）：hello 的 spec 我按"生成物"的形状写了
+   `xaihi.manifest` 嵌套键与单行 `exposes: { … }`，实测三条全红——`package.json#xaihi`
+   **就是清单本体**，而这个包的 `exposes` 是多行写的。改成按片段断言后 4/4 绿。
+   hello 也没有 `xaihi.node`：它是"最裸的 cordis 插件"样本（工具名 `xaihi_hello_ping` 被钉成断言），
+   SDK 形状由 linedup 与脚手架承担，这一点写进了 spec 的文件头。
+
+### 为什么这样设计
+
+- **规则要变成机器能红的东西**：`§18` 只守住了 kit 自己与"脚手架生成的新面板"；仓里已有的
+  四个手写面板没有覆盖，`examples/` 之外也没有任何一处会因"面板自带颜色"而变红。这类漂移
+  的症状是"换 seed 之后有两套颜色"，而它**不会让任何东西变红**，所以必须在提交前拦。
+- **尺排在 build 前面**：它只读源码文本，不需要产物；放前面能让"面板自带颜色"这种错误在
+  两秒内报出来，而不是等完 16 条构建。
+- **`XPanel.children` 放开**：可选而不是给个空 `<></>`。空片段进 grid 布局会多一个空隙，
+  那是把"没有正文"伪装成"正文是空的"。
+
+### 与 DSH API 的关系
+
+- kit 的 CSS 只经 `registerKitStyles()` 注入到文档（面板没有别的资源通路：DSH 的插件 URL
+  空间只有 `/plugins/<pkg>/client*.js`，`§` Step 1 已记，这也是提案 P2 的来由）。
+- 每个面板仍由 `ctx.slots` 渲染、React 仍从宿主共享消费（`§2` 与 `§18` 的两条判据在这次
+  三个 remote 上重读仍然成立）。
+
+### 后续扩展方式
+
+新增面板会自动被 `check-panels` 覆盖（它按 `plugins/*/frontend/Panel.tsx` 枚举）；要放行
+例外就得改规则表，而规则表带着 `--self-check`，删一条规则会让自照立刻红。测试形状现在
+两种样本都有：`hello`（裸 cordis 插件）与 `linedup`（`xaihi.node/v1` 契约节点）。
+
+### 没做
+
+- 门禁只看 `Panel.tsx`，不看 `container-entry.ts` 与可能新增的其它前端文件——按 `§18` 的
+  说法这是"唯一出口 + 一条尺"，还没做成全量扫描。
+- 没有 a11y / 对比度门禁（`docs/roadmap.md` 的 R2），所以"文字对底色够不够"仍然是未测项。
+- `hello` 保持"不带节点定义"的旧形状。把它迁到 `defineNode` 会丢 `presentResult`
+  （工具结果卡片的渲染），而 `xaihi.node/v1` 现在还没有承载它的字段。
