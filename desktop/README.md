@@ -44,6 +44,18 @@ node desktop/sync-dsh.mjs --proxy http://127.0.0.1:7890   # 上游在本机要�
 patches/dsh 里有 1 个`）；`--pin` 给错 sha 时红且 **HEAD 未移动**（先验 tag 再 checkout）；
 扰动 patch 的**上下文行**后 `sync` 红、`git am --abort`、树退回 pin 且脏文件 0。
 
+## gitlink 规则（这一条今天踩过）
+
+`desktop/dsh` 记在仓库里的指针**必须等于 `UPSTREAM_PIN`**：patch 只活在工作树里，由 `sync-dsh` 重放。
+判据是 `node desktop/sync-dsh.mjs --check`（它读 `git ls-tree HEAD desktop/dsh` 与 pin 比对，不等就红）。
+
+为什么钉这条：第一次提交时 gitlink 落成了 `0b04cd40` —— 那是 `git am` 在本机造出来的"patch 后提交"，
+上游仓库里没有它、我们也无权往上游推，别人 clone 出来就是一个取不到的对象。
+当时 `.gitmodules` 里还写着 `ignore = all`，正好把这种漂移从 `git status` 里藏掉；所以那行被撤了
+——**宁可让指针漂移一直可见**（sync 之后 `desktop/dsh` 会显示 modified，那是真话），
+也不要"干净但取不到"。判据的阳性对照就是那个坏状态本身：加完判据当场跑红
+（`gitlink_committed=0b04cd40 want=639ed015`）。
+
 ## 与门禁的关系（别把 vendor 扫进去）
 
 `check:pins` 与 `check:installable` 只走 `packages`/`plugins` 的**一层**目录（`GROUPS = ['packages','plugins']`、

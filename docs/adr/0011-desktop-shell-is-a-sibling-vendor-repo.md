@@ -145,6 +145,7 @@ manifest 加一份带旧品牌的 `.ts`，`check:pins` **rc=0**、`check:brand` 
 | Desktop 的 workspace 闭包（在 pin 上重算） | **308/338** 个包 ⇒ 314 个检出目录；`--sparse` 151.6 MiB → 101.0 MiB，**省 50.6 MiB（33%）** |
 | 重放幂等 | 连跑两次 `sync` ⇒ `head`/`tree` 逐字相同（`0b04cd40` / `28898fc8c8d9`）。第一次做这条时**是红的**：`git am` 每次换 committer 时间 ⇒ sha 漂，治法是 `GIT_COMMITTER_DATE` 钉在 pin |
 | 三条阳性对照 | 丢 patch ⇒ `--check` 红；错 pin ⇒ 红且 HEAD 未移动；扰动 patch 的上下文行 ⇒ `sync` 红、`am --abort`、树退回 pin、脏文件 0 |
+| gitlink 踩坑与判据 | 第一次提交把 gitlink 记成 `0b04cd40`（`git am` 在本机造的 patch 后提交，上游没有、我们也推不上去 ⇒ 别人 clone 取不到）；同批写的 `.gitmodules` 里 `ignore = all` 会把这种漂移藏掉，已撤。`--check` 现在比对 `git ls-tree HEAD desktop/dsh` 与 pin，判据的阳性对照正是这个坏状态本身（当场跑红 `gitlink_committed=0b04cd40 want=639ed015`）。修好后重跑 sync ⇒ `--check` rc=0 且 `head` 仍是 patch 态 |
 | 0001 的验证强度 | 三处改动 `node --check` rc=0，且"故意写坏一份能被抓"（扰动对照 rc=1）⇒ **parse-verified only**，未跑上游 `tsc`（那需要整个 vendor `pnpm install`） |
 
 ### 与 `AGENTS.md` 的冲突及处理
