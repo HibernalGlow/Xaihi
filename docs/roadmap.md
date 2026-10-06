@@ -13,6 +13,9 @@ C `dissolvef` / D `findz`。
 Step 1 的 API 研究结论**不在** `docs/dsh-api-notes.md`（计划里写的这个文件名不存在），
 而是进了 `.dsh/skills/xaihi-architecture/SKILL.md`。理由：那份结论的读者是"在这个仓里干活的
 开发 Agent"，技能会被自动装载，文档不会。这是**有意偏离计划的一处落点**，不是遗漏。
+阶段报告本身在 `docs/stages/step-1.md`，里面带着 2026-10-06 那次**锚点复验**（版本线真相、
+`package.json#dsh` 的现行行号、以及 Step 1 当时漏掉的"插件图标通道"）；上游提案 P2 的范围
+也按那次复验缩窄了。
 
 ## 已排：按依赖顺序，不并行抢lane
 

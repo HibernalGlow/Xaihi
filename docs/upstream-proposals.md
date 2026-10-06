@@ -73,6 +73,14 @@
 所以 Xaihi 自开 `/xaihi/remotes/<slug>/<rev>/<file>` 前缀服务插件产物。功能上我们已解决，
 这条属便利项：宿主若原生支持"插件包内任意白名单后缀"，我们可以删掉自己的路由。
 
+**范围缩窄（2026-10-06 复验）**：宿主其实已经开了一条图片通道 —— `package.json#icon`
+（`@deepseek-ai/dsh-package-manifest/lib/types/types.d.ts:15`：SVG/PNG/JPEG/WebP、相对清单目录、
+≤256 KiB、realpath 解析后仍须在目录内），读出来以 **base64 data URL** 的形式进展示 DTO
+（同文件 `:49-50`；wire 侧 `@deepseek-ai/dsh-plugin-manager/lib/typert.host.js:90,119,137,155`）。
+所以本提案**不再包含图标**，只剩两件事：(1) 任意的非图标静态资源需要一个公开 URL
+（图标那条给的是内联 data URL，不是可引用的 URL）；(2) 展示端之外还有没有别的目录能按路径取。
+渲染端我们没实机验到（在桌面宿主 app 包里），所以这条也只当"已存在的能力"记录，不当已用能力。
+
 ## P3 · boot 期默认选中某个 main 面板
 
 `ctx.layout.selectPanel` 是运行时入口，没找到启动期的钩子；现在只能面板内首帧自选调或
