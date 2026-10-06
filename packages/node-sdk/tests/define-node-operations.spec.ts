@@ -51,6 +51,7 @@ function fakeJournal(): {
         progress: (progress) => push({ runId, nodeId: identity.nodeId, actionId: identity.actionId, kind: 'progress', progress }),
         preview: (payload) => push({ runId, nodeId: identity.nodeId, actionId: identity.actionId, kind: 'preview', payload }),
         resultView: (payload) => push({ runId, nodeId: identity.nodeId, actionId: identity.actionId, kind: 'result_view', payload }),
+        checkpoint: (payload) => push({ runId, nodeId: identity.nodeId, actionId: identity.actionId, kind: 'checkpoint', payload }),
       }
       return run
     },

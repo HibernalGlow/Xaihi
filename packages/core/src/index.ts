@@ -316,8 +316,14 @@ export function apply(ctx: HostContext, config: Config): void {
   // 只有订阅方看得见，而 journal 自己有上界。
   const ledger = openLedger(ctx.get('storageDomain') as DomainFacilityLike | undefined)
   const perRun = new Map<string, number>()
+  // 一个运行的检查点只留最后一条：节点通常是"先规划、再落盘最终那份撤销所需"。
+  const checkpoints = new Map<string, string>()
   ctx.effect(() => journal.subscribe((event: OperationEvent) => {
     perRun.set(event.runId, (perRun.get(event.runId) ?? 0) + 1)
+    if (event.kind === 'checkpoint') {
+      checkpoints.set(event.runId, JSON.stringify(event.payload ?? null))
+      return
+    }
     if (event.kind !== 'finished' && event.kind !== 'failed') return
     const run = journal.runs().find((entry) => entry.runId === event.runId)
     if (run === undefined) return
@@ -330,8 +336,10 @@ export function apply(ctx: HostContext, config: Config): void {
       outcome: event.kind === 'failed' ? 'failed' : 'finished',
       message: event.message ?? '',
       events: perRun.get(event.runId) ?? 0,
-      checkpoint: '',
+      checkpoint: checkpoints.get(event.runId) ?? '',
     }
+    checkpoints.delete(event.runId)
+    perRun.delete(event.runId)
     void ledger.then((opened: RunLedger) => opened.append(record), (error: unknown) => {
       console.warn(`xaihi-core: run ledger append failed for ${record.runId}: ${String(error instanceof Error ? error.message : error)}`)
     })

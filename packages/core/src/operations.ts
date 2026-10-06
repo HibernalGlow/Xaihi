@@ -125,6 +125,7 @@ export function createJournal(options: JournalOptions = {}): HostJournal {
         progress: (progress: OperationProgress) => emit('progress', { progress }),
         preview: (payload: unknown) => emit('preview', { payload }),
         resultView: (payload: unknown) => emit('result_view', { payload }),
+        checkpoint: (payload: unknown) => emit('checkpoint', { payload }),
       }
       return handle
     },

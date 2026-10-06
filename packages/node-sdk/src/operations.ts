@@ -67,7 +67,7 @@ export interface HistorySnapshot {
  * 事件种类。`started` / `finished` / `failed` 由 `defineNode` 自动补，节点不必操心；
  * `progress` / `preview` / `result_view` 只有节点自己知道什么时候发。
  */
-export const OPERATION_EVENT_KINDS = ['started', 'progress', 'preview', 'result_view', 'finished', 'failed'] as const
+export const OPERATION_EVENT_KINDS = ['started', 'progress', 'preview', 'result_view', 'checkpoint', 'finished', 'failed'] as const
 
 /** 事件种类。 */
 export type OperationEventKind = (typeof OPERATION_EVENT_KINDS)[number]
@@ -143,6 +143,12 @@ export interface OperationRun {
   preview(payload: unknown): void
   /** 结果视图：节点声明了 `resultExport` 时由它自己发。 */
   resultView(payload: unknown): void
+  /**
+   * 记下"要撤销这次得靠什么"。与 `preview` 的区别是用途不是时机：
+   * `preview` 给人看，`checkpoint` 给撤销用，会被耐久账目原样存下来。
+   * 一个运行只留最后一条。
+   */
+  checkpoint(payload: unknown): void
 }
 
 /** 空句柄：没有 journal 时动作也要能跑，因此进度上报必须是无操作而不是抛。 */
@@ -151,6 +157,7 @@ export const NULL_RUN: OperationRun = {
   progress() {},
   preview() {},
   resultView() {},
+  checkpoint() {},
 }
 
 /** 节点侧看到的运行账本面（core 实现它）。 */

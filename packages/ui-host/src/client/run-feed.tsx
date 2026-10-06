@@ -13,6 +13,7 @@ import {
   OPERATIONS_SCHEMA,
   OPERATIONS_SNAPSHOT_PATH,
   OPERATIONS_STREAM_PATH,
+  OPERATION_EVENT_KINDS,
   type ActiveRun,
   type OperationsSnapshot,
 } from '@hibernalglow/xaihi-sdk/operations'
@@ -84,7 +85,8 @@ export function useRuns(): { runs: ActiveRun[]; transport: FeedTransport } {
         // 攒出一份和宿主不一致的第二真源。
         void poll()
       }
-      for (const kind of ['started', 'progress', 'preview', 'result_view', 'finished', 'failed']) {
+      // 事件种类从契约取，别在这里再抄一份清单：加了新 kind 却忘了订阅是静默的错。
+      for (const kind of OPERATION_EVENT_KINDS) {
         source.addEventListener(kind, resync)
       }
       source.onerror = () => {
