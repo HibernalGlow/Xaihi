@@ -91,3 +91,58 @@
 `packages/client/web-react/README.md:19` 明说 `renderSlot` 是唯一渲染形式、无 Suspense
 集成。Xaihi 已在壳内自己扛异步边界（骨架 → 落定换组件 → 失败给原因 + 重载），
 所以这条是"能做就更干净"，不阻塞。
+
+## P5 · 产品文档可申请原生窗口（含 `window.open` 归属）
+
+**实测**（`master` @ 5badb150 / tag `dsh-v0.2.1-alpha.1`，2026-10-06 现读，全部 file:line）
+
+- `apps/desktop/src/main.ts:206` 定义 `createWindow(preload, show, primary)`，全仓唯一调用点在
+  `main.ts:1066`（`primary=true`）。欢迎窗、更新遮罩、强制更新窗、授权测试窗各自另有
+  `new BrowserWindow`，但没有一条路径是由产品文档发起的。
+- `main.ts:239-242` 把主窗口的所有 `window.open` 判成 `{action:'deny'}`，http(s) 甩给
+  `shell.openExternal` ⇒ 插件面板要"再开一个窗"，结果只会是**系统浏览器的一个窗口**，
+  拿不到原生窗、原生菜单与 tray 归属。
+- `apps/desktop/src/ipc.ts:8-34` 的 25 条通道里没有任何 window 动词；对外接口
+  `DshDesktopProductApi`（`ipc.ts:72-87`）只有 `browser / keyboard / shortcuts / deviceInfo / updates`。
+- `assertDesktopSender`（`ipc.ts:97-104`）只允许 `dsh-app://` 的白名单 hostname 走 IPC，
+  所以"插件自己找路子开"这条路也不存在——这是有意的设计，不是漏了。
+
+**为什么是缺口**：一个工作台型产品天然要"把某个面板/某次运行拎到旁边那块屏上"。现在的形状下
+第三方只能把内容塞进宿主唯一那份文档，尺寸与可见性都被主窗绑住。
+
+**建议的最小改法**：给产品文档一条受控的开窗动词，例如
+`desktopApi.windows.open({ url, features })`，其中 `url` 必须落在**同一个已认证宿主 origin** 下
+（复用 `ipc.ts:97-104` 的 sender 校验，不要新造信任边界），`features` 只接受尺寸/位置一类；
+`setWindowOpenHandler`（`main.ts:239-242`）对这种请求改成 `allow`，其余照旧 deny。
+子窗生命周期、关闭确认、任务中断检查可以沿用 `quit-inspection` 那一套（README 里"每次退出先问宿主"）。
+
+**我们现在怎么绕开**：不绕。原生多窗这一格在 Xaihi 里显式空着，由**同级独立仓**自己出壳实现
+（`docs/adr/0011-desktop-shell-is-a-sibling-vendor-repo.md`），官方桌面端与 `dsh web` 下
+Xaihi 只有主窗一条腿、并且界面能读出"这是单窗形态"。本提案落地后那条 patch 就撤。
+
+## P6 · 桌面端 profile 可选 / guest 允许宿主 origin 的具名路由
+
+两个方向都封着（同一批 file:line）：
+
+- **Electron 侧写死**：`apps/desktop/src/paths.ts:19-20` 固定 `join(dshHome,'profiles','desktop')`，
+  `main.ts:98/320` 调用 `resolveDesktopPaths()` 时不传参；`apps/desktop` 里出现的 44 个
+  `DSH_DESKTOP_*` 变量（APP_ID / NODE_BINARY / NPM_REGISTRY / PRIMARY_RUNTIME_DIR / USER_DATA_DIR /
+  DSH_DIR …）**没有任何一个**能改 profile 名。能改的只有 `DSH_HOME`（`scripts/dev.ts:66`）。
+- **CLI 反向封禁**：`apps/cli/src/args.ts:84-85` `error: profile "desktop" is managed exclusively
+  by the Electron application`；`args.ts:143,195` 的 `manageDesktopProfile` 只对桌面端自己安装的
+  carrier 放行；`apps/cli/src/plugin.ts:10-12` 要求"先开一次桌面端把 profile 初始化出来，
+  然后完全退出"。⇒ npm 装的那条 `dsh` 既不能 boot 也不能写 `profiles/desktop`。
+- **内嵌 guest 挡住宿主 origin**：`apps/desktop/src/browser-guests.ts:29` 的租约模型本来支持多个
+  `<webview>` guest（每 workspace 一份分区），但 `configureSession`（:141-146）关掉全部权限与下载，
+  `isHostRequest`（:164-168）按 **端口 + hostname** 拒绝宿主 ⇒ 不能拿 guest 跑第三方产品自己的文档。
+
+**建议的最小改法**（任一条就够，越靠前越省事）：
+
+1. `DSH_DESKTOP_PROFILE`（或 `--profile`）允许把桌面端指向 `profiles/<name>`，默认仍是 `desktop`。
+   独占语义不用改——只是把那个名字变成可配。
+2. 或者给 guest 开一条**按路径前缀**的例外：允许宿主 origin 下由插件自己声明的具名路由
+   （Xaihi 侧是 `/xaihi/*`），其余照旧拒绝。这样"多份独立文档"在现有单窗壳里就能做，
+   也就不需要 P5 的开窗动词。
+
+**我们现在怎么绕开**：不绕。多窗与"自己的文档"两条都在 Xaihi-Desktop 那侧自己实现，
+本仓不往 `profiles/desktop` 写任何文件（见 ADR-0011 决定 4 的降级铁律）。
