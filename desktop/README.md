@@ -39,6 +39,7 @@ node desktop/sync-dsh.mjs --proxy http://127.0.0.1:7890   # 上游在本机要�
 | 全量工作树（脚本口径，含 `.git`） | 151.6 MiB |
 | Desktop 的 workspace 闭包 | **308/338** 个包 ⇒ 314 个检出目录 |
 | `--sparse` 之后 | 101.0 MiB，**省 50.6 MiB（33%）**；裁掉的是 `docs` 21.7、`.agents` 17.7、`snapshots` 6.6、`scripts` 4.0（`scripts` 已改回必带） |
+| vendor 装完（`pnpm install --ignore-scripts`，pnpm 自动切到上游的 11.7.0） | **42.8 s**；`node_modules` 用 `du` 量是 **1,931,100 KB ≈ 1.84 GiB**（`--size` 里那个 `node_modules_lower_bound` 会少报——pnpm 是 symlink 树，我的 `bytes()` 不解引用）；工作树从 151.6 MiB 涨到 159.8 MiB，多出来的是 `tsc -b` 吐在各包 `lib/` 里的产物（现读 43 个 `packages/*/*/lib`） |
 | 重放幂等 | 连跑两次 `sync` ⇒ `head` 与 `tree` 哈希**逐字相同**（`0b04cd40` / `28898fc8c8d9`）；这条以前不成立，是提交时间没钉住导致的，现在 `git am` 的 `GIT_COMMITTER_DATE` 钉在 pin 上 |
 
 四条阳性对照都跑过，全部按预期变红（`--verify` 的 rc 是不带管道单独测的：无 patch ⇒ rc=1，有 patch ⇒ rc=0）：丢掉 patch 后 `--check` 红（`patch 数不符：树上有 0 个，
@@ -73,6 +74,14 @@ vendor 里那份上游 workspace 定义不会自动并进来。
 
 - 0001 只给了"主文档发起、按 `node` 开窗"这一格：二级窗不接 `shortcuts.attach` / `browserGuests.bind`，
   也不能再开第三级窗（守卫是 `assertProductSender`，主语是主窗）。
+- **类型层的归因（今天跑过一轮，结论是"还不能下判断"）**：`pnpm exec tsc -b apps/desktop` 在
+  打过 patch 的树上报 2 条错，都在 `packages/client/product-analytics/src/client/index.ts`
+  （`Property 'productAnalytics' does not exist on type 'ClientRemote'`）。把 patch 摘掉重跑同一份命令，
+  **错误集逐字相同**（`diff` 排序后的 `error TS…` 两份 ⇒ 空）⇒ 这两条与我的 patch 无关，
+  成因是我 `--ignore-scripts` 装的树里缺 `lib/typert.host.d.ts` 那批产物。
+  **但这不等于 patch 被类型检查过了**：`tsc -b` 停在那个包上就再没往下走，`apps/desktop/lib` 根本不存在
+  ⇒ desktop 项目自身（也就是我改的三个文件）**一行都没被编到**。正在跑上游的
+  `pnpm run build:lib:host`（日志 `/tmp/vendor-build-host.log`），它绿了才有资格谈类型结论。
 - **验证强度**：三处改动 `node --check` rc=0，且扰动对照能抓（rc=1）⇒ 语法是真的；
   `ipc.ts` 的三条 import 全是 `import type`（会被剥掉），所以它能直接跑：
   `node --experimental-strip-types` 加载后断言 `DESKTOP_IPC` **26 条通道**、

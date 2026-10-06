@@ -91,7 +91,8 @@ function bytes (path) {
     const current = stack.pop()
     for (const entry of readdirSync(current, { withFileTypes: true })) {
       const child = join(current, entry.name)
-      if (entry.isDirectory()) stack.push(child)
+      // node_modules 单独报：它是安装产物（今天实测 1.8 GiB），混进"工作树"里读数就没意义了。
+      if (entry.isDirectory()) { if (entry.name === 'node_modules') continue; stack.push(child) }
       else if (entry.isFile()) { try { total += statSync(child).size } catch { /* 竞态：只报下界 */ } }
     }
   }
@@ -224,7 +225,12 @@ if (flag('verify')) {
 
 if (flag('size')) {
   if (!existsSync(VENDOR)) fail('还没有 desktop/dsh')
-  console.log(`git_bytes=${bytes(join(VENDOR, '.git'))} tree_bytes=${bytes(VENDOR)} total=${mib(bytes(VENDOR))}（含 .git）`)
+  // submodule 的 .git 是一个 gitdir 文件，不是目录 —— 只能问 git 自己真身在哪儿。
+  const gitDir = String(git(['-C', VENDOR, 'rev-parse', '--absolute-git-dir'])).trim()
+  const nm = join(VENDOR, 'node_modules')
+  console.log(`tree_bytes=${bytes(VENDOR)}（不含 node_modules；submodule 下 .git 是指针文件，不计） `
+    + `git_dir=${gitDir} git_dir_bytes=${existsSync(gitDir) ? mib(bytes(gitDir)) : 'n/a'} `
+    + `node_modules_lower_bound=${existsSync(nm) ? mib(bytes(nm)) : '未安装'}（pnpm 是 symlink 树，这个口径会少报，真值问 du）`)
   process.exit(0)
 }
 
@@ -285,5 +291,5 @@ ensureAtPin(pin)
 const { total, applied } = applyPatches(pin.sha)
 const treeHash = String(git(['-C', VENDOR, 'rev-parse', 'HEAD^{tree}'])).trim()
 console.log(`sync-dsh: OK pin=${pin.sha.slice(0, 8)} head=${headSha().slice(0, 8)} tree=${treeHash.slice(0, 12)} `
-  + `patches=${applied}/${total} dirty=${dirtyCount()} work=${mib(bytes(VENDOR))} `
+  + `patches=${applied}/${total} dirty=${dirtyCount()} tree=${mib(bytes(VENDOR))} `
   + `elapsed_ms=${Date.now() - started} load1m=${load1m()} cpu=${cpus()}`)
