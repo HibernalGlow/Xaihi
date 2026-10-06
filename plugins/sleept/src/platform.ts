@@ -17,7 +17,7 @@
  */
 
 /** 本节点的动作，与 `package.json#xaihi.node` 的 actions 一一对应。 */
-export type SleeptAction = 'status' | 'block' | 'unblock' | 'sleep'
+export type SleeptAction = 'status' | 'block' | 'unblock' | 'sleep' | 'displayOff' | 'screensaver'
 
 /** 一次要执行的命令；`unblock` 不发命令（它杀住住的子进程），所以是 null。 */
 export interface PlannedCommand {
@@ -70,6 +70,11 @@ function planMac(action: SleeptAction, minutes: number | undefined): PlannedComm
     }
     case 'sleep':
       return { argv: ['pmset', 'sleepnow'], graceMs: 5_000, collect: true }
+    case 'displayOff':
+      // 只关屏幕，不睡眠：机器继续算，动一下键鼠就回来。可逆且不影响后台任务。
+      return { argv: ['pmset', 'displaysleepnow'], graceMs: 5_000, collect: true }
+    case 'screensaver':
+      return { argv: ['open', '-a', 'ScreenSaverEngine'], graceMs: 5_000, collect: true }
     case 'unblock':
       return null
   }
@@ -103,11 +108,32 @@ function planWindows(action: SleeptAction, options: { minutes?: number | undefin
       // 的 Sleep() 之前的那条路：写 ES 位之后交给 powrprof 的 SetSuspendState(bHibernate=FALSE)。
       return { argv: [POWERSHELL, '-NoProfile', '-NonInteractive', '-Command', WINDOWS_SLEEP_SCRIPT], graceMs: 5_000, collect: true }
     }
+    case 'displayOff':
+      return { argv: [POWERSHELL, '-NoProfile', '-NonInteractive', '-Command', WINDOWS_MONITOR_OFF_SCRIPT], graceMs: 8_000, collect: true }
+    case 'screensaver':
+      return { argv: [POWERSHELL, '-NoProfile', '-NonInteractive', '-Command', WINDOWS_SCREENSAVER_SCRIPT], graceMs: 8_000, collect: true }
     case 'unblock':
       return null
   }
   return null
 }
+
+/**
+ * Windows 上"关屏 / 起屏保"都是给活动窗口广播一条 WM_SYSCOMMAND。
+ * 常量固定：`SC_MONITORPOWER = 0xF170`（参数 2 = 关）、`SC_SCREENSAVE = 0xF140`。
+ * 这里没有本地化文字可依赖，所以判据全在码值上 —— 与 platform.ts 顶部的解析纪律一致。
+ */
+const SEND_MESSAGE_PINVOKE = "Add-Type -Namespace Xaihi -Name Win -MemberDefinition '[DllImport(\"user32.dll\", SetLastError=true)] public static extern IntPtr SendMessageW(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);'"
+
+export const WINDOWS_MONITOR_OFF_SCRIPT = [
+  SEND_MESSAGE_PINVOKE,
+  '[Xaihi.Win]::SendMessageW([IntPtr]0xffff, 0xF170, [IntPtr]2, [IntPtr]0) | Out-Null',
+].join('; ')
+
+export const WINDOWS_SCREENSAVER_SCRIPT = [
+  SEND_MESSAGE_PINVOKE,
+  '[Xaihi.Win]::SendMessageW([IntPtr]0xffff, 0xF140, [IntPtr]0, [IntPtr]0) | Out-Null',
+].join('; ')
 
 /** 状态采集：一律走 ASCII 别名，不读任何本地化标签。 */
 export const WINDOWS_STATUS_SCRIPT = [

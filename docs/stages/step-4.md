@@ -456,7 +456,39 @@ token 分层全归 `ctx.theme`，我们只是它的一个 override 来源（它�
 等参数**内核里都在**、也仍是默认值生效，只是没进工具参数表（表单先窄，逻辑不缩）；
 面板 UI（四个按钮之外）、以及把 `historyPath` 做成有读回的设置面，排在后面。
 
+## 15 批次 B 补：关屏与进屏保（用真机可测的两条替掉"必须真睡一次"）
 
+使用者指定：真睡眠可以不跑，先测**关闭屏幕**与**进入屏保**。这两条都比睡眠可逆得多，
+所以第一次拿到了"节点真的把电源动作发出去了"的实机证据。
 
+### 改了什么
 
+`sleept` 的动作从 4 个变 6 个：新增 `displayOff` 与 `screensaver`，两平台各一条 argv 计划：
 
+| 平台 | 关屏 | 屏保 |
+|---|---|---|
+| macOS | `pmset displaysleepnow` | `open -a ScreenSaverEngine` |
+| Windows | `SendMessageW(HWND_BROADCAST, SC_MONITORPOWER=0xF170, 2, 0)` | `SendMessageW(HWND_BROADCAST, SC_SCREENSAVE=0xF140, 0, 0)` |
+
+两者都**不声明危险**（关屏与屏保是可逆的显示状态，不动后台任务），所以也不走审批缝；
+`sleep` 仍然只有那一条是危险的。
+
+### 实机证据（这台 Mac，使用者授权后跑的）
+
+1. 关屏：`pmset -g log` 里 `Display is turned off` 计数 **97 → 98**，命令 rc=0。
+   尺是不可伪造的内核日志计数，不是"我看屏幕黑了"。
+2. 屏保：基线 `pgrep -x ScreenSaverEngine` 不在 → 启动后 **pid 6144 在** → `pkill` 收尾 →
+   再数已停。三步都打了出来，不是只看中间那一步。
+3. Windows（PTEROSAUR / Win11，SSH）：两条 PInvoke 脚本原样落盘执行，
+   **无任何错误输出** —— 说明 `Add-Type` 编过了 user32 声明且 `SendMessageW` 可调。
+4. **尺子校准（重要）**：故意把方法名写错的对照脚本 `SendMessageTypo` 输出了
+   `MethodNotFound` 异常，但 `powershell -File` 的**退出码照样是 0**。
+   所以 Windows 侧判据只能是"有没有错误文本"，不能用 rc；上面第 3 条成立的依据是
+   输出为空，不是 rc 为 0。SSH 子进程在会话 0，因此这条证的是**脚本有效性**，
+   不是"那块屏幕真的黑了"——差别写在这里，不混过去。
+
+### 顺手修的一处自伤
+
+加这两条的测试时，我用一个自称"no-op guard"的 replace 把 `planAssertionProbe` 的
+import 删掉了，门禁当场红在 `ReferenceError`。那是我自己写的注释与行为不符，
+不是移植件的问题；修回后 130 条全绿。

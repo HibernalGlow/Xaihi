@@ -11,11 +11,14 @@ import { readFileSync, realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
+  WINDOWS_MONITOR_OFF_SCRIPT,
+  WINDOWS_SCREENSAVER_SCRIPT,
   parseHibernateEnabled,
   parseMacAssertions,
   parseMacCustom,
   parsePowercfgSetting,
   planAssertionProbe,
+
   planCommand,
   windowsHoldScript,
 } from '../src/platform.ts'
@@ -57,6 +60,24 @@ describe('argv 计划', () => {
     expect(suspend?.argv.join(' ')).toContain('SetSuspendState($false, $true, $false)')
     // 阳性对照：真睡眠那条绝不能落到 hibernate=1 的参数上。
     expect(suspend?.argv.join(' ')).not.toContain('1,1,0')
+  })
+
+  it('mac：关屏与屏保是两条不同的命令，都不碰系统睡眠', () => {
+    expect(planCommand('darwin', 'displayOff')?.argv).toEqual(['pmset', 'displaysleepnow'])
+    expect(planCommand('darwin', 'screensaver')?.argv).toEqual(['open', '-a', 'ScreenSaverEngine'])
+    // 阳性对照：这两条都不许落到 sleepnow 上（那才是真睡眠）。
+    for (const action of ['displayOff', 'screensaver'] as const) {
+      expect(planCommand('darwin', action)?.argv).not.toContain('sleepnow')
+    }
+  })
+
+  it('win：SC_MONITORPOWER 与 SC_SCREENSAVE 是两个不同的码值', () => {
+    expect(WINDOWS_MONITOR_OFF_SCRIPT).toContain('0xF170')
+    expect(WINDOWS_MONITOR_OFF_SCRIPT).toContain('SendMessageW')
+    expect(WINDOWS_SCREENSAVER_SCRIPT).toContain('0xF140')
+    // 阳性对照：关屏脚本绝不能带屏保的码，反之同理。
+    expect(WINDOWS_MONITOR_OFF_SCRIPT).not.toContain('0xF140')
+    expect(WINDOWS_SCREENSAVER_SCRIPT).not.toContain('0xF170')
   })
 
   it('win：持有脚本带 ES_CONTINUOUS|ES_SYSTEM_REQUIRED，无限期时不自杀', () => {

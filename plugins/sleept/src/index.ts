@@ -171,6 +171,26 @@ export function apply(ctx: Context, config: Config): void {
         return state.held ? 'release requested, child still terminating' : 'nothing is held off'
       },
 
+      async displayOff({ run }) {
+        const command = mustPlan('displayOff')
+        const result = await runner.run(command)
+        run.resultView({ argv: command.argv, exitCode: result.exitCode })
+        if (result.exitCode !== 0) {
+          throw new Error(`sleept: ${command.argv.join(' ')} exited ${String(result.exitCode)}${result.errorText.trim() === '' ? '' : `: ${result.errorText.trim()}`}`)
+        }
+        return 'display turned off (system stays awake; any input wakes the screen)'
+      },
+
+      async screensaver({ run }) {
+        const command = mustPlan('screensaver')
+        const result = await runner.run(command)
+        run.resultView({ argv: command.argv, exitCode: result.exitCode })
+        if (result.exitCode !== 0) {
+          throw new Error(`sleept: ${command.argv.join(' ')} exited ${String(result.exitCode)}${result.errorText.trim() === '' ? '' : `: ${result.errorText.trim()}`}`)
+        }
+        return 'screensaver started'
+      },
+
       async sleep({ inputs, run }) {
         const allowHibernate = inputs.allowHibernate === true
         if (platform === 'win32' && allowHibernate) {
