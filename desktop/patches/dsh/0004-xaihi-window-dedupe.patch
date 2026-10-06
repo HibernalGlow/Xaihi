@@ -1,0 +1,155 @@
+From eb68ead4b12d5459d2f4b2d243d296cd4b682e8f Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 04:33:24 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E5=90=8C=E4=B8=80=E4=B8=AA=20node?=
+ =?utf-8?q?=20=E7=9A=84=E7=AA=97=E6=8C=89=E5=AF=BB=E5=9D=80=E9=94=AE?=
+ =?utf-8?q?=E5=8E=BB=E9=87=8D=EF=BC=8C=E9=87=8D=E5=A4=8D=E8=AF=B7=E6=B1=82?=
+ =?utf-8?q?=E8=81=9A=E7=84=A6=E6=97=A2=E6=9C=89=E7=AA=97=EF=BC=88Xaihi=20p?=
+ =?utf-8?q?atch=200004=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+两条开窗路（IPC 动词与 window.open 判策）汇进一处登记表：键是 xaihiWindowKey(target)（node 查询段，没有就是工作台本身）。命中存活窗 ⇒ restore/show/focus 并回报 alreadyOpen=true，不再叠第二个窗；关窗才从表里摘（并且只在"这张表里记的就是它自己"时摘，避免同名新窗被旧窗的 closed 事件误删）。
+
+为什么现在做：Xaihi 侧那个按钮还没接，先不去重，接上就是"点两下叠两窗"。open 的返回加 alreadyOpen 让界面能如实说"已经在那个窗里"，不假装新开了一个。
+
+纯函数部分实测：xaihiWindowKey 四条用例 rc=0（带 node / 不带 node / 值含空格 / 无法解析退回 workspace）。
+---
+ apps/desktop/src/ipc.ts                 |  2 +-
+ apps/desktop/src/main.ts                | 41 ++++++++++++++++---------
+ apps/desktop/src/preload-app.ts         |  2 +-
+ apps/desktop/src/xaihi-window-policy.ts | 11 +++++++
+ 4 files changed, 39 insertions(+), 17 deletions(-)
+
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+index ea4e42c..871b522 100644
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -87,7 +87,7 @@ export interface DshDesktopProductApi {
+    * member: stock Desktop and `dsh web` do not provide it, and Xaihi degrades visibly there.
+    */
+   readonly xaihiWindow?: {
+-    open(node: string): Promise<{ readonly windowId: number }>
++    open(node: string): Promise<{ readonly windowId: number, readonly alreadyOpen: boolean }>
+   }
+   readonly updates: {
+     status(): Promise<DesktopUpdatePresentation>
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index 1adc7f6..9490c2d 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -23,7 +23,7 @@ import {
+   type MenuItemConstructorOptions,
+ } from 'electron'
+ import { resolveDesktopPaths } from './paths.ts'
+-import { resolveXaihiDocumentTarget } from './xaihi-window-policy.ts'
++import { resolveXaihiDocumentTarget, xaihiWindowKey } from './xaihi-window-policy.ts'
+ import { DesktopProjectManager } from './project-manager.ts'
+ import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
+ import { DesktopPlatformView, PLATFORM_IPC, platformBounds } from './platform-view.ts'
+@@ -204,16 +204,31 @@ function platformLoginUrl(authorizeUrl: string): string {
+   return url.href
+ }
+ 
+-// Xaihi patch 0002: 由 window.open 转出来的原生窗。只做生命周期登记，不参与主窗的 hide-on-close。
+-const xaihiDocumentWindows = new Set<BrowserWindow>()
++// Xaihi patch 0002/0004: 由 window.open 或 IPC 动词转出来的原生窗，按它寻址的 node 去重。
++// 不参与主窗的 hide-on-close；重复请求聚焦既有的那一个，而不是叠第二个窗。
++const xaihiDocumentWindows = new Map<string, BrowserWindow>()
+ 
+-/** Open one secondary window for a URL the policy already accepted as Xaihi's own document. */
+-function openXaihiDocumentWindow (preload: string, target: string): BrowserWindow {
++export interface XaihiWindowOpening {
++  readonly window: BrowserWindow
++  readonly alreadyOpen: boolean
++}
++
++/** Open — or focus the live window for — one Xaihi document target the policy already accepted. */
++function openXaihiDocumentWindow (preload: string, target: string): XaihiWindowOpening {
++  const key = xaihiWindowKey(target)
++  const existing = xaihiDocumentWindows.get(key)
++  if (existing !== undefined && !existing.isDestroyed()) {
++    if (existing.isMinimized()) existing.restore()
++    existing.show()
++    existing.focus()
++    return { window: existing, alreadyOpen: true }
++  }
+   const window = createWindow(preload, true, false)
+-  xaihiDocumentWindows.add(window)
+-  window.on('closed', () => { xaihiDocumentWindows.delete(window) })
++  window.setTitle(`Xaihi \u00b7 ${key}`)
++  xaihiDocumentWindows.set(key, window)
++  window.on('closed', () => { if (xaihiDocumentWindows.get(key) === window) xaihiDocumentWindows.delete(key) })
+   void window.loadURL(target)
+-  return window
++  return { window, alreadyOpen: false }
+ }
+ 
+ function createWindow(preload: string, show = false, primary = false): BrowserWindow {
+@@ -253,7 +268,7 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
+     // Xaihi patch 0002: 页面递来的 URL 先过纯判策；不是自家文档就维持原样（外链交系统浏览器，其余 deny）。
+     const target = resolveXaihiDocumentTarget({ url, openerUrl: window.webContents.getURL() })
+     if (target !== undefined) {
+-      openXaihiDocumentWindow(preload, target)
++      openXaihiDocumentWindow(preload, target).window
+       return { action: 'deny' }
+     }
+     if (['http:', 'https:'].includes(new URL(url).protocol)) void shell.openExternal(url)
+@@ -727,7 +742,6 @@ async function main(): Promise<void> {
+   })
+ 
+   // Xaihi patch (ADR-0011 决定 3): 节点各自成窗 = 同一份 Xaihi 文档 + 只换 `node` 查询段。
+-  const xaihiWindows = new Map<number, BrowserWindow>()
+   const XAIHI_NODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/u
+   ipcMain.handle(DESKTOP_IPC.xaihiWindowOpen, (event, node: unknown) => {
+     assertProductSender(event)
+@@ -742,11 +756,8 @@ async function main(): Promise<void> {
+       throw new Error('xaihi desktop: node must match [a-z0-9][a-z0-9_-]{0,63}')
+     }
+     url.searchParams.set('node', node)
+-    const window = createWindow(appPreload, true, false)
+-    xaihiWindows.set(window.id, window)
+-    window.on('closed', () => { xaihiWindows.delete(window.id) })
+-    void window.loadURL(url.toString())
+-    return { windowId: window.id }
++    const opening = openXaihiDocumentWindow(appPreload, url.toString())
++    return { windowId: opening.window.id, alreadyOpen: opening.alreadyOpen }
+   })
+ 
+   session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['ws://127.0.0.1/*'] }, (details, callback) => {
+diff --git a/apps/desktop/src/preload-app.ts b/apps/desktop/src/preload-app.ts
+index 90f708a..0741bca 100644
+--- a/apps/desktop/src/preload-app.ts
++++ b/apps/desktop/src/preload-app.ts
+@@ -17,7 +17,7 @@ function createProductApi(): DshDesktopProductApi {
+     deviceInfo: () => ipcRenderer.invoke(DESKTOP_IPC.deviceInfo) as Promise<string>,
+     // Xaihi patch: 只在主文档上给，且失败由主进程按同一套守卫判（ADR-0011 决定 4 要求消费端探测式使用）。
+     xaihiWindow: {
+-      open: (node: string) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowOpen, node) as Promise<{ readonly windowId: number }>,
++      open: (node: string) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowOpen, node) as Promise<{ readonly windowId: number, readonly alreadyOpen: boolean }>,
+     },
+     keyboard: {
+       closeWindow: revision => ipcRenderer.invoke(DESKTOP_IPC.shortcutsCloseWindow, revision) as Promise<void>,
+diff --git a/apps/desktop/src/xaihi-window-policy.ts b/apps/desktop/src/xaihi-window-policy.ts
+index 3c71031..6880f76 100644
+--- a/apps/desktop/src/xaihi-window-policy.ts
++++ b/apps/desktop/src/xaihi-window-policy.ts
+@@ -50,3 +50,14 @@ export function resolveXaihiDocumentTarget (request: XaihiWindowRequest): string
+ function nodeValueAccepted (node: string): boolean {
+   return NODE_VALUE.test(node)
+ }
++
++/** The dedupe key for one Xaihi document window: the node it addresses, or the workbench itself. */
++export function xaihiWindowKey (url: string): string {
++  let parsed: URL
++  try {
++    parsed = new URL(url)
++  } catch {
++    return 'workspace'
++  }
++  return parsed.searchParams.get('node') ?? 'workspace'
++}
+-- 
+2.55.0
+

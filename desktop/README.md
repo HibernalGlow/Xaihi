@@ -33,7 +33,7 @@ node desktop/sync-dsh.mjs --reset      # 回到 pin，丢弃 patch 提交（手�
 #   cd desktop/dsh && pnpm install && pnpm run build      ← 少了 build，网关 lib/ 是空的
 #   cd desktop/dsh/apps/desktop && DSH_HOME=<隔离 home> XAIHI_DESKTOP_PROFILE=<profile> \
 #     pnpm exec tsx scripts/dev.ts --skip-build           ← 产物齐了才允许 --skip-build
-node desktop/live-check.mjs            # 对着跑着的壳验活体（13 条，含真 Xaihi 文档进第二窗）
+node desktop/live-check.mjs            # 对着跑着的壳验活体（18 条：产品文档面 / 真文档进第二窗 / 按 node 去重）
 node desktop/sync-dsh.mjs --proxy http://127.0.0.1:7890   # 上游在本机要过代理
 ```
 
@@ -46,6 +46,7 @@ node desktop/sync-dsh.mjs --proxy http://127.0.0.1:7890   # 上游在本机要�
 | Desktop 的 workspace 闭包 | **308/338** 个包 ⇒ 314 个检出目录 |
 | `--sparse` 之后 | 101.0 MiB，**省 50.6 MiB（33%）**；裁掉的是 `docs` 21.7、`.agents` 17.7、`snapshots` 6.6、`scripts` 4.0（`scripts` 已改回必带） |
 | vendor 装完（`pnpm install --ignore-scripts`，pnpm 自动切到上游的 11.7.0） | **42.8 s**；`node_modules` 用 `du` 量是 **1,931,100 KB ≈ 1.84 GiB**（`--size` 里那个 `node_modules_lower_bound` 会少报——pnpm 是 symlink 树，我的 `bytes()` 不解引用）；工作树从 151.6 MiB 涨到 159.8 MiB，多出来的是 `tsc -b` 吐在各包 `lib/` 里的产物（现读 43 个 `packages/*/*/lib`） |
+| 0004 之后重放 | 4 个 patch 全部重放，`head=7c54436f tree=64075225d5fb`；`pnpm --filter @deepseek-ai/dsh-desktop run build` **rc=0（0 条 TS 错）**，`lib/main.js` 里 `xaihiWindowKey` 命中 2 次 |
 | 重放幂等 | 连跑两次 `sync` ⇒ `head` 与 `tree` 哈希**逐字相同**（`0b04cd40` / `28898fc8c8d9`）；这条以前不成立，是提交时间没钉住导致的，现在 `git am` 的 `GIT_COMMITTER_DATE` 钉在 pin 上 |
 
 四条阳性对照都跑过，全部按预期变红（`--verify` 的 rc 是不带管道单独测的：无 patch ⇒ rc=1，有 patch ⇒ rc=0）：丢掉 patch 后 `--check` 红（`patch 数不符：树上有 0 个，

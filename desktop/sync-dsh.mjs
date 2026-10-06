@@ -78,6 +78,11 @@ function patchesOnTop (pinSha) {
   return typeof out === 'object' && out.failed ? -1 : Number.parseInt(String(out).trim(), 10)
 }
 
+/** 把 (值, 期望) 表跑一遍，返回判错的条目（0004 去重键的对照用）。 */
+function tableFilter (fn, table) {
+  return table.filter(([value, want]) => fn(value) !== want).map(([value, want]) => `${value}⇒${String(fn(value))}≠${want}`)
+}
+
 function patchFiles () {
   if (!existsSync(PATCH_DIR)) return []
   return readdirSync(PATCH_DIR).filter((f) => /^\d[0-9a-zA-Z-]*\.patch$/u.test(f)).sort().map((f) => join(PATCH_DIR, f))
@@ -266,6 +271,16 @@ if (flag('verify')) {
   if (!threw.includes('must match')) fail('verify: 0003 对坏形状太宽容（静默退回默认值算缺陷）')
   }
 
+  // 0004 的去重键也是纯函数：node 段决定是不是同一个窗，取不到就退回工作台本身。
+  const keyTable = [
+    ['dsh-app://app/xaihi/ui/0123456789ab/index.html?node=findz', 'findz'],
+    ['dsh-app://app/xaihi/ui/0123456789ab/index.html', 'workspace'],
+    ['不合法串', 'workspace'],
+  ]
+  const keyWrong = tableFilter(policy.xaihiWindowKey, keyTable)
+  console.log(`verify: 0004 去重键 ${String(keyTable.length)} 用例，判错 ${String(keyWrong.length)}`)
+  if (keyWrong.length > 0) fail(`verify: 0004 的键与用例不符 ⇒ ${String(keyWrong)}`)
+
   // 第二阶段：产物判据。lib/ 是上游 tsc 吐出来的，存在就说明这条通道真被编进了壳的
   // 主进程与 preload —— 源码里有定义 ≠ 落进了产物（这是构建绿却跑错代码那一类病的解药）。
   // 新文件要真进 program：tsc -b 的产物在 lib/types/，bundle 的在 lib/ —— 只查后者会漏掉新模块。
@@ -281,7 +296,7 @@ if (flag('verify')) {
     const mainJs = readFileSync(built[0], 'utf8')
     const preload = readFileSync(built[1], 'utf8')
     const inMain = mainJs.includes(want)
-    const policyWired = mainJs.includes('resolveXaihiDocumentTarget')
+    const policyWired = mainJs.includes('resolveXaihiDocumentTarget') && mainJs.includes('xaihiWindowKey')
     const inPreload = preload.includes(want)
     // 减法对照：一个不存在的通道名必须两个产物都找不到，否则这判据是白名单式的假绿。
     const ghost = mainJs.includes('dsh-desktop:xaihi-window-DOES-NOT-EXIST') || preload.includes('dsh-desktop:xaihi-window-DOES-NOT-EXIST')
