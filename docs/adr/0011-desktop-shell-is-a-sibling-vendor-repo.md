@@ -41,6 +41,9 @@ vendor 之后本仓会出现两条版本线与两套 workspace 定义。所以�
    和自己的打包脚本。`docs/roadmap.md`「明确不做」里的**独立桌面壳 / 自有更新器 / 自有 runtime**
    三条从此只对**本仓**成立，措辞要指名 Xaihi-Desktop 是这三样唯一的落点——不许下次有人把它当
    "还是别做"读回来，也不许有人在本仓里"顺手"长一条 runtime。
+   **【已被文末「改判」一节取代】** 壳改住本仓 `desktop/`，上游是 `desktop/dsh` 的 submodule；
+   保留的是"这三样住在 `desktop/` 那一层，而不是散进 `packages/`/`plugins/`"这一条。
+   本条原本给出的两条理由（workspace 语义、npm 体积）也在那一节被实测撤回。
 3. **窗口形状（这次使用者拍的）**：整个 Xaihi 一份自己的文档 ⇒ 一个原生窗；
    **节点本身支持各自独立成窗**（同一份 Xaihi 文档 + 节点寻址参数，不是每个节点一份产物）。
    这一条同时**接受 ADR-0009 的选项 (a)**："整个 Xaihi 用一份自己的文档、边界只放在 DSH↔Xaihi
@@ -100,3 +103,54 @@ vendor 之后本仓会出现两条版本线与两套 workspace 定义。所以�
 （`packages/core/src/routes.ts:101` 的 `UI_PATH_PREFIX = '/xaihi/ui'`，同文件 :155 的注释
 「文档壳 + 它的产物」），节点寻址参数也在里面——由另一条 lane 在提交 `0e4b61b` 里落的，
 不是我这次的产物。壳仓的 0001/0002 就是去开这份文档。
+
+## 改判（同日 23:0x）：桌面壳并入 Xaihi 仓，上游以 `git submodule` 锁版本
+
+**决定 2 与「待拍板」1/2 被本节取代**：不再有同级仓 `Xaihi-Desktop`，壳落在本仓 `desktop/`，
+上游是 `desktop/dsh`（submodule，锁 `dsh-v0.2.0-rc.2` = `639ed015…`），patch series 在
+`desktop/patches/dsh/`，同步与重放在 `desktop/sync-dsh.mjs`。标题里的 "sibling vendor repo"
+保留是为了不断账本——文件名也是历史。
+
+### 我原来的两条理由被实测推翻，撤回
+
+1. 「submodule 会把上游那份 `pnpm-workspace.yaml` 贴在我们 workspace 旁边，门禁语义要重写」——**错**。
+   pnpm 只按 `packages:` 里的 glob 认成员，`desktop/dsh` 不匹配 `packages/*` 或 `plugins/*`，
+   它就是一棵嵌套的源码树。
+2. 「npm 使用者会被迫拖 185 MB」——**错**。submodule 不是 npm 依赖，发布走 `files` 白名单；
+   而且这是使用者的个人项目，不存在第三方 clone。
+
+推翻它们的是探针，不是反方说法：在 `desktop/` 下放一份带 `@deepseek-ai/dsh@0.0.1-rc.1` 的诱饵
+manifest 加一份带旧品牌的 `.ts`，`check:pins` **rc=0**、`check:brand` 命中 **0**；把同一份诱饵挪进
+`packages/zzprobe` 立刻 **rc=1** 并被点名 `probe-b @deepseek-ai/dsh@0.0.1-rc.1`。
+根由是扫描根写死的：`check-pins.mjs:17` `GROUPS = ['packages', 'plugins']`（只走一层）、
+`check-installable.mjs:76` `roots = ['packages', 'plugins']`、`check-brand.mjs:89` 递归但根是
+`['packages', 'plugins', 'scripts']`。**这条性质要有人守**：谁把 `desktop` 加进任何尺的扫描根，
+就得连同探针一起重跑（判据与数字已抄进 `desktop/README.md`）。
+
+### 仍然成立的那几条（改判没有推翻它们）
+
+- 决定 4「降级铁律」原样有效：`xaihiWindow` 在类型上就是**可选成员**，读不到即退化。
+- 决定 5「版本对齐」：pin 与 `check:pins` 同档（都是 `0.2.0-rc.2`），`sync-dsh.mjs` 在 checkout
+  **之前**先验 tag 的 sha，错 pin 拒到落盘之外。
+- 「不复制它的运行时」：`desktop/dsh` 不进任何 npm 包的 `files`，不进 Xaihi 的依赖图，
+  它是壳的构建源码；Xaihi 的 bundle 仍然只经 npm/registry 装进 profile。
+- submodule 只管源码与锁版本，**不管** package closure：装机/打包走上游自己的
+  `core-package-set.ts` + `prepare-dsh.ts`（使用者特别点名的一条边界）。
+
+### 这一档新增的实测（pin `639ed015`，本机、走代理）
+
+| 读数 | 数字 |
+|---|---|
+| 浅单 tag clone | `.git` 38,490,804 B + 工作树 158,786,544 B ≈ 185 MiB，**49.2 s**（`load1m=42.22`/10 核，机器在满负荷） |
+| Desktop 的 workspace 闭包（在 pin 上重算） | **308/338** 个包 ⇒ 314 个检出目录；`--sparse` 151.6 MiB → 101.0 MiB，**省 50.6 MiB（33%）** |
+| 重放幂等 | 连跑两次 `sync` ⇒ `head`/`tree` 逐字相同（`0b04cd40` / `28898fc8c8d9`）。第一次做这条时**是红的**：`git am` 每次换 committer 时间 ⇒ sha 漂，治法是 `GIT_COMMITTER_DATE` 钉在 pin |
+| 三条阳性对照 | 丢 patch ⇒ `--check` 红；错 pin ⇒ 红且 HEAD 未移动；扰动 patch 的上下文行 ⇒ `sync` 红、`am --abort`、树退回 pin、脏文件 0 |
+| 0001 的验证强度 | 三处改动 `node --check` rc=0，且"故意写坏一份能被抓"（扰动对照 rc=1）⇒ **parse-verified only**，未跑上游 `tsc`（那需要整个 vendor `pnpm install`） |
+
+### 与 `AGENTS.md` 的冲突及处理
+
+`AGENTS.md` 禁 `git add/commit` 并要求写操作走 GitButler，但 **submodule 注册没有 `but` 等价物**
+（`git submodule add` 是唯一入口）。处理：注册这一步留作**被点名的 raw-git 例外**，已写进
+`AGENTS.md`；其余（含 gitlink 的提交）仍走 `but commit`，并且提交后要 `git ls-tree` 读回 160000
+那条才算落地——`but status` 会把 `desktop/dsh` 当一条普通变更显示（实测 id `sspk`），
+但这不等于它真进了提交。

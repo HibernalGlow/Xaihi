@@ -1,0 +1,6 @@
+[submodule "desktop/dsh"]
+	path = desktop/dsh
+	url = https://github.com/deepseek-ai/deepseek-harness.git
+	# gitlink 永远指 pin：patch 只活在工作树里，由 sync-dsh 重放。
+	# 不设 ignore=all 的话每次 sync 之后本仓会永久脏一条 submodule 变更。
+	ignore = all

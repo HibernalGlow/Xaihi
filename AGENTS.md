@@ -51,10 +51,20 @@ Xaihi 是跑在 DeepSeek Harness（DSH）上的**工作台扩展框架 + 领域�
 - 版本闸门：所有 `@deepseek-ai/dsh*` 必须精确 `0.2.0-rc.2`（`check:pins`；npm 上若干包的 `latest`
   标签停在 `0.0.1-rc.1`，裸 `pnpm add` 会把整个生态悄悄降到不存在的 API 世代）。
 - 装进 profile 的包不许引用 `@hibernalglow/*`（profile 解析不了仓内包，ADR-0002；`check:installable`）。
-- **上一条的"自己长通路"禁令只对本仓有效，但它的例外不在本仓里。** 官方桌面端给不了的原生能力
-  （原生多窗口、自己的文档窗）由**同级独立仓 `Xaihi-Desktop`** 持 vendor + `patches/dsh/` 实现；
-  **本仓仍然不 vendor、不 patch、不引 Electron**（判据与数字见 `docs/adr/0011-*.md`）。
-  壳仓 vendor 的上游 commit 必须与 `check:pins` 同档，不一致要成为 ADR-0011 里被点名的追加决定。
+- **桌面壳住在本仓的 `desktop/` 那一层，不住 `packages/` 或 `plugins/`。** 官方桌面端给不了的原生能力
+  （原生多窗口、Xaihi 自己的文档窗）在那里做：`desktop/dsh` 是上游的 **submodule**（锁
+  `desktop/UPSTREAM_PIN`），我们的改动是 `desktop/patches/dsh/*.patch`，重放靠
+  `node desktop/sync-dsh.mjs`（判据与数字见 `docs/adr/0011-*.md` 与 `desktop/README.md`）。
+  边界有两条：submodule 只管"拿源码 + 锁版本"，**package closure 仍走上游自己的
+  `core-package-set.ts` / `prepare-dsh.ts`**；pin 必须与 `check:pins` 同档，不一致要成为 ADR-0011 里
+  被逐地点名的追加决定。**`packages/` 与 `plugins/` 里不许出现 Electron、上游源码或 `@deepseek-ai/dsh`
+  的本地路径**——那三样进了依赖图就等于把这条边界拆掉。
+- **`desktop/` 不许进任何门禁的扫描根。** 实测：`check:pins`（`GROUPS=['packages','plugins']`，只走一层）、
+  `check:installable`（同）、`check:brand`（递归但根是 `packages/plugins/scripts`）对 `desktop/` 下的
+  诱饵 manifest 与旧品牌 `.ts` **全部无感**（rc=0、命中 0），而同一份诱饵放进 `packages/` 立刻红并点名。
+  要把 `desktop` 加进任何尺的根，就得连那条探针一起重跑，并把新数字写回 `desktop/README.md`。
+- **submodule 注册是 `git submodule add` 的例外**（没有 `but` 等价物）。除这一步以外，写操作仍一律走
+  GitButler；gitlink 提交后要 `git ls-tree` 读回 `160000` 那条才算落地。
 - **降级铁律**（ADR-0011 决定 4）：任何只有自家壳才支持的能力，bundle 侧必须探测 → 退化 →
   **退化状态在界面上读得回来**。官方桌面端与 `dsh web` 下可以功能退化，不许崩、不许静默、
   更不许伪造。一个节点若只能在自家壳里工作且没有可见退化，就是违反了这条，按违反处理。

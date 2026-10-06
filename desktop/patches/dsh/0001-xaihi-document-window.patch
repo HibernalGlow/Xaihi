@@ -1,0 +1,104 @@
+From a34b84b7d88ff7a09dc480abf1eb0d758a167263 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Tue, 6 Oct 2026 23:32:06 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E7=BB=99=20Xaihi=20=E9=82=A3?=
+ =?utf-8?q?=E4=BB=BD=E6=96=87=E6=A1=A3=E5=8A=A0=E4=B8=80=E6=9D=A1"?=
+ =?utf-8?q?=E5=86=8D=E5=BC=80=E4=B8=80=E7=AA=97"=E7=9A=84=E5=8A=A8?=
+ =?utf-8?q?=E8=AF=8D?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Xaihi patch 0001（ADR-0011 决定 3；对应 docs/upstream-proposals.md 的 P5）。主文档此前拿不到原生窗：createWindow 只在 main.ts 一处被调用成主窗，而产品文档的 window.open 全被 setWindowOpenHandler 判 deny 并甩给系统浏览器。
+
+地址不接受调用方输入：主进程读自己主文档的 URL，只替换 node 查询段，并要求路径落在 /xaihi/ui/<rev>/index.html；node 形状与 Xaihi 侧 packages/core/src/routes.ts 的 NODE_PATTERN 一致。守卫沿用 assertProductSender（= 只有主窗的主帧能发起，因此二级窗不能再开窗）。
+
+已知边界（这一批故意不做）：二级窗不接 shortcuts.attach 与 browserGuests.bind；xaihiWindow 在类型上是可选成员，官方 Desktop 与 dsh web 下读不到即退化（ADR-0011 决定 4）。
+
+验证：node --check 三份文件 rc=0，且扰动对照能抓（parse-verified only，未跑 tsc —— 需要 vendor 的 node_modules）。
+---
+ apps/desktop/src/ipc.ts         | 10 ++++++++++
+ apps/desktop/src/main.ts        | 23 +++++++++++++++++++++++
+ apps/desktop/src/preload-app.ts |  4 ++++
+ 3 files changed, 37 insertions(+)
+
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+index fc19021..ea4e42c 100644
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -31,6 +31,7 @@ export const DESKTOP_IPC = {
+   windowFullscreen: 'dsh-desktop:window-fullscreen',
+   windowsAppearance: 'dsh-desktop:windows-appearance',
+   windowsMenu: 'dsh-desktop:windows-menu',
++  xaihiWindowOpen: 'dsh-desktop:xaihi-window-open',
+ } as const
+ 
+ /** Desktop release update state rendered by desktop-owned UI. */
+@@ -79,6 +80,15 @@ export interface DshDesktopProductApi {
+    * @returns `name=value` fields separated by `; `, with no hostname, user name, or serial number.
+    */
+   deviceInfo(): Promise<string>
++  /**
++   * Xaihi patch (ADR-0011 决定 3): open one more native window for Xaihi's own document.
++   * The caller names only a node id — the shell rewrites its own primary document URL, so no
++   * caller-supplied path or origin ever reaches `loadURL`. Consumers must feature-detect this
++   * member: stock Desktop and `dsh web` do not provide it, and Xaihi degrades visibly there.
++   */
++  readonly xaihiWindow?: {
++    open(node: string): Promise<{ readonly windowId: number }>
++  }
+   readonly updates: {
+     status(): Promise<DesktopUpdatePresentation>
+     open(): Promise<void>
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index b4b8153..6f2b0af 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -707,6 +707,29 @@ async function main(): Promise<void> {
+     return browserGuests.release(event.sender, lease)
+   })
+ 
++  // Xaihi patch (ADR-0011 决定 3): 节点各自成窗 = 同一份 Xaihi 文档 + 只换 `node` 查询段。
++  const xaihiWindows = new Map<number, BrowserWindow>()
++  const XAIHI_NODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/u
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowOpen, (event, node: unknown) => {
++    assertProductSender(event)
++    const primary = mainWindow
++    if (primary === undefined || primary.isDestroyed()) throw new Error('xaihi desktop: primary document is unavailable')
++    const url = new URL(primary.webContents.getURL())
++    if (url.protocol !== `${SCHEME}:` || url.hostname !== 'app'
++      || !url.pathname.startsWith('/xaihi/ui/') || !url.pathname.endsWith('/index.html')) {
++      throw new Error('xaihi desktop: only the Xaihi UI document may open a window')
++    }
++    if (typeof node !== 'string' || !XAIHI_NODE_PATTERN.test(node)) {
++      throw new Error('xaihi desktop: node must match [a-z0-9][a-z0-9_-]{0,63}')
++    }
++    url.searchParams.set('node', node)
++    const window = createWindow(appPreload, true, false)
++    xaihiWindows.set(window.id, window)
++    window.on('closed', () => { xaihiWindows.delete(window.id) })
++    void window.loadURL(url.toString())
++    return { windowId: window.id }
++  })
++
+   session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['ws://127.0.0.1/*'] }, (details, callback) => {
+     if (hostUrl === undefined || hostCookie === undefined || details.webContentsId !== mainWindow?.webContents.id) {
+       callback({})
+diff --git a/apps/desktop/src/preload-app.ts b/apps/desktop/src/preload-app.ts
+index f590b8b..90f708a 100644
+--- a/apps/desktop/src/preload-app.ts
++++ b/apps/desktop/src/preload-app.ts
+@@ -15,6 +15,10 @@ function createProductApi(): DshDesktopProductApi {
+     protocolVersion: 1,
+     browser: createDesktopBrowserBridge(),
+     deviceInfo: () => ipcRenderer.invoke(DESKTOP_IPC.deviceInfo) as Promise<string>,
++    // Xaihi patch: 只在主文档上给，且失败由主进程按同一套守卫判（ADR-0011 决定 4 要求消费端探测式使用）。
++    xaihiWindow: {
++      open: (node: string) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowOpen, node) as Promise<{ readonly windowId: number }>,
++    },
+     keyboard: {
+       closeWindow: revision => ipcRenderer.invoke(DESKTOP_IPC.shortcutsCloseWindow, revision) as Promise<void>,
+       subscribe: (listener) => {
+-- 
+2.55.0
+
