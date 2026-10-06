@@ -59,9 +59,9 @@ import type { CrashuData, CrashuInput, CrashuResult } from "./crashu-core.ts"
 import type { MigratefData, MigratefInput, MigratefResult, MigratePlanItem } from "./migratef-core.ts"
 import type { SameaData, SameaInput, SameaResult } from "./samea-core.ts"
 import { isArchiveFile, selectSinglePackFolderSources } from "./repacku-core.ts"
-import { isClassfBlacklistedArtist } from "./blacklist.ts"
+import { DEFAULT_CLASSF_BLACKLIST_KEYWORDS, isClassfBlacklistedArtist } from "./blacklist.ts"
 
-export { extractSameaArtistKeywords, mergeClassfBlacklistKeywords, parseSameaArtistLabel, splitSameaArtistAndCircleKeywords, stripOuterKeywordBrackets } from "./blacklist.ts"
+export { DEFAULT_CLASSF_BLACKLIST_KEYWORDS, extractSameaArtistKeywords, mergeClassfBlacklistKeywords, parseSameaArtistLabel, splitSameaArtistAndCircleKeywords, stripOuterKeywordBrackets } from "./blacklist.ts"
 
 export type ClassfAction = "plan" | "classify"
 export type ClassfTransferMode = "move" | "copy"
@@ -119,8 +119,10 @@ const DEFAULT_CRASHU_THRESHOLD = 0.8
  * and a minimum of three successful deletions. SameA labels keep their
  * brackets to prevent common author names from
  * accidentally matching unrelated groups.
+ *
+ * 这份数组的定义点在 `./blacklist.ts`（上面 import + 再导出）：搬来的界面三处都从
+ * `@xiranite/node-classf/blacklist` 取它，而本包其余六条判据早就是"叶子定义、core 再导出"的形状。
  */
-export const DEFAULT_CLASSF_BLACKLIST_KEYWORDS = ["[OgoG]", "[ぶたコマ300g]", "[すいせいむし]", "[ダツマ69]", "[ヤキカルビー]"]
 
 export function normalizeClassfInput(input: ClassfInput) {
   const legacyQueues = legacyQueueSettings(input.classifyMode)

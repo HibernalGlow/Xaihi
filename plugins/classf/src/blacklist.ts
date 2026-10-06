@@ -26,6 +26,17 @@
 
 import { extractArtist, normalizeSameaInput } from './samea-core.ts'
 
+/**
+ * 默认黑名单标签。这份**定义住在这里**（不是 core.ts 里那份的副本）：
+ * 搬来的界面三处都从 `@xiranite/node-classf/blacklist` 取它
+ * （`packages/ui-host/src/nodes/classf/{Component,BlacklistKeywordsEditor,ClassfBlacklistQuickAddDialog}.tsx`），
+ * 而本包 `core.ts` 早就把其余六条判据做成"叶子定义、core 再导出"的形状，
+ * 只有这一条常量还留在 core 里 ⇒ 界面那条边指不到东西（文档构建报
+ * `export 'DEFAULT_CLASSF_BLACKLIST_KEYWORDS' ... not found in '@xiranite/node-classf/blacklist'` ×3）。
+ * 数组字面量与基线逐字符相同（noxide `core.ts:123` 与上游当下 `blacklist.ts:13` 是同一串）。
+ */
+export const DEFAULT_CLASSF_BLACKLIST_KEYWORDS = ["[OgoG]", "[ぶたコマ300g]", "[すいせいむし]", "[ダツマ69]", "[ヤキカルビー]"]
+
 const sameaArtistInput = normalizeSameaInput({})
 
 /**

@@ -26,6 +26,11 @@
       "reason": "core.ts 顶部多一条 import 并把 countdownSeconds / formatDuration 的定义移到同包 duration.ts，core.ts 再 re-export 回来（两份函数体逐字取自基线 core.ts:116-126，本体未改）。为何必须这么拆：搬运来的界面 src/nodes/sleept/Component.tsx:5 value-import @xiranite/node-sleept/duration，而 ADR-0007 决定 4 禁的是'面里 value-import 节点 core'（面就成了第二个执行宿主）；把这两个纯算术函数单独成文件正是上游 master 的同一刀（其 duration.ts 的文件头理由与此相同）。实测：sleept test:unit rc=0（43 条）、typecheck rc=0、build rc=0、check-node-bundle rc=0、build-aliases 同步 rc=0；文档构建的 @xiranite/node-sleept/{duration,interaction} 两条边因此消失（5 → 3 条错，剩 3 条全在 RuntimeSection.tsx，属并发 lane）。",
       "ours": "ef23580cc069bf3cf16ea66794199346b036e914593da7df09ba57ad346da64f",
       "declaredAt": "2026-10-06T19:10"
+    },
+    "plugins/classf/src/core.ts": {
+      "reason": "DEFAULT_CLASSF_BLACKLIST_KEYWORDS 的定义点从 core.ts 移到同包 ./blacklist.ts，core.ts 改成 import + 再导出（数组字面量逐字符不变，判据不变）。为何必须移：搬来的界面三处 value-import @xiranite/node-classf/blacklist 的那个名字（packages/ui-host/src/nodes/classf/{Component.tsx:4,BlacklistKeywordsEditor.tsx:2,ClassfBlacklistQuickAddDialog.tsx:2}），基线里它住在 core.ts:123 ⇒ 文档构建报 export not found ×3；而本包 core.ts 早就对其余六条判据做成'叶子定义、core 再导出'的形状（第 62/64 行原本是 import isClassfBlacklistedArtist + export 那六条），上游当下的 blacklist.ts:13 也正是这个位置。这一改是把最后一条并入同包既有形状，不是新发明、也不是新增第二份实现。实测：classf vitest 32 条 rc=0、tsc --noEmit rc=0、pnpm build rc=0。",
+      "ours": "7d647735ac83a73da474f4e8b32a9a28c1c8ce7eecd79aa3307ed604d0e7d4d1",
+      "declaredAt": "2026-10-06T19:50"
     }
   }
 }
