@@ -8,6 +8,10 @@ node_modules/
 /lib/
 /packages/*/lib/
 /packages/*/dist/
+# `dist-ui/`（真工作台）与 `dist-realm/`（realm 探针）是 rspack 的文档产物，同样只在包根。
+# 它们被本地那份隔离 profile 用绝对路径指过去（`core.uiBundleDir`），是一次性验证载体：
+# 提交它们只会让下一轮 `but status` 里多一条别人的整桶提交能顺手带走的 196 KB。
+/packages/*/dist-*/
 /plugins/*/lib/
 /plugins/*/dist/
 /examples/*/lib/

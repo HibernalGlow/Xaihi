@@ -13,3 +13,6 @@
 export * from './host-bridge.ts'
 export * from './bridge-document.ts'
 export * from './bridge-shell.ts'
+// `UiBundleFace` 的产地是 wire.ts（清单里那一格的形状），但 barrel 会把 Node 侧管线带进来，
+// 所以浏览器那侧从这条入口取。`export type` 不产生运行时请求，产物形状不变。
+export type { UiBundleFace } from './wire.ts'

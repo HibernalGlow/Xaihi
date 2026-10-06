@@ -35,7 +35,14 @@ function makeReport(): (line: string) => void {
   box.dataset.xaihiBridge = 'negotiation'
   box.style.cssText = 'position:fixed;left:8px;bottom:8px;margin:0;padding:6px 8px;font:11px/1.5 ui-monospace,monospace;background:rgba(0,0,0,.72);color:#fff;max-width:70%;white-space:pre-wrap'
   document.body.appendChild(box)
-  return (line: string) => { box.textContent = line }
+  // 追加而不是覆盖：协商那行（granted/refused）是判据本身，被后面那次往返顶掉就只剩结果、
+  // 读不回"外壳当时到底给了哪几组"。留最后 6 行，够看一次装载的整条因果。
+  const lines: string[] = []
+  return (line: string) => {
+    if (lines[lines.length - 1] === line) return
+    lines.push(line)
+    box.textContent = lines.slice(-6).join('\n')
+  }
 }
 
 /**
@@ -58,13 +65,37 @@ export function startRealm(): Realm | null {
   })
   report(`xaihi realm: rev=${boot.rev} node=${boot.node ?? ''} React=${reactVersion} · 等宿主握手`)
   bridge.hello(boot.node ?? '')
+  // 协商成功之后主动跑一次**真动词**：`config.get` 会穿过桥落到外壳的 settings 面，
+  // 对岸应答不回来就是 timeout/refused。只看 granted=[…] 证的是"外壳接了这条桥"，
+  // 而这条 realm 要的是"外壳能用上游那 9 组能力面服务这个文档"。
+  const probeRoundTrip = async (): Promise<void> => {
+    const started = Date.now()
+    try {
+      const value = await bridge.call('config.get')
+      const text = JSON.stringify(value) ?? 'undefined'
+      report(`xaihi realm: config.get 往返成功 ${String(Date.now() - started)}ms · ${text.slice(0, 160)}`)
+    } catch (error) {
+      const reason = (error as { reason?: string }).reason ?? 'unknown'
+      const detail = (error as { detail?: string }).detail ?? ''
+      report(`xaihi realm: config.get 没走通 reason=${reason}${detail === '' ? '' : ` · ${detail}`}（${String(Date.now() - started)}ms）`)
+    }
+  }
   const timer = setInterval(() => {
     const ready = bridge.ready()
-    report(ready === null
-      ? `xaihi realm: rev=${boot.rev} React=${reactVersion} · 等宿主握手（没应答=这条桥还没人接）`
-      : `xaihi realm: rev=${boot.rev} React=${reactVersion} granted=[${ready.granted.join(', ')}] refused=[${ready.refused.join(', ')}]`)
-    if (ready !== null) clearInterval(timer)
+    if (ready !== null) {
+      clearInterval(timer)
+      report(`xaihi realm: rev=${boot.rev} React=${reactVersion} granted=[${ready.granted.join(', ')}] refused=[${ready.refused.join(', ')}]`)
+      void probeRoundTrip()
+      return
+    }
+    report(`xaihi realm: rev=${boot.rev} React=${reactVersion} · 等宿主握手（没应答=这条桥还没人接）`)
   }, 200)
   setTimeout(() => clearInterval(timer), 8000)
+  // 句柄留在 window 上：现场读数（真宿主里那次）需要能从外层按同源 iframe 打一次调用。
+  ;(globalThis as { __XAIHI_REALM__?: { boot: XaihiUiBoot; bridge: DocumentBridge; probe: () => Promise<void> } }).__XAIHI_REALM__ = {
+    boot,
+    bridge,
+    probe: probeRoundTrip,
+  }
   return { boot, bridge, report }
 }

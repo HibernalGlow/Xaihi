@@ -9,7 +9,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, waitFor } from '@testing-library/react'
-import { createElement } from 'react'
+import { createElement, useEffect, useRef, useState } from 'react'
 import { MainSurface } from '../src/client/surface.tsx'
 import type { RootProps } from '../src/client/workspace.tsx'
 
@@ -69,6 +69,26 @@ describe('MainSurface 的选择', () => {
     expect(view.getByTestId('in-realm')).toBeTruthy()
     expect(view.container.querySelector('iframe')).toBeNull()
     release?.(jsonResponse({ ui: { documentUrl: '/xaihi/ui/0123456789ab/index.html', rev: '0123456789ab' } }))
+  })
+
+  it('外壳那一面自己带 hooks 时，换面不许把它记到本组件头上（宿主实测：React #300）', async () => {
+    // 2026-10-06 在真 DSH 宿主里读到的崩法：`slot entry crashed in 'main': Minified React error #300`
+    // = "Rendered fewer hooks than expected"。成因不是 React 版本，是 `inRealm(root)` 这种**当函数调**
+    // 的写法——被调组件的 hooks 记在调用方身上，于是 pending（调了它）→ document（没调）那一次
+    // 重渲染少了一整层 hook。真 `WorkspaceRoot` 恰好带 3 个 hooks，所以只有真组件上屏才暴露。
+    const Hooked = (props: RootProps) => {
+      useState(0)
+      useEffect(() => {})
+      useRef(null)
+      return createElement('div', { 'data-testid': 'in-realm' }, props.locale)
+    }
+    const fetcher = vi.fn(async () => jsonResponse({ ui: { documentUrl: '/xaihi/ui/0123456789ab/index.html', rev: '0123456789ab' } })) as unknown as typeof fetch
+    const noisy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const view = render(createElement(MainSurface, { ...rootProps(), inRealm: Hooked, fetcher }))
+    await waitFor(() => expect(view.container.querySelector('iframe.xaihi-document-frame')).not.toBeNull())
+    const hookError = noisy.mock.calls.flat().find((arg) => String(arg).includes('fewer hooks'))
+    noisy.mockRestore()
+    expect(hookError).toBeUndefined()
   })
 
   it('走外壳那一面时，props 原样送到（选择这一层不许把 t / locale / renderSlot / runCommand 丢掉）', async () => {

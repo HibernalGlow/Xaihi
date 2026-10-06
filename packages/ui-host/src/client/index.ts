@@ -30,7 +30,6 @@ import { createRemoteLoader } from './loader/remote-modules.ts'
 import { registerStyles } from './styles.ts'
 import { DEFAULT_DESIGN_THEME } from '../lib/design-theme/contract.ts'
 import { designHostLayer } from './theme/design-language.ts'
-import { WorkspaceRoot } from './workspace.tsx'
 import { MainSurface } from './surface.tsx'
 import { shellCapsFrom, type RemoteSettingsFace } from './shell-caps.ts'
 
@@ -367,10 +366,10 @@ export function apply(ctx: Context): void {
 
   const runCommand = makeRunCommand(ctx)
   // 这一格显示哪一面由宿主清单里 ui.documentUrl 这条**事实**决定（ADR-0009 那一刀）：
-  // 有 Xaihi 自己的文档产物就交给那个 iframe，没有就继续显示外壳现 realm 的那一面，
-  // 并把"为什么还是这一面"挂在 data-xaihi-reason 上（ADR-0011 决定 4 的降级铁律）。
-  // MainSurface 必须经 createElement 挂载而不是当函数直接调：它带 hooks，
-  // 直接调用会把它的状态挂到槽组件自己身上。
+  // 有 Xaihi 自己的文档产物就交给那个 iframe，没有就只显示那句读得回的原因。
+  // 这里**不**再把搬来的工作台交给壳：壳那一层是宿主的 React 18，19 写的元素穿不过槽契约
+  // （实测 #31 / reading 'S'），而槽入口一崩整格连带那座桥都会消失（实测 React #300）。
+  // 工作台只在 Xaihi 自己的文档里上屏；产物缺席时显示 `NoDocumentFace`（surface.tsx 的缺省）。
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main',
     key: MAIN_PANEL_KEY,
@@ -381,7 +380,6 @@ export function apply(ctx: Context): void {
     locale: activeLocale(ctx),
     renderSlot: (key) => props.renderSlot(key, {}),
     runCommand,
-    inRealm: WorkspaceRoot,
     caps,
   })))
 
