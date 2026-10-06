@@ -972,3 +972,73 @@ P1 一旦落地，要改的只有 `resolveAgent()` 里"从哪儿取值"这一处
 再把名字写进 `tokens.ts` 的回落位，`tokens.spec.ts` 与 `check-panels` 会各自兜住形状。
 **不许**照着前缀规律造名字。
 
+## 22 状态层与对比度门禁（`docs/roadmap.md` 的 R1 + R2 一起做掉）
+
+### 改了什么
+
+- `packages/ui-kit/src/tokens.ts` 的 `KIT_CSS` 补 M3 的**状态层**与**焦点环**：
+  `.xaihi-btn::after { background: currentColor; opacity: 0 }` +
+  `:hover::after .08` / `:active::after .12` / `:focus-visible { outline: 2px currentColor, offset 2px }`
+  / `[disabled]:hover::after 0`，输入框 `:focus-visible` 走 `--xaihi-primary`。
+  数字出处是 M3 的状态层定义（hover 8%、pressed/focus 12%，`disabled` 内容 38% 是原有那条）。
+  用 `currentColor` 叠而不是写死灰：叠加色自动跟着各变体自己的 on-color。
+- `packages/ui-host/tests/theme.spec.ts` 加 R2 的尺：`contrast()`（WCAG 2.1 相对亮度公式，
+  复用文件里已有的 `luminance()`）对**六对实际并排出现的文字**在明暗两侧都要求 ≥ 4.5，
+  并带三条对照：配对表非空、灰对灰必须判"不够"、黑对白必须判"很够"。
+
+### 证据
+
+1. 门禁：`pnpm -F @hibernalglow/xaihi-ui-kit run build|test:unit` rc=0（6 条）、
+   `pnpm -F @hibernalglow/xaihi-ui run test:unit` rc=0（**20 条**，含新的 AA 那条），
+   `pnpm -r run build` rc=0（16 条完成行），`sleept/dist/__federation_expose_Panel.js` 里
+   含 `xaihi-btn:hover`。
+2. 实测的 12 个比值（临时脚本跑 `xaihiMd3Layer()` 打印后删除该脚本；seed 默认 `#6750a4`、
+   variant FIDELITY）：
+
+   | 配对 | light | dark |
+   |---|---|---|
+   | 卡片正文 onSurface/surface | 16.20 | 14.35 |
+   | 说明文字 onSurfaceVariant/surface | 8.84 | 10.95 |
+   | 错误字 error/surface | 6.13 | 10.95 |
+   | text 按钮 primary/surface | 8.87 | 10.88 |
+   | filled 按钮 onPrimary/primary | 9.35 | 7.70 |
+   | **tonal 按钮 onSecondaryContainer/secondaryContainer** | **4.56** | **4.55** |
+
+   全部过 AA，但 **tonal 这一对只剩 0.05 的余量**：它是换 seed 之后第一个会翻红的配对。
+   这条写在这里而不是只写"全绿"，因为绿的范围本身是信息。
+3. 实机（隔离宿主 + profile `xaihi`，装了重编后的 sleept）：活面板的 filled 按钮
+   `color rgb(56, 30, 114)` / `background rgb(207, 188, 255)`，
+   `getComputedStyle(btn, '::after')` 读到 `opacity 0`、`background rgb(56, 30, 114)`
+   —— **叠加色就是该变体自己的 on-color**，这正是 `currentColor` 写法要的效果；
+   注入的样式表里 `.xaihi-btn::after`、`:hover::after{opacity:.08}`、`:active::after{opacity:.12}`、
+   `:focus-visible{outline:currentcolor solid 2px; offset 2px}`、`[disabled]:hover::after{0}`
+   五条规则逐条从 CSSOM 读出，`#xaihi-ui-kit` 仍只有 1 个标签。
+4. **没验到的那一侧**（不含糊）：`:hover` / `:focus-visible` 的**状态切换**没做实机读数。
+   两个原因都是环境：页面 `visibilityState=hidden`（截图工具已因此报过
+   `NATIVE_BROWSER_VIEWPORT_UNAVAILABLE` 的同族），且这次会话一起来就弹着
+   "添加一个 API Key" 的对话框（`opacity:0` 但仍是 `aria-modal`，指针与焦点会被它截走 ——
+   `§20` 记过一次它吞掉我打给 composer 的文本）。所以状态层验到**规则 + 静息值**，
+   悬停值与焦点值留给"可见浏览器"那一次（`docs/roadmap.md` R8 / 计划 D9 推后的 GUI 验收）。
+
+### 为什么这样设计
+
+- 状态层用叠加而不是 `filter: brightness()`：`brightness` 会把背景与文字一起改，M3 的语义是
+  "在容器上叠一层 on-color"，用 `::after` + `currentColor` 才是那个语义，而且天然适配三个变体
+  （filled 叠 onPrimary、tonal 叠 onSecondaryContainer、text 叠 primary），不需要各写一条。
+- AA 尺放 `ui-host` 而不是 `ui-kit`：比值要的是**具体颜色**，而具体颜色只有 MD3 桥那边算得出来
+  （`ui-kit` 里全是 `var()` 链，没有可算的数）。尺的判据也不写死配对，写的是"kit 里并排出现的
+  文字配对表"——加一类配对就加一行表。
+- 阈值取 4.5 不是我定的档位：面板字号 12–13px 属 WCAG 的普通文本，AA 对普通文本就是 4.5。
+
+### 与 DSH API 的关系
+
+无新增缝：这一条只动 kit 的规则表与一条单测。状态层与焦点环都不引入宿主颜色，仍然
+`--xaihi-*` → `--dsw-alias-*`（实测名）→ 兜底三层。
+
+### 后续扩展方式
+
+`docs/roadmap.md` 的 R1/R2 从此项变成已完成；剩下的 UI 侧欠账是 ripple（M3 的pressed 是波形而不是
+常量叠加）与 `#xaihi-ui-kit` 的规则仍不含 checkbox/switch/slider。可见浏览器那一次要补的读数是：
+悬停后 `::after` 的 opacity 从 0 变 .08、Tab 聚焦后 `outline` 宽 2px。
+
+

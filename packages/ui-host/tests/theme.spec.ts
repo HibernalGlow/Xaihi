@@ -32,9 +32,27 @@ function luminance(hex: string): number {
   return 0.2126 * red + 0.7152 * green + 0.0722 * blue
 }
 
+/** WCAG 2.1 对比度：(L1+0.05)/(L2+0.05)。这是 R2 的尺，不是设计真源。 */
+function contrast(first: string, second: string): number {
+  const a = luminance(first)
+  const b = luminance(second)
+  const lighter = Math.max(a, b)
+  const darker = Math.min(a, b)
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
+/** kit 里实际并排出现的文字配对（面板正文 13px、说明 12px ⇒ 都按 AA 的 4.5 判）。 */
+const TEXT_PAIRS: Array<[string, string, string]> = [
+  ['--xaihi-surface', '--xaihi-on-surface', '卡片正文'],
+  ['--xaihi-surface', '--xaihi-on-surface-variant', '卡片里的说明文字'],
+  ['--xaihi-surface', '--xaihi-error', '错误状态行'],
+  ['--xaihi-surface', '--xaihi-primary', 'text 变体按钮的字'],
+  ['--xaihi-primary', '--xaihi-on-primary', 'filled 按钮'],
+  ['--xaihi-secondary-container', '--xaihi-on-secondary-container', 'tonal 按钮'],
+]
+
 describe('material you 桥', () => {
-  it('每个别名都给齐明暗两值，且都是 #rrggbb', () => {
-    const aliases = Object.keys(layer)
+  it('每个别名都给齐明暗两值，且都是 #rrggbb', () => {    const aliases = Object.keys(layer)
     expect(aliases.length).toBeGreaterThan(5)
     for (const alias of aliases) {
       expect(HEX.test(mode(alias, 'light')), alias).toBe(true)
@@ -76,5 +94,20 @@ describe('material you 桥', () => {
     for (const [alias, accessor] of Object.entries(ALIAS_ACCESSORS)) {
       expect(table[accessor], `${alias} 依赖的 ${accessor}`).toBeDefined()
     }
+  })
+
+  it('AA：kit 里每一对并排出现的文字，明暗两侧都要 ≥ 4.5', () => {
+    // 先证配对表不是空的，否则下面的循环可以一趟都不跑还报绿。
+    expect(TEXT_PAIRS.length).toBeGreaterThanOrEqual(6)
+    for (const which of ['light', 'dark'] as const) {
+      for (const [backgroundAlias, foregroundAlias, label] of TEXT_PAIRS) {
+        const ratio = contrast(mode(backgroundAlias, which), mode(foregroundAlias, which))
+        expect(ratio, `${which} ${label}（${foregroundAlias} on ${backgroundAlias} = ${ratio.toFixed(2)}）`)
+          .toBeGreaterThanOrEqual(4.5)
+      }
+    }
+    // 阳性对照：同一把尺必须判得出"不够"与"很够"，否则 4.5 那条是空转。
+    expect(contrast('#777777', '#888888'), '灰对灰').toBeLessThan(4.5)
+    expect(contrast('#000000', '#ffffff'), '黑对白').toBeGreaterThan(20)
   })
 })

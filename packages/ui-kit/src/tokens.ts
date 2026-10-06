@@ -30,16 +30,29 @@ export const SPACE = { xs: 4, s: 8, m: 12, l: 16 } as const
 /** 一次注入的组件样式；id 保证多个 remote 各带一份副本时也只生效一次。 */
 export const STYLE_TAG_ID = 'xaihi-ui-kit'
 
+/**
+ * 组件规则表。
+ *
+ * 状态层的数字不是拍的：M3 的 state layer 用**前景色叠加**，hover 8%、pressed/focus 12%，
+ * `disabled` 的内容整体降到 38%。这里用 `::after { background: currentColor }` 做同一件事，
+ * 所以叠加色天然跟着各变体自己的 on-color（filled 是 onPrimary、text 是 primary）。
+ */
 export const KIT_CSS = `
 .xaihi-card { display: grid; gap: ${SPACE.s}px; padding: ${SPACE.m}px; border: 0.5px solid ${ALIAS.outline}; border-radius: ${SHAPE.cornerM}px; background: ${ALIAS.surface}; color: ${ALIAS.onSurface}; font-size: 13px; }
-.xaihi-btn { display: inline-flex; align-items: center; gap: ${SPACE.xs}px; padding: 6px ${SPACE.m}px; border: 0; border-radius: ${SHAPE.cornerXS}px; font: inherit; cursor: pointer; }
+.xaihi-btn { position: relative; display: inline-flex; align-items: center; gap: ${SPACE.xs}px; padding: 6px ${SPACE.m}px; border: 0; border-radius: ${SHAPE.cornerXS}px; font: inherit; cursor: pointer; }
+.xaihi-btn::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: currentColor; opacity: 0; pointer-events: none; }
+.xaihi-btn:hover::after { opacity: .08; }
+.xaihi-btn:active::after { opacity: .12; }
+.xaihi-btn:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .xaihi-btn[data-variant="filled"] { background: ${ALIAS.primary}; color: ${ALIAS.onPrimary}; }
 .xaihi-btn[data-variant="tonal"] { background: ${ALIAS.secondaryContainer}; color: ${ALIAS.onSecondaryContainer}; }
 .xaihi-btn[data-variant="text"] { background: transparent; color: ${ALIAS.primary}; }
 .xaihi-btn[disabled] { opacity: .38; cursor: default; }
+.xaihi-btn[disabled]:hover::after { opacity: 0; }
 .xaihi-field { display: grid; gap: ${SPACE.xs}px; }
 .xaihi-field-label { font-size: 12px; color: ${ALIAS.onSurfaceVariant}; }
 .xaihi-field-input { padding: 6px ${SPACE.s}px; border: 0.5px solid ${ALIAS.outline}; border-radius: ${SHAPE.cornerXS}px; background: transparent; color: inherit; font: inherit; }
+.xaihi-field-input:focus-visible { outline: 2px solid ${ALIAS.primary}; outline-offset: 1px; }
 .xaihi-status { font-size: 12px; color: ${ALIAS.onSurfaceVariant}; }
 .xaihi-status[data-tone="error"] { color: ${ALIAS.error}; }
 `

@@ -18,14 +18,14 @@ Step 1 的 API 研究结论**不在** `docs/dsh-api-notes.md`（计划里写的�
 
 | # | 项 | 前置 | 状态 |
 |---|---|---|---|
-| R1 | `xaihi-ui-kit` 补 M3 的 state layer / focus ring / ripple | 无 | 已排（§18 的"没做"） |
-| R2 | 对比度门禁：断言"文字对其底 ≥ 4.5:1"，尺度取 MCU 算出的实际配对 | R1 | 已排 |
+| R1 | `xaihi-ui-kit` 补 M3 的 state layer / focus ring / ripple | 无 | state layer 与 focus ring **已完成**（§22：规则与静息值实机读到）；ripple 仍欠 |
+| R2 | 对比度门禁：断言"文字对其底 ≥ 4.5:1"，尺度取 MCU 算出的实际配对 | R1 | **已完成**：六对 × 明暗 = 12 个比值全过 AA；最小的是 tonal 按钮 4.55/4.56，余量 0.05 ⇒ 换 seed 时它第一个翻红 |
 | R3 | 资源调度器 + 缩略图协调器 + 节点内存保护 | 批次 C/D 的真实负载 | 后置（计划 D14 明写） |
 | R4 | 可恢复删除 + 删除历史 | R3、`dissolvef` 的 checkpoint 载荷 | 后置（同上） |
 | R5 | 平台可选依赖包 `@hibernalglow/xaihi-findz-<platform>-<arch>` 的发布流程 | ADR-0004 的"后果 1" | **未定**：发布流程没拍，现在只有开发期显式 `hostBinary` |
 | R6 | OS 壁纸动态取色（Material You 的第二档 seed 来源） | 已迁的 subprocess 通路 | 已排（计划 D12 推后项） |
 | R7 | `flow-plugin`：节点间数据流的编排面 | ≥3 个节点真跑通 | **只立项，不实现** |
-| R8 | 桌面壳适配后的 GUI 验收（计划 D9 推迟的那一段） | DSH 桌面端 | 等外部条件 |
+| R8 | 桌面壳适配后的 GUI 验收（计划 D9 推迟的那一段） | DSH 桌面端 | 等外部条件。**要带的读数已写死**：悬停后 `.xaihi-btn::after` 的 opacity 0 → .08、Tab 聚焦后 `outline` 宽 2px、真 agent 调用一次、面板按钮派发一次 |
 
 ### R7 的立项边界（为什么现在不做）
 
