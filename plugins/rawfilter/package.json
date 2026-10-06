@@ -1,0 +1,435 @@
+{
+  "name": "@hibernalglow/xaihi-rawfilter",
+  "version": "0.0.0",
+  "description": "Xaihi node Rawfilter: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-rawfilter",
+    "title": {
+      "zh": "Rawfilter",
+      "en": "Rawfilter"
+    },
+    "ui": {
+      "remote": "rawfilter",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.rawfilter",
+        "title": {
+          "zh": "Rawfilter面板",
+          "en": "Rawfilter panel"
+        },
+        "area": "workspace",
+        "remote": "rawfilter",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "rawfilter",
+      "title": {
+        "zh": "Rawfilter",
+        "en": "Rawfilter"
+      },
+      "description": {
+        "zh": "将相似归档分组，并将重复/原始版本移至 trash 或 multi 目录。",
+        "en": "Group similar archives and move duplicate/raw versions to trash or multi."
+      },
+      "actions": [
+        {
+          "id": "scan",
+          "label": {
+            "zh": "⌕ 扫描分组",
+            "en": "Scan groups"
+          }
+        },
+        {
+          "id": "plan",
+          "label": {
+            "zh": "◌ 生成计划",
+            "en": "Generate plan"
+          }
+        },
+        {
+          "id": "execute",
+          "label": {
+            "zh": "↳ 执行整理",
+            "en": "Execute"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "计划操作",
+            "en": "Plan action"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "scan",
+              "label": {
+                "zh": "⌕ 扫描分组",
+                "en": "Scan groups"
+              }
+            },
+            {
+              "value": "plan",
+              "label": {
+                "zh": "◌ 生成计划",
+                "en": "Generate plan"
+              }
+            },
+            {
+              "value": "execute",
+              "label": {
+                "zh": "↳ 执行整理",
+                "en": "Execute"
+              }
+            }
+          ],
+          "default": {
+            "text": "plan"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "path",
+          "label": {
+            "zh": "归档目录",
+            "en": "Archive directory"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "nonBlank"
+              }
+            }
+          ]
+        },
+        {
+          "id": "minSimilarity",
+          "label": {
+            "zh": "相似度阈值",
+            "en": "Similarity threshold"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "default": {
+            "number": 0.82
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "nameOnlyMode",
+          "label": {
+            "zh": "仅按名称分组",
+            "en": "Name only"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "createShortcuts",
+          "label": {
+            "zh": "创建快捷方式",
+            "en": "Create shortcuts"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "trashOnly",
+          "label": {
+            "zh": "全部移入回收区",
+            "en": "Trash only"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "仅预演",
+            "en": "Dry run"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "filter",
+          "label": {
+            "zh": "归档计划",
+            "en": "Archive plan"
+          },
+          "fieldIds": [
+            "action",
+            "path",
+            "minSimilarity",
+            "nameOnlyMode",
+            "createShortcuts",
+            "trashOnly",
+            "dryRun"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "path",
+          "slot": "path",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "nameOnlyMode",
+          "slot": "nameOnlyMode",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "createShortcuts",
+          "slot": "createShortcuts",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "trashOnly",
+          "slot": "trashOnly",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "minSimilarity",
+          "slot": "minSimilarity",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "execute"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认整理归档",
+          "en": "Confirm archive cleanup"
+        },
+        "body": {
+          "zh": "重复归档将移入 trash 或 multi。",
+          "en": "Duplicate archives will move to trash or multi."
+        },
+        "confirmLabel": {
+          "zh": "确认整理",
+          "en": "Execute"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "需要从工作区 UI 或 CLI 使用此节点的文件工作流时，可使用 Rawfilter。",
+          "en": "Use Rawfilter when you need this node's file workflow from either the workspace UI or CLI."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "notes": {
+            "zh": [
+              "修改文件前，优先使用预览或试运行模式。",
+              "处理大型文件夹时，请保留备份或撤销记录。"
+            ],
+            "en": [
+              "Prefer preview or dry-run modes before changing files.",
+              "Keep backups or undo records when processing large folders."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "bin": {
+    "xrawfilter": "./lib/cli.js"
+  }
+}

@@ -1,0 +1,576 @@
+{
+  "name": "@hibernalglow/xaihi-nameu",
+  "version": "0.0.0",
+  "description": "Xaihi node NameU: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-nameu",
+    "title": {
+      "zh": "NameU",
+      "en": "NameU"
+    },
+    "ui": {
+      "remote": "nameu",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.nameu",
+        "title": {
+          "zh": "NameU面板",
+          "en": "NameU panel"
+        },
+        "area": "workspace",
+        "remote": "nameu",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "nameu",
+      "title": {
+        "zh": "NameU",
+        "en": "NameU"
+      },
+      "description": {
+        "zh": "为画师文件夹预览并执行归档文件名清理。",
+        "en": "Preview and apply archive filename cleanup for artist folders."
+      },
+      "actions": [
+        {
+          "id": "scan",
+          "label": {
+            "zh": "⌕ 扫描",
+            "en": "⌕ Scan"
+          }
+        },
+        {
+          "id": "plan",
+          "label": {
+            "zh": "⌁ 预览",
+            "en": "⌁ Preview"
+          }
+        },
+        {
+          "id": "rename",
+          "label": {
+            "zh": "⇄ 改名",
+            "en": "⇄ Rename"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "命令",
+            "en": "Command"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "scan",
+              "label": {
+                "zh": "⌕ 扫描",
+                "en": "⌕ Scan"
+              }
+            },
+            {
+              "value": "plan",
+              "label": {
+                "zh": "⌁ 预览",
+                "en": "⌁ Preview"
+              }
+            },
+            {
+              "value": "rename",
+              "label": {
+                "zh": "⇄ 改名",
+                "en": "⇄ Rename"
+              }
+            }
+          ],
+          "default": {
+            "text": "plan"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "pathsText",
+          "label": {
+            "zh": "目录路径",
+            "en": "Folder paths"
+          },
+          "kind": "path-list",
+          "lines": 3,
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "mode",
+          "label": {
+            "zh": "目录模式",
+            "en": "Folder mode"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "multi",
+              "label": {
+                "zh": "▦ 多作者",
+                "en": "▦ Multi artist"
+              }
+            },
+            {
+              "value": "single",
+              "label": {
+                "zh": "▤ 单作者",
+                "en": "▤ Single artist"
+              }
+            }
+          ],
+          "default": {
+            "text": "multi"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "recursive",
+          "label": {
+            "zh": "递归",
+            "en": "Recursive"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "addArtistName",
+          "label": {
+            "zh": "补作者名",
+            "en": "Add artist"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "normalizeFolders",
+          "label": {
+            "zh": "整理目录",
+            "en": "Normalize folders"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "keepTimestamp",
+          "label": {
+            "zh": "保留时间",
+            "en": "Keep timestamps"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "excludeKeywords",
+          "label": {
+            "zh": "排除关键词",
+            "en": "Exclude keywords"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "forbiddenArtistKeywords",
+          "label": {
+            "zh": "禁用作者关键词",
+            "en": "Forbidden artist keywords"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "archiveExtensions",
+          "label": {
+            "zh": "归档扩展名",
+            "en": "Archive extensions"
+          },
+          "kind": "text",
+          "default": {
+            "text": ".zip,.rar,.7z,.cbz,.cbr"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "仅预演",
+            "en": "Dry run"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "rename"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "rules",
+          "label": {
+            "zh": "命名规则",
+            "en": "Naming rules"
+          },
+          "fieldIds": [
+            "action",
+            "pathsText",
+            "mode",
+            "recursive",
+            "addArtistName",
+            "normalizeFolders",
+            "keepTimestamp",
+            "excludeKeywords",
+            "forbiddenArtistKeywords",
+            "archiveExtensions",
+            "dryRun"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "pathsText",
+          "slot": "paths",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "mode",
+          "slot": "mode",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "recursive",
+          "slot": "recursive",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "addArtistName",
+          "slot": "addArtistName",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "normalizeFolders",
+          "slot": "normalizeFolders",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "keepTimestamp",
+          "slot": "keepTimestamp",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "excludeKeywords",
+          "slot": "excludeKeywords",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "forbiddenArtistKeywords",
+          "slot": "forbiddenArtistKeywords",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "archiveExtensions",
+          "slot": "archiveExtensions",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "rename"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认批量改名",
+          "en": "Confirm batch rename"
+        },
+        "body": {
+          "zh": "就绪项目将被重命名；冲突项目不会执行。",
+          "en": "Ready items will be renamed; conflicts stay untouched."
+        },
+        "confirmLabel": {
+          "zh": "确认改名",
+          "en": "Rename"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "归档文件名在长期保存前需要统一括号、空格、活动标签和画师后缀时，使用 NameU。",
+          "en": "Use NameU when archive filenames need consistent brackets, spacing, event tags, and artist suffixes before long-term storage."
+        },
+        "safety": {
+          "defaultMode": "dry-run",
+          "destructive": {
+            "zh": [
+              "rename"
+            ],
+            "en": [
+              "rename"
+            ]
+          },
+          "notes": {
+            "zh": [
+              "UI 中的真实重命名需要二次确认。",
+              "冲突的目标名会被上报，不执行重命名。",
+              "该原生节点不会调用 Python 工具的归档 ID 数据库/评论支持。"
+            ],
+            "en": [
+              "Live rename is gated by confirmation in the UI.",
+              "Conflicting target names are reported and not renamed.",
+              "Archive ID database/comment support from the Python tool is not invoked by this native node."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "bin": {
+    "xnameu": "./lib/cli.js"
+  }
+}
