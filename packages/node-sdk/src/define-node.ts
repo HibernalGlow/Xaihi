@@ -123,12 +123,20 @@ export function parametersFor(definition: NodeDefinition, actionId: string): Par
 
 /** 应用一种绑定变换。 */
 export function transformValue(value: unknown, transform: NodeTransform): unknown {
+  // "没给"与"给了空串"必须是两件事：`asText` 把两者都折成 ''，于是省略一个可选字段
+  // 与显式清空它是同一个值。这一折在下面两条 transform 里是有后果的：
+  // `trim` 把省略折成 ''，`asBoolean` 把省略折成 false ——
+  // 而本文件 `fieldSchemaFor` 的注释写着"缺省 ⇒ 不占位（undefined 传下去，内核与 settings 兜底）"，
+  // 那些兜底分支因此永远走不到（bitv 少给 transferMode 会走 move 那条 link+unlink；
+  // rawfilter 少给 trashOnly 会让使用者的 settings 键形同装饰）。
+  // 所以 transform 先问"这个绑定今天到底给了没有"，没给就原样把 undefined 传下去。
+  const absent = value === undefined || value === null
   const asText = (input: unknown): string => typeof input === 'string' ? input : input === undefined || input === null ? '' : String(input)
   switch (transform) {
     case 'identity':
       return value
     case 'trim':
-      return asText(value).trim()
+      return absent ? undefined : asText(value).trim()
     case 'trimOrOmit': {
       const trimmed = asText(value).trim()
       return trimmed === '' ? undefined : trimmed
@@ -142,7 +150,7 @@ export function transformValue(value: unknown, transform: NodeTransform): unknow
       return Number.isNaN(parsed) ? undefined : parsed
     }
     case 'asBoolean':
-      return value === true || asText(value).toLowerCase() === 'true' || asText(value) === '1'
+      return absent ? undefined : value === true || asText(value).toLowerCase() === 'true' || asText(value) === '1'
   }
   return value
 }
