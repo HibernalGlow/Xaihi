@@ -77,18 +77,17 @@ const tsFiles = (dir) =>
 const bare = new Map()
 for (const file of tsFiles(join(PKG_DIR, 'src'))) {
   const source = readFileSync(file, 'utf8')
-  const lines = source.split('\n')
-  const offsets = [0]
-  for (const line of lines.slice(0, -1)) offsets.push(offsets[offsets.length - 1] + line.length + 1)
-  const lineAt = (offset) => {
-    let at = 0
-    while (at + 1 < offsets.length && offsets[at + 1] <= offset) at += 1
-    return lines[at] ?? ''
-  }
-  for (const match of source.matchAll(/(?:^|\n)\s*(?:import|export)[^;\n]*?from\s*['"]([^'"]+)['"]|(?:^|[^\w.])(?:import|require)\(\s*['"]([^'"]+)['"]/g)) {
-    if (!match[1] && !match[2]) continue
-    const spec = match[1] ?? match[2] ?? ''
-    if (/^\s*(?:import|export)\s+type\b/.test(lineAt(match.index))) continue
+  /**
+   * 只认"导入语句里的那个 from"。中间段允许的字符是标识符、空白、`* , { }`，
+   * 于是 `!==`、`&&`、`(`、`)`、引号、分号一律把匹配挡在门外 ——
+   * 注释与代码里的英文单词 "from" 因此不会被抓成依赖（第一版用 `[\s\S]*?` 时，
+   * `pluginRegistry.ts`、`border-beam.tsx`、`frontendHost.ts` 三处散文被误报成三个"包"）。
+   */
+  for (const match of source.matchAll(/(?:^|[\n;])[ \t]*(import|export)((?:[\w\s,*{}]|\bas\b)*)from[ \t]*['"]([^'"]+)['"]|(?:^|[^\w.])(?:import|require)\([ \t]*['"]([^'"]+)['"]/g)) {
+    const isStatic = match[3] !== undefined
+    const spec = isStatic ? match[3] : (match[4] ?? '')
+    if (spec.length === 0) continue
+    if (isStatic && /^\s*type\b/.test(match[2] ?? '')) continue
     if (spec.startsWith('.') || spec.startsWith('@/') || spec.startsWith('node:')) continue
     if (spec.startsWith('@xiranite/')) continue // 换成本仓包名属于接线那一步，不在这里偷偷改名
     if (spec.startsWith('@deepseek-ai/')) continue // 归 check:pins 与纯度尺管

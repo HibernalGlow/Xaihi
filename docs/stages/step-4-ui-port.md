@@ -333,3 +333,57 @@ ui-host `vitest run` **24 文件 216 条绿**；`check-types` `own=1 ported=285 
 并且它得自己扛异步边界（DSH 的 `renderSlot` 没有 Suspense，`packages/client/web-react/README.md:19`），
 错误按条目隔离。挂载点选在 `src/client/workspace.tsx` 还是新模块，取决于并发 lane 那条
 `own=1` 什么时候落地——不在别人在飞的文件里塞我的行。
+
+## 11. 节点界面上屏这条路：判据换地方、尺补盲点、文档构建从 43 条错降到 25 条（2026-10-07 01:37）
+
+**先更正 §10 里那条判据的位置。** 在 `lib/client.js` 里搜不到任何节点界面，
+不是搬运漏了，也不是装载器坏了：`src/client/index.ts:368-373` 写死了"这一格**不**把搬来的
+工作台交给壳"，因为槽契约只让宿主 React 18 的元素穿过去，19 写的元素实测两次翻车
+（`#31 Element type is invalid` 与整座桥连带消失的 `#300 fewer hooks`，见 ADR-0009）。
+于是工作台的上屏载体是 **Xaihi 自己的文档产物**（`pnpm run build:document`），
+"节点界面到底在不在屏上"这把尺必须挂在那份产物上，挂在 `client.js` 上量到 0 是**量错了地方**。
+`rg -c 'PACKAGE_MODULES|packageModuleLoaders' src/client` 那次零命中仍然成立——它指的是
+`src/client/` 里没有消费者；现在 `node-mount.tsx` 补上了这个消费者，
+文档构建因此才有东西可打包。
+
+**这一轮把文档构建从 43 条错降到 25 条，靠两条机械规则**（`rspack.document.mjs` 的 `resolve`）：
+`modules: [本包 node_modules, 'node_modules']` 与 `extensionAlias: {'.js': ['.ts', '.js']}`。
+理由是同一件事：`@xiranite/{shared,logging,…}` 那些包**不在 pnpm workspace 里**
+（`pnpm-workspace.yaml` 的负向条目），所以它们没有自己的 `node_modules`，
+从它们源码里发出去的裸名（实测 `zod`）与 NodeNext 写的 `./schema.js` 一类相对名都落不了地。
+剩下的 25 条按类点名：`frontendIntegrity.ts` 4 条、`workspace/lane/LaneView.tsx` 4 条、
+`store/workspace/uiSlice.ts` 2 条、`nodes/sleept/Component.tsx` 2 条、
+`node:{fs,module,os}` 各 1 条，以及**只有 4 条未解析名**——
+`@xiranite/shared/swimlane`、`@xiranite/node-sleept/duration`、`@xiranite/node-sleept/interaction`
+（三条是 `build-aliases.mjs` 里 `UNRESOLVED_BY_DESIGN` 已登记的账）与
+`./NodeMemoryProtectionSettings`（ADR-0013 判"有意不要"的那份文件，
+它的 import 还挂在 `RuntimeSection.tsx:21`，归正在改那一刀的 lane）。
+
+**`scripts/port-deps.mjs` 有一个真盲点，我这轮把它补上了。** 它的 import 抽取用的是
+`(?:^|\n)\s*(?:import|export)[^;\n]*?from ['"]…` —— `[^;\n]` 不许跨行，
+于是**多行命名导入整类看不见**：实测漏掉 `@radix-ui/react-tabs`（`components/ui/tabs.tsx:5`）
+与 `react-querybuilder`（`nodes/shared/RuleTreeEditor.tsx:11`），而这两条恰恰是
+`build:document` 早就在报的 Module not found。**尺说"只缺 1 条"、构建说"还缺 2 条"时，
+取信的一侧必须是构建。** 改成"语句起点必须落在行首的 `import`/`export`，中间段只允许
+标识符、空白、`*` `,` `{` `}`"之后，漏报与误报两边都收：第一版只用宽松的 `[\s\S]*?` 时，
+`pluginRegistry.ts`、`border-beam.tsx`、`frontendHost.ts` 里三处散文/代码中的英文单词
+`from` 被当成三个"包"（`?  })`、`? : colorFrom,`、`? never asked for`），收紧字符类后消失。
+现在读数：**76 类** third-party value 依赖，缺声明 **9 条**——7 条按上游实装版本
+`--write` 落进 `packages/ui-host/package.json` 的 devDependencies
+（`@blocknote/react@0.51.4 @radix-ui/react-tabs@1.1.16 @radix-ui/react-toggle@1.1.13
+ldrs@1.1.9 media-chrome@4.19.2 react-querybuilder@8.20.2 tldraw@5.2.3`），
+`pnpm install` rc=0，两个新包确实在 `packages/ui-host/node_modules/` 里；
+客户端半边不受影响（`pnpm run build` rc=0、`check-client-bundle` OK、
+`vitest run` 26 文件 **246 条绿**）。
+
+**要使用者拍的两条**（我没替它决定，也没写进产物）：
+`@hibernalglow/ocean-dataview` 与 `@hibernalglow/folia-player` 都是私有组件包，
+前者 peer 要 React `^19`、在本仓装产物里受 18.3.1 单例约束（`BLOCKED` 名单已登记，不进声明），
+后者上游 `package.json` 与上游已装产物里都查无版本 ⇒ `DatabaseDataView.tsx` 与
+`WorkspaceMelodeck.tsx` 这两个模块进不进 v1，需要一句话裁定。
+
+**锁与声明仍然没同提交**（口径与 §9 相同，这里补上新原因）：`pnpm-lock.yaml` 现在的
+importer 集合是本仓 34 个 workspace 目录的**超集**，其中批次 G/H 那些目录的 `package.json`
+还在子代理手里没提交；把这份锁与 `packages/ui-host/package.json` 一起提上去，
+干净检出会多出十几个空 importer。收口时机是所有包落定后一次 `pnpm install` 生成再一起提，
+判据仍是"仓库外干净 worktree + `pnpm install --frozen-lockfile`"。

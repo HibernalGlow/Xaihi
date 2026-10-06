@@ -60,6 +60,19 @@ export const documentBase = {
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js', '.jsx'],
+    /**
+     * `@xiranite/{shared,logging,…}` 的类型检查与构建能指到源码（靠 tsconfig paths / 别名表），
+     * 但那些包**不在 pnpm workspace 里**（`pnpm-workspace.yaml` 顶部的负向条目），
+     * 所以它们没有自己的 `node_modules`：从 `packages/shared/src/**` 里发出去的裸名
+     * （实测 `zod`）按 Node 的逐级上溯找不到。这里补两条机械规则，而不是去给那些包手装依赖：
+     *  - `modules` 把本包的 `node_modules` 也当解析根（裸名统一落到本包声明的那份，
+     *    与 `check:pins` 的"声明即唯一版本"是同一条口径）；
+     *  - `extensionAlias` 让 NodeNext 写的 `./schema.js` 指到同目录的 `./schema.ts`
+     *    （实测 `./schema.js` / `./query.js` / `./jsonl.js` / `./http-url.js` /
+     *    `./source-thumbnail-client.js` 五条都是这一类，不是缺文件）。
+     */
+    modules: [path.join(here, 'node_modules'), 'node_modules'],
+    extensionAlias: { '.js': ['.ts', '.js'], '.tsx': ['.tsx'] },
     alias: {
       '@': path.join(here, 'src'),
       // `$` 后缀是**整名匹配**：不加的话 `react-dom/client` 会被 `react-dom` 这条前缀规则吃掉，
