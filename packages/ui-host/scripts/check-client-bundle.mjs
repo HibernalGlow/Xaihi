@@ -11,6 +11,17 @@
  *    构建码不报，所以必须有一把尺钉在产物上。
  *
  * `--self-check` 是阳性对照：把两条违规各造一次，尺必须变红；造不出红就等于这把尺不存在。
+ *
+ * 已排除的两个假设（别在这里再试一遍，2026-10-06 实测）：
+ * - 不是 `@module-federation/*`：递归扫 `src/` 里 `from 'node:'` 只命中测试文件，
+ *   运行时源码一处都没有；MF 那条是上一轮的推断，已被下面的定位取代。
+ * - 不是某个 CJS-only 依赖的 interop：给 client 加 `resolve.mainFields:
+ *   ['browser','module','main']`（想把 `lucide-react` 从 `dist/cjs` 逼到 `dist/esm`）
+ *   重建后同一批 Node require 照旧，产物还涨到 3.24 MB ⇒ 该改动已撤回。
+ *
+ * 定位办法（可复现）：在失败产物里对每条 `require("node:…")` 往前找最近的 `//#region`，
+ * 命中的是 `\0rolldown/runtime.js` —— 也就是垫片由打包器自己插入。下一步要查的是
+ * **它替谁插的**（哪个模块在 CJS 图里被当成外部/混合格式），而不是继续换依赖入口。
  */
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
