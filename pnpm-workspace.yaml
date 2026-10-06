@@ -1,9 +1,13 @@
 packages:
   - packages/*
   - plugins/*
+
+# pnpm 12 生成的是这个待填名单：占位串不填就 ERR_PNPM_IGNORED_BUILDS，整次 install 判失败。
+# 列出的全是 @deepseek-ai/dsh CLI 自带的原生/生成依赖（终端 PTY、FFI、protobuf 等），
+# 不是本仓产物；放行它们只是为了让 `pnpm exec dsh` 能起真宿主做门禁取证。
 allowBuilds:
-  '@deepseek-ai/dsh-subprocess-local': set this to true or false
-  '@google/genai': set this to true or false
-  koffi: set this to true or false
-  node-pty: set this to true or false
-  protobufjs: set this to true or false
+  '@deepseek-ai/dsh-subprocess-local': true
+  '@google/genai': true
+  koffi: true
+  node-pty: true
+  protobufjs: true

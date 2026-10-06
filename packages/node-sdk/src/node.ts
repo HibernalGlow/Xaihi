@@ -17,7 +17,6 @@ import type { LocalizedText } from './manifest.ts'
 
 /** 契约版本，写进 definition 的 `definitionVersion`。 */
 export const NODE_DEFINITION_VERSION = 1
-
 /** 字段输入控件类型。 */
 export const NODE_FIELD_KINDS = ['text', 'multiline', 'path-list', 'number', 'select', 'boolean'] as const
 /** 条件组合方式，对应 Rust `Condition` 枚举。 */
@@ -32,24 +31,43 @@ export const RULE_KINDS = ['required', 'nonBlank', 'integerAtLeast', 'integerInR
 export const DANGER_KINDS = ['none', 'actionIn', 'fieldFlag', 'all', 'any', 'pluginExport'] as const
 /** 输入绑定变换。 */
 export const TRANSFORMS = ['identity', 'trim', 'lines', 'delimited', 'trimOrOmit', 'asInteger', 'asBoolean'] as const
+
+/** 字段控件类型。 */
+export type NodeFieldKind = (typeof NODE_FIELD_KINDS)[number]
+/** 绑定变换。 */
+export type NodeTransform = (typeof TRANSFORMS)[number]
+/** 危险闸门类型。 */
+export type NodeDangerKind = (typeof DANGER_KINDS)[number]
+/** 条件组合方式。 */
+export type NodeConditionKind = (typeof CONDITION_KINDS)[number]
 /** help 面向的使用面。 */
 export const HELP_SURFACES = ['ui', 'cli', 'tips'] as const
 
 /** 标量：`{text}` / `{number}` / `{boolean}` 三者恰好取一。 */
 export type NodeScalar = { text: string } | { number: number } | { boolean: boolean }
 
+/** 谓词测试；字段名照 Xiranite contract.ts 的 Rust `Test` 枚举。 */
+export interface NodeTest {
+  type: (typeof TEST_KINDS)[number]
+  actionField?: string
+  allowed?: unknown[]
+  fieldId?: string
+  value?: NodeScalar
+  minimum?: number
+}
+
 /** 条件树的一个叶子。 */
 export interface NodePredicate {
-  test: Record<string, unknown> & { type: (typeof TEST_KINDS)[number] }
+  test: NodeTest
   negated: boolean
 }
 
-/** 可见性等条件；`single` 带 predicate，`all`/`any` 带非空 predicates，`anyAll` 带 clauses。 */
+/** 可见性等条件；`single` 带 predicate，`all`/`any` 带非空 predicates，`anyAll` 带 clauses（OR of ANDs）。 */
 export interface NodeCondition {
   type: (typeof CONDITION_KINDS)[number]
-  predicate?: NodePredicate
-  predicates?: NodePredicate[]
-  clauses?: unknown[]
+  predicate?: NodePredicate | undefined
+  predicates?: NodePredicate[] | undefined
+  clauses?: NodePredicate[][] | undefined
 }
 
 /** 一个可执行动作。 */
@@ -102,12 +120,19 @@ export interface NodeInputBinding {
   when?: NodeCondition
 }
 
-/** 危险闸门：v1 只声明"由谁判定"，判定本身在节点代码或 DSH 审批里。 */
+/**
+ * 危险闸门。字段语义对齐 Xiranite contract.ts 的 Rust `DangerGate`：
+ * `actionIn` 看 `actionField` 是否落在 `dangerous` 里；`fieldFlag` 看某个布尔字段；
+ * `all` / `any` 求 `predicates`；`anyAll` 型条件在闸门上同样以 `clauses`（OR of ANDs）出现；
+ * `pluginExport` 由节点模块导出的函数判定；`none` 表示不危险。
+ */
 export interface NodeDanger {
   type: (typeof DANGER_KINDS)[number]
   actionField?: string
-  actions?: string[]
+  dangerous?: string[]
   fieldId?: string
+  predicates?: NodePredicate[]
+  clauses?: NodePredicate[][]
   exportName?: string
 }
 

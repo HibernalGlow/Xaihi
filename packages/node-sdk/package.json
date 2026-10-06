@@ -1,7 +1,7 @@
 {
   "name": "@hibernalglow/xaihi-sdk",
   "version": "0.0.0",
-  "description": "Contracts for Xaihi nodes and UI contributions: the xaihi.manifest/1 shape, the xaihi.node/v1 vocabulary, and the UIModuleLoader interface that hides the module transport.",
+  "description": "Contracts and node runtime helpers for Xaihi: xaihi.manifest/1, xaihi.node/v1 vocabulary and validators, the condition evaluator, defineNode's tool + danger wiring, and the UIModuleLoader interface that hides the module transport.",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
@@ -14,8 +14,7 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "lib/index.js",
-    "lib/index.d.ts",
+    "lib/**",
     "package.json"
   ],
   "scripts": {
@@ -28,7 +27,14 @@
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
   "devDependencies": {
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@types/node": "^22.20.0",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.11"
   }
 }

@@ -1,0 +1,235 @@
+/**
+ * `defineNode` —— 把一份 `xaihi.node/v1` 定义接到 DSH 的工具与危险闸门上。
+ *
+ * 边界：本模块只产出 `ask` / `deny` 判定；审批渠道、审计与提示 UI 全部是 DSH 的
+ * （`tools/pre-execute` 返回 `ask` 后由 `ctx.get('approval')` 那条缝解析，没有
+ * ApprovalService 时按 DSH 规则降级为拒绝）。Xaihi 不重造审批系统。
+ *
+ * 参数表按动作生成：可见性条件与危险闸门共用 `conditions.ts` 那一个求值器，否则
+ * 模型看到的参数和界面看到的字段会分叉。
+ *
+ * 输出的规范值 v1 是字符串：预览与结果视图（`previewExport` / `resultExport`）要等
+ * Step 4 的 operation stream，现在接进来只会是个没人读的字段。
+ *
+ * @module xaihi-sdk/define-node
+ */
+
+import { defineTool, type ParameterPropertySpec, type ParameterSchemaSpec } from '@deepseek-ai/dsh-tools'
+import { validateNodeDefinition, type NodeDefinition, type NodeField, type NodeTransform } from './node.ts'
+import { matchCondition } from './conditions.ts'
+
+/**
+ * 工具参数表。直接用 dsh-tools 的类型而不是长得像的本地副本：它的参数面带
+ * `[key: symbol]: never` 的索引签名，本地 Record 既过不了赋值，也会在对方扩面时
+ * 悄悄分叉。
+ */
+export type ParameterSpec = ParameterSchemaSpec
+
+/** pre-execute 的判定，形状对齐 @deepseek-ai/dsh-tools 的 `PreToolDecision`。 */
+export type PreDecision =
+  | { kind: 'allow' }
+  | { kind: 'deny'; reason: string }
+  | { kind: 'cancel' }
+  | { kind: 'ask'; reason?: string; displayReason?: { en: string } & Record<string, string> }
+
+/** 被拦到的那一次调用的身份子集。 */
+export interface ExecInfo {
+  name: string
+  arguments: unknown
+}
+
+/** `defineNode` 用到的宿主面。 */
+export interface NodeToolContext {
+  tools: { register(definition: unknown): unknown }
+  on(event: 'tools/pre-execute', listener: (exec: ExecInfo, next: () => Promise<PreDecision>) => Promise<PreDecision>): unknown
+}
+
+/** 一次动作调用的入参：原始参数 + 按 inputBindings 绑好的执行输入。 */
+export interface NodeCall {
+  args: Record<string, unknown>
+  inputs: Record<string, unknown>
+}
+
+/** 一个动作的实现。 */
+export type NodeActionHandler = (call: NodeCall) => Promise<string>
+
+/** 动作 id → 实现。 */
+export type NodeHandlers = Record<string, NodeActionHandler>
+
+/** 注册选项。 */
+export interface DefineNodeOptions {
+  /** `package.json#xaihi.node` 的原始值，内部先校验再接线。 */
+  definition: unknown
+  handlers: NodeHandlers
+  /** `danger.type === 'pluginExport'` 时由节点导出的判定函数。 */
+  dangerCheck?: (args: Record<string, unknown>) => boolean
+}
+
+function fieldProperty(field: NodeField): ParameterPropertySpec {
+  const description = `${field.label.en} / ${field.label.zh}`
+  const required = (field.rules ?? []).some((rule) => rule.type === 'required' || rule.type === 'nonBlank')
+  switch (field.kind) {
+    case 'text':
+    case 'multiline':
+      return required ? { type: 'string', description, required: true } : { type: 'string', description }
+    case 'path-list':
+      return required
+        ? { type: 'array', items: { type: 'string' }, description, required: true }
+        : { type: 'array', items: { type: 'string' }, description }
+    case 'number':
+      return required ? { type: 'number', description, required: true } : { type: 'number', description }
+    case 'boolean':
+      return required ? { type: 'boolean', description, required: true } : { type: 'boolean', description }
+    case 'select': {
+      const values = (field.options ?? []).map((option) => option.value)
+      return required ? { type: 'string', description, enum: values, required: true } : { type: 'string', description, enum: values }
+    }
+  }
+}
+
+/**
+ * 生成某个动作的参数表。
+ * @param definition - 已校验的节点定义。
+ * @param actionId - 当前动作；动作选择器本身不进参数表。
+ * @returns 该动作可见的字段参数表。
+ */
+export function parametersFor(definition: NodeDefinition, actionId: string): ParameterSpec {
+  const selector = definition.fields.find((field) => field.isActionSelector === true)
+  const args: Record<string, unknown> = selector === undefined ? {} : { [selector.id]: actionId }
+  const spec: ParameterSpec = {}
+  for (const field of definition.fields) {
+    if (field.isActionSelector === true) continue
+    if (!matchCondition(field.visible, args, actionId)) continue
+    spec[field.id] = fieldProperty(field)
+  }
+  return spec
+}
+
+/** 应用一种绑定变换。 */
+export function transformValue(value: unknown, transform: NodeTransform): unknown {
+  const asText = (input: unknown): string => typeof input === 'string' ? input : input === undefined || input === null ? '' : String(input)
+  switch (transform) {
+    case 'identity':
+      return value
+    case 'trim':
+      return asText(value).trim()
+    case 'trimOrOmit': {
+      const trimmed = asText(value).trim()
+      return trimmed === '' ? undefined : trimmed
+    }
+    case 'lines':
+      return asText(value).split('\n').map((line) => line.trim()).filter((line) => line !== '')
+    case 'delimited':
+      return asText(value).split(',').map((part) => part.trim()).filter((part) => part !== '')
+    case 'asInteger': {
+      const parsed = Number.parseInt(asText(value), 10)
+      return Number.isNaN(parsed) ? undefined : parsed
+    }
+    case 'asBoolean':
+      return value === true || asText(value).toLowerCase() === 'true' || asText(value) === '1'
+  }
+  return value
+}
+
+/**
+ * 按 `inputBindings` 把字段值绑成执行输入。
+ * @param definition - 已校验的节点定义。
+ * @param args - 模型给的参数。
+ */
+export function bindInputs(definition: NodeDefinition, args: Record<string, unknown>): Record<string, unknown> {
+  const inputs: Record<string, unknown> = {}
+  for (const binding of definition.inputBindings) {
+    inputs[binding.slot] = transformValue(args[binding.fieldId], binding.transform ?? 'identity')
+  }
+  return inputs
+}
+
+/**
+ * 这次调用是否危险。
+ * @param definition - 节点定义。
+ * @param dangerCheck - `pluginExport` 型闸门的判定函数。
+ * @param actionId - 本次动作。
+ * @param args - 本次参数。
+ * @returns 危险时给出双语原因文案。
+ */
+export function dangerFor(
+  definition: NodeDefinition,
+  dangerCheck: DefineNodeOptions['dangerCheck'],
+  actionId: string,
+  args: Record<string, unknown>,
+): { en: string; zh: string } | undefined {
+  const danger = definition.danger
+  if (danger === undefined || danger.type === 'none') return undefined
+  const reason = {
+    en: `Node "${definition.nodeId}" · action "${actionId}" is gated as dangerous (${danger.type}).`,
+    zh: `节点「${definition.nodeId}」的动作「${actionId}」被 ${danger.type} 判为危险操作。`,
+  }
+  const selector = definition.fields.find((field) => field.isActionSelector === true)
+  switch (danger.type) {
+    case 'actionIn': {
+      const current = String(danger.actionField === undefined ? actionId : args[danger.actionField] ?? args[selector?.id ?? ''] ?? actionId)
+      return (danger.dangerous ?? []).includes(current) ? reason : undefined
+    }
+    case 'fieldFlag':
+      return args[danger.fieldId ?? ''] === true ? reason : undefined
+    case 'all':
+      return matchCondition({ type: 'all', predicates: danger.predicates }, args, actionId) ? reason : undefined
+    case 'any':
+      return matchCondition({ type: 'any', predicates: danger.predicates }, args, actionId) ? reason : undefined
+    case 'pluginExport':
+      if (dangerCheck === undefined) {
+        throw new Error(`xaihi.node/v1: danger.type "pluginExport" needs defineNode({ dangerCheck }) for export "${danger.exportName ?? '?'}"`)
+      }
+      return dangerCheck(args) ? reason : undefined
+  }
+  return undefined
+}
+
+/** 工具名：`<nodeId>_<actionId>`。 */
+export function toolName(definition: NodeDefinition, actionId: string): string {
+  return `${definition.nodeId}_${actionId}`
+}
+
+/**
+ * 注册一个节点：每个动作一个工具，外加一条把危险动作转成 `ask` 的 pre-execute 监听。
+ * @param ctx - 宿主上下文（需要 `tools`）。
+ * @param options - 定义、实现与可选的危险判定。
+ * @throws 定义不合法时抛出全部校验问题；缺动作实现或 `pluginExport` 缺判定函数时抛配置错误。
+ */
+export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): void {
+  const validation = validateNodeDefinition(options.definition)
+  if (!validation.ok) throw new Error(`xaihi.node/v1 invalid: ${validation.errors.join('; ')}`)
+  const definition = validation.value
+  if (definition.danger !== undefined && definition.danger.type === 'pluginExport' && options.dangerCheck === undefined) {
+    // 早失败：等第一次真调用才报，症状会是"这个节点偶尔能跑"。
+    throw new Error(`xaihi.node/v1: node "${definition.nodeId}" declares danger.type "pluginExport" but defineNode got no dangerCheck`)
+  }
+
+  for (const action of definition.actions) {
+    const handler = options.handlers[action.id]
+    if (handler === undefined) throw new Error(`xaihi.node/v1: no handler for action "${action.id}"`)
+    ctx.tools.register(defineTool({
+      name: toolName(definition, action.id),
+      description: `${definition.title.en} · ${action.label.en} — ${action.description?.en ?? definition.description.en}`,
+      parameters: parametersFor(definition, action.id),
+      output: {
+        schema: { type: 'string' },
+        render: (_args, value) => [{ type: 'text', text: value }],
+      },
+      async execute(args) {
+        const record = (args ?? {}) as Record<string, unknown>
+        return handler({ args: record, inputs: bindInputs(definition, record) })
+      },
+    }))
+  }
+
+  if (definition.danger === undefined || definition.danger.type === 'none') return
+  const names = new Set(definition.actions.map((action) => toolName(definition, action.id)))
+  ctx.on('tools/pre-execute', async (exec, next) => {
+    if (!names.has(exec.name)) return next()
+    const actionId = exec.name.slice(exec.name.lastIndexOf('_') + 1)
+    const reason = dangerFor(definition, options.dangerCheck, actionId, (exec.arguments ?? {}) as Record<string, unknown>)
+    if (reason === undefined) return next()
+    return { kind: 'ask', reason: reason.en, displayReason: { en: reason.en, zh: reason.zh } }
+  })
+}
