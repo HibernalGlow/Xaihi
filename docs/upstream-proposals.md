@@ -146,3 +146,37 @@ Xaihi 只有主窗一条腿、并且界面能读出"这是单窗形态"。本提
 
 **我们现在怎么绕开**：不绕。多窗与"自己的文档"两条都在 Xaihi-Desktop 那侧自己实现，
 本仓不往 `profiles/desktop` 写任何文件（见 ADR-0011 决定 4 的降级铁律）。
+
+## P7 · 设置标准面缺"每节点配置的版本历史与预设"
+
+上游的节点界面普遍带一份"这份配置的第几版、改回去了、存个预设"的能力，形状是
+`NodeConfigCapability` 的 18 个成员（搬运源仓 `packages/contract/src/index.ts`，`get` / `save` /
+`getPresets` / `createPreset` / `updatePreset` / `deletePreset` / `getVersions` / `inspectVersion` /
+`restoreVersion` / `exportConfig` / `importConfig` / `createBackup` / `getHistoryRepository` /
+`setHistoryRemote` / `syncHistory` / `getUi` / `saveUi` / `openFile`）。
+
+DSH 0.2.0-rc.2 的设置标准面只有五个动词（实测
+`@deepseek-ai/dsh-api-settings-controller/lib/types/index.d.ts:49-85`：
+`describe` / `update` / `replace` / `mutate` / `openSettingsDocument`）。
+对下来 **13 条没有对应物**：预设那四条、版本历史与检查/恢复那四条、备份、导出/导入、
+以及仓库远程的读/写/同步三条。
+
+**为什么这条值得上游做而不是我们自建**：按 ADR-0013，配置只有一个出口就是这条标准面；
+我们自己长一份"版本历史存储"等于在同一份配置下面挂第二个真源，
+而那份历史既进不了使用者的设置文档，也拿不到宿主的 `SETTINGS_CONFLICT` 语义。
+现在我们的做法是把这 13 条在握手时**如实报 `no-provider`**（`packages/node-sdk/src/host-bridge.ts`
+的 `SHELL_SERVED_METHODS` 与 providerOf 那张表，钉在 `packages/node-sdk/tests/host-bridge.spec.ts`），
+界面上那格显示成退化状态——能跑，但节点原有的"撤销这次配置改动"就没了。
+
+**建议的最小改法**（任一条就够，越靠前越省事）：
+
+1. 给 `update` / `mutate` 那条路加一层**可选的命名空间历史**：`history.list(ns, {limit})` /
+   `history.inspect(ns, revision)` / `history.restore(ns, revision)`。revision 已经在冲突语义里存在
+   （`expectedRevision`），把它升成可查询的历史比新增一套概念便宜。
+2. 或者允许插件在自己的 ns 下挂一个**有名字的子文档**（预设就是这种东西：一串值 + 一个标签），
+   由宿主持久化，这样"预设/备份"就都是同一份子文档表上的行。
+3. 或者明说"版本历史与预设属于业务包"并给一条**规定的存储面**（storage domain 是现成的），
+   那我们照第 2 条自己实现并把它写进 ADR-0013——现在缺的正是这句"可以自己存"的明文。
+
+**我们现在的绕法**：不绕开标准面去自建第二份配置存储；那 13 条在桥的握手里以
+`no-provider` 露出，界面上是可读回的退化状态（ADR-0011 决定 4 的降级铁律）。

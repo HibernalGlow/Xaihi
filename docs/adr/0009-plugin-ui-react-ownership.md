@@ -128,6 +128,20 @@ bundle/profile 那套取代（ADR-0002），**不该搬**；`theme-provider.tsx`
 - **(c) 全仓退回 React 18**：V1 之外还要把 19 的写法降级；与"按 19 写的"直接冲突，排除。
 
 
+## 落地进度（2026-10-06 23:35，按此方案执行之后）
+
+| 面 | 落点 | 状态 |
+|---|---|---|
+| 文档的装载位置 | `packages/core` 新前缀路由 `/xaihi/ui/<rev>/index.html`，配置项 `core.uiBundleDir` | 已落 + 已测（core 60 passed；三条守卫各做过减法跑测） |
+| 文档缺失时的可见失败 | 清单 `ui` 面（`documentUrl` / `rev` / `problems`）；产物没配 ⇒ 路由 **503 点名配置项**，不是 404 也不是空白面板 | 已落 + 已测 |
+| 节点各自成窗 | 同一份文档 + `?node=<清单 id>`（形状闸 `[a-z0-9][a-z0-9_-]{0,63}`，不合法 400 且**不回显**收到的值） | 已落 + 已测（ADR-0011 决定 3） |
+| 桥的契约 | `packages/node-sdk/src/host-bridge.ts`：`xaihi.bridge/1`、九组与 41 条方法名逐字搬上游、版本不匹配整桥拒绝、256KB / 30s 上界 | 已落 + 已测（node-sdk 50 passed） |
+| 谁能兑现哪条动词 | `SHELL_SERVED_METHODS` + `providerOf` 那张表；DSH 的 settings 面实测只有五个动词 ⇒ 18 条 `config.*` 里 **13 条今天没人能提供** | 已落 + 钉成测试（关守卫即红）；缺的那批走提案 **P7** |
+| 两半桥 | `bridge-shell.ts`（在 DSH realm 那一侧）与 `bridge-document.ts`（文档那一侧），加 13 条两半互发的往返测 | 已落 + 已测（36 passed） |
+| 节点 UI 一行不改的关键 | `document-host.ts`：给得出上游那九组形状的 `host`；`state`/`workspace`/`downloads`/`localFiles.getUrl` 留在文档本地不过桥 | 已落 + 已测（12 passed） |
+| **还没做** | ① 文档的**构建目标**（react@19 + `main.js` / `main.css` 出到 `uiBundleDir` 指的地方）；② 装配那一刀：DSH 的 slot 里换成一个 `<iframe src=documentUrl>`，并把 `ctx.remote.settings` / 运行面注入 `bridge-shell`；③ 实机一次真往返 | 都卡在 `packages/ui-host` 的 `package.json` 与 `tsconfig*` 正被搬运批改在飞（实测该包 20 个文件未提交，其中 12 条 tsc 错在 `design-theme` 四个文件里）。②③ 现在做会把正在运行的界面换成一个只会报 503 的框，且构建结果不可归因。|
+
+
 ## 后果
 
 1. **ADR-0001 第 5 条要改写**：原条文是"React 由宿主模块表提供，远端 `shared.react.import:false`，
