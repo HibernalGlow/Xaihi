@@ -1,0 +1,659 @@
+{
+  "name": "@hibernalglow/xaihi-marku",
+  "version": "0.0.0",
+  "description": "Xaihi node Marku: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-marku",
+    "title": {
+      "zh": "Marku",
+      "en": "Marku"
+    },
+    "ui": {
+      "remote": "marku",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.marku",
+        "title": {
+          "zh": "Marku面板",
+          "en": "Marku panel"
+        },
+        "area": "workspace",
+        "remote": "marku",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "marku",
+      "title": {
+        "zh": "Marku",
+        "en": "Marku"
+      },
+      "description": {
+        "zh": "运行 Markdown 清理与转换模块，并提供预览差异。",
+        "en": "Run Markdown cleanup and conversion modules with preview diff."
+      },
+      "actions": [
+        {
+          "id": "text",
+          "label": {
+            "zh": "≡ 文本处理",
+            "en": "≡ Text"
+          }
+        },
+        {
+          "id": "run",
+          "label": {
+            "zh": "▤ 文件批处理",
+            "en": "▤ Files"
+          }
+        },
+        {
+          "id": "history",
+          "label": {
+            "zh": "◷ 历史",
+            "en": "◷ History"
+          }
+        },
+        {
+          "id": "undo",
+          "label": {
+            "zh": "↶ 撤销",
+            "en": "↶ Undo"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "处理方式",
+            "en": "Action"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "text",
+              "label": {
+                "zh": "≡ 文本处理",
+                "en": "≡ Text"
+              }
+            },
+            {
+              "value": "run",
+              "label": {
+                "zh": "▤ 文件批处理",
+                "en": "▤ Files"
+              }
+            },
+            {
+              "value": "history",
+              "label": {
+                "zh": "◷ 历史",
+                "en": "◷ History"
+              }
+            },
+            {
+              "value": "undo",
+              "label": {
+                "zh": "↶ 撤销",
+                "en": "↶ Undo"
+              }
+            }
+          ],
+          "default": {
+            "text": "text"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "module",
+          "label": {
+            "zh": "处理模块",
+            "en": "Module"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "markt",
+              "label": {
+                "zh": "≡ markt",
+                "en": "≡ markt"
+              }
+            },
+            {
+              "value": "consecutive_header",
+              "label": {
+                "zh": "# consecutive_header",
+                "en": "# consecutive_header"
+              }
+            },
+            {
+              "value": "content_dedup",
+              "label": {
+                "zh": "◇ content_dedup",
+                "en": "◇ content_dedup"
+              }
+            },
+            {
+              "value": "html2sy_table",
+              "label": {
+                "zh": "▦ html2sy_table",
+                "en": "▦ html2sy_table"
+              }
+            },
+            {
+              "value": "title_convert",
+              "label": {
+                "zh": "Aa title_convert",
+                "en": "Aa title_convert"
+              }
+            },
+            {
+              "value": "content_replace",
+              "label": {
+                "zh": "↔ content_replace",
+                "en": "↔ content_replace"
+              }
+            },
+            {
+              "value": "single_orderlist_remover",
+              "label": {
+                "zh": "1. single_orderlist_remover",
+                "en": "1. single_orderlist_remover"
+              }
+            },
+            {
+              "value": "image_path_replacer",
+              "label": {
+                "zh": "▣ image_path_replacer",
+                "en": "▣ image_path_replacer"
+              }
+            },
+            {
+              "value": "t2list",
+              "label": {
+                "zh": "☷ t2list",
+                "en": "☷ t2list"
+              }
+            }
+          ],
+          "default": {
+            "text": "markt"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "text",
+                  "run"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "paths",
+          "label": {
+            "zh": "Markdown 路径",
+            "en": "Markdown paths"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "run"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "run"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "inputText",
+          "label": {
+            "zh": "输入文本",
+            "en": "Input text"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "text"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "required"
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "text"
+                    ]
+                  },
+                  "negated": false
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "stepConfig",
+          "label": {
+            "zh": "模块配置 JSON",
+            "en": "Module config JSON"
+          },
+          "kind": "text",
+          "default": {
+            "text": "{}"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "text",
+                  "run"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "recursive",
+          "label": {
+            "zh": "递归目录",
+            "en": "Recursive"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "run"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "仅预演",
+            "en": "Dry run"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "run"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "enableUndo",
+          "label": {
+            "zh": "记录撤销",
+            "en": "Record undo"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "run"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "historyPath",
+          "label": {
+            "zh": "历史文件",
+            "en": "History file"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "history",
+                  "undo"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "undoId",
+          "label": {
+            "zh": "撤销 ID",
+            "en": "Undo ID"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "undo"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "module",
+          "fieldIds": [
+            "action",
+            "module",
+            "paths",
+            "inputText",
+            "stepConfig",
+            "recursive",
+            "dryRun",
+            "enableUndo",
+            "historyPath",
+            "undoId"
+          ],
+          "label": {
+            "zh": "模块工具箱",
+            "en": "Module toolbox"
+          }
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "module",
+          "slot": "module",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "paths",
+          "slot": "paths",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "inputText",
+          "slot": "inputText",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "stepConfig",
+          "slot": "stepConfig",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "recursive",
+          "slot": "recursive",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "enableUndo",
+          "slot": "enableUndo",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "historyPath",
+          "slot": "historyPath",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "undoId",
+          "slot": "undoId",
+          "transform": "identity"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "run",
+                "undo"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认写入 Markdown",
+          "en": "Confirm Markdown write"
+        },
+        "body": {
+          "zh": "该操作会修改磁盘中的 Markdown 文件。",
+          "en": "This modifies Markdown files on disk."
+        },
+        "confirmLabel": {
+          "zh": "确认执行",
+          "en": "Execute"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "当需要从工作区 UI 或 CLI 使用该节点的文本工作流时，使用 Marku。",
+          "en": "Use Marku when you need this node's text workflow from either the workspace UI or CLI."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "diff": "9.0.0",
+    "remark": "15.0.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/mdast": "4.0.4",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "bin": {
+    "xmarku": "./lib/cli.js"
+  }
+}

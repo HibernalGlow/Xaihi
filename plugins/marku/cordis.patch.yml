@@ -1,0 +1,5 @@
+# 节点自带一行：插件即 bundle（无 patch 的依赖会被 profile 与 Plugins 页拒绝）。
+# 行的 id 必须等于 package.json#xaihi.id。
+- insert:
+    - id: xaihi-marku
+      name: '@hibernalglow/xaihi-marku'

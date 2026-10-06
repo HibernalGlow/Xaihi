@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // 从 Xiranite `noxide` 基线逐字搬来的 `src/core.ts`（556 行）与它的三个邻居
+    // （`markdown-transforms.ts` 101 / `markdown-ast.ts` 93 / `workflow.ts` 180）是在
+    // **没有**这几面旗的编译器下写的：`runMarku` 直接把 `files[index]` 当 `string` 用
+    // （`noUncheckedIndexedAccess` 会读成 `string | undefined`），`normalizeMarkuInput`
+    // 的条件展开撞上 `exactOptionalPropertyTypes`，而 `splitKeepEnd` / `numberConfig` /
+    // `booleanConfig` 三个内部函数在基线里就是**没被本文件调用**的（`numberConfig` /
+    // `booleanConfig` 的消费者是邻居 `markdown-transforms.ts`）——`noUnusedLocals` 因此报红。
+    // 要在我们这边通过，就得给 556+374 行内核逐处加断言、改控制流、删函数，
+    // 那正是移植里最不该发生的"顺手改行为"。所以只关这三面旗（strict 保留），
+    // 并把范围限在本包，与 `plugins/crashu/tsconfig.json` / `plugins/dissolvef/tsconfig.json`
+    // 记的是同一条先例。等内核被我们主动重写时连同旗号一起收回。
+    // 这不是白 given：本包的 `src/index.ts` / `src/cli.ts` 是新写的接线层，
+    // 它照样被 strict 家族管着——`inputFrom()` 那份条件展开就是被逼出来的写法。
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false
+  },
+  "include": ["src", "frontend", "tests", "rspack.config.mjs"]
+}
