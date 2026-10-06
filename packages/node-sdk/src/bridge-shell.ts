@@ -238,9 +238,12 @@ export function createShellBridge(
   }
   if (caps.runner !== undefined) offered.add('runner')
   for (const extra of caps.extra ?? []) offered.add(extra)
-  // 这两组是桥自己就能答的：版本与协商本身，以及界面环境（主题/平台）由外壳这一侧转发。
+  // 这两组是桥自己就能答的：版本与协商本身。
   offered.add('contract')
-  offered.add('env')
+  // `env` 不能无条件宣告授予：握手里的 `granted` 一旦写了 env，文档那边
+  // `host.env.theme` 就必须读得到，否则症状是"面板读环境时抛 refused，而协商说它给了"
+  // （2026-10-06 在 3399 那台宿主上实测就是这个形状：granted 里有 env，ready 里根本没有这一格）。
+  if (caps.env !== undefined) offered.add('env')
 
   return {
     /** 最近一次握手结果；未握手时是 undefined（不是"空的 ready"，那会让退化状态读不回来）。 */

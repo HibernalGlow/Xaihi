@@ -92,7 +92,10 @@ export function startRealm(): Realm | null {
       const required = ready.refused.filter((id) => requiredSet.has(id))
       const others = ready.refused.filter((id) => !requiredSet.has(id))
       const reasonOf = (id: string) => ready.degraded.find((row) => row.capability === id)?.reason ?? '外壳没有提供这一组'
-      report(`xaihi realm: rev=${boot.rev} React=${reactVersion} granted=[${ready.granted.join(', ')}] refused=[${ready.refused.join(', ')}]`)
+      // env 带没带快照要单独念：它过去是"granted 里写了 env、ready 里却没有这一格"，
+      // 光看 granted 列表读不出来（界面那头表现为 host.env 抛 refused）。
+      const envLine = ready.env === undefined ? 'env 快照：没带' : `env 快照：theme=${ready.env.theme} platform=${ready.env.platform}`
+      report(`xaihi realm: rev=${boot.rev} React=${reactVersion} granted=[${ready.granted.join(', ')}] refused=[${ready.refused.join(', ')}] ${envLine}`)
       if (required.length > 0) report(`必给却没兑现：${required.map((id) => `${id}: ${reasonOf(id)}`).join(' | ')}`)
       if (others.length > 0) report(`其余没接（在提案账上）：${others.map((id) => `${id}: ${reasonOf(id)}`).join(' | ')}`)
       void probeRoundTrip()

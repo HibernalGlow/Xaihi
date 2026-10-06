@@ -67,6 +67,20 @@ function activeLocale(ctx: Context): 'zh' | 'en' {
   return typeof snapshot.active === 'string' && snapshot.active.startsWith('zh') ? 'zh' : 'en'
 }
 
+/**
+ * 宿主此刻**实际在用**的那套配色。
+ *
+ * 按结构读而不是 `import type` 主题包：这条面在浏览器半边只能靠形状，
+ * 而 value-import 一个非基线的 harness 包会把第二份上下文打进产物（`tests/purity.spec.ts` 那条尺）。
+ * @param ctx - 客户端上下文。
+ * @returns `'light'` / `'dark'`；主题包不在或形状不对时是 undefined（调用方据此**不带**这一格）。
+ */
+function readActiveScheme(ctx: Context): 'light' | 'dark' | undefined {
+  const theme = (ctx as { theme?: { getTheme?: () => { active?: { colorScheme?: unknown } } } }).theme
+  const scheme = theme?.getTheme?.().active?.colorScheme
+  return scheme === 'light' || scheme === 'dark' ? scheme : undefined
+}
+
 /** 一个对象实际能调什么：自有属性加一层原型方法名。 */
 function surfaceOf(value: object): string[] {
   const names = new Set<string>(Object.keys(value))
@@ -362,7 +376,20 @@ export function apply(ctx: Context): void {
   // env 暂时也没接：ctx.theme 上"当前是暗还是亮"的读法我还没量准，
   // 而把 preference 直接当 theme 交出去会在 system 偏好时撒一次谎，不如先不接。
   const settingsRemote = (ctx.remote as { settings?: RemoteSettingsFace }).settings
-  const caps = shellCapsFrom(settingsRemote === undefined ? {} : { settings: settingsRemote })
+  // `env` 那份快照的出处：`ctx.theme.getTheme().active.colorScheme`。
+  // 用 DSH 自己解析过的那一份，而不是在这里再跑一次 `matchMedia`：
+  // `system` 偏好已经按 `prefers-color-scheme` 解好了（`dsh-client-ui-theme` 的 `ThemeSnapshot.active`），
+  // 自己再解一次就成了第二个真源，症状是"界面按宿主的深色画、桥却报 light"。
+  // 读不到（没装主题包的那台宿主）就**不带这一格**——`createShellBridge` 会把 env 判成没提供，
+  // 文档那侧读到的是有名有姓的退化，而不是一个编出来的亮色。
+  const activeScheme = readActiveScheme(ctx)
+  const caps = shellCapsFrom({
+    ...(settingsRemote === undefined ? {} : { settings: settingsRemote }),
+    ...(activeScheme === undefined ? {} : { preference: activeScheme }),
+    ...(typeof navigator === 'undefined' || typeof navigator.userAgent !== 'string'
+      ? {}
+      : { userAgent: navigator.userAgent }),
+  })
 
   const runCommand = makeRunCommand(ctx)
   // 这一格显示哪一面由宿主清单里 ui.documentUrl 这条**事实**决定（ADR-0009 那一刀）：

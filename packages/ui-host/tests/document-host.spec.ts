@@ -111,7 +111,13 @@ describe('形状', () => {
     const { host } = build()
     expect(host.contract.hasCapability('config')).toBe(true)
     expect(host.contract.hasCapability('runner')).toBe(false)
-    expect(host.contract.supportedCapabilities).toEqual(expect.arrayContaining(['config', 'contract', 'env']))
+    expect(host.contract.supportedCapabilities).toEqual(expect.arrayContaining(['config', 'contract']))
+    // 外壳没带环境快照时 env 不在 granted 里——这条不是"表变了"，而是"表不再替壳说谎"
+    // （2026-10-06 实测：granted 里有 env 而 ready.env 不存在，界面读 host.env 就抛）。
+    expect(host.contract.hasCapability('env')).toBe(false)
+    const withEnv = build({ env: { theme: 'dark', platform: 'web' } })
+    expect(withEnv.host.contract.hasCapability('env')).toBe(true)
+    expect(withEnv.host.env).toEqual({ theme: 'dark', platform: 'web' })
   })
 
   it('握手前问 contract 版本得到 not-ready，而不是一个空串', () => {

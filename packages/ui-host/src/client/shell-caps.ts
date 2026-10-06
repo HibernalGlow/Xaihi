@@ -72,6 +72,11 @@ export function resolveEnv(input: ShellCapsInput): BridgeEnv | undefined {
     theme = preference
   }
   // platform 不硬写 "web"：桌面壳的 UA 里有 Electron，认出来就报 electron，认不出才回落。
+  // 2026-10-06 在 3399 那台宿主上实读到的正是这条的**边界**：我用的那个内嵌浏览器本身是
+  // Electron 壳，于是 `env.platform` 回的是 `electron`，而 DSH 那侧是 Node 起 web 服务。
+  // 所以这一格说的是"**正在显示这份 UI 的运行时**"（上游 `NodeEnvCapability.platform` 也是这个口径：
+  // 'web' | 'electron' | 'node'），不是"宿主服务器跑在哪"。节点界面按它决定 ⌘/Ctrl 这类提示时
+  // 要的正是前者；要问后者的话别读这一格。
   const platform = typeof userAgent === 'string' && userAgent.includes('Electron') ? 'electron' : 'web'
   return { theme, platform }
 }

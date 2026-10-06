@@ -50,13 +50,14 @@ const settingsOf = (calls: string[]): SettingsFace => ({
 })
 
 describe('握手', () => {
-  it('给了 settings 面时 config 进 granted，没给 runner 时 runner 以退化露出', async () => {
+  it('给了 settings 面时 config 与 state 进 granted，没带的组各自以退化露出', async () => {
     const calls: string[] = []
     const { sent, bridge } = harness({ settings: settingsOf(calls) })
     await bridge.receive(hello(), ORIGIN)
     const ready = bridge.ready()
-    expect(ready?.granted).toEqual(expect.arrayContaining(['config', 'contract', 'env']))
-    expect(ready?.refused).toEqual(expect.arrayContaining(['runner', 'clipboard', 'downloads', 'localFiles']))
+    expect(ready?.granted).toEqual(expect.arrayContaining(['config', 'state', 'contract']))
+    // env 也在这串里：外壳没随 caps 带环境快照，那这一格就不能算给了（同一条说谎形状见 roundtrip 那条）。
+    expect(ready?.refused).toEqual(expect.arrayContaining(['runner', 'clipboard', 'downloads', 'localFiles', 'env']))
     expect(sent).toHaveLength(1)
     expect(ready?.degraded.some((row) => row.capability === 'runner')).toBe(true)
   })

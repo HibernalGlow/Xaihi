@@ -62,9 +62,24 @@ describe('握手往返', () => {
     handshake(wiring)
     expect(wiring.hellos[0]?.requested).toEqual([...NODE_CAPABILITY_IDS])
     const ready = wiring.documentBridge.ready()
-    expect(ready?.granted).toEqual(expect.arrayContaining(['config', 'contract', 'env']))
+    expect(ready?.granted).toEqual(expect.arrayContaining(['config', 'contract']))
     expect(ready?.refused).toEqual(expect.arrayContaining(['runner', 'clipboard', 'localFiles', 'downloads']))
     expect(ready?.degraded.find((row) => row.capability === 'runner')).toBeDefined()
+  })
+
+  it('env 只有外壳真带快照时才算授予——granted 里有 env 而 ready 里没那一格是说谎', () => {
+    // 2026-10-06 在 3399 那台宿主上就是这个形状：granted=[…, env] 而 ready.env 根本不存在，
+    // 于是文档那边 `host.env.theme` 抛 refused，而协商说它给了。
+    const withoutEnv = wire({ settings: settingsOf([]) })
+    handshake(withoutEnv)
+    expect(withoutEnv.documentBridge.ready()?.granted).not.toContain('env')
+    expect(withoutEnv.documentBridge.ready()?.refused).toContain('env')
+
+    const withEnv = wire({ settings: settingsOf([]), env: { theme: 'dark', platform: 'web' } })
+    handshake(withEnv)
+    const ready = withEnv.documentBridge.ready()
+    expect(ready?.granted).toContain('env')
+    expect(ready?.env).toEqual({ theme: 'dark', platform: 'web' })
   })
 
   it('握手没发生时调用失败成 not-ready，而不是挂在那里等', async () => {
