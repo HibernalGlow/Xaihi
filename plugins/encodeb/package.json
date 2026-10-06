@@ -1,0 +1,520 @@
+{
+  "name": "@hibernalglow/xaihi-encodeb",
+  "version": "0.0.0",
+  "description": "Xaihi node Encodeb: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-encodeb",
+    "title": {
+      "zh": "Encodeb",
+      "en": "Encodeb"
+    },
+    "ui": {
+      "remote": "encodeb",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.encodeb",
+        "title": {
+          "zh": "Encodeb面板",
+          "en": "Encodeb panel"
+        },
+        "area": "workspace",
+        "remote": "encodeb",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "encodeb",
+      "title": {
+        "zh": "Encodeb",
+        "en": "Encodeb"
+      },
+      "description": {
+        "zh": "通过重新解码路径组件，预览并修复乱码文件名。",
+        "en": "Preview and recover garbled filenames by re-decoding path components."
+      },
+      "actions": [
+        {
+          "id": "find",
+          "label": {
+            "zh": "⌕ 查找乱码",
+            "en": "Find"
+          }
+        },
+        {
+          "id": "preview",
+          "label": {
+            "zh": "◉ 预览修复",
+            "en": "Preview"
+          }
+        },
+        {
+          "id": "recover",
+          "label": {
+            "zh": "↻ 执行修复",
+            "en": "Recover"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "修复任务",
+            "en": "Recovery task"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "find",
+              "label": {
+                "zh": "⌕ 查找乱码",
+                "en": "Find"
+              }
+            },
+            {
+              "value": "preview",
+              "label": {
+                "zh": "◉ 预览修复",
+                "en": "Preview"
+              }
+            },
+            {
+              "value": "recover",
+              "label": {
+                "zh": "↻ 执行修复",
+                "en": "Recover"
+              }
+            }
+          ],
+          "default": {
+            "text": "preview"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "paths",
+          "label": {
+            "zh": "输入路径",
+            "en": "Input paths"
+          },
+          "kind": "path-list",
+          "lines": 6,
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "preset",
+          "label": {
+            "zh": "修复预设",
+            "en": "Repair preset"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "auto",
+              "label": {
+                "zh": "Auto · 自动判断（推荐）",
+                "en": "Auto detect (recommended)"
+              }
+            },
+            {
+              "value": "cn",
+              "label": {
+                "zh": "CN · ╓╨╬─ → 中文",
+                "en": "CN · ╓╨╬─ → 中文"
+              }
+            },
+            {
+              "value": "jp",
+              "label": {
+                "zh": "JP · âeâXâg → テスト",
+                "en": "JP · âeâXâg → テスト"
+              }
+            },
+            {
+              "value": "kr",
+              "label": {
+                "zh": "KR · ╟╤▒█ → 한글",
+                "en": "KR · ╟╤▒█ → 한글"
+              }
+            },
+            {
+              "value": "jp_from_cn",
+              "label": {
+                "zh": "JP · 僥僗僩 → テスト",
+                "en": "JP · 僥僗僩 → テスト"
+              }
+            },
+            {
+              "value": "jp_iso2022_from_cn",
+              "label": {
+                "zh": "JP · CP936 → ISO-2022-JP",
+                "en": "JP · CP936 → ISO-2022-JP"
+              }
+            },
+            {
+              "value": "latin1_utf8",
+              "label": {
+                "zh": "Mojibake · ã‚» → セ",
+                "en": "Mojibake · ã‚» → セ"
+              }
+            },
+            {
+              "value": "hash_u",
+              "label": {
+                "zh": "#U30BB → セ",
+                "en": "#U30BB → セ"
+              }
+            },
+            {
+              "value": "middle_dot",
+              "label": {
+                "zh": "魔法・少女 → 魔法·少女",
+                "en": "魔法・少女 → 魔法·少女"
+              }
+            },
+            {
+              "value": "custom",
+              "label": {
+                "zh": "自定义",
+                "en": "Custom"
+              }
+            }
+          ],
+          "default": {
+            "text": "auto"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "srcEncoding",
+          "label": {
+            "zh": "源编码",
+            "en": "Source encoding"
+          },
+          "kind": "text",
+          "default": {
+            "text": "auto"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dstEncoding",
+          "label": {
+            "zh": "目标编码",
+            "en": "Target encoding"
+          },
+          "kind": "text",
+          "default": {
+            "text": "auto"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "strategy",
+          "label": {
+            "zh": "修复策略",
+            "en": "Strategy"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "replace",
+              "label": {
+                "zh": "原地替换",
+                "en": "Replace"
+              }
+            },
+            {
+              "value": "copy",
+              "label": {
+                "zh": "复制修复副本",
+                "en": "Copy"
+              }
+            }
+          ],
+          "default": {
+            "text": "replace"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "recover"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "limit",
+          "label": {
+            "zh": "候选上限",
+            "en": "Candidate limit"
+          },
+          "kind": "number",
+          "range": {
+            "min": 1,
+            "max": 2000,
+            "step": 1
+          },
+          "default": {
+            "number": 200
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "repair",
+          "fieldIds": [
+            "action",
+            "paths",
+            "preset",
+            "srcEncoding",
+            "dstEncoding",
+            "strategy",
+            "limit"
+          ],
+          "label": {
+            "zh": "编码修复",
+            "en": "Encoding repair"
+          }
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "paths",
+          "slot": "paths",
+          "transform": "lines"
+        },
+        {
+          "fieldId": "preset",
+          "slot": "preset",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "srcEncoding",
+          "slot": "srcEncoding",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "dstEncoding",
+          "slot": "dstEncoding",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "preset",
+          "slot": "transform",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "strategy",
+          "slot": "strategy",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "limit",
+          "slot": "limit",
+          "transform": "asInteger"
+        }
+      ],
+      "danger": {
+        "type": "actionIn",
+        "actionField": "action",
+        "dangerous": [
+          "recover"
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认文件名修复",
+          "en": "Confirm filename recovery"
+        },
+        "body": {
+          "zh": "将按当前编码和策略改动真实文件路径。",
+          "en": "Real file paths will be changed."
+        },
+        "confirmLabel": {
+          "zh": "确认修复",
+          "en": "Recover"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "需要在工作区 UI 或 CLI 中使用该节点的文件工作流时，使用 Encodeb。",
+          "en": "Use Encodeb when you need this node's file workflow from either the workspace UI or CLI."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "notes": {
+            "zh": [
+              "在修改文件前，优先使用预览或 dry-run 模式。",
+              "处理大文件夹时请保留备份或撤销记录。"
+            ],
+            "en": [
+              "Prefer preview or dry-run modes before changing files.",
+              "Keep backups or undo records when processing large folders."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "bin": {
+    "xencodeb": "./lib/cli.js"
+  }
+}

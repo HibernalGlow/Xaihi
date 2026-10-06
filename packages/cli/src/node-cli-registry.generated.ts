@@ -7,19 +7,19 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     id: "bandia",
     packageName: "@hibernalglow/xaihi-bandia",
     bin: "xbandia",
-    description: "Bandia (scaffold initial definition)",
+    description: "Batch extract, compress, repack, and export archive paths with Bandizip.",
   },
   {
     id: "bitv",
     packageName: "@hibernalglow/xaihi-bitv",
     bin: "xbitv",
-    description: "BitV (scaffold initial definition)",
+    description: "Analyze video bitrate with ffprobe and classify files safely.",
   },
   {
     id: "classf",
     packageName: "@hibernalglow/xaihi-classf",
     bin: "xclassf",
-    description: "ClassF (scaffold initial definition)",
+    description: "Classify detected files into already, del, or wait without losing path context.",
   },
   {
     id: "classq",
@@ -31,7 +31,7 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     id: "cleanf",
     packageName: "@hibernalglow/xaihi-cleanf",
     bin: "xcleanf",
-    description: "Cleanf (scaffold initial definition)",
+    description: "Preview and remove empty folders, backup files, temp folders, trash files, and cleanup presets.",
   },
   {
     id: "crashu",
@@ -55,7 +55,7 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     id: "enginev",
     packageName: "@hibernalglow/xaihi-enginev",
     bin: "xenginev",
-    description: "EngineV (scaffold initial definition)",
+    description: "Scan, filter, rename, delete, and export Wallpaper Engine workshop folders.",
   },
   {
     id: "formatv",
@@ -67,7 +67,7 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     id: "gifu",
     packageName: "@hibernalglow/xaihi-gifu",
     bin: "xgifu",
-    description: "Gifu (scaffold initial definition)",
+    description: "Convert image archives to GIF, WebP, APNG, WebM, or MP4 with the native media runtime.",
   },
   {
     id: "linedup",
@@ -103,7 +103,7 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     id: "mvz",
     packageName: "@hibernalglow/xaihi-mvz",
     bin: "xmvz",
-    description: "MVZ (scaffold initial definition)",
+    description: "Delete, extract, move, or rename files inside archives from findz output.",
   },
   {
     id: "nameu",
@@ -127,7 +127,7 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     id: "repacku",
     packageName: "@hibernalglow/xaihi-repacku",
     bin: "xrepacku",
-    description: "Repacku (scaffold initial definition)",
+    description: "Analyze folder structures and repack matching folders into zip archives.",
   },
   {
     id: "samea",

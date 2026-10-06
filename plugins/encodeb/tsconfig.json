@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // 从 Xiranite `noxide` 基线逐字搬来的 `src/core.ts` 是在**没有**这两面旗的编译器下写的：
+    // `runEncodeb` 直接把 `normalized.paths[index]`（`string | undefined`）交给
+    // `runtime.scanPath`，`createEncodebMappings` 用 `{ src: entry.path, ... }` 填
+    // `EncodebMapping`，`Required<EncodebInput>` 的展开在 exactOptional 下会被读成
+    // "必填属性可能缺"。要在我们这边通过，就得给 185 行内核逐个加断言或改控制流——
+    // 那正是移植里最不该发生的"顺手改行为"。所以只关这两面旗（strict 保留），
+    // 并把范围限在本包，与 `plugins/crashu/tsconfig.json` / `plugins/dissolvef/tsconfig.json`
+    // 记的是同一条先例。等内核被我们主动重写时连同旗号一起收回。
+    // 这不是白 given：本包的 `src/index.ts` / `src/cli.ts` / `src/platform.ts` 是新写的接线层，
+    // 它照样被 strict 家族管着——`EncodebInput` 那份条件展开就是被逼出来的写法。
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false
+  },
+  "include": ["src", "frontend", "tests", "rspack.config.mjs"]
+}
