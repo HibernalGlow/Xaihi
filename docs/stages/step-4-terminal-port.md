@@ -194,3 +194,32 @@ $ plugins/{sleept,linedup,dissolvef} tsc --noEmit               rc=0
 之后才有"聚合 CLI 能不能 list 出三个真节点"这种可验的东西。
 再往后依次是：`@xiranite/{file-operations,services}` 的对应物、46 个未迁节点、
 以及 Bun 前置那条要使用者拍的口径。
+
+## 十、`packages/cli` 入不了 workspace 的确切账（2026-10-07 01:16 现读）
+
+`pnpm-workspace.yaml` 里那批 `!packages/{api,cli,cli-runtime,contract,logging,shared,tui}` 负向条目
+不是风格问题：这些包的 `@xiranite/*` 依赖写成 `workspace:*`，而本仓没有那些包名，
+一入表 pnpm 连依赖树都解不出（症状是全仓每条 pnpm 命令报 Failed to resolve dependency tree）。
+按 `packages/*/package.json` 现读，31 + 2 + 3 + 1 + 1 条边的归属是：
+
+| 包 | 非节点边（本仓有源码，只是没进 workspace） | 节点边·在 retain-rewrite 28 名单内 | 节点边·**不在名单内** |
+|---|---|---|---|
+| `packages/cli` | `api`、`cli-runtime`、`logging`、`shared` | bandia cleanf crashu dissolvef encodb enginev findz formatv linedup linku logx marku migratef mvz rawfilter recycleu repacku samea sleept trename（20 条） | **czkawka kavvka lata movea owithu scoolp seriex（7 条）** |
+| `packages/cli-runtime` | `api`、`contract` | — | — |
+| `packages/api` | `file-operations`、`services`、`shared` | — | — |
+| `packages/contract` | `shared` | — | — |
+| `packages/logging` | `cli-runtime` | — | — |
+
+⇒ 三件事，顺序有依赖，不能一次做完：
+1. **先把那 7 条"名单外"的边剪掉**（`lata` 是 hold-unmigrated，其余六位在台账里是 removed/drop）。
+   它们对应的不是"还没搬的命令"，是**已经出局的功能**——按"只为已出局节点存在的能力不算能力"这条，
+   正确做法是把那几个子命令整块删了，不是留一个空壳等移植。
+2. `@xiranite/file-operations` 与 `@xiranite/services` 本仓**判定不接**（ADR-0013），
+   所以 `packages/api` 这两条边必须改成指向我们自己的东西或整块不搬；这一步不做完，
+   `packages/cli` 引 `@xiranite/api` 就永远解不出来。
+3. 剩下 20 条节点边是**随批次自然收敛**的：每迁完一个节点、`plugins/<id>` 进了 workspace，
+   就少一条 `@xiranite/node-<id>`（改名成 `@hibernalglow/xaihi-<id>`）。
+   批次 A–H 已覆盖其中 14 个，还在飞 4 个。
+
+`nodeCoreAliases()`（`packages/ui-host/build-aliases.mjs`）已经是"从 `plugins/*/src` 现读自动长表"的形状，
+所以第 3 步在**类型检查与浏览器产物**这一侧不需要人工同步；需要人工的只有 `packages/cli` 那份依赖表。
