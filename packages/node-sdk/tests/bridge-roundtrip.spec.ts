@@ -9,8 +9,8 @@
 
 import { describe, expect, it, vi } from 'vitest'
 import { BRIDGE_SCHEMA, NODE_CAPABILITY_IDS, type BridgeHello, type BridgeMessage } from '@hibernalglow/xaihi-sdk'
-import { createShellBridge, type SettingsFace } from '../src/client/bridge-shell.ts'
-import { BridgeError, createDocumentBridge } from '../src/client/bridge-document.ts'
+import { createShellBridge, type SettingsFace } from '../src/bridge-shell.ts'
+import { BridgeError, createDocumentBridge } from '../src/bridge-document.ts'
 
 const ORIGIN = 'http://127.0.0.1:3199'
 

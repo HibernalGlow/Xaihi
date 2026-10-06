@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { BRIDGE_CONTRACT_VERSION, BRIDGE_SCHEMA, NODE_CAPABILITY_IDS, type BridgeMessage } from '@hibernalglow/xaihi-sdk'
-import { createShellBridge, type SettingsFace } from '../src/client/bridge-shell.ts'
+import { createShellBridge, type SettingsFace } from '../src/bridge-shell.ts'
 
 const ORIGIN = 'http://127.0.0.1:3199'
 

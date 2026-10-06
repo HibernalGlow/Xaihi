@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { UiBundleFace } from '@hibernalglow/xaihi-sdk'
-import { createShellBridge, type ShellCapabilities } from './bridge-shell.ts'
+import { createShellBridge, type ShellCapabilities } from '@hibernalglow/xaihi-sdk'
 
 /** 桥消息要发给的那个 frame 窗口的最小面（jsdom 与真浏览器都能满足）。 */
 export interface FrameWindowLike {

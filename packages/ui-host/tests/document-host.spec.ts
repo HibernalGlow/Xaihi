@@ -8,9 +8,15 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { NODE_CAPABILITY_IDS, type BridgeMessage } from '@hibernalglow/xaihi-sdk'
-import { createShellBridge, type SettingsFace } from '../src/client/bridge-shell.ts'
-import { createDocumentBridge, BridgeError, type DocumentBridge } from '../src/client/bridge-document.ts'
+import {
+  BridgeError,
+  NODE_CAPABILITY_IDS,
+  createDocumentBridge,
+  createShellBridge,
+  type BridgeMessage,
+  type DocumentBridge,
+  type SettingsFace,
+} from '@hibernalglow/xaihi-sdk'
 import { createDocumentHost } from '../src/client/document-host.ts'
 
 const ORIGIN = 'http://127.0.0.1:3199'

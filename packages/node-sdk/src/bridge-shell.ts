@@ -29,7 +29,7 @@ import {
   type BridgeReady,
   type BridgeResponse,
   type NodeCapabilityId,
-} from '@hibernalglow/xaihi-sdk'
+} from './host-bridge.ts'
 
 /** 注入的设置面：只列 DSH 那侧确认存在的动词。 */
 export interface SettingsFace {

@@ -29,7 +29,7 @@ import {
   type BridgeRequest,
   type BridgeReady,
   type NodeCapabilityId,
-} from '@hibernalglow/xaihi-sdk'
+} from './host-bridge.ts'
 
 /** 桥的错误：`reason` 是给界面读的键，`detail` 是人看的补充。 */
 export class BridgeError extends Error {
