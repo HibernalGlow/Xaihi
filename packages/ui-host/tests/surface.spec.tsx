@@ -17,7 +17,7 @@ const rootProps = (): RootProps => ({
   t: ((key: string) => key) as RootProps['t'],
   locale: 'zh',
   renderSlot: () => null,
-  runCommand: async () => ({ ok: true, output: '' }) as Awaited<ReturnType<RootProps['runCommand']>>,
+  runCommand: async () => ({ ok: true as const, text: '' }),
 })
 
 const jsonResponse = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as unknown as Response
