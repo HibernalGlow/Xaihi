@@ -291,6 +291,35 @@ if (flag('verify')) {
   console.log(`verify: 0004 去重键 ${String(keyTable.length)} 用例，判错 ${String(keyWrong.length)}`)
   if (keyWrong.length > 0) fail(`verify: 0004 的键与用例不符 ⇒ ${String(keyWrong)}`)
 
+  // 0009 的尺寸校验也是纯函数：正控（合法尺寸必须放行，且逐字保留）与反控（半套/小数/字符串/越界一律拒）。
+  const sizeTable = [
+    [{ width: 1280, height: 820 }, { width: 1280, height: 820 }],
+    [{ width: 520, height: 600 }, { width: 520, height: 600 }],
+    [{ width: 519, height: 600 }, undefined],
+    [{ width: 520, height: 599 }, undefined],
+    [{ width: 12001, height: 700 }, undefined],
+    [{ width: 900 }, undefined],
+    [{ height: 700 }, undefined],
+    [{ width: 900.5, height: 700 }, undefined],
+    [{ width: '900', height: 700 }, undefined],
+    [{}, undefined],
+    [undefined, undefined],
+    ['a string', undefined],
+  ]
+  const sizeWrong = sizeTable.filter(([input, want]) => {
+    const got = policy.normalizeXaihiWindowSize(input)
+    if (want === undefined) return got !== undefined
+    return JSON.stringify(got) !== JSON.stringify(want)
+  })
+  console.log(`verify: 0009 尺寸校验 ${String(sizeTable.length)} 用例，判错 ${String(sizeWrong.length)}`)
+  if (sizeWrong.length > 0) {
+    fail(`verify: 0009 的尺寸校验与用例不符 ⇒ ${String(sizeWrong.map(([i]) => JSON.stringify(i)).join(', '))}`)
+  }
+  // 减法对照：合法尺寸被吞（返回 undefined）必须看得见，否则这条尺只会说"不合法"。
+  if (policy.normalizeXaihiWindowSize({ width: 1000, height: 900 }) === undefined) {
+    fail('verify: 0009 的尺寸校验把合法尺寸也拒了（尺是瞎的）')
+  }
+
   // 第二阶段：产物判据。lib/ 是上游 tsc 吐出来的，存在就说明这条通道真被编进了壳的
   // 主进程与 preload —— 源码里有定义 ≠ 落进了产物（这是构建绿却跑错代码那一类病的解药）。
   // 新文件要真进 program：tsc -b 的产物在 lib/types/，bundle 的在 lib/ —— 只查后者会漏掉新模块。

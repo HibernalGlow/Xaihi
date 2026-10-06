@@ -423,9 +423,10 @@ const H = await evaluateMain(`(async () => {
   if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
   const nodes = manifest.plugins.map((p) => p.manifest.id)
   const docPath = manifest.ui.documentUrl
+  // 0009 之后动词收的是 input 对象；这里把 path 包一层，调用点仍按"给不给路径"两格写。
   const ask = (node, path) => app.webContents.executeJavaScript(
     'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(node) + ', '
-    + (path === undefined ? 'undefined' : JSON.stringify(path)) + ')'
+    + (path === undefined ? 'undefined' : JSON.stringify({ documentPath: path })) + ')'
     + '.then((r) => ({ kind: "opened", windowId: r.windowId, alreadyOpen: r.alreadyOpen }),'
     + ' (e) => ({ kind: "rejected", message: String(e && e.message ? e.message : e) }))', true)
   // 子帧那一格的现场读数（不当判据：那是 Electron 的 preload 归属，不是我们的缺陷）
@@ -482,7 +483,7 @@ const I = await evaluateMain(`(async () => {
   // 上一版这里漏了第二个参数，撞上的正是 0007 故意保留的那条拒绝（尺写错，不是产品缺陷）。
   const opening = await app.webContents.executeJavaScript(
     'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(nodes[0]) + ', '
-    + JSON.stringify(manifest.ui.documentUrl) + ')', true)
+    + JSON.stringify({ documentPath: manifest.ui.documentUrl }) + ')', true)
   await new Promise((r) => setTimeout(r, 1200))
   const win = all().find((w) => w.id === opening.windowId)
   if (win === undefined) return { skipped: '那个文档窗没开出来' }
@@ -601,7 +602,7 @@ const K = await evaluateMain(`(async () => {
   // 上一版这里又漏了第二个参数，撞的还是 0007 故意保留的那条拒绝（同一类尺写错，第二次）。
   const first = await app.webContents.executeJavaScript(
     'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(nodes[0]) + ', '
-    + JSON.stringify(manifest.ui.documentUrl) + ')', true)
+    + JSON.stringify({ documentPath: manifest.ui.documentUrl }) + ')', true)
   const child = all().find((w) => w.id === first.windowId)
   if (child === undefined) return { skipped: '第一个节点窗没开出来' }
   const targetUrl = docUrl + '?node=' + (nodes[2] ?? nodes[1] ?? nodes[0])
@@ -621,6 +622,47 @@ const K = await evaluateMain(`(async () => {
     createdCount: created.length, createdProbe, ownedLeft: openedWins().length }
 })()`)
 console.log('K 段（节点窗自己 window.open 开另一个节点窗）⇒ ' + JSON.stringify(K))
+
+// L 段：0009 的尺寸 —— 调用方带的尺寸要真落到新建那一个窗上，且**只作用在新建那一次**
+// （重复请求是聚焦，不许把使用者已经拖好的窗改了尺寸）。三条对照：半套尺寸、越界尺寸、去重后尺寸不变。
+const L = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 600))
+  const ready = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL('dsh-app://app/')
+  await Promise.race([ready, new Promise((r) => setTimeout(r, 6000))])
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const nodes = manifest.plugins.map((p) => p.manifest.id)
+  const docPath = manifest.ui.documentUrl
+  const ask = (options) => app.webContents.executeJavaScript(
+    'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(nodes[2] ?? nodes[1]) + ', '
+    + JSON.stringify(options) + ')'
+    + '.then((r) => ({ kind: "opened", windowId: r.windowId, alreadyOpen: r.alreadyOpen }),'
+    + ' (e) => ({ kind: "rejected", message: String(e && e.message ? e.message : e) }))', true)
+  const sized = await ask({ documentPath: docPath, width: 900, height: 700 })
+  await new Promise((r) => setTimeout(r, 1000))
+  const win = all().find((w) => w.id === sized.windowId)
+  const bounds = win === undefined ? null : win.getBounds()
+  const repeat = await ask({ documentPath: docPath, width: 1500, height: 1100 })
+  await new Promise((r) => setTimeout(r, 800))
+  const boundsAfterRepeat = win === undefined || win.isDestroyed() ? null : win.getBounds()
+  const partial = await ask({ documentPath: docPath, width: 900 })
+  const tooSmall = await ask({ documentPath: docPath, width: 300, height: 300 })
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 800))
+  return {
+    sized, bounds, repeat, boundsAfterRepeat, partial, tooSmall,
+    ownedLeft: openedWins().length,
+  }
+})()`)
+console.log('L 段（调用方带的尺寸只作用在新建那一次）⇒ ' + JSON.stringify(L))
 
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
@@ -721,6 +763,17 @@ need('K: 那个窗寻址与标题都跟着新的 node（不是第一个窗的 no
   String(kk.createdProbe?.url).includes('node=' + String(kk.nodes?.[2] ?? kk.nodes?.[1] ?? '~none~'))
   && String(kk.createdProbe?.title).includes(String(kk.nodes?.[2] ?? kk.nodes?.[1] ?? '~none~')))
 need('K: 收尾把自家窗清干净', kk.ownedLeft === 0)
+
+const ll = L.ok === true ? L.value : {}
+need('L: 调用方带的尺寸真落到新建的那一个窗（900x700 逐字读回）',
+  ll.sized?.kind === 'opened' && ll.sized.alreadyOpen === false
+  && ll.bounds?.width === 900 && ll.bounds?.height === 700)
+need('L: 重复请求是聚焦，不许改掉使用者已经有的窗尺寸',
+  ll.repeat?.alreadyOpen === true && ll.boundsAfterRepeat?.width === 900 && ll.boundsAfterRepeat?.height === 700)
+need('L: 半套尺寸按形状错误拒（不许静默用缺省）',
+  ll.partial?.kind === 'rejected' && String(ll.partial?.message).includes('width and height must both be integers'))
+need('L: 越界尺寸被拒', ll.tooSmall?.kind === 'rejected' && String(ll.tooSmall?.message).includes('width and height must both be integers'))
+need('L: 收尾把自家窗清干净', ll.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {

@@ -1,0 +1,177 @@
+From 59655d364ffb08f30943bfe769b7b49175357440 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 07:04:36 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E5=BC=80=E7=AA=97=E5=8A=A8=E8=AF=8D?=
+ =?utf-8?q?=E6=94=B6=20input=20=E5=AF=B9=E8=B1=A1=E5=B9=B6=E5=8F=AF?=
+ =?utf-8?q?=E5=B8=A6=E6=96=B0=E5=BB=BA=E5=B0=BA=E5=AF=B8=EF=BC=88Xaihi=20p?=
+ =?utf-8?q?atch=200009=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/ipc.ts                 | 11 ++++++++-
+ apps/desktop/src/main.ts                | 30 ++++++++++++++++++++-----
+ apps/desktop/src/preload-app.ts         |  2 +-
+ apps/desktop/src/xaihi-window-policy.ts | 30 +++++++++++++++++++++++++
+ 4 files changed, 66 insertions(+), 7 deletions(-)
+
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+index b36837b..2a916c4 100644
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -88,11 +88,20 @@ export interface DshDesktopProductApi {
+    * the product document that hosts it may pass the document path explicitly. The shell then
+    * validates that path against its own `/xaihi/ui/<rev>/index.html` route shape instead of
+    * trusting any URL the caller is sitting on; scheme and host stay the shell's.
++   * Xaihi patch 0009 folds both into one input object and adds the optional opening size,
++   * shaped like the baseline's `OpenComponentWindowInput` (`width` / `height`). The caller owns
++   * that memory (Xaihi persists it through DSH's settings surface, per ADR-0013); the shell only
++   * validates it and applies it to a *newly created* window — a repeat request focuses the live
++   * window instead of resizing what the user already positioned.
+    * Consumers must feature-detect this member: stock Desktop and `dsh web` do not provide it,
+    * and Xaihi degrades visibly there.
+    */
+   readonly xaihiWindow?: {
+-    open(node: string, documentPath?: string): Promise<{ readonly windowId: number, readonly alreadyOpen: boolean }>
++    open(node: string, options?: {
++      readonly documentPath?: string
++      readonly width?: number
++      readonly height?: number
++    }): Promise<{ readonly windowId: number, readonly alreadyOpen: boolean }>
+   }
+   readonly updates: {
+     status(): Promise<DesktopUpdatePresentation>
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index 8cfbd41..d368821 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -24,7 +24,7 @@ import {
+   type WebContents,
+ } from 'electron'
+ import { resolveDesktopPaths } from './paths.ts'
+-import { resolveXaihiDocumentTarget, xaihiWindowKey } from './xaihi-window-policy.ts'
++import { normalizeXaihiWindowSize, resolveXaihiDocumentTarget, xaihiWindowKey, type XaihiWindowSize } from './xaihi-window-policy.ts'
+ 
+ import { DesktopProjectManager } from './project-manager.ts'
+ import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
+@@ -225,8 +225,12 @@ export interface XaihiWindowOpening {
+   readonly alreadyOpen: boolean
+ }
+ 
+-/** Open — or focus the live window for — one Xaihi document target the policy already accepted. */
+-function openXaihiDocumentWindow (preload: string, target: string): XaihiWindowOpening {
++/**
++ * Open — or focus the live window for — one Xaihi document target the policy already accepted.
++ * `size` 只作用在**新建**那一次：重复请求是聚焦既有的窗，把使用者已经拖放好的尺寸改掉
++ * 等于替他做决定（基线那侧同样是"记住尺寸只在 open 时喂进去"）。
++ */
++function openXaihiDocumentWindow (preload: string, target: string, size?: XaihiWindowSize): XaihiWindowOpening {
+   const key = xaihiWindowKey(target)
+   const existing = xaihiDocumentWindows.get(key)
+   if (existing !== undefined && !existing.isDestroyed()) {
+@@ -236,6 +240,7 @@ function openXaihiDocumentWindow (preload: string, target: string): XaihiWindowO
+     return { window: existing, alreadyOpen: true }
+   }
+   const window = createWindow(preload, true, false)
++  if (size !== undefined) window.setSize(size.width, size.height)
+   // 标题是使用者辨认"这个窗是哪个 node"的唯一读回面；文档自己带 <title>，
+   // 不拦住 page-title-updated 就会把它覆盖成通用标题（实测读回只剩 "Xaihi"）。
+   window.on('page-title-updated', (event) => { event.preventDefault() })
+@@ -762,9 +767,13 @@ async function main(): Promise<void> {
+   // Xaihi patch 0007: 被嵌在产品文档里的 Xaihi 帧自己没有 preload（子帧拿不到动词），
+   // 所以那一层的请求由产品文档转达，并显式带文档路径 —— 这条分支改判**发起者的 URL**为
+   // **显式路径必须自己通过同一条路由形状校验**；scheme 与 host 仍然只有壳自己那一份。
++  // Xaihi patch 0009: 第二个参数收成**一个 input 对象**（`documentPath` / `width` / `height`），
++  // 形状照基线的 `OpenComponentWindowInput`（`Xiranite/src/backend/runtime/runtime.ts:125-132`）。
++  // 尺寸由调用方带 —— "哪个节点窗多大"是 Xaihi 自己的耐久数据（ADR-0013 走 DSH 的 settings/storage 面），
++  // 壳不另开一份存储；这里只做纯校验，半套尺寸（只有 width 或只有 height）按形状错误拒。
+   const XAIHI_NODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/u
+   const XAIHI_DOCUMENT_PATH = /^\/xaihi\/ui\/[0-9a-f]{12}\/index\.html$/u
+-  ipcMain.handle(DESKTOP_IPC.xaihiWindowOpen, (event, node: unknown, documentPath?: unknown) => {
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowOpen, (event, node: unknown, input?: unknown) => {
+     assertDesktopSender(event, ['app'])
+     const frame = event.senderFrame
+     if (frame === null || frame !== event.sender.mainFrame) {
+@@ -774,6 +783,10 @@ async function main(): Promise<void> {
+     if (!isMainDocument && !xaihiOwnedSender(event.sender)) {
+       throw new Error('xaihi desktop: rejected window request from an unowned renderer')
+     }
++    if (input !== undefined && (input === null || typeof input !== 'object')) {
++      throw new Error('xaihi desktop: options must be an object of documentPath, width, height')
++    }
++    const { documentPath, width, height } = (input ?? {}) as { documentPath?: unknown, width?: unknown, height?: unknown }
+     if (typeof node !== 'string' || !XAIHI_NODE_PATTERN.test(node)) {
+       throw new Error('xaihi desktop: node must match [a-z0-9][a-z0-9_-]{0,63}')
+     }
+@@ -789,8 +802,15 @@ async function main(): Promise<void> {
+         throw new Error('xaihi desktop: only the Xaihi UI document may open a window')
+       }
+     }
++    let size: XaihiWindowSize | undefined
++    if (width !== undefined || height !== undefined) {
++      size = normalizeXaihiWindowSize({ width, height })
++      if (size === undefined) {
++        throw new Error('xaihi desktop: width and height must both be integers within the allowed bounds')
++      }
++    }
+     url.searchParams.set('node', node)
+-    const opening = openXaihiDocumentWindow(appPreload, url.toString())
++    const opening = openXaihiDocumentWindow(appPreload, url.toString(), size)
+     return { windowId: opening.window.id, alreadyOpen: opening.alreadyOpen }
+   })
+ 
+diff --git a/apps/desktop/src/preload-app.ts b/apps/desktop/src/preload-app.ts
+index 37c4d0d..926a143 100644
+--- a/apps/desktop/src/preload-app.ts
++++ b/apps/desktop/src/preload-app.ts
+@@ -17,7 +17,7 @@ function createProductApi(): DshDesktopProductApi {
+     deviceInfo: () => ipcRenderer.invoke(DESKTOP_IPC.deviceInfo) as Promise<string>,
+     // Xaihi patch: 只在主文档上给，且失败由主进程按同一套守卫判（ADR-0011 决定 4 要求消费端探测式使用）。
+     xaihiWindow: {
+-      open: (node: string, documentPath?: string) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowOpen, node, documentPath) as Promise<{ readonly windowId: number, readonly alreadyOpen: boolean }>,
++      open: (node: string, options?: { documentPath?: string, width?: number, height?: number }) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowOpen, node, options) as Promise<{ readonly windowId: number, readonly alreadyOpen: boolean }>,
+     },
+     keyboard: {
+       closeWindow: revision => ipcRenderer.invoke(DESKTOP_IPC.shortcutsCloseWindow, revision) as Promise<void>,
+diff --git a/apps/desktop/src/xaihi-window-policy.ts b/apps/desktop/src/xaihi-window-policy.ts
+index 0af05dc..b6845cd 100644
+--- a/apps/desktop/src/xaihi-window-policy.ts
++++ b/apps/desktop/src/xaihi-window-policy.ts
+@@ -86,3 +86,33 @@ export function xaihiWindowKey (url: string): string {
+   }
+   return parsed.searchParams.get('node') ?? 'workspace'
+ }
++
++/**
++ * Xaihi patch 0009: the remembered size a caller may ask a node window to open at.
++ *
++ * 形状照基线的 `OpenComponentWindowInput`（`Xiranite/src/backend/runtime/runtime.ts:125-132`：
++ * `componentId` 加可选 `width` / `height`）—— 尺寸**由调用方带**，因为"哪个节点窗多大"属于
++ * Xaihi 自己的耐久数据（ADR-0013：走 DSH 的 storage/settings 面），壳不另开一份存储。
++ * 这里只做纯校验：有限整数、且在 `createWindow` 的最小尺寸与一个上限之间；不合就整个请求按
++ * 形状错误拒掉，不许"看着不像就 silently 用缺省尺寸"——那会把调用方的错误吞成一次成功的开窗。
++ */
++export interface XaihiWindowSize {
++  readonly width: number
++  readonly height: number
++}
++
++// 下界与 `createWindow` 的 `minWidth` / `minHeight` 同档（`main.ts` 里那两个数）：
++// 允许调用方要一个壳自己不许的尺寸，等于让 Electron 悄悄 clamp 之后再也没人知道。
++const MIN_WINDOW_WIDTH = 520
++const MIN_WINDOW_HEIGHT = 600
++const MAX_WINDOW_SIZE = 12000
++
++export function normalizeXaihiWindowSize (size: unknown): XaihiWindowSize | undefined {
++  if (size === null || typeof size !== 'object') return undefined
++  const { width, height } = size as { width?: unknown, height?: unknown }
++  if (typeof width !== 'number' || typeof height !== 'number') return undefined
++  if (!Number.isInteger(width) || !Number.isInteger(height)) return undefined
++  if (width < MIN_WINDOW_WIDTH || height < MIN_WINDOW_HEIGHT) return undefined
++  if (width > MAX_WINDOW_SIZE || height > MAX_WINDOW_SIZE) return undefined
++  return { width, height }
++}
+-- 
+2.55.0
+
