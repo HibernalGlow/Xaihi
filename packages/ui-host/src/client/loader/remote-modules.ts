@@ -33,6 +33,37 @@ const shared = {
 }
 
 /** 建立一个远程模块装载器。 */
+/**
+ * 装载期留下的可观测面。双 React 的症状（跨边界 hooks 崩）比原因晚很久，所以"宿主与
+ * 远端拿到的是不是同一个 React"必须在装载当时成为可读事实。远端只要导出 `Probe`
+ * （值就是它 import 的 react 命名空间），同一性结论就写进 `globalThis.__XAIHI__`；
+ * 没有导出 Probe 的远端记成 unknown，不假装通过。
+ */
+interface LoaderObservatory {
+  loaderKind: string
+  remotes: string[]
+  modules: Record<string, { remote: string; exportName: string; reactVersion?: string; sameReactAsHost?: boolean | 'unknown' }>
+}
+
+const observatory: LoaderObservatory = { loaderKind: 'remote-modules', remotes: [], modules: {} }
+
+function publishObservatory(): void {
+  ;(globalThis as Record<string, unknown>).__XAIHI__ = observatory
+}
+
+function recordProbe(key: string, ref: ModuleRef, module: Record<string, unknown>): void {
+  const probe = module.Probe as { react?: unknown; version?: string } | undefined
+  if (probe === undefined) {
+    observatory.modules[key] = { ...ref, sameReactAsHost: 'unknown' }
+    return
+  }
+  observatory.modules[key] = {
+    ...ref,
+    reactVersion: probe.version,
+    sameReactAsHost: probe.react === React,
+  }
+}
+
 export function createRemoteLoader(config: LoaderConfig): UIModuleLoader {
   const remotes = config.remotes
   return {
@@ -46,6 +77,8 @@ export function createRemoteLoader(config: LoaderConfig): UIModuleLoader {
         .filter((pair): pair is [string, string] => typeof pair[1] === 'string')
         .map(([name, entry]) => ({ name, alias: name, entry }))
       registerRemotes(entries, { force: false })
+      observatory.remotes = Object.keys(remotes)
+      publishObservatory()
     },
     async load(ref: ModuleRef): Promise<LoadResult> {
       if (remotes[ref.remote] === undefined) {
@@ -58,6 +91,8 @@ export function createRemoteLoader(config: LoaderConfig): UIModuleLoader {
         if (typeof component !== 'function') {
           return { ok: false, reason: `${ref.remote}/${ref.exportName} exposes no component (expected a default export)` }
         }
+        recordProbe(`${ref.remote}/${ref.exportName}`, ref, module)
+        publishObservatory()
         return { ok: true, component: component as never, module }
       } catch (error) {
         return { ok: false, reason: error instanceof Error ? error.message : String(error) }
