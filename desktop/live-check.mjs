@@ -664,6 +664,55 @@ const L = await evaluateMain(`(async () => {
 })()`)
 console.log('L 段（调用方带的尺寸只作用在新建那一次）⇒ ' + JSON.stringify(L))
 
+// M 段：0010 那四条寻址动词，外加两条边界对照 ——
+// ① 拿**产品主窗的 id** 来问要被拒（`unknown window`）：这四条永远够不到 Xaihi 登记之外的窗；
+// ② 关掉之后再问同一个 id 也要被拒：登记表真的跟着 `closed` 走，不是只查一次。
+const M = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  const mainId = app.id
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 600))
+  const ready = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL('dsh-app://app/')
+  await Promise.race([ready, new Promise((r) => setTimeout(r, 6000))])
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const nodes = manifest.plugins.map((p) => p.manifest.id)
+  const docPath = manifest.ui.documentUrl
+  const call = (verb, args) => app.webContents.executeJavaScript(
+    'Promise.resolve(window.dshDesktop.xaihiWindow.' + verb + '(' + args + '))'
+    + '.then((r) => ({ kind: "ok", value: r }), (e) => ({ kind: "rejected", message: String(e && e.message ? e.message : e) }))', true)
+  const opened = await call('open', JSON.stringify(nodes[0]) + ', '
+    + JSON.stringify({ documentPath: docPath, width: 900, height: 700 }))
+  await new Promise((r) => setTimeout(r, 1000))
+  const id = opened.value && opened.value.windowId
+  const win = all().find((w) => w.id === id)
+  const got = await call('getBounds', String(id))
+  const set = await call('setBounds', String(id) + ', ' + JSON.stringify({ x: 120, y: 140, width: 1100, height: 850 }))
+  const liveBounds = win === undefined ? null : win.getBounds()
+  const badBounds = await call('setBounds', String(id) + ', ' + JSON.stringify({ x: 1.5, y: 140, width: 1100, height: 850 }))
+  const focusSelf = win === undefined ? null : await (async () => win.webContents.executeJavaScript(
+    'Promise.resolve(window.dshDesktop.xaihiWindow.focus(' + String(id) + '))'
+    + '.then((r) => ({ kind: "ok", value: r }), (e) => ({ kind: "rejected", message: String(e && e.message ? e.message : e) }))', true))()
+  const foreign = await call('getBounds', String(mainId))
+  const idsBefore = all().map((w) => w.id)
+  const closed = await call('close', String(id))
+  await new Promise((r) => setTimeout(r, 900))
+  const createdAfterClose = all().filter((w) => !idsBefore.includes(w.id)).length
+  const goneWindow = all().some((w) => w.id === id)
+  const afterClose = await call('getBounds', String(id))
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 600))
+  return { nodes, mainId, opened, id, got, set, liveBounds, badBounds, focusSelf, foreign,
+    closed, createdAfterClose, windowStillThere: goneWindow, afterClose, ownedLeft: openedWins().length }
+})()`)
+console.log('M 段（focus / close / getBounds / setBounds 与登记表边界）⇒ ' + JSON.stringify(M))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -774,6 +823,25 @@ need('L: 半套尺寸按形状错误拒（不许静默用缺省）',
   ll.partial?.kind === 'rejected' && String(ll.partial?.message).includes('width and height must both be integers'))
 need('L: 越界尺寸被拒', ll.tooSmall?.kind === 'rejected' && String(ll.tooSmall?.message).includes('width and height must both be integers'))
 need('L: 收尾把自家窗清干净', ll.ownedLeft === 0)
+
+const mm = M.ok === true ? M.value : {}
+need('M: getBounds 读回的就是新建时带的那份尺寸',
+  mm.got?.kind === 'ok' && mm.got.value?.width === 900 && mm.got.value?.height === 700)
+need('M: setBounds 回读的是生效后的矩形（与主进程自己量的那份逐字相同）',
+  mm.set?.kind === 'ok' && mm.set.value?.width === 1100 && mm.set.value?.height === 850
+  && mm.set.value?.x === mm.liveBounds?.x && mm.set.value?.y === mm.liveBounds?.y
+  && mm.set.value?.width === mm.liveBounds?.width && mm.set.value?.height === mm.liveBounds?.height)
+need('M: 小数坐标按形状拒（不许静默取整或半个坐标生效）',
+  mm.badBounds?.kind === 'rejected' && String(mm.badBounds?.message).includes('bounds must be integer x, y'))
+need('M: 窗自己也能 focus 自己（节点窗里的"到这来"）',
+  mm.focusSelf?.kind === 'ok' && mm.focusSelf?.value?.windowId === mm.id)
+need('M: 边界对照——拿产品主窗的 id 来问也被拒（这四条够不到登记表外的窗）',
+  mm.foreign?.kind === 'rejected' && String(mm.foreign?.message).includes('unknown window'))
+need('M: close 真的关掉那一个窗，且不多开别的',
+  mm.closed?.kind === 'ok' && mm.windowStillThere === false && mm.createdAfterClose === 0)
+need('M: 关掉之后同一个 id 读不回来（登记表跟着 closed 走）',
+  mm.afterClose?.kind === 'rejected' && String(mm.afterClose?.message).includes('unknown window'))
+need('M: 收尾把自家窗清干净', mm.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {

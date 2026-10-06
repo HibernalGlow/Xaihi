@@ -1,0 +1,212 @@
+From ae378149aff58097e1a9048e55d76436052dc9cb Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 07:13:15 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20Xaihi=20=E6=96=87=E6=A1=A3=E7=AA=97?=
+ =?utf-8?q?=E7=9A=84=E5=AF=BB=E5=9D=80=E5=9B=9B=E6=9D=A1=EF=BC=9Afocus=20/?=
+ =?utf-8?q?=20close=20/=20getBounds=20/=20setBounds=EF=BC=88Xaihi=20patch?=
+ =?utf-8?q?=200010=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/ipc.ts                 | 17 +++++++
+ apps/desktop/src/main.ts                | 68 ++++++++++++++++++++++++-
+ apps/desktop/src/preload-app.ts         |  4 ++
+ apps/desktop/src/xaihi-window-policy.ts | 26 ++++++++++
+ 4 files changed, 113 insertions(+), 2 deletions(-)
+
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+index 2a916c4..cdb0b59 100644
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -32,6 +32,10 @@ export const DESKTOP_IPC = {
+   windowsAppearance: 'dsh-desktop:windows-appearance',
+   windowsMenu: 'dsh-desktop:windows-menu',
+   xaihiWindowOpen: 'dsh-desktop:xaihi-window-open',
++  xaihiWindowFocus: 'dsh-desktop:xaihi-window-focus',
++  xaihiWindowClose: 'dsh-desktop:xaihi-window-close',
++  xaihiWindowGetBounds: 'dsh-desktop:xaihi-window-get-bounds',
++  xaihiWindowSetBounds: 'dsh-desktop:xaihi-window-set-bounds',
+ } as const
+ 
+ /** Desktop release update state rendered by desktop-owned UI. */
+@@ -102,6 +106,19 @@ export interface DshDesktopProductApi {
+       readonly width?: number
+       readonly height?: number
+     }): Promise<{ readonly windowId: number, readonly alreadyOpen: boolean }>
++    /**
++     * Xaihi patch 0010: address a window the caller already opened. The id must be one of Xaihi's
++     * own document windows — a caller that guesses the product window's id is refused with
++     * `unknown window`, because these verbs never reach outside the Xaihi window registry.
++     * `focus` / `close` mirror the baseline's `WindowRuntime.focus` / `.close`
++     * (`Xiranite/src/backend/runtime/runtime.ts:139-140`); `getBounds` / `setBounds` mirror
++     * `.getFrame` / `.setFrame` (`:142-143`) and read the applied bounds back rather than
++     * echoing the request, since a screen can clamp them.
++     */
++    focus(windowId: number): Promise<{ readonly windowId: number }>
++    close(windowId: number): Promise<{ readonly windowId: number }>
++    getBounds(windowId: number): Promise<{ readonly x: number, readonly y: number, readonly width: number, readonly height: number }>
++    setBounds(windowId: number, bounds: { x: number, y: number, width: number, height: number }): Promise<{ readonly x: number, readonly y: number, readonly width: number, readonly height: number }>
+   }
+   readonly updates: {
+     status(): Promise<DesktopUpdatePresentation>
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index d368821..fa83b99 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -24,7 +24,7 @@ import {
+   type WebContents,
+ } from 'electron'
+ import { resolveDesktopPaths } from './paths.ts'
+-import { normalizeXaihiWindowSize, resolveXaihiDocumentTarget, xaihiWindowKey, type XaihiWindowSize } from './xaihi-window-policy.ts'
++import { normalizeXaihiWindowBounds, normalizeXaihiWindowSize, resolveXaihiDocumentTarget, xaihiWindowKey, type XaihiWindowSize } from './xaihi-window-policy.ts'
+ 
+ import { DesktopProjectManager } from './project-manager.ts'
+ import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
+@@ -220,6 +220,19 @@ function xaihiOwnedSender (sender: WebContents): boolean {
+   return false
+ }
+ 
++/**
++ * Xaihi patch 0010: 按 id 找**我们自己登记过**的文档窗。
++ * 只认这张表 ⇒ `focus/close/getBounds/setBounds` 永远够不到产品主窗、欢迎窗或别人开的窗：
++ * 调用方猜中一个 id 也拿不到不属于 Xaihi 的那一个。
++ */
++function xaihiWindowById (windowId: number): BrowserWindow | undefined {
++  for (const window of xaihiDocumentWindows.values()) {
++    if (window.isDestroyed()) continue
++    if (window.id === windowId) return window
++  }
++  return undefined
++}
++
+ export interface XaihiWindowOpening {
+   readonly window: BrowserWindow
+   readonly alreadyOpen: boolean
+@@ -773,7 +786,9 @@ async function main(): Promise<void> {
+   // 壳不另开一份存储；这里只做纯校验，半套尺寸（只有 width 或只有 height）按形状错误拒。
+   const XAIHI_NODE_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/u
+   const XAIHI_DOCUMENT_PATH = /^\/xaihi\/ui\/[0-9a-f]{12}\/index\.html$/u
+-  ipcMain.handle(DESKTOP_IPC.xaihiWindowOpen, (event, node: unknown, input?: unknown) => {
++  // 开窗与寻址共用那条发起者闸：域内、主帧，且是产品主窗或某个活着的自家文档窗。
++  // 它放在这个作用域里，是因为 `mainWindow` 是这里的局部量（顶层函数看不见它）。
++  const assertXaihiWindowSender = (event: IpcMainInvokeEvent): boolean => {
+     assertDesktopSender(event, ['app'])
+     const frame = event.senderFrame
+     if (frame === null || frame !== event.sender.mainFrame) {
+@@ -783,6 +798,25 @@ async function main(): Promise<void> {
+     if (!isMainDocument && !xaihiOwnedSender(event.sender)) {
+       throw new Error('xaihi desktop: rejected window request from an unowned renderer')
+     }
++    return isMainDocument
++  }
++  // Xaihi patch 0010: `windowId` 必须是整数，且指得到我们自己登记的那张表里的窗。
++  // "unknown window" 这一格是给调用方的真话：它猜中的是别人的窗，不是我们没有窗。
++  const needXaihiWindow = (event: IpcMainInvokeEvent, windowId: unknown): BrowserWindow => {
++    assertXaihiWindowSender(event)
++    if (typeof windowId !== 'number' || !Number.isInteger(windowId)) {
++      throw new Error('xaihi desktop: windowId must be an integer')
++    }
++    const window = xaihiWindowById(windowId)
++    if (window === undefined) throw new Error('xaihi desktop: unknown window')
++    return window
++  }
++  const boundsOf = (window: BrowserWindow) => {
++    const { x, y, width, height } = window.getBounds()
++    return { x, y, width, height }
++  }
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowOpen, (event, node: unknown, input?: unknown) => {
++    const isMainDocument = assertXaihiWindowSender(event)
+     if (input !== undefined && (input === null || typeof input !== 'object')) {
+       throw new Error('xaihi desktop: options must be an object of documentPath, width, height')
+     }
+@@ -814,6 +848,36 @@ async function main(): Promise<void> {
+     return { windowId: opening.window.id, alreadyOpen: opening.alreadyOpen }
+   })
+ 
++  // Xaihi patch 0010: 基线 `WindowRuntime` 里"寻址已经开出去的那个窗"的四条
++  // （`Xiranite/src/backend/runtime/runtime.ts:139-143`）。四条都在同一张登记表里走，
++  // 且 `setBounds` 回读的是**生效之后**的矩形，不回收调用方给的那份 —— 屏幕会 clamp，
++  // 报回去的必须是界面实际拿到的那一个，否则界面就在一对自己撒谎。
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowFocus, (event, windowId: unknown) => {
++    const window = needXaihiWindow(event, windowId)
++    if (window.isMinimized()) window.restore()
++    window.show()
++    window.focus()
++    return { windowId: window.id }
++  })
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowClose, (event, windowId: unknown) => {
++    const window = needXaihiWindow(event, windowId)
++    const id = window.id
++    window.close()
++    return { windowId: id }
++  })
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowGetBounds, (event, windowId: unknown) => {
++    return boundsOf(needXaihiWindow(event, windowId))
++  })
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowSetBounds, (event, windowId: unknown, bounds: unknown) => {
++    const window = needXaihiWindow(event, windowId)
++    const next = normalizeXaihiWindowBounds(bounds)
++    if (next === undefined) {
++      throw new Error('xaihi desktop: bounds must be integer x, y with width and height within the allowed bounds')
++    }
++    window.setBounds(next)
++    return boundsOf(window)
++  })
++
+   session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['ws://127.0.0.1/*'] }, (details, callback) => {
+     if (hostUrl === undefined || hostCookie === undefined || details.webContentsId !== mainWindow?.webContents.id) {
+       callback({})
+diff --git a/apps/desktop/src/preload-app.ts b/apps/desktop/src/preload-app.ts
+index 926a143..2d73a2f 100644
+--- a/apps/desktop/src/preload-app.ts
++++ b/apps/desktop/src/preload-app.ts
+@@ -18,6 +18,10 @@ function createProductApi(): DshDesktopProductApi {
+     // Xaihi patch: 只在主文档上给，且失败由主进程按同一套守卫判（ADR-0011 决定 4 要求消费端探测式使用）。
+     xaihiWindow: {
+       open: (node: string, options?: { documentPath?: string, width?: number, height?: number }) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowOpen, node, options) as Promise<{ readonly windowId: number, readonly alreadyOpen: boolean }>,
++      focus: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowFocus, windowId) as Promise<{ readonly windowId: number }>,
++      close: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowClose, windowId) as Promise<{ readonly windowId: number }>,
++      getBounds: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowGetBounds, windowId) as Promise<{ readonly x: number, readonly y: number, readonly width: number, readonly height: number }>,
++      setBounds: (windowId: number, bounds: { x: number, y: number, width: number, height: number }) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowSetBounds, windowId, bounds) as Promise<{ readonly x: number, readonly y: number, readonly width: number, readonly height: number }>,
+     },
+     keyboard: {
+       closeWindow: revision => ipcRenderer.invoke(DESKTOP_IPC.shortcutsCloseWindow, revision) as Promise<void>,
+diff --git a/apps/desktop/src/xaihi-window-policy.ts b/apps/desktop/src/xaihi-window-policy.ts
+index b6845cd..d1a626b 100644
+--- a/apps/desktop/src/xaihi-window-policy.ts
++++ b/apps/desktop/src/xaihi-window-policy.ts
+@@ -116,3 +116,29 @@ export function normalizeXaihiWindowSize (size: unknown): XaihiWindowSize | unde
+   if (width > MAX_WINDOW_SIZE || height > MAX_WINDOW_SIZE) return undefined
+   return { width, height }
+ }
++
++/** 一条窗的位置与尺寸；`x`/`y` 是屏幕坐标，可以带符号。 */
++export interface XaihiWindowBounds extends XaihiWindowSize {
++  readonly x: number
++  readonly y: number
++}
++
++const MAX_WINDOW_ORIGIN = 100000
++
++/**
++ * Xaihi patch 0010: 纯校验一次 `setBounds` 请求。
++ * 尺寸那一半复用 0009 那条（同一个下界/上界，别在两个地方各写一遍数），
++ * 坐标只收**有限整数**且不超一个宽屏合理范围 —— 目的是把 `"120"`、`NaN`、
++ * 半套字段这类调用方错误在壳门口拒掉，而不是让它们变成一次静默的 `setBounds(undefined)`。
++ * @param bounds - the caller-supplied rectangle.
++ * @returns the normalized rectangle, or `undefined` when it is unusable.
++ */
++export function normalizeXaihiWindowBounds (bounds: unknown): XaihiWindowBounds | undefined {
++  const size = normalizeXaihiWindowSize(bounds)
++  if (size === undefined) return undefined
++  const { x, y } = bounds as { x?: unknown, y?: unknown }
++  if (typeof x !== 'number' || typeof y !== 'number') return undefined
++  if (!Number.isInteger(x) || !Number.isInteger(y)) return undefined
++  if (Math.abs(x) > MAX_WINDOW_ORIGIN || Math.abs(y) > MAX_WINDOW_ORIGIN) return undefined
++  return { x, y, width: size.width, height: size.height }
++}
+-- 
+2.55.0
+

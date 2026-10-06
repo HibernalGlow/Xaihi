@@ -513,9 +513,37 @@ settings / storage 面，壳不另开一份存储。校验放在纯模块里（`
 |---|---|---|
 | `openComponent(input)` | ✅ `xaihiWindow.open(node, {documentPath, width, height})` | J / K / L 段活体 |
 | `getCapabilities()` | ⚠️ 只有开窗那一格：SDK 的 `readXaihiWindowCapability` 给 `supported` 与三种原因，可对上基线 `componentWindows` 的 `native` / `unsupported` / `browser-popup` 三档（`Xiranite/src/backend/adapters/web.ts:206` 是 `browser-popup`）；`nativeWindowControls`、`frameless`、`captionOwner`、`captionInset` **一位都没答** | 单测 + F / I 段屏上读数 |
-| `focus(id)` / `close(id)` | ⚠️ 间接：去重命中时 `show()+focus()`；关闭只有 OS 那条路，没有按 id 的动词 | C 段（聚焦）；按 id 关闭未提供 |
-| `controlMain` / `controlComponent` / `openDevTools` / `getFrame` / `setFrame` / `subscribeFrameChanges` / `startDragging` | ❌ 未提供 | 无 |
+| `focus(id)` / `close(id)` | ✅ 0010：`xaihiWindow.focus(windowId)` 与 `.close(windowId)`，只认自家那张登记表里的窗 | M 段活体，含两条边界对照：拿主窗 id 来问也被拒、关掉之后同 id 读不回来 |
+| `getFrame(id)` / `setFrame(frame, id)` | ✅ 0010：`.getBounds(windowId)` 与 `.setBounds(windowId, rect)`，回读的是**生效后**量出来的矩形（屏幕会 clamp，报回去的必须是界面实际拿到的那份） | M 段：`1100x850` 与主进程自己 `getBounds()` 的四元组逐字相同；小数坐标按形状拒 |
+| `controlMain` / `controlComponent` / `openDevTools` / `subscribeFrameChanges` / `startDragging` | ❌ 未提供（0010 补的是寻址四条，不是这几条） | 无 |
 
 ⇒ 搬运那刀接 `windowService.ts` 时，除 `open` 之外每一条都要**先接降级再接触点**：
 按决定 4，探测不到就画"这一格没有提供者"，不许把 `controlComponent` 之类写成"成功但什么都没做"。
 补齐它们每条都是独立 patch，优先级由落地时真正调用到哪几条决定 —— 现在这条表就是那条尺的对照面。
+（0010 已经把寻址四条补上了；剩下未提供的是 `controlMain / controlComponent / openDevTools /
+subscribeFrameChanges / startDragging` 这五条，见下一节末表。）
+
+## 0010：寻址四条 —— focus / close / getBounds / setBounds（2026-10-07 07:1x）
+
+上一节那张表里"⚠️ 间接"最重的就是**已经开出去的窗怎么再被找到**。0010 补四条，全部落在既有那条
+`xaihiWindow` 面上：新增 `dsh-desktop:xaihi-window-{focus,close,get-bounds,set-bounds}` 四条通道，
+`--verify` 的通道判据从"数 26 条"改成"数 30 条**并且逐条点得出这四条的名字**"——
+只数条数会漏掉"少一条功能、多一条别的"这种漂移。
+
+**信任边界放在登记表上，不放在 id 校验上**：四条都只认 `xaihiDocumentWindows` 那张表
+（`xaihiWindowById`），发起者闸与开窗共用（域内 + 主帧 + 产品主窗或某个活着的自家文档窗）。
+⇒ 调用方**猜中产品主窗的 id 也被拒**（`unknown window`），够不到欢迎窗或别人开的窗；
+`close` 之后同一个 id 也读不回来 —— 登记表的 `closed` 回调真在跑，不是只查一次。
+
+`setBounds` 的两条性质单独说：① 回读的是 `window.setBounds()` 之后**再 `getBounds()` 量出来的那份**，
+不是调用方递来的对象 —— 屏幕会 clamp，报回去的必须是界面实际拿到的，否则界面在一对自己撒谎；
+② 尺寸那一半复用 0009 的界（`normalizeXaihiWindowBounds` 内部调 `normalizeXaihiWindowSize`，
+上下界只在一处写数），坐标只收有限整数且 `|x|,|y| ≤ 100000`，**小数坐标整条拒**，不静默取整。
+
+实机（M 段八条，`node desktop/live-check.mjs` ⇒ **67 条 OK、0 条 FAIL、rc=0**）：
+`getBounds` 读回 `900x700`；`setBounds{120,140,1100,850}` ⇒ `{x:120,y:140,width:1100,height:850}`
+且与主进程自己量的 `liveBounds` 四元组逐字相同；`{x:1.5,…}` ⇒
+`bounds must be integer x, y with width and height within the allowed bounds`；
+窗内 `focus(自己)` ⇒ `{windowId:15}`；`getBounds(产品主窗 id=1)` ⇒ `unknown window`；
+`close(15)` ⇒ `windowStillThere=false`、`createdAfterClose=0`，再 `getBounds(15)` ⇒ `unknown window`。
+纯函数那一侧是 `--verify` 的 8 条矩形用例（`x:'40'`、`y:60.5`、缺 `x`、`x:200000`、尺寸越界、`undefined`）。

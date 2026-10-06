@@ -211,18 +211,35 @@ if (flag('verify')) {
   // 之所以能直接跑：ipc.ts 的三条 import 全是 `import type`，剥掉类型后不依赖 node_modules。
   const probe = await import('./dsh/apps/desktop/src/ipc.ts')
   const want = 'dsh-desktop:xaihi-window-open'
-  const satisfied = (table) => Object.keys(table).length === 26
-    && table.xaihiWindowOpen === want
-    && Object.keys(table).includes('browserAcquire')
-  // 减法对照：把那条通道删掉，同一条判据必须说"不满足"，否则它不算尺。
+  const EXPECTED_CHANNELS = 30
+  // 0010 那四条通道名要点得出名字：只数条数会漏掉"少一条功能、多一条别的"这种漂移。
+  const commandChannels = ['xaihiWindowFocus', 'xaihiWindowClose', 'xaihiWindowGetBounds', 'xaihiWindowSetBounds']
+  const missingChannels = commandChannels.filter((name) => probe.DESKTOP_IPC[name] === undefined)
+  const gotChannels = Object.keys(probe.DESKTOP_IPC).length
+  // 先报现场，再报结论：这条尺红过一次是因为**话术**把"表里少四条"说成"减法对照没落地"，
+  // 把人往错方向带 ⇒ 顺序是"现场读数 → 缺哪几条 → 条数对不对 → 最后才做减法对照"。
+  console.log(`verify: channels=${String(gotChannels)} want=${want} `
+    + `missing_0010=${missingChannels.length === 0 ? 'none' : missingChannels.join(',')} `
+    + `has_open=${probe.DESKTOP_IPC.xaihiWindowOpen === want}`)
+  if (missingChannels.length > 0) {
+    fail(`verify: 0010 的通道缺 ⇒ ${missingChannels.join(', ')}（现读 ${String(gotChannels)} 条，期望 ${String(EXPECTED_CHANNELS)} 条）`)
+  }
+  if (gotChannels !== EXPECTED_CHANNELS) {
+    fail(`verify: IPC 面是 ${String(gotChannels)} 条，期望 ${String(EXPECTED_CHANNELS)} 条 ⇒ 某条 patch 被静默跳过，或上游改了 apps/desktop/src/ipc.ts`)
+  }
+  if (probe.DESKTOP_IPC.xaihiWindowOpen !== want) {
+    fail(`verify: patch 0001 的通道名不是 ${want} ⇒ 它被静默跳过，或上游占了同一个键`)
+  }
+  // 上游那侧的面不能被我们的 patch 挤掉：`browserAcquire` 是别人在用的键，缺了就是改坏了表。
+  if (probe.DESKTOP_IPC.browserAcquire === undefined) {
+    fail('verify: IPC 面里少了上游的 browserAcquire ⇒ 我们的 patch 改坏了别人的键')
+  }
+  // 减法对照（现场完整之后才做）：把那条通道删掉，判据必须说"不满足"，否则它不算尺。
   const mutated = { ...probe.DESKTOP_IPC }
   delete mutated.xaihiWindowOpen
-  if (satisfied(mutated)) fail('verify 是瞎的：删掉 xaihiWindowOpen 之后它照样报绿')
-  if (Object.keys(mutated).length !== 25) fail('verify 的减法对照没落地（删完还是 26 条？）')
-  console.log(`verify: channels=${String(Object.keys(probe.DESKTOP_IPC).length)} want=${want} `
-    + `satisfied=${String(satisfied(probe.DESKTOP_IPC))} control_after_delete=red`)
-  if (!satisfied(probe.DESKTOP_IPC)) {
-    fail('patch 0001 没落地到 IPC 面（通道数或通道名不对）⇒ 它被静默跳过，或上游改了 apps/desktop/src/ipc.ts')
+  if (mutated.xaihiWindowOpen !== undefined) fail('verify 是瞎的：删掉 xaihiWindowOpen 之后它还在')
+  if (Object.keys(mutated).length !== EXPECTED_CHANNELS - 1) {
+    fail(`verify 的减法对照没落地（删一条之后是 ${String(Object.keys(mutated).length)} 条，期望 ${String(EXPECTED_CHANNELS - 1)}）`)
   }
   // 0002 的判策是纯模块，所以能脱离 Electron 直接执行。拒绝分支才是这条判策的意义所在。
   const policy = await import('./dsh/apps/desktop/src/xaihi-window-policy.ts')
@@ -323,6 +340,27 @@ if (flag('verify')) {
     fail('verify: 0009 的尺寸校验把合法尺寸也拒了（尺是瞎的）')
   }
 
+  // 0010 的矩形校验：坐标与尺寸都得是整数，尺寸那一半复用 0009 的上下界（别在两处各写一遍数）。
+  const boundsTable = [
+    [{ x: 40, y: 60, width: 1000, height: 800 }, { x: 40, y: 60, width: 1000, height: 800 }],
+    [{ x: -1200, y: 0, width: 1000, height: 800 }, { x: -1200, y: 0, width: 1000, height: 800 }],
+    [{ x: 40.5, y: 60, width: 1000, height: 800 }, undefined],
+    [{ y: 60, width: 1000, height: 800 }, undefined],
+    [{ x: '40', y: 60, width: 1000, height: 800 }, undefined],
+    [{ x: 200000, y: 60, width: 1000, height: 800 }, undefined],
+    [{ x: 40, y: 60, width: 400, height: 800 }, undefined],
+    [undefined, undefined],
+  ]
+  const boundsWrong = boundsTable.filter(([input, want]) => {
+    const got = policy.normalizeXaihiWindowBounds(input)
+    if (want === undefined) return got !== undefined
+    return JSON.stringify(got) !== JSON.stringify(want)
+  })
+  console.log(`verify: 0010 矩形校验 ${String(boundsTable.length)} 用例，判错 ${String(boundsWrong.length)}`)
+  if (boundsWrong.length > 0) {
+    fail(`verify: 0010 的矩形校验与用例不符 ⇒ ${String(boundsWrong.map(([i]) => JSON.stringify(i)).join(', '))}`)
+  }
+
   // 第二阶段：产物判据。lib/ 是上游 tsc 吐出来的，存在就说明这条通道真被编进了壳的
   // 主进程与 preload —— 源码里有定义 ≠ 落进了产物（这是构建绿却跑错代码那一类病的解药）。
   // 新文件要真进 program：tsc -b 的产物在 lib/types/，bundle 的在 lib/ —— 只查后者会漏掉新模块。
@@ -349,6 +387,7 @@ if (flag('verify')) {
     const senderWired = mainJs.includes('function xaihiOwnedSender') && mainJs.includes('unowned renderer')
     // 0007 那条分支的判据必须点名"路径自己校验"，否则产品文档转达的那一路悄悄退回旧形状。
     const panelWired = mainJs.includes('document path must match') && mainJs.includes('isMainDocument')
+    const commandWired = mainJs.includes('xaihiWindowSetBounds') && mainJs.includes('unknown window')
     // 0006 只在这个函数体里查：整个 bundle 里 "page-title-updated" 是上游自己也用的词，
     // 全局搜会得到一个与我的改动无关的绿 —— 减法对照实测就抓到了这一点（摘掉 0006 重建产物，
     // main.js 里仍有 1 处 page-title-updated，来自别的上游模块被打包进来）。
@@ -360,10 +399,11 @@ if (flag('verify')) {
     const titleControl = docFn.replace('page-title-updated', 'page-title-removed-for-control').includes('page-title-updated')
     console.log(`verify: 0002 已接进 bundle=${String(policyWired)} 0003 已接进 bundle=${String(profileWired)}`
       + ` 0005 已接进 bundle=${String(senderWired)} 0006 已接进 bundle=${String(titleWired)}`
-      + ` 0007 已接进 bundle=${String(panelWired)}`)
+      + ` 0007 已接进 bundle=${String(panelWired)} 0010 已接进 bundle=${String(commandWired)}`)
     if (!profileWired) fail('verify: 0003 没进 lib/main.js ⇒ 又是只跑 tsc 没跑 bundle')
     if (!senderWired) fail('verify: 0005 的发起者判据没进 lib/main.js ⇒ 产物比系列旧')
     if (!panelWired) fail('verify: 0007 的产品文档转达分支没进 lib/main.js ⇒ 产物比系列旧')
+    if (!commandWired) fail('verify: 0010 的寻址四条没进 lib/main.js ⇒ 产物比系列旧')
     if (titleControl) fail('verify: 0006 的判据是瞎的（抹掉那一行还读得到）')
     if (!titleWired) fail('verify: 0006 的标题保护没进 lib/main.js 的 openXaihiDocumentWindow ⇒ 产物比系列旧')
     if (!inMain || !inPreload) fail('verify: 通道没进产物 ⇒ 那条源码改动没被编译，或 patch 被静默跳过')
