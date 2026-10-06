@@ -22,6 +22,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { Context } from '@deepseek-ai/cordis'
 import type { CommandOutcome } from '@hibernalglow/xaihi-sdk'
+import { createElement } from 'react'
 import type { XaihiSlot } from './slots.ts'
 import { LOCALE_NAMESPACE, en, zh, type LocaleKey, type Translate } from './locales.ts'
 import { MAIN_PANEL_KEY, registerPanelEntry } from './panel-entry.tsx'
@@ -30,6 +31,7 @@ import { registerStyles } from './styles.ts'
 import { DEFAULT_DESIGN_THEME } from '../lib/design-theme/contract.ts'
 import { designHostLayer } from './theme/design-language.ts'
 import { WorkspaceRoot } from './workspace.tsx'
+import { MainSurface } from './surface.tsx'
 
 /** Xaihi 声明的插槽，`children` 与 props 类型共用这一份。 */
 const CHILDREN = {
@@ -356,16 +358,22 @@ export function apply(ctx: Context): void {
   registerPanelEntry(ctx, ctx.locale.bind(LOCALE_NAMESPACE) as Translate)
 
   const runCommand = makeRunCommand(ctx)
+  // 这一格显示哪一面由宿主清单里 ui.documentUrl 这条**事实**决定（ADR-0009 那一刀）：
+  // 有 Xaihi 自己的文档产物就交给那个 iframe，没有就继续显示外壳现 realm 的那一面，
+  // 并把"为什么还是这一面"挂在 data-xaihi-reason 上（ADR-0011 决定 4 的降级铁律）。
+  // MainSurface 必须经 createElement 挂载而不是当函数直接调：它带 hooks，
+  // 直接调用会把它的状态挂到槽组件自己身上。
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main',
     key: MAIN_PANEL_KEY,
     locale: LOCALE_NAMESPACE,
     children: CHILDREN,
-  }, (props: ReceivedProps) => WorkspaceRoot({
+  }, (props: ReceivedProps) => createElement(MainSurface, {
     t: props.t as Translate,
     locale: activeLocale(ctx),
     renderSlot: (key) => props.renderSlot(key, {}),
     runCommand,
+    inRealm: WorkspaceRoot,
   })))
 
   // 占位失败绝不许把整个入口带走：入口一 throw，宿主只报 "entry did not activate"，

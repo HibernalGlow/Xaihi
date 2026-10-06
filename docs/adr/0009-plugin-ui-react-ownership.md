@@ -140,7 +140,8 @@ bundle/profile 那套取代（ADR-0002），**不该搬**；`theme-provider.tsx`
 | 两半桥 | `bridge-shell.ts`（在 DSH realm 那一侧）与 `bridge-document.ts`（文档那一侧），加 13 条两半互发的往返测 | 已落 + 已测（36 passed） |
 | 节点 UI 一行不改的关键 | `document-host.ts`：给得出上游那九组形状的 `host`；`state`/`workspace`/`downloads`/`localFiles.getUrl` 留在文档本地不过桥 | 已落 + 已测（12 passed） |
 | 文档的构建目标 | `packages/ui-host/rspack.document.mjs`（第三份产物 `dist-ui/main.js` + `main.css`，`react` **别名到本包的 `react-19`**，无 MF、无共享表）+ 入口 `src/document/main.tsx` + `build:document` 脚本 | 入口这一侧**已经干净**（`main.tsx` 零错）；整包 `rspack build` rc=1、**34 条错**（从 110 降下来，全部分类在下表，剩下的都在搬运树里，不在这份配置里） |
-| **还没做** | ① 把文档构建从 106 条错做到 0；② 装配那一刀：DSH 的 slot 里换成一个 `<iframe src=documentUrl>`，并把 `ctx.remote.settings` / 运行面注入 `bridge-shell`；③ 实机一次真往返 | ①的阻塞在搬运批：见下面的分类。②③ 在 ① 之前做会把正在跑的界面换成一个只会报 503 的框 |
+| 装配那一刀（slot 里放什么） | `src/client/surface.tsx` 的 `MainSurface` 接管 `main` 槽：按清单事实选文档面或外壳面；`index.ts` 那侧换成 `createElement(MainSurface, { …, inRealm: WorkspaceRoot })` | **已落 + 已测**（5 条组件测；产物里 `xaihi-surface-in-realm` / `data-xaihi-reason` / `xaihi-document-frame` / `/xaihi/manifest.json` 四个记号都在，client.js 1.28 MB → 1.57 MB）。今天清单里 `documentUrl` 还是空串（文档产物没配），所以实际显示的仍是外壳那一面——这一刀换的是「由谁决定显示哪一面」，没有把在跑的界面换成一个空框 |
+| **还没做** | ① 把文档构建从 34 条错做到 0（全在搬运树，分类见下）；② 把 `ctx.remote.settings` / 运行面真接进 `bridge-shell`（此刻 caps 是空的 ⇒ 文档侧读到的全是可见的 refused）；③ 实机一次真往返 | ①属搬运批；②要先读准客户端那侧 settings 的包装名（`SettingsController` 那五个动词已确认，客户端 typert 的名字还没实机读回来）；③等 ①+② |
 
 
 ### 文档构建的账（23:42 首测 106 条 → 23:48 复测 **34 条**，`rspack build -c rspack.document.mjs`）
