@@ -86,3 +86,37 @@
 **共同形状**：G1/G2/G6 都是同一条边界的两面——DSH 的服务缝活在插件进程里，
 而"能装进 `$PATH` 的那一面"活在它外面。要么给 DSH 提提案（非主机进程的 fs/settings/approval 入口），
 要么接受"bin 面 = 计划器 + 只读查询"这一条明确的口径；两种都比在 bin 里私开一套强。
+
+## G1–G13 复验：四条以本节为准，其中一条是我自己编出来的机制名（2026-10-07 03:14）
+
+派子代理逐条对着今天的树重量了一遍。**它答应写的那份 `docs/port/gap-recheck-2026-10-07.md` 在磁盘上不存在**
+（`ls` 零命中，`git log --all --diff-filter=A` 也零命中 ⇒ 它不是被删了，是从来没写过），所以下面每一条的读数都是我本人重跑的，
+不引它的报告当证据。它报回来的数字里有两条是 inflated 的，另一条（`timeu/src/index.ts:114` 读
+`context.signal`）连那行都不存在——本节所有 file:line 均按"读同一份文件"复验过。
+下面四条以本节为准，上面原文保留作账。
+
+| 条 | 原文的说法 | 现测 | 谁错 |
+|---|---|---|---|
+| **G3** | "所有 17 个内核签名都要求 `AbortSignal`，SDK 不传 ⇒ 取消是假的"，并点名 `plugins/timeu/src/index.ts:114` 读 `context.signal` | `rg -c 'signal: AbortSignal' plugins/*/src/*.ts` ⇒ **3 份文件**声明过这个形参；`rg -n 'signal' plugins/timeu/src/index.ts` ⇒ **零命中**；`rg -n 'signal' packages/node-sdk/src/define-node.ts` ⇒ **零命中**（handler 上下文只有 `{args, inputs, run}`，`define-node.ts:255`） | 代理的两个数与那条 file:line 都不成立。真话是"**取消这条缝还没接**"，不是"17 个内核在等一个假信号" |
+| **G5** | 剪贴板 2 个文件 / 3 处 | `rg -l 'navigator\.clipboard' packages/ui-host/src` ⇒ **9 个文件 / 16 处**（最多的是 `components/modules/hostApi.ts` 6 处、`client/node-mount.tsx` 4 处） | 我先前的 2/3 与代理的 7/13 **都错**；这一档差距是实质性的（宿主注入那条路要覆盖 9 个文件，不是 2 个） |
+| **G9** | "注册表已生成但没有消费者" | 消费者确实有了（`packages/ui-host/src/nodes/*/entry.ts` 12 份都 value-import 那份生成物，`gen-node-registry: 12 个界面目录 → 12 条注册`），但**这把尺当时没接进任何门禁**：`rg 'gen-node-registry' --glob package.json` ⇒ 零命中 | 半对：消费侧已闭合，门禁侧当时真是悬空。**现已修**——根 `package.json` 加了 `check:noderegistry` 并排进 `test`（`… && pnpm check:cliregistry && pnpm check:noderegistry && pnpm test:contract && …`），实测 `--check` rc=0 |
+| **G10** | "已白名单化并有测试"，机制名写的是 `scripts/check-no-os-trash.mjs` | **那个脚本从来不存在**：`ls scripts/ \| rg -i trash` 零命中、`rg 'check-no-os-trash'`（排除 node_modules/desktop）全仓零命中、`git log --all --diff-filter=A -- scripts/check-no-os-trash.mjs` 空 | **是我自己写的假机制名**。真相是防御确实存在，但落点是一个**具名测试**：`plugins/bitv/tests/definition.spec.ts` 里那条 "Config 与模型都没给 transferMode ⇒ 走内核默认的 copy，而不是 move 那条 link+unlink"，注释原话"这条尺读的是盘上，不是文案"。`rg -n 'rmSync\(|unlinkSync\(|fs\.unlink' plugins/*/src/*.ts` ⇒ 零命中 |
+
+代理报告里其余各条我复读后**成立**，摘在这里免得再查一遍：
+G1（`@xiranite/file-operations` / `services` 已按 ADR-0013 整块删边 ⇒ 那条现在是 `obsolete`）、
+G2 `ctx.remote.settings` 在场（`dsh-client-protocol` 的 `SettingsService`：`describe/update/replace/mutate/openSettingsDocument`），
+G4 的"面里声称未迁能力"这一档从 11 处涨到 **55 处命中 / 15 份文件**（`ui` 16、`guided` 9、`gd` 6 是前三），
+G6 审批只在宿主侧（`dsh-client-protocol` 里 `approval` 零命中），
+G7 的 12 份 `help.ts` 传 `command: '/<id>'` 而只 `findz`/`sleept` 真的 inject 了 `commands`，
+G8 省略布尔折成 `false` 的站点是 **2 处而不是 9 处**（`plugins/bitv/src/index.ts:121` 与 `:278`；
+其余命中读的是 `=== true` 或 `if (args.x)` 这类**不会**折叠的写法），
+G11 `HelpWorkflow.commands: string[]`（`packages/node-sdk/src/help.ts:32`）装不下 `{zh,en}`，
+G12 那份 vendored `cli-support.ts` 与基线差在"不剥 `--key` 前缀、只剥 `=值` 后缀"（`--help=true` 会被当成真值）。
+
+**G13 那条修过的仍然成立**：`packages/node-sdk/src/define-node.ts:186` 现在读
+`danger.actionField`，`actionIn` 与 `actionIs` 走同一句取值。
+
+一条流程教训，写在这里而不是藏在报告里：**代理的 file:line 必须回读同一份文件**。
+这次它给的两条"证据"（`timeu/src/index.ts:114` 读 signal、7 个剪贴板文件）我照着写进台账就会变成
+一条假事实加一条被低估的债；而我自己那条 `check-no-os-trash.mjs` 更糟——它不是数字错，
+是**我替仓库发明了一个不存在的防御机制**，而这正是本仓最禁止的形状（"不许伪造它没给的数据"）。
