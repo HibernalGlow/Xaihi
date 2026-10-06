@@ -25,6 +25,23 @@ Xaihi 是跑在 DeepSeek Harness（DSH）上的**工作台扩展框架 + 领域�
 - 六套设计语言（`native|md3|mondrian|wuling|swiss|lonestar`）里 **`md3` 只是其中一套，不是默认值**；
   把一个候选提成默认等于替使用者做了选择。
 
+## 配置只有一个出口：DSH 的标准面（`docs/adr/0013-config-goes-through-dsh-settings.md`）
+
+- **Xaihi 不自带配置文件**：不搬 `xiranite.config.toml`，也不新建 `xaihi.*` 配置文件。
+  上游那套"配置住在后端一个 toml 里、带增量版本历史 + HTTP/RPC 读写"的通路**整块不接**。
+- 声明 = 每个包自己的 `Config = Schema.object({...})`（cordis/schemastery 形状，`plugins/findz/src/index.ts:65-67` 是范例）；
+  值 = DSH 的 patch 层组合（bundle → profile → home → `--patch`）；读写 = 服务半边 `ctx.settings`、
+  客户端半边 `ctx.remote.settings`（`describe/update/replace/mutate/openSettingsDocument`）。
+- 写一律带 `expectedRevision`，把 `SETTINGS_CONFLICT` 当**可读回的状态**呈现（谁改了、第几版），不是 toast 里的"失败"。
+  变更靠 `settings/document-updated` 事件回读——这条事件已在 DSH 的转发白名单里，**不要再开一条 SSE**。
+- **密钥只能走 path op（`mutate`）**：远程读永远脱敏，拿那份不完整文档 `replace` 会把从没返回过的
+  secret 静默删掉；`secrets[].set` 是"配没配"的唯一回读面。
+- 配置页**优先用 DSH 自动生成的那一页**（`autoGenerate` + `ctx.settings.configure({auto})`）；要留自定义页
+  必须说清它提供了标准面给不了的交互，且数据源是 settings 面。
+- 标准面给不了的能力（例如配置历史）⇒ **提 proposal**，不自建第二套存储。
+- 耐久**数据**不属于配置文件这条：走 DSH 的 storage domain（域名 `xaihi_*`）；要落文件的位置由使用者
+  在 `Config` 里给，没配就拒绝动手（findz 的 `indexDir` 同一条纪律）。
+
 ## 不碰 DSH 的三样东西
 
 - **不 fork DSH、不复制它的运行时、不重建它已经提供的能力。** 设计落到 DSH 支持不了的地方 ⇒

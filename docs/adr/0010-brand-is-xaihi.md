@@ -78,9 +78,12 @@ ADR-0006 把动词定成"搬运"之后，搬运产物里必然带着上游的自
 1. `xiranite-rule-tree/v1` → `xaihi-rule-tree/v1`：**改就要 TS/Go/夹具三处同批**。当前仓内没有任何
    读盘路径会带着旧值进来（findz 的规则树只作为请求参数存在，`plugins/findz/src/contract.ts:139,222`），
    所以可以硬切；但如果使用者手上已有存过规则树的文件，就要留一条读旧值的分支——留不留由使用者定。
-2. `.xiranite/` 数据目录与 `xiranite.config.toml`：**沿用**（Xaihi 直接读得到上一个产品的数据）还是
-   **换名**（旧数据看不见但边界干净）。这条决定了 `sleept`/`findz` 之类节点未来的默认路径，
-   不属于改名，属于数据归属。
+2. ~~`.xiranite/` 数据目录与 `xiranite.config.toml`：**沿用**还是**换名**~~ —— **已由 ADR-0013 收口，
+   且收口方式不是改名**：用户口径"配置走 dsh 的标准"，答案是**这东西根本不进仓**。配置声明走每个包
+   自己的 `Config = Schema.object({...})`、值走 DSH 的 patch 层、读写走 `ctx.settings` /
+   `ctx.remote.settings`；上游那个 toml 文件名连同它的"增量版本历史"都不搬。
+   `.xiranite/*.jsonl` 那类是**数据**不是配置：耐久数据走 DSH 的 storage domain，要落文件的位置由
+   使用者在 `Config` 里给（findz 的 `indexDir` 已是范例）。判据与逐条处置见 ADR-0013。
 
 ## 后果
 
