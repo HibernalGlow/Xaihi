@@ -61,12 +61,16 @@ async function evaluateMain (expression) {
 }
 
 // 每段共用的现场判据：谁是自家文档窗、谁是产品主窗。
-// 主窗取 dsh-app 窗里创建最早的那个（getAllWindows 按创建顺序；我们的窗永远是后建的那个）。
+// 主窗取 dsh-app 窗里 **id 最小**的那个（我们的窗永远是后建的，id 更大）。
+// 不能按 `getAllWindows()` 的列表顺序取：实测那个顺序不等于创建顺序，
+// 于是"刚关掉的那个正在销毁的窗"会被当成主窗 —— 对它的 `executeJavaScript`
+// 的 promise 永不落地（A/B 实测：列表法 4 轮里 3 轮 15 s TIMEOUT、1 轮
+// `TypeError: Object has been destroyed`；按 id 法 4 轮全 22–27 ms）。
 const SCAN = `
   const all = () => BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed())
   const isOwnedDocWindow = (w) => String(w.getTitle()).startsWith('Xaihi ')
     || w.webContents.getURL().includes('/xaihi/ui/')
-  const appWindows = () => all().filter((w) => w.webContents.getURL().startsWith('dsh-app://app/'))
+  const appWindows = () => all().filter((w) => w.webContents.getURL().startsWith('dsh-app://app/')).sort((a, b) => a.id - b.id)
   const main = () => appWindows()[0]
   // "自家开出去的窗"要排除主窗：主窗自己就停在文档 URL 上（决定 2 的那一个 Xaihi 文档），
   // 把它算进残留就是把"应该在场"读成"没清干净"（实机 C 段 ownedLeft=1 就是这么来的）。
@@ -188,18 +192,7 @@ const cStep = async (label, expression) => {
   if (r.ok !== true) console.log(`C 段卡在 ${label} ⇒ ${String(r.text)}`)
   return r
 }
-// 基础设施步（读 manifest、导航）允许再读一次：实机读到过同一段 fetch 在一次运行里 30 s 不落地、
-// 下一次运行 10 ms 就回（安静状态连跑三次 10/16/28 ms）。行为步（三次 open）不重试 ——
-// 重试会把"open 自己不落地"这类真缺陷盖掉，两次读数也一律留档。
-const cStepTwice = async (label, expression) => {
-  const first = await cStep(label + '（第 1 次）', expression)
-  if (first.ok === true) return first
-  await new Promise((r) => setTimeout(r, 1500))
-  const second = await cStep(label + '（第 2 次）', expression)
-  console.log(`C 段 ${label}：第 1 次不落地（${String(first.text)}），第 2 次 ${second.ok === true ? '读到了' : '仍不落地'}`)
-  return second
-}
-const cManifest = await cStepTwice('manifest（在产品文档里 fetch）', `
+const cManifest = await cStep('manifest（在产品文档里 fetch）', `
   const app = main()
   if (app === undefined) return { skipped: '没有产品主窗' }
   const got = await timed(app.webContents.executeJavaScript(
@@ -212,7 +205,7 @@ const cManifest = await cStepTwice('manifest（在产品文档里 fetch）', `
   }
 `)
 const cNav = cManifest.ok === true && typeof cManifest.value.documentUrl === 'string'
-  ? await cStepTwice('导航到文档（不带 node）', `
+  ? await cStep('导航到文档（不带 node）', `
   const app = main()
   const docUrl = ${JSON.stringify(cManifest.value.documentUrl)}
   const urlBefore = app.webContents.getURL()
