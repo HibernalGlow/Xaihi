@@ -10,7 +10,7 @@ import { defineConfig } from 'tsdown'
  * 一起内联进浏览器产物（purity 门禁抓到的正是这件事）。
  */
 export default defineConfig({
-  entry: ['src/index.ts', 'src/operations.ts'],
+  entry: ['src/index.ts', 'src/operations.ts', 'src/bridge.ts'],
   outDir: 'lib',
   format: ['esm'],
   platform: 'neutral',

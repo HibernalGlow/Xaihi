@@ -23,7 +23,7 @@
  * @module xaihi-ui/shell-caps
  */
 
-import type { BridgeEnv, NodeCapabilityId, ShellCapabilities } from '@hibernalglow/xaihi-sdk'
+import type { BridgeEnv, NodeCapabilityId, ShellCapabilities } from '@hibernalglow/xaihi-sdk/bridge'
 
 /** 装配侧要的那份远程面的形状（导出给 index.ts 断言用）。 */
 export type RemoteSettingsFace = RemoteLike

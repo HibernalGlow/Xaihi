@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import type { ShellCapabilities } from '@hibernalglow/xaihi-sdk'
+import type { ShellCapabilities } from '@hibernalglow/xaihi-sdk/bridge'
 import type { ReactElement } from 'react'
 import { fetchSurface, planSurface, DocumentFrame, type SurfacePlan } from './document-frame.tsx'
 import type { RootProps } from './workspace.tsx'

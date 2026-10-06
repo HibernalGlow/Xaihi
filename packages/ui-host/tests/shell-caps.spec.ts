@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { resolveEnv, shellCapsFrom } from '../src/client/shell-caps.ts'
-import { createShellBridge, type BridgeMessage } from '@hibernalglow/xaihi-sdk'
+import { createShellBridge, type BridgeMessage } from '@hibernalglow/xaihi-sdk/bridge'
 
 const okResult = (value: unknown) => ({ ok: true as const, value })
 const failResult = (code: string, message: string) => ({ ok: false as const, error: { code, message } })

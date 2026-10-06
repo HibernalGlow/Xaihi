@@ -18,71 +18,38 @@
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { NODE_CAPABILITY_IDS } from '@hibernalglow/xaihi-sdk'
-import { createDocumentBridge } from '@/client/bridge-document.ts'
 import App from '@/App'
+import { startRealm } from './realm.ts'
 import '@/index.css'
 
-/** 由 `/xaihi/ui/<rev>/index.html` 那份文档壳写进 window 的启动信息。 */
-interface XaihiUiBoot {
-  rev: string
-  apiBase: string
-  bundleBase: string
-  /** 要打开哪个节点的表面；缺省 = 整个工作台。 */
-  node?: string
-}
+/**
+ * 文档那一侧的正式入口：realm 管道在 `realm.ts`，这里只负责把工作台挂上去。
+ * 形状照搬运源仓那份装载器：URL 决定装载什么、读不到的东西显示成可见失败。
+ */
+const realm = startRealm()
 
-const boot = (globalThis as { __XAIHI_UI__?: XaihiUiBoot }).__XAIHI_UI__
-
-function fail(message: string): void {
-  const root = document.getElementById('xaihi-ui-root')
-  if (root === null) return
-  root.textContent = message
-  document.title = 'Xaihi — 装载失败'
-}
-
-if (boot === undefined) {
-  // 没有启动信息就等于这份 JS 不是被我们的文档壳带进来的：直说，不要按默认值画一屏。
-  fail('Xaihi 文档缺少启动信息（window.__XAIHI_UI__ 未定义）——这份 main.js 应当由 /xaihi/ui/<rev>/index.html 装载。')
-} else {
-  const shellOrigin = window.location.origin
-  const bridge = createDocumentBridge(
-    (message) => window.parent.postMessage(message, shellOrigin),
-    shellOrigin,
-    [...NODE_CAPABILITY_IDS],
+if (realm === null) {
+  document.getElementById('xaihi-ui-root')?.replaceChildren(
+    Object.assign(document.createElement('pre'), {
+      textContent: 'Xaihi 文档缺少启动信息（window.__XAIHI_UI__ 未定义）——这份 main.js 应当由 /xaihi/ui/<rev>/index.html 装载。',
+    }),
   )
-
-  window.addEventListener('message', (event: MessageEvent) => {
-    if (event.source !== window.parent) return
-    void bridge.receive(event.data, event.origin)
-  })
-
+  document.title = 'Xaihi — 装载失败'
+} else {
   const container = document.getElementById('xaihi-ui-root')
-  if (container === null) fail('文档壳里没有 #xaihi-ui-root 这一格')
-  else {
-    createRoot(container).render(
-      <StrictMode>
-        <App />
-      </StrictMode>,
-    )
-    // 握手在渲染之后发：界面先出来，能力随后按退化显示——反过来会白屏等一次往返。
-    bridge.hello(boot.node ?? '')
+  if (container === null) {
+    document.title = 'Xaihi — 装载失败'
+  } else {
+    // 握手先走完再挂界面：host 形状来自桥，早挂会让第一帧读到的能力是"未知"而不是"没有"。
+    const wait = setInterval(() => {
+      if (realm.bridge.ready() === null) return
+      clearInterval(wait)
+      createRoot(container).render(
+        <StrictMode>
+          <App />
+        </StrictMode>,
+      )
+    }, 120)
+    setTimeout(() => clearInterval(wait), 8000)
   }
-
-  // 页面自己报告协商结果，不打开控制台就能看见"哪一组没给、为什么"。
-  // 这是那条装载器的老纪律：授权的答案要成为一个可观察事实。
-  const report = document.createElement('pre')
-  report.dataset.xaihiBridge = 'negotiation'
-  report.style.cssText = 'position:fixed;right:0;bottom:0;margin:0;padding:6px 8px;font:11px/1.5 ui-monospace,monospace;background:rgba(0,0,0,.6);color:#fff;max-width:50%;white-space:pre-wrap'
-  const paint = () => {
-    const ready = bridge.ready()
-    report.textContent = ready === null
-      ? 'xaihi bridge: 等待宿主握手应答'
-      : `xaihi bridge rev=${boot.rev} node=${boot.node ?? ''} granted=[${ready.granted.join(', ')}] degraded=${ready.degraded.length}`
-  }
-  paint()
-  const timer = setInterval(paint, 400)
-  setTimeout(() => clearInterval(timer), 6000)
-  document.body.appendChild(report)
 }
-

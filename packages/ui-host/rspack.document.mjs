@@ -47,10 +47,10 @@ function aliasesFromTsconfig() {
   return out
 }
 
-export default {
+/** 两份文档产物共用的解析与规则；只有 entry 与输出目录不同。 */
+export const documentBase = {
   mode: 'production',
   context: here,
-  entry: { main: './src/document/main.tsx' },
   output: {
     path: path.join(here, 'dist-ui'),
     clean: true,
@@ -107,3 +107,5 @@ export default {
   stats: { preset: 'errors-warnings' },
   infrastructureLogging: { level: 'error' },
 }
+
+export default { ...documentBase, entry: { main: './src/document/main.tsx' } }

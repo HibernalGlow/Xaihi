@@ -15,6 +15,10 @@
       "types": "./lib/operations.d.ts",
       "default": "./lib/operations.js"
     },
+    "./bridge": {
+      "types": "./lib/bridge.d.ts",
+      "default": "./lib/bridge.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

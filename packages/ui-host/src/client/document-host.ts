@@ -19,8 +19,8 @@
  * @module xaihi-ui/document-host
  */
 
-import type { NodeCapabilityId } from '@hibernalglow/xaihi-sdk'
-import { BridgeError, type DocumentBridge } from '@hibernalglow/xaihi-sdk'
+import type { NodeCapabilityId } from '@hibernalglow/xaihi-sdk/bridge'
+import { BridgeError, type DocumentBridge } from '@hibernalglow/xaihi-sdk/bridge'
 
 /** 文档本地的组件状态面（上游 `NodeStateCapability` 的三个成员）。 */
 export interface LocalState<TData extends object = Record<string, unknown>> {

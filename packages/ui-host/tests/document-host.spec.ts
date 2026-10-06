@@ -16,7 +16,7 @@ import {
   type BridgeMessage,
   type DocumentBridge,
   type SettingsFace,
-} from '@hibernalglow/xaihi-sdk'
+} from '@hibernalglow/xaihi-sdk/bridge'
 import { createDocumentHost } from '../src/client/document-host.ts'
 
 const ORIGIN = 'http://127.0.0.1:3199'

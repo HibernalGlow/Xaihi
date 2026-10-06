@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { BRIDGE_SCHEMA, NODE_CAPABILITY_IDS, type BridgeHello, type BridgeMessage } from '@hibernalglow/xaihi-sdk'
+import { BRIDGE_SCHEMA, NODE_CAPABILITY_IDS, type BridgeHello, type BridgeMessage } from '@hibernalglow/xaihi-sdk/bridge'
 import { createShellBridge, type SettingsFace } from '../src/bridge-shell.ts'
 import { BridgeError, createDocumentBridge } from '../src/bridge-document.ts'
 

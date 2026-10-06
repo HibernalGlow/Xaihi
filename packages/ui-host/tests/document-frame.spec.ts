@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { BRIDGE_CONTRACT_VERSION, BRIDGE_SCHEMA, NODE_CAPABILITY_IDS, type BridgeMessage } from '@hibernalglow/xaihi-sdk'
+import { BRIDGE_CONTRACT_VERSION, BRIDGE_SCHEMA, NODE_CAPABILITY_IDS, type BridgeMessage } from '@hibernalglow/xaihi-sdk/bridge'
 import { fetchSurface, planSurface, wireShellToFrame, type FrameLike } from '../src/client/document-frame.tsx'
 
 const ORIGIN = 'http://127.0.0.1:3199'
