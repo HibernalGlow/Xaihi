@@ -516,3 +516,27 @@ check-cli-parity: 27 个包，比了 26 张开关表，真跑了 7 条命令，�
 （C 改写到各包真实 `bin` 上的那 92 条英文要留着）；③ 让 `nodeHelpFromManifest` 也读 `manifest.help`
 （它确实不读，这条我复核过）；④ 最后才重钉那 20 份 `definition.spec.ts` 的键集合。
 那 23 份 manifest 与重生成的产物**仍未提交**，等的就是 ②。
+
+## 步骤③已落地：那张表在终端面有了读者（同日）
+
+`nodeHelpFromManifest`（`packages/node-sdk/src/help.ts`）原先**不读** `manifest.help`，
+只拿 nodeId/title/description/actions 合成两块通用页（`Workspace UI` / `CLI`）。
+后果：把 54 块使用面搬进清单这件事，对终端/面板的呈现**毫无影响**——写没写、写对没写对，
+`--help` 都是同一屏。这一版把它接上：
+
+- `TerminalHelpSource` 收 `help`，`TerminalHelpOptions` 收 `language`（默认 `en` ⇒ 既有输出形状不变）；
+- 清单写了 `workflows` 就用自己的，块数组与扁平表**两形都读**（扁平表摊成一块，标题 `Usage`）；
+  每行 `string` 或 `{zh,en}` 都收，按 `language` 摊平；只有一种语言时回退到有的那一份而不是丢行；
+- 清单没写、或写了但全空 ⇒ **回退合成那两块**（3 份没有 workflows 的包与既有测试行为不变）；
+- 调用侧不用改：`plugins/*/src/help.ts` 传的就是整个 `xaihi.node` 对象，`help` 顺着走。
+
+实测：`node-sdk` **11 文件 / 110 条 rc=0**（新 `tests/help-reader.spec.ts` 5 条，含三条正反：
+没写⇒合成、写了⇒自己的且合成标题一个不出现、只有半边语言时 `en` 档也不许静默少一行）、
+`typecheck`/`build` rc=0；**建好的产物现读**：`plugins/linedup/lib/help.js` 里
+`workflows=1 块`、`cli=["linedup filter"]`、`ui=["工作台 linedup 面板"]`、
+`whenToUse=["Use to subtract one line list from another."]`
+——这三条都是从清单来的，不再是合成的那句 `Run \`x… --help\` for this node's exact flags…`。
+`check:cliregistry` 与 `check-cli-commands` 仍 rc=0。
+
+剩 ②（把 23 份按上游原文重嵌成块形状并补回 125 条中文，保留代理改写到各包真 bin 的英文行）
+与 ④（重钉那 20 份 `definition.spec.ts` 的 help 键集合）。**②做完之前，那 23 份仍不提交。**

@@ -56,16 +56,94 @@ export interface TerminalNodeHelp {
   commands: readonly TerminalHelpCommand[]
 }
 
-/** 推导的输入：清单里 `xaihi.node` 那一块，只用到这几个字段。 */
+/** 推导的输入：清单里 `xaihi.node` 那一块。 */
 export interface TerminalHelpSource {
   nodeId?: unknown
   title?: unknown
   description?: unknown
   actions?: unknown
+  /**
+   * 清单里 `xaihi.node.help` 那一块（`whenToUse` + `workflows`）。
+   *
+   * 为什么必须读它：本函数原先只拿 nodeId/title/description/actions **合成**两块通用页
+   * （`Workspace UI` / `CLI`），于是搬进来的那张使用面表没有任何终端读者——
+   * 内容对不对都不影响 `--help` 长什么样。加了这一路之后，清单里写了就用自己的，
+   * 没写才回退到合成那两块（现存 3 份没有 workflows 的包与既有测试因此行为不变）。
+   */
+  help?: unknown
+}
+
+/** 一行使用面：单语串或 `{zh,en}` 都收，按请求的语言摊平。 */
+function helpLine(value: unknown, language: 'zh' | 'en'): string | undefined {
+  if (typeof value === 'string') return value
+  if (value !== null && typeof value === 'object') {
+    const entry = value as { zh?: unknown, en?: unknown }
+    const picked = entry[language]
+    if (typeof picked === 'string' && picked !== '') return picked
+    const other = entry[language === 'zh' ? 'en' : 'zh']
+    if (typeof other === 'string' && other !== '') return other
+  }
+  return undefined
+}
+
+/** 清单写了 `help.whenToUse` 就用它；没写返回 undefined，让调用方回退到描述。 */
+function whenToUseFromHelp(help: unknown, language: 'zh' | 'en'): readonly string[] | undefined {
+  if (help === null || typeof help !== 'object') return undefined
+  const raw = (help as { whenToUse?: unknown }).whenToUse
+  if (Array.isArray(raw)) {
+    const lines = raw.map((line) => helpLine(line, language)).filter((line): line is string => line !== undefined)
+    return lines.length > 0 ? lines : undefined
+  }
+  const single = helpLine(raw, language)
+  return single === undefined ? undefined : [single]
+}
+
+/** 清单里那形（块数组或按面分组的扁平表）→ 终端用的块数组。返回空数组表示"清单没写，该合成"。 */
+function workflowsFromHelp(help: unknown, language: 'zh' | 'en'): TerminalHelpWorkflow[] {
+  if (help === null || typeof help !== 'object') return []
+  const workflows = (help as { workflows?: unknown }).workflows
+  const blocks: Record<string, unknown>[] = []
+  if (Array.isArray(workflows)) blocks.push(...workflows as Record<string, unknown>[])
+  else if (workflows !== null && typeof workflows === 'object') {
+    // 扁平那一形没有 title/summary 的容身处，摊成一块：标题用面名，行按面归类。
+    const grouped = workflows as Record<string, unknown>
+    const surfaceKeys = Object.keys(grouped).filter((key) => Array.isArray(grouped[key]))
+    if (surfaceKeys.length > 0) {
+      const block: Record<string, unknown> = {}
+      for (const key of surfaceKeys) block[key] = grouped[key]
+      blocks.push(block)
+    }
+  }
+  const out: TerminalHelpWorkflow[] = []
+  for (const block of blocks) {
+    if (block === null || typeof block !== 'object') continue
+    const surface = (key: 'ui' | 'cli' | 'tips'): readonly string[] | undefined => {
+      const raw = (block as Record<string, unknown>)[key]
+      if (!Array.isArray(raw)) return undefined
+      const lines = raw.map((line) => helpLine(line, language)).filter((line): line is string => line !== undefined)
+      return lines.length > 0 ? lines : undefined
+    }
+    const entry: TerminalHelpWorkflow = {
+      title: helpLine((block as Record<string, unknown>).title, language) ?? 'Usage',
+    }
+    const summary = helpLine((block as Record<string, unknown>).summary, language)
+    if (summary !== undefined) entry.summary = summary
+    const ui = surface('ui')
+    const cli = surface('cli')
+    const tips = surface('tips')
+    if (ui !== undefined) entry.ui = ui
+    if (cli !== undefined) entry.cli = cli
+    if (tips !== undefined) entry.tips = tips
+    if (ui === undefined && cli === undefined && tips === undefined) continue
+    out.push(entry)
+  }
+  return out
 }
 
 /** 每条节点各自的终端面名字；不给就按 `x<nodeId>` 推。 */
 export interface TerminalHelpOptions {
+  /** 终端面的语言；不给就是 `en`（沿用加这一步之前的输出形状，既有测试与包不受影响）。 */
+  language?: 'zh' | 'en'
   bin?: string
   /** 宿主侧无模型入口的名字（`ctx.commands`），例如 `/sleept`。 */
   command?: string
@@ -106,6 +184,8 @@ export function nodeHelpFromManifest(
 
   const bin = options.bin ?? `x${nodeId}`
   const hostCommand = options.command ?? `/${nodeId}`
+  const language = options.language ?? 'en'
+  const portedWorkflows = workflowsFromHelp(source.help, language)
 
   const actions = source.actions.map((raw, index) => {
     const action = raw as { id?: unknown; label?: unknown; description?: unknown }
@@ -126,8 +206,8 @@ export function nodeHelpFromManifest(
     title: title.en,
     short: description.en,
     description: description.en,
-    whenToUse: [description.en],
-    workflows: [
+    whenToUse: whenToUseFromHelp(source.help, language) ?? [description.en],
+    workflows: portedWorkflows.length > 0 ? portedWorkflows : [
       { title: 'Workspace UI', summary: title.en, ui: [description.en] },
       {
         title: 'CLI',
