@@ -23,6 +23,10 @@ packages:
 allowBuilds:
   '@deepseek-ai/dsh-subprocess-local': true
   '@google/genai': true
+  # pnpm 12 在非交互 install 里把这个占位串原样写了进来；不填就 ERR_PNPM_IGNORED_BUILDS，
+  # 整次 install 判失败。拍 false：本仓不引需要装后脚本的包（同一条口径见 check:installable），
+  # 且实测它根本不在依赖图里——pnpm-lock.yaml 与根 node_modules 都零命中。
+  '@parcel/watcher': false
   koffi: true
   node-pty: true
   protobufjs: true
