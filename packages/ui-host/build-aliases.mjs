@@ -129,6 +129,21 @@ export function nodeCoreAliases() {
 Object.assign(XIRANITE_ALIASES, nodeCoreAliases())
 
 /**
+ * 键按**长度递减排**一次。
+ *
+ * 为什么这是表的性质而不是每个消费端的功课：`@xiranite/shared` 与 `@xiranite/shared/rules`
+ * 同时在场，而 `resolve.alias` 是前缀匹配、先到先得 ⇒ 短键排前面就把长键吃掉，
+ * 症状是"解析到另一个文件"而不是"解析不到"，所以构建不响、只有行为漂。
+ * 三个消费端（tsconfig paths / vitest / tsdown+rspack）吃同一张表，排序在源头做一次，
+ * 比在三处各记一遍"记得写长的先来"可靠；`assertAliasTargets` 里另有一条判据盯着它。
+ */
+{
+  const ordered = Object.entries(XIRANITE_ALIASES).sort(([a], [b]) => b.length - a.length || (a < b ? -1 : 1))
+  for (const key of Object.keys(XIRANITE_ALIASES)) delete XIRANITE_ALIASES[key]
+  Object.assign(XIRANITE_ALIASES, Object.fromEntries(ordered))
+}
+
+/**
  * 有意**不给**解析的边：命中就该在构建里响，而不是被一个假 stub 糊过去。
  * 键是子串匹配（这些 specifier 出现在哪些文件由 `scripts/port-debt.mjs` 逐条列）。
  */
@@ -208,6 +223,23 @@ export function assertAliasTargets() {
   const skipped = countNodeOnlyLeaves()
   if (skipped === 0) {
     throw new Error('ui-host/aliases: 一个 Node 专用叶子都没筛掉 ⇒ 那条过滤是在空转，别把它当防御')
+  }
+  // 第三条判据：前缀遮蔽。`resolve.alias` 是**前缀匹配、先到先得**，所以表必须"长的在前"。
+  // 症状不是解析不到而是解析到错的文件，只查"指得到东西"的自检看不见它
+  // （实测 6 对被 `@xiranite/shared` / `@hibernalglow/xaihi-shared` 这类短键吃掉）。
+  const keys = Object.keys(XIRANITE_ALIASES)
+  const position = new Map(keys.map((key, index) => [key, index]))
+  const shadowed = []
+  for (const long of keys) {
+    for (const short of keys) {
+      if (short === long || !long.startsWith(`${short}/`)) continue
+      if (position.get(short) <= position.get(long)) {
+        shadowed.push(`${short} 排在 ${long} 之前 ⇒ 前缀匹配会把后者吃掉`)
+      }
+    }
+  }
+  if (shadowed.length > 0) {
+    throw new Error(`ui-host/aliases: 别名表的键没按长度递减排：\n  ${shadowed.join('\n  ')}`)
   }
   return Object.keys(XIRANITE_ALIASES).length
 }
