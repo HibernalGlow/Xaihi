@@ -411,6 +411,59 @@ const F = await evaluateMain(`(async () => {
 })()`)
 console.log('F 段（屏幕上的退化读回）⇒ ' + JSON.stringify(F))
 
+// H 段：0007 的那一格 —— 被嵌在产品文档里的 Xaihi 帧自己没有 preload（实测子帧
+// `typeof contentWindow.dshDesktop === 'undefined'`），所以那一层的"开独立窗"必须由产品文档转达。
+// 判据同时钉住转达分支的三条边界：路径必须过自家路由形状、缺路径时旧拒绝仍在、去重照旧生效。
+const H = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 500))
+  const finished = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL('dsh-app://app/')
+  await Promise.race([finished, new Promise((r) => setTimeout(r, 6000))])
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const nodes = manifest.plugins.map((p) => p.manifest.id)
+  const docPath = manifest.ui.documentUrl
+  const ask = (node, path) => app.webContents.executeJavaScript(
+    'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(node) + ', '
+    + (path === undefined ? 'undefined' : JSON.stringify(path)) + ')'
+    + '.then((r) => ({ kind: "opened", windowId: r.windowId, alreadyOpen: r.alreadyOpen }),'
+    + ' (e) => ({ kind: "rejected", message: String(e && e.message ? e.message : e) }))', true)
+  // 子帧那一格的现场读数（不当判据：那是 Electron 的 preload 归属，不是我们的缺陷）
+  const frameProbe = await app.webContents.executeJavaScript(
+    "(() => new Promise((res) => { const f = document.createElement('iframe');"
+    + " f.style.cssText = 'position:fixed;left:-4000px;width:400px;height:300px';"
+    + " f.addEventListener('load', () => setTimeout(() => {"
+    + " res({ dshDesktop: typeof f.contentWindow.dshDesktop, url: f.contentWindow.location.href.slice(0, 60) });"
+    + " f.remove(); }, 500), { once: true });"
+    + " f.src = " + JSON.stringify('dsh-app://app' + docPath + '?node=' + nodes[0]) + "; document.body.appendChild(f); }))()", true)
+  const idsBefore = all().map((w) => w.id)
+  const opened = await ask(nodes[1], docPath)
+  await new Promise((r) => setTimeout(r, 900))
+  const created = all().filter((w) => !idsBefore.includes(w.id))
+  const createdProbe = created.length === 1 ? { windowId: created[0].id, url: created[0].webContents.getURL(), title: created[0].getTitle() } : null
+  const again = await ask(nodes[1], docPath)
+  const badTraversal = await ask(nodes[0], '/xaihi/ui/../index.html')
+  const absoluteUrl = await ask(nodes[0], 'https://example.com/xaihi/ui/0123456789ab/index.html')
+  const withoutPath = await ask(nodes[0], undefined)
+  for (const w of all()) {
+    if (w === app) continue
+    if (isOwnedDocWindow(w) || (createdProbe !== null && w.id === createdProbe.windowId)) w.close()
+  }
+  await new Promise((r) => setTimeout(r, 800))
+  return {
+    nodes, docPath, opened, createdCount: created.length, createdProbe, again,
+    badTraversal, absoluteUrl, withoutPath, frameProbe, ownedLeft: openedWins().length,
+  }
+})()`)
+console.log('H 段（产品文档替被嵌的 Xaihi 帧转达开窗）⇒ ' + JSON.stringify(H))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -470,6 +523,18 @@ need('F: 那句能力与现场注入面对得上（不是写死的字符串）',
   ffs.top?.attr === 'supported' ? ffs.top?.surface === 'object' : ffs.top?.surface !== 'object')
 need('F: 反向对照——同一份文档嵌进 iframe 后换了说法',
   typeof ffs.nested?.text === 'string' && ffs.nested.text.includes('外层 iframe') && ffs.nested.text !== ffs.top?.text)
+
+const hh = H.ok === true ? H.value : {}
+need('H: 产品文档带自家路径转达 ⇒ 真开出一个原生窗（面板那一格的通路）',
+  hh.opened?.kind === 'opened' && hh.createdCount === 1
+  && hh.createdProbe?.url === 'dsh-app://app' + hh.docPath + '?node=' + String(hh.nodes?.[1] ?? '~none~'))
+need('H: 同一个 node 再问一次走去重，不叠第二个窗', hh.again?.alreadyOpen === true)
+need('H: 路径穿越被自家路由形状拒掉', hh.badTraversal?.kind === 'rejected' && String(hh.badTraversal?.message).includes('document path must match'))
+need('H: 外部绝对地址被拒（不许把任意 URL 喂给 loadURL）', hh.absoluteUrl?.kind === 'rejected' && String(hh.absoluteUrl?.message).includes('document path must match'))
+need('H: 对照——不带路径时旧那条拒绝仍在（0007 没把动词整体放开给产品文档）',
+  hh.withoutPath?.kind === 'rejected' && String(hh.withoutPath?.message).includes('only the Xaihi UI document'))
+need('H: 现场复核被嵌那一帧确实拿不到动词（0007 的存在理由，不是判据）', hh.frameProbe?.dshDesktop === 'undefined')
+need('H: 收尾把自家窗清干净', hh.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {
