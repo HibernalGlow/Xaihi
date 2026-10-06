@@ -1,0 +1,538 @@
+{
+  "name": "@hibernalglow/xaihi-repacku",
+  "version": "0.0.0",
+  "description": "Xaihi node Repacku: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "xrepacku": "./lib/cli.js"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-repacku",
+    "title": {
+      "zh": "Repacku",
+      "en": "Repacku"
+    },
+    "ui": {
+      "remote": "repacku",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.repacku",
+        "title": {
+          "zh": "Repacku面板",
+          "en": "Repacku panel"
+        },
+        "area": "workspace",
+        "remote": "repacku",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "repacku",
+      "title": {
+        "zh": "Repacku",
+        "en": "Repacku"
+      },
+      "description": {
+        "zh": "分析文件夹结构，并将匹配的文件夹重新打包为 zip 归档。",
+        "en": "Analyze folder structures and repack matching folders into zip archives."
+      },
+      "actions": [
+        {
+          "id": "analyze",
+          "label": {
+            "zh": "分析",
+            "en": "Analyze"
+          }
+        },
+        {
+          "id": "compress",
+          "label": {
+            "zh": "压缩",
+            "en": "Compress"
+          }
+        },
+        {
+          "id": "full",
+          "label": {
+            "zh": "完整流程",
+            "en": "Full flow"
+          }
+        },
+        {
+          "id": "single-pack",
+          "label": {
+            "zh": "单层打包",
+            "en": "Single pack"
+          }
+        },
+        {
+          "id": "gallery-pack",
+          "label": {
+            "zh": "画集打包",
+            "en": "Gallery pack"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "工作流",
+            "en": "Workflow"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "analyze",
+              "label": {
+                "zh": "分析",
+                "en": "Analyze"
+              }
+            },
+            {
+              "value": "compress",
+              "label": {
+                "zh": "压缩",
+                "en": "Compress"
+              }
+            },
+            {
+              "value": "full",
+              "label": {
+                "zh": "完整流程",
+                "en": "Full flow"
+              }
+            },
+            {
+              "value": "single-pack",
+              "label": {
+                "zh": "单层打包",
+                "en": "Single pack"
+              }
+            },
+            {
+              "value": "gallery-pack",
+              "label": {
+                "zh": "画集打包",
+                "en": "Gallery pack"
+              }
+            }
+          ],
+          "default": {
+            "text": "full"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "pathsText",
+          "label": {
+            "zh": "文件夹路径",
+            "en": "Folder paths"
+          },
+          "kind": "path-list",
+          "lines": 5,
+          "placeholder": {
+            "zh": "每行一个路径",
+            "en": "One folder per line"
+          },
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "compress"
+                    ]
+                  },
+                  "negated": true
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "types",
+          "label": {
+            "zh": "目标类型",
+            "en": "Target types"
+          },
+          "kind": "text",
+          "placeholder": {
+            "zh": "image,document",
+            "en": "image,document"
+          },
+          "default": {
+            "text": "image"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "minCount",
+          "label": {
+            "zh": "最少文件数",
+            "en": "Minimum files"
+          },
+          "kind": "number",
+          "range": {
+            "min": 1,
+            "max": 9999,
+            "step": 1
+          },
+          "default": {
+            "number": 2
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange"
+              }
+            }
+          ]
+        },
+        {
+          "id": "outputPath",
+          "label": {
+            "zh": "配置输出",
+            "en": "Config output"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "configPath",
+          "label": {
+            "zh": "配置路径",
+            "en": "Config path"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "anyFilled",
+                "fieldIds": [
+                  "configPath",
+                  "pathsText"
+                ]
+              },
+              "when": {
+                "type": "single",
+                "predicate": {
+                  "test": {
+                    "type": "actionIs",
+                    "actionField": "action",
+                    "allowed": [
+                      "compress"
+                    ]
+                  },
+                  "negated": false
+                }
+              },
+              "message": {
+                "zh": "压缩需要配置路径或文件夹路径。",
+                "en": "Compress needs a config or folder path."
+              }
+            }
+          ]
+        },
+        {
+          "id": "galleryMarker",
+          "label": {
+            "zh": "画集标记",
+            "en": "Gallery marker"
+          },
+          "kind": "text",
+          "default": {
+            "text": ". 画集"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "deleteAfter",
+          "label": {
+            "zh": "成功后删除源文件",
+            "en": "Delete sources after success"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "预演",
+            "en": "Dry-run"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "pathsText",
+          "slot": "paths",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "types",
+          "slot": "types",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "minCount",
+          "slot": "minCount",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "outputPath",
+          "slot": "outputPath",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "configPath",
+          "slot": "configPath",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "galleryMarker",
+          "slot": "galleryMarker",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "deleteAfter",
+          "slot": "deleteAfter",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        }
+      ],
+      "danger": {
+        "type": "pluginExport",
+        "exportName": "is_dangerous"
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认重打包",
+          "en": "Confirm repacking"
+        },
+        "body": {
+          "zh": "此操作会写入归档文件。",
+          "en": "Archives will be written to disk."
+        },
+        "confirmLabel": {
+          "zh": "确认执行",
+          "en": "Run now"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "需要从工作区 UI 或 CLI 使用此节点的文件工作流时，可使用 Repacku。",
+          "en": "Use Repacku when you need this node's file workflow from either the workspace UI or CLI."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "notes": {
+            "zh": [
+              "修改文件前，优先使用预览或试运行模式。",
+              "处理大型文件夹时，请保留备份或撤销记录。"
+            ],
+            "en": [
+              "Prefer preview or dry-run modes before changing files.",
+              "Keep backups or undo records when processing large folders."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
