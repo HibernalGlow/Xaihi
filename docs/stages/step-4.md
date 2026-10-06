@@ -1348,3 +1348,16 @@ hostRequirements 是 `os-native + external-process + recursive-enumeration + fil
 其余 9 个批次 H 节点都有真 TS 内核（`mvz` 280 / `cleanf` 353 / `classf` 377 / `smartzip` 455 /
 `bandia` 552 / `enginev` 596 / `bitv` 683 / `gifu` 781 / `repacku` 894 行），
 其中前四个已派子代理在搬。
+
+## 28 个 retain-rewrite 节点的现状板（2026-10-07 01:25 现读，分支头 `2a525c3`）
+
+| 状态 | 数量 | 节点 |
+|---|---|---|
+| 已成包提交 | 13 | linedup dissolvef sleept / logx recycleu timeu samea / nameu rawfilter crashu formatv classq linku |
+| 在飞（子代理正在搬，目录已预置） | 11 | encodb migratef marku trename / mvz cleanf classf smartzip / bandia enginev bitv |
+| 本轮刚派出去 | 2 | gifu repacku |
+| 并发 lane 的包，**还没有终端面** | 1 | findz（`bin` 是 `undefined`、`exports` 只有 `.`/`./locale/*.json`/`./cordis.patch.yml`/`./package.json`；`node scripts/gen-cli-registry.mjs` 现读时它因此不进表——这条由尺报，不靠人记） |
+| 阻塞，先要 ADR | 1 | kisaki（noxide 基线零命中；引擎是 `@xiranite/czkawka-native`，树内零 `.rs`，构建入口 `bun scripts/build-native.ts`） |
+
+13 + 11 + 2 + 1 + 1 = 28。`plugins/hello` 仍留在分支头里（它的删除是并发 lane 那一刀），
+这条与"干净检出 `pnpm install --frozen-lockfile` 报 `importers["plugins/hello"]`"是同一件事，收口时一起清。

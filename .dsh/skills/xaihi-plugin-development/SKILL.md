@@ -12,7 +12,19 @@ node packages/create-xaihi-plugin/lib/index.js <name> --node-id <id> \
   --title-zh 中文名 --title-en "English" --dir plugins/<name>
 ```
 
-不要手抄别的包。脚手架生成 13 个文件，并自带 `tests/core.spec.ts`：定义合法性与当前内核行为各一颗钉子。
+不要手抄别的包。脚手架生成 18 个文件：贡献清单与节点定义、自带的 `cordis.patch.yml`、宿主半边
+`src/index.ts`、`frontend/` 的 UI 产物、起步测试（`tests/core.spec.ts`：定义合法性与当前内核行为
+各一颗钉子），**外加终端面**——`src/cli.ts`、`src/help.ts`、
+`src/cli-support.ts`、`tests/cli.spec.ts`、`vitest.config.ts`，连着 `package.json` 的 `bin` 与
+`./cli`、`./help` 两条 subpath 和 tsdown 的三入口。聚合 CLI 按 `{包名}/cli` 取 `cli`、
+按 `{包名}/help` 取 `help`（`packages/cli/src/index.ts`），少一条腿的症状是"节点在列表里但跑不起来"。
+
+`src/cli-support.ts` 是读 `plugins/linedup/src/cli-support.ts` 再生成的，只差 `@module` 那一行：
+`node scripts/check-vendored.mjs` 对这些 vendored 拷贝逐字节比对，手抄一份就是多一处漂移源。
+终端面生成出来是**响亮拒绝**那一档：动作的接线只在宿主进程里（DSH 的 `tools` 服务 +
+xaihi-core 的 `OPERATIONS_SERVICE` 账本），bin 里跑一律退出码 2 并点名缺的那条服务；
+`src/help.ts` 也只从 `package.json#xaihi.node` 推导，不抄第二份文案。内核搬进 `src/core.ts`
+之后，在 `runHostedAction` 里点亮这一条。
 
 ## 一个包必须同时是三样东西
 

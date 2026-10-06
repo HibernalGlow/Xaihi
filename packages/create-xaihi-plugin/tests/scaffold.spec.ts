@@ -3,12 +3,51 @@
  * @module create-xaihi-plugin/tests/scaffold
  */
 
+import { readFileSync } from 'node:fs'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { assertName, filesOf, parseArgs, scaffold } from '../src/index.ts'
+import { assertName, binNameOf, filesOf, parseArgs, scaffold, vendoredCliSupportOf } from '../src/index.ts'
 
 const input = { name: 'demo-node', nodeId: 'demonode', titleZh: '演示', titleEn: 'Demo', sdkVersion: 'workspace:*' }
+const repoRoot = resolve(import.meta.dirname, '..', '..', '..')
+
+/** 终端面的键表：少任何一个，发出去的都是一个没有 bin 的包。 */
+const CLI_FACE_KEYS = ['src/cli.ts', 'src/cli-support.ts', 'src/help.ts', 'tests/cli.spec.ts', 'vitest.config.ts']
+
+const missingFaceKeys = (table: Record<string, string | undefined>): string[] =>
+  CLI_FACE_KEYS.filter((key) => !(key in table))
+
+/** `package.json` 里终端面用得到的那几格（写成接口是为了能拿残缺副本喂尺）。 */
+interface FacePkg {
+  bin?: Record<string, string>
+  exports?: Record<string, { types?: string; default?: string }>
+  scripts?: { build?: string }
+}
+
+/**
+ * `package.json` 与 tsdown 里终端面的四颗钉子，抽成函数是为了能拿一份残缺的去喂它：
+ * 断言只写一遍的话，"删掉 bin 键"这种漂移没有任何东西可红。
+ */
+function terminalFaceGaps(pkg: FacePkg, tsdown: string): string[] {
+  const gaps: string[] = []
+  const bin = binNameOf(input)
+  if (pkg.bin?.[bin] !== './lib/cli.js') gaps.push(`bin["${bin}"] 不是 ./lib/cli.js`)
+  for (const subpath of ['./cli', './help']) {
+    const target = subpath === './cli' ? './lib/cli.js' : './lib/help.js'
+    if (pkg.exports?.[subpath]?.default !== target) gaps.push(`exports["${subpath}"] 缺或指错`)
+  }
+  for (const entry of ['src/index.ts', 'src/cli.ts', 'src/help.ts']) {
+    if (!tsdown.includes(`'${entry}'`)) gaps.push(`tsdown 入口少了 ${entry}`)
+  }
+  if (pkg.scripts?.build !== 'tsdown && rspack build') gaps.push('scripts.build 不是 tsdown && rspack build')
+  return gaps
+}
+
+/** `check-vendored.mjs` 的归一化：抹掉带包名的 @module 行，其余一个字节都不许差。 */
+const stripModuleLine = (text: string): string =>
+  text.split('\n').filter((line) => !/^\s*\*\s*@module\s/.test(line)).join('\n')
 
 describe('scaffold', () => {
   it('拒绝非 kebab-case 名字', () => {
@@ -41,7 +80,7 @@ describe('scaffold', () => {
       const written = scaffold(input, dir)
       expect(written).toContain('src/index.ts')
       // 接线件必须齐全：缺任何一个，症状都是"装了但要么没工具要么没面板"
-      for (const required of ['package.json', 'cordis.patch.yml', 'tsdown.config.ts', 'rspack.config.mjs', 'frontend/Panel.tsx', 'frontend/container-entry.ts', 'tests/core.spec.ts']) {
+      for (const required of ['package.json', 'cordis.patch.yml', 'tsdown.config.ts', 'rspack.config.mjs', 'frontend/Panel.tsx', 'frontend/container-entry.ts', 'tests/core.spec.ts', ...CLI_FACE_KEYS]) {
         expect(written).toContain(required)
       }
       const entry = await readFile(`${dir}/src/index.ts`, 'utf8')
@@ -87,4 +126,111 @@ describe('scaffold', () => {
     expect(parsed.nodeId).toBe('demonode')
   })
 
+})
+
+/**
+ * 终端面这一档：每个已迁包都带 `bin` + `./cli` + `./help` 三条腿，脚手架不发就等于每个新包
+ * 都要人肉抄一遍——抄出来的第 14 份 `cli-support.ts` 正是 `check:vendored` 要抓的漂移源。
+ * 所以那份文件在生成时读仓里的既有拷贝、只改 `@module` 一行，这几条断言钉的就是这件事。
+ */
+describe('终端面', () => {
+  it('filesOf() 带着整张终端面的脸', () => {
+    const files = filesOf(input)
+    expect(missingFaceKeys(files)).toEqual([])
+    // 阳性对照：一张少了 `src/cli.ts` 的表必须被同一把尺查到。
+    const stripped: Record<string, string | undefined> = { ...files }
+    delete stripped['src/cli.ts']
+    expect(missingFaceKeys(stripped)).toEqual(['src/cli.ts'])
+  })
+
+  it('生成的 cli-support.ts 与 plugins/linedup 那份逐字节一致，只差 @module 一行', () => {
+    const canonical = readFileSync(resolve(repoRoot, 'plugins/linedup/src/cli-support.ts'), 'utf8')
+    const generated = filesOf(input)['src/cli-support.ts'] as string
+    expect(stripModuleLine(generated)).toBe(stripModuleLine(canonical))
+    // 只改那一行：逐行比，差异必须恰好落在 @module 那一行上——多改一行（哪怕只是顺手
+    // 把包名带进正文）都会让 check:vendored 之外的读者找不到这份拷贝的出处。
+    const generatedLines = generated.split('\n')
+    const canonicalLines = canonical.split('\n')
+    expect(generatedLines.length).toBe(canonicalLines.length)
+    const changed = generatedLines
+      .map((line, index) => (line === canonicalLines[index] ? null : index + 1))
+      .filter((line): line is number => line !== null)
+    expect(changed.length).toBe(1)
+    expect(changed.map((line) => generatedLines[line - 1])).toEqual([' * @module xaihi-demo-node/cli-support'])
+    expect(generated).not.toContain('xaihi-linedup/cli-support')
+    // 阳性对照：制造一处单字符漂移就必须红（与 `check-vendored --self-check` 同一判据）。
+    expect(stripModuleLine(`${generated}\n// 正控：这一行制造一次不一致\n`)).not.toBe(stripModuleLine(canonical))
+  })
+
+  it('package.json 的 bin 与两条 subpath、tsdown 的三入口各自都红得起来', () => {
+    const files = filesOf(input)
+    const tsdown = files['tsdown.config.ts'] as string
+    const pkg = JSON.parse(files['package.json'] as string) as FacePkg
+    expect(terminalFaceGaps(pkg, tsdown)).toEqual([])
+    expect(pkg.bin).toEqual({ xdemonode: './lib/cli.js' })
+
+    // 阳性对照三条：删 bin、删 ./help subpath、把 tsdown 退回单入口，尺都必须红。
+    const noBin = structuredClone(pkg)
+    delete noBin.bin
+    expect(terminalFaceGaps(noBin, tsdown)).toContain('bin["xdemonode"] 不是 ./lib/cli.js')
+    const noHelpSubpath = structuredClone(pkg)
+    if (noHelpSubpath.exports) delete noHelpSubpath.exports['./help']
+    expect(terminalFaceGaps(noHelpSubpath, tsdown)).toContain('exports["./help"] 缺或指错')
+    expect(terminalFaceGaps(pkg, tsdown.replace(", 'src/help.ts'", ''))).toContain('tsdown 入口少了 src/help.ts')
+  })
+
+  it('src/cli.ts 的子命令名单就是 package.json#xaihi.node 的动作名单', () => {
+    const files = filesOf(input)
+    const cli = files['src/cli.ts'] as string
+    const declared = (JSON.parse(files['package.json'] as string) as {
+      xaihi: { node: { actions: Array<{ id: string }> } }
+    }).xaihi.node.actions.map((action) => action.id)
+    const drift = (actions: readonly string[]): string[] =>
+      actions.filter((action) => !cli.includes(`${action}: defineCommand({`))
+    expect(drift(declared)).toEqual([])
+    expect(declared).toEqual(['run'])
+    // 阳性对照：清单里多一条动作而终端面没跟上，这条尺必须点名它。
+    expect(drift([...declared, 'ghost-action'])).toEqual(['ghost-action'])
+  })
+
+  it('src/help.ts 由清单推导，且带着 TS4023 那颗显式标注的钉子', () => {
+    const help = filesOf(input)['src/help.ts'] as string
+    expect(help).toContain("require('../package.json')")
+    expect(help).toContain('nodeHelpFromManifest(node')
+    // 不写显式类型的话 dts 会报 TS4023 / MISSING_EXPORT（解法抄自 plugins/linedup/src/help.ts）。
+    expect(help).toContain('export const help: TerminalNodeHelp =')
+    expect(help).toContain(`bin: '${binNameOf(input)}'`)
+    expect(help).toContain(`command: '/${input.nodeId}'`)
+    // 阳性对照：一份自己誊 `commands:` 文案的手写 help.ts 就该被这条查到。
+    expect(help).not.toContain('commands: [')
+  })
+
+  it('生成的 vitest.config.ts 只收本包的 spec', () => {
+    const config = filesOf(input)['vitest.config.ts'] as string
+    expect(config).toContain("include: ['tests/**/*.spec.{ts,tsx}', 'src/**/*.spec.{ts,tsx}']")
+    // 阳性对照：加一条 exclude 遮蔽就是把"静默漏跑"再藏一层，这条尺要看得见它。
+    expect(config.includes('exclude:')).toBe(false)
+  })
+
+  it('终端面的动作在 bin 里拒绝执行时要点名缺的那条 DSH 服务', () => {
+    const cli = filesOf(input)['src/cli.ts'] as string
+    expect(cli).toContain('process.exitCode = 2')
+    expect(cli).toContain('tools 服务')
+    expect(cli).toContain('OPERATIONS_SERVICE')
+    // 阳性对照：把拒绝换成"跑占位内核打印一行成功"，上面这条就红。
+    expect(cli.includes('executed: false')).toBe(true)
+    expect(cli.includes('executed: true')).toBe(false)
+  })
+
+  it('scaffold() 落盘的 cli-support.ts 就是 vendored 那份', async () => {
+    const dir = await mkdtemp(`${tmpdir()}/xaihi-scaffold-cli-`)
+    try {
+      const written = scaffold(input, dir)
+      expect(missingFaceKeys(Object.fromEntries(written.map((key) => [key, ''])))).toEqual([])
+      const support = await readFile(resolve(dir, 'src/cli-support.ts'), 'utf8')
+      expect(support).toBe(vendoredCliSupportOf(input.name))
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
 })
