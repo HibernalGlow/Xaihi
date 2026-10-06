@@ -59,3 +59,30 @@ describe('工作台外壳的来源', () => {
     expect(SHELL).toContain('NodeChromeActionButton')
   })
 })
+
+/**
+ * 文档侧的现状台账（ADR-0009）。
+ *
+ * 上面那条禁词判据量的是 **DSH 面板里的那一面**：那里确实不许起 Xiranite 的 store 与主题引擎。
+ * 但 ADR-0009 把工作台本体挪进了 Xaihi 自己的文档，而那一面渲染的是搬运来的 `App`，
+ * `App.tsx:55` 就是会起 `WorkspaceProvider`。所以"整仓没有 provider"这句话现在是假的，
+ * 尺不能假装它成立 —— 这里把实况钉成台账：
+ * 哪天文档侧不再起 provider（换成我们自己的数据源），这条会红，
+ * 那时才把上面那条禁词判据扩到覆盖 `src/document/**`。
+ */
+describe('文档侧（ADR-0009）的现状台账', () => {
+  const MAIN = read('src', 'document', 'main.tsx')
+  const APP = read('src', 'App.tsx')
+
+  it('文档入口渲染的是搬运来的 App 根', () => {
+    expect(MAIN).toContain('App')
+    expect(APP).toContain('<WorkspaceProvider>')
+  })
+
+  it('DSH 面板那一面仍然没有把 provider 带进来', () => {
+    for (const banned of ['WorkspaceProvider', 'presetThemeRootClass', 'useWorkspaceShallowSelector']) {
+      expect(MAIN, `文档侧台账之外，DSH 那一面（workspace.tsx）不该出现 ${banned}`).not.toContain(banned)
+      expect(SHELL, `DSH 那一面不该出现 ${banned}`).not.toContain(banned)
+    }
+  })
+})
