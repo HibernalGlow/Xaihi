@@ -262,6 +262,45 @@ client face 建完之后，这一档的判据已经写好，跑的是活体而�
 
 - 上游 bump ⇒ patch series 重放；重放红就是红，不许 `--3way` 蒙。
 
+## 0007：面板那一格的"开独立窗"——由产品文档替被嵌的 Xaihi 帧转达（2026-10-07 06:0x）
+
+**先量到的是两条死路**（探针在跑着的壳上实测，读数 `F`/`H` 段的 `frameProbe` 复核）：Xaihi 文档按
+ADR-0009/0014 的形态是嵌在产品文档的 `<iframe>` 里的，那时——
+
+1. `typeof frame.contentWindow.dshDesktop === 'undefined'` ⇒ 壳的动词**进不了子帧**
+   （Electron 44 的 preload 不暴露给 sub-frame），面板里的代码没有 IPC 这条路。
+2. 子帧自己 `window.open(自家文档)` ⇒ `popup="null"` 且**一个新窗都没有**（`createdCount: 0`）。
+   机制在源码里：0002 的 `setWindowOpenHandler` 拿到的 `openerUrl` 是
+   `window.webContents.getURL()`，也就是**那个窗的主帧 URL**（`dsh-app://app/`），不是发起那一帧的；
+   而 Electron 的 `HandlerDetails`（`electron.d.ts:21990`）只有 `url / frameName / features /
+   disposition / referrer / postBody` —— **没有"哪一帧发起的"这个字段**，`referrer` 不能当安全主语用。
+
+⇒ 唯一不动桥协议、也不伪造发起者的通路是：**由产品文档那一层（我们自己的 client 包装代码住在里面）
+替帧转达**，并显式带上文档路径。0007 就是这一条：`open(node, documentPath?)`；带路径时
+只有主窗（产品文档）这一支被接受，路径必须通过壳自己的路由形状
+`/^\/xaihi\/ui\/[0-9a-f]{12}\/index\.html$/u` 校验，scheme 与 host 仍只有壳那一份；
+不带路径时行为与 0005 逐字相同（发起者自己必须是 Xaihi 文档），所以 A 段那条拒绝原样还在。
+
+实机（`node desktop/live-check.mjs` ⇒ **42 条 OK、rc=0**，H 段七条）：
+
+- `open(nodes[1], docPath)` ⇒ `{kind:opened, windowId:9, alreadyOpen:false}`，新窗 URL 逐字
+  `dsh-app://app/xaihi/ui/1b925377dccd/index.html?node=xaihi-sleept`、标题 `Xaihi · xaihi-sleept`。
+- 同一个 node 再问 ⇒ `alreadyOpen=true`（0004 的去重在这条新分支上照旧）。
+- `/xaihi/ui/../index.html` 与 `https://example.com/xaihi/ui/0123456789ab/index.html` ⇒ 都按
+  `document path must match /xaihi/ui/<rev>/index.html` 拒掉。
+- 不带路径 ⇒ `only the Xaihi UI document may open a window`（转达分支没把动词整体放开）。
+
+SDK 那侧（`packages/node-sdk/src/desktop-windows.ts`）同步收第二条参数：坏路径**本地就拒**
+（`invalid-document-path`，不喂 IPC），好路径**逐字透传**。这里被自家测试抓出一处"半接"——
+包装层 `opener: (node) => open(node)` 只转发第一个参数，测 `documentPath` 时收到 `undefined`
+⇒ **rc=1 点名那条用例**；补成 `(node, documentPath) => open(node, documentPath)` 后
+`desktop-windows.spec.ts` **10 条全绿**。判据是"参数到底走到哪一层"，不是"类型上写没写"。
+
+**没做完的那半格**：转达方（产品文档里的 Xaihi 包装层）现在只有动词可用，还没有**从被嵌帧收到请求**的那条桥
+——桥的动词表（`SHELL_SERVED_METHODS`，按 `groupOf` 归到 `NODE_CAPABILITY_IDS` 那几组，
+`packages/node-sdk/src/host-bridge.ts:45/130/163`）里没有 `openNodeWindow` 这一项。补它要动我们自己的桥契约，
+下一刀做；做完之前"面板里点一下开独立窗"仍然只有壳侧的路与单测。
+
 ## 0005 与 0006：主窗只是隐藏时节点窗还能继续开，标题也真带得出 node（2026-10-07 05:3x，home `.scratch/dsh-xaihi-desktop-home3`）
 
 **前提（上游现读，不是我推的）**：主窗的 `close` 被 `preventDefault` 换成隐藏

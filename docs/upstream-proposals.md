@@ -116,9 +116,35 @@
 `setWindowOpenHandler`（`main.ts:239-242`）对这种请求改成 `allow`，其余照旧 deny。
 子窗生命周期、关闭确认、任务中断检查可以沿用 `quit-inspection` 那一套（README 里"每次退出先问宿主"）。
 
-**我们现在怎么绕开**：不绕。原生多窗这一格在 Xaihi 里显式空着，由**同级独立仓**自己出壳实现
-（`docs/adr/0011-desktop-shell-is-a-sibling-vendor-repo.md`），官方桌面端与 `dsh web` 下
-Xaihi 只有主窗一条腿、并且界面能读出"这是单窗形态"。本提案落地后那条 patch 就撤。
+**我们现在怎么绕开**：官方桌面端与 `dsh web` 下不绕 —— 原生多窗那一格显式空着，界面读出"这是单窗形态"
+（0006 之后连这句都印在文档页上）。自家壳在**本仓的 `desktop/` 那一层**以 submodule + patch series 实现
+（`docs/adr/0011-desktop-shell-is-a-sibling-vendor-repo.md`；这一句原先写的"同级独立仓"已随 ADR-0011 的改判作废），
+落地的是 0001/0002/0004/0005/0006/0007 那几条：动词、纯 URL 判策、按 node 去重、发起者放宽、标题读回、
+产品文档替被嵌帧转达。本提案落地后这些 patch 就该撤。
+
+## P8 · `window.open` 的发起者身份里没有"哪一帧"，preload 也不进子帧
+
+这条不是"想要更多功能"，是**量出来的一条断路**（2026-10-07 在自家壳上实测，读数记在
+`desktop/README.md` 的 0007 一节与 ADR-0011 那行）：
+
+- Electron 44 的 `HandlerDetails`（`node_modules/.pnpm/electron@44.0.0/node_modules/electron/electron.d.ts:21990`）
+  只有 `url / frameName / features / disposition / referrer / postBody` —— **没有发起那一帧的
+  `WebContents`/`Frame`**。于是 `setWindowOpenHandler` 里能拿到的"发起者"只能是**窗的主帧 URL**：
+  被嵌在 `<iframe>` 里的文档自己 `window.open(自家文档)` ⇒ 判策看的是宿主那份文档的 URL ⇒ 不通过 ⇒
+  `popup=null` 且一个新窗都没有（实测 `createdCount: 0`）。`referrer` 理论上能带帧地址，但它受
+  referrer policy 摆布，不能当安全主语用。
+- 同一时刻，桌面端 preload 暴露的 `window.dshDesktop` **在子帧里是 `undefined`**（实测
+  `typeof frame.contentWindow.dshDesktop === 'undefined'`）⇒ 被嵌的那一层连"经 IPC 问一句"也没有。
+
+**为什么是缺口**：插件类产品的界面天生跑在宿主的 iframe/guest 里（DSH 自己的 `browser-guests.ts`
+也是这个形状）。两条路同时封着的结果是：**iframe 内的内容没有任何办法请求一个原生窗**，
+只能由外层页面替它转达 —— 而外层要转达就得自己带上目标地址，这就把"URL 由谁定"这条信任线
+从"只有壳"挪成了"外层页面给、壳校验"（我们的 0007 就是这条路，且校验按自家路由形状收死）。
+
+**建议的最小改法**：`HandlerDetails` 里给发起帧一个稳定身份（例如 `frame: ElectronFrame` 或
+`initiator: { url, frameId }`），让 handler 能按**发起帧**判策略；或者给 `webPreferences` 一个
+"把 preload/`contextBridge` 面暴露给指定 origin 的子帧"的开关。任一到位，0007 那条"外层转达 +
+显式路径"就可以退回"帧自己发起、URL 仍由壳改写"的更窄形状。
 
 ## P6 · 桌面端 profile 可选 / guest 允许宿主 origin 的具名路由
 
