@@ -304,3 +304,32 @@ React 19 写法回退）一条都还没接；浏览器实机观感未验。
 批次 E 与 F 都是**手抄 `plugins/samea` 补上这一块的**。补法应当是生成器在仓内直接读
 `plugins/linedup/src/cli-support.ts` 再改写 `@module` 那一行（这样 `check:vendored` 那条字节尺
 天然守住），而不是在模板里再抄第二份。
+
+## 10. 批次 F 的四个界面进树，以及一条实测出来的"根本没接上"（2026-10-07 01:07）
+
+**做了什么**：`scripts/port-ui.mjs` 的名单加上 `nodes/{crashu,formatv,classq,linku}`（搬运器
+先 `--check` 确认 24 条全是"没搬过"、不覆盖任何人在飞的文件，再 apply）；四个 `entry.ts`
+改成 Xaihi 形状（`def` 取 `NODE_MANIFESTS.<id>`），并按既有口径在
+`docs/port/xaihi-deltas.json` 登记（14 → 18 条）。解析表自动长到 **24 条**
+（`@xiranite/node-<id>/{core,interaction}` 是从 `plugins/*/src/` 现读的，不手抄）。
+
+**判据**（逐条 rc）：`port-ui --check` 0（657 份、0 漂、18 条申报差）；
+`gen-node-registry` 0（**12 个界面目录 → 12 条注册**）；`build-aliases` 0（三处同步）；
+`pnpm run build` 0（`lib/client.js` 1.43 MB，`check-client-bundle` OK）；
+ui-host `vitest run` **24 文件 216 条绿**；`check-types` `own=1 ported=285 别的包=11`
+（own 那条在并发 lane 的 `workspace.tsx(245,19)`；新增 12 条 ported 全是 React 18/19 的
+`RefObject` 与 `Record<string, unknown>` 约束这一族，与批次 E 同一类，不是新形状）。
+
+**新量到的一条，比上面所有绿都重要**：产物里**没有任何一个节点界面的代码**。
+按 `src/nodes/sleept/Component.tsx` 里的中文串（`上次任务失败` / `为无限等待`）回读
+`lib/client.js`，命中 **0**；`nodes/<id>/entry` 这类串也 **0**；
+`rg 'PACKAGE_MODULES|packageModuleLoaders|NODE_MANIFESTS' src/client` **零消费者**。
+⇒ 注册表是生成物、被测试覆盖、条目从 8 涨到 12，但**外壳从来不曾读它**：
+现在屏上的那一片是 `src/client/workspace.tsx` 自绘的，节点面板这一路在数据上齐了，
+在渲染上**没接线**。之前那条"L4 第一次真打进浏览器产物"的提交说明只在**探针入口**上成立
+（探针显式 import 了八个 entry），不是工作台真的会显示它们——这条账在这里更正。
+
+**下一步的落点**（写清楚免得下次重新找）：需要一个消费者把 `packageModuleLoaders` 变成屏上的面，
+并且它得自己扛异步边界（DSH 的 `renderSlot` 没有 Suspense，`packages/client/web-react/README.md:19`），
+错误按条目隔离。挂载点选在 `src/client/workspace.tsx` 还是新模块，取决于并发 lane 那条
+`own=1` 什么时候落地——不在别人在飞的文件里塞我的行。

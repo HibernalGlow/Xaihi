@@ -78,6 +78,26 @@
       "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition 与 ./core.js，两者在本仓都解析不到。",
       "upstreamSha": null,
       "ours": "5b376c00e9d7883b63da7f64a61e169b7bfaf52b54b5053e84b5d250a31c623c"
+    },
+    "nodes/crashu/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition，本仓没有那个包名。",
+      "upstreamSha": null,
+      "ours": "8288c2ffc0f34f5acd816ff835d99bd4cbdfe9ba0d76bca1354d1a35d3f9dea4"
+    },
+    "nodes/formatv/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition，本仓没有那个包名。",
+      "upstreamSha": null,
+      "ours": "670c705fc33c1cd2aa334223578e9c36fdeeffee2daaf1748e12a742f30609be"
+    },
+    "nodes/classq/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition，本仓没有那个包名。",
+      "upstreamSha": null,
+      "ours": "423558951ad7c6a1add1fb72ad92170c70481699b9b63fbf7e5be8735fc8cc60"
+    },
+    "nodes/linku/entry.ts": {
+      "reason": "Xaihi 的连接点：def 从注册表嵌进来的 package.json#xaihi.node 取，不 value-import 宿主包也不带 core（ADR-0007 决定 4）。上游那版引 @xiranite/node-<id>/definition，本仓没有那个包名。",
+      "upstreamSha": null,
+      "ours": "e302612cacc6f0150a107a8f0e5c6b093b9ff76a1170e316465fb89363a38e9b"
     }
   }
 }

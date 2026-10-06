@@ -61,17 +61,44 @@
       "@xiranite/cli-runtime/terminal": [
         "../cli-runtime/src/tui/index.ts"
       ],
+      "@xiranite/node-classq/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classq/src/core.ts"
+      ],
+      "@xiranite/node-crashu/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/crashu/src/core.ts"
+      ],
       "@xiranite/node-dissolvef/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/dissolvef/src/core.ts"
+      ],
+      "@xiranite/node-encodeb/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/encodeb/src/core.ts"
       ],
       "@xiranite/node-findz/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/core.ts"
       ],
+      "@xiranite/node-formatv/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/formatv/src/core.ts"
+      ],
       "@xiranite/node-linedup/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/linedup/src/core.ts"
       ],
+      "@xiranite/node-linku/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linku/src/core.ts"
+      ],
       "@xiranite/node-logx/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/logx/src/core.ts"
+      ],
+      "@xiranite/node-marku/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/core.ts"
+      ],
+      "@xiranite/node-migratef/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/migratef/src/core.ts"
+      ],
+      "@xiranite/node-nameu/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/nameu/src/core.ts"
+      ],
+      "@xiranite/node-rawfilter/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/rawfilter/src/core.ts"
       ],
       "@xiranite/node-recycleu/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/recycleu/src/core.ts"
@@ -81,6 +108,9 @@
       ],
       "@xiranite/node-timeu/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/timeu/src/core.ts"
+      ],
+      "@xiranite/node-trename/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/trename/src/core.ts"
       ]
     }
   },

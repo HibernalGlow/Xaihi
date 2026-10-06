@@ -109,6 +109,13 @@ const INCLUDE_DIRS = [
   'nodes/recycleu',
   'nodes/timeu',
   'nodes/samea',
+  // 批次 F 已提交成包的四个（crashu/formatv/classq/linku）：宿主半边已进 git，
+  // 界面按同一张表跟上；还在飞的 nameu/rawfilter/批次 G 不进这张名单，
+  // 因为 `entry.ts` 要写的 `NODE_MANIFESTS.<id>` 得先有已提交的 `package.json#xaihi.node`。
+  'nodes/crashu',
+  'nodes/formatv',
+  'nodes/classq',
+  'nodes/linku',
   'lib',
   'hooks',
   'store',
