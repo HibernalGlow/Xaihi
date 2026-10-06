@@ -33,6 +33,16 @@
 19 的 `react` + `react-dom` 必须是**一整张闭合的图**；而那张图**不能把元素交回宿主渲染**。
 => 桥只能是 **DOM 级**（宿主 18 只负责放一个容器元素）或 **跨文档**（独立 realm）。
 
+**类型层再钉一颗钉子（22:4x，读 DSH 装好的槽契约）**：
+`@deepseek-ai/dsh-client-ui-slots` 的 `lib/types/renderer.d.ts` 第 1 行自述是
+"React-free contracts between the slot host and an installed renderer"，而它给渲染器的唯一入口是
+`SlotRenderer.renderRoot(host, ownerProps): ReactNode`（`:244-252`）。
+⇒ 插件侧唯一能交回去的是 **ReactNode**，而那个类型由**装好的那份渲染器**解释——这台装配上是宿主的 React 18。
+（`ui-renderer` 那一格能否由插件占据我**没验**；但无论谁装，返回类型都是被宿主侧解释的 `ReactNode`，）
+所以 **19 的元素不可能穿过这一层**（V1 的 `#31` 就是穿过时的症状）。
+⇒ 能穿过去的只有 **DOM**：`<iframe>`（(a)）或"宿主只放一个容器元素 + 我们命令式挂载"（(b)）。
+这不是选择，是这一层的形状定的。
+
 DSH 的插槽每条目都有独立错误边界，所以两次崩溃都只吃掉那个面板，外壳与其余面板无恙
 （读到 `slot entry crashed in 'main'` 后工作台继续可用）——这条边界是这次能连续试错的前提。
 
