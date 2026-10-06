@@ -1443,3 +1443,34 @@ hostRequirements 是 `os-native + external-process + recursive-enumeration + fil
 顺带被这把尺抓出来的第一条真账：`plugins/classf/src/core.ts` 的文件头原先写着
 "本文件不需要让步 / `!` 没有新增"，实测有两个形参写成了 `_input`。
 文件头已改成如实的两条（并指回这条尺），代码一行没动（`--only classf` rc=0、32 条测绿、tsc 与 build 各 rc=0）。
+
+## 交接：18:02 的准确状态与下一步（预算将尽，先落在纸上）
+
+**已提交**（分支头按 `git ls-tree` 数，23 个真节点包，另有 `plugins/hello` 那份陈旧树条目）：
+`linedup dissolvef sleept` · `logx recycleu timeu samea` · `nameu rawfilter crashu formatv classq linku` ·
+`encodeb migratef marku trename` · `classf mvz bitv repacku` · `bandia enginev`。
+每个都是同一形状过关：内核 `check-verbatim` rc=0（与 noxide 基线只差申报过的五类形状）、
+自己的 `vitest run` / `tsc --noEmit` / `pnpm run build` rc=0、产物 `check-node-bundle` rc=0。
+
+**在飞，别抢它们的文件**：`cleanf`、`smartzip`（两个收口代理各 1 个失败测试文件在查因）、
+`gifu`（原代理还在写；此刻 `check-verbatim --only gifu` rc=1，所以它没到可提的点）。
+`findz` 归并发 lane（它 `bin` 是 `undefined` ⇒ 没有终端面，`gen-cli-registry` 现读时不进表）。
+`kisaki` 阻塞：noxide 里没有 TS 内核，引擎是 `@xiranite/czkawka-native`（树内零 `.rs`、构建入口是 bun），
+先要一份像 ADR-0004 那样的裁定，不能先做个空壳。
+
+**WebUI 的准确说法**：`packages/ui-host` 26 文件 247 条测绿、客户端半边 `pnpm run build` rc=0 且
+`check-client-bundle` OK；节点界面的消费者 `src/client/node-mount.tsx` 已写出并被 `workspace.tsx` 挂上，
+但**载体是 Xaihi 自己的文档产物**（ADR-0009/0014），而 `pnpm run build:document` 仍红
+（8 条错：settings 那侧 3 条悬空 import、`node-sleept/{duration,interaction}` 2 条真没搬的内核、
+`node:{fs,os,module}` 3 条边有代理在查），`dist-ui/` 是空的 ⇒ **"节点界面在屏上"这句还不成立**。
+
+**接手人的前三步，按顺序**：
+1. 等三个包代理落地后逐条复跑上面那四把尺再提（判据在上一段），别用它们的叙述当证据。
+2. 文档构建：先解 `node:*` 三条（在 `build-aliases.mjs` / `rspack.document.mjs` 里切边，
+   **不许用 `resolve.fallback:false` 之类假垫片糊**），再让并发 lane 接完 settings 那三条悬空 import；
+   `pnpm run build:document` rc=0 之后，验收判据是"在 `dist-ui/*.js` 里能搜到
+   `src/nodes/<id>/Component.tsx` 的中文串"——这条替代之前在 `lib/client.js` 上量错的判据（见 ADR-0014 §后果）。
+3. 收口那条老账：批次 H 全部成包后跑一次 `pnpm install`，把 `pnpm-lock.yaml` 与所有
+   `plugins/*/package.json`、`packages/ui-host/package.json`（`@tailwindcss/oxide`）一起提，
+   并在仓库外 worktree 里用 `pnpm install --frozen-lockfile` 复验
+   （HEAD 现在因 `importers["plugins/hello"]` 缺失而红，这条一直挂着）。
