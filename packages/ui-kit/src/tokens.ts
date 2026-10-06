@@ -10,15 +10,15 @@
 
 /** 组件能用的语义槽，就这几个：再多就得先想清楚它属于谁。 */
 export const ALIAS = {
-  surface: 'var(--xaihi-surface, var(--dsw-alias-surface-bg, transparent))',
-  onSurface: 'var(--xaihi-on-surface, var(--dsw-alias-text-primary, inherit))',
-  onSurfaceVariant: 'var(--xaihi-on-surface-variant, var(--dsw-alias-text-secondary, inherit))',
-  outline: 'var(--xaihi-outline, var(--dsw-alias-border-default, currentColor))',
-  primary: 'var(--xaihi-primary, var(--dsw-alias-text-primary, currentColor))',
-  onPrimary: 'var(--xaihi-on-primary, var(--dsw-alias-text-inverse, #fff))',
-  secondaryContainer: 'var(--xaihi-secondary-container, var(--dsw-alias-bg-hover, rgba(128,128,128,.16)))',
-  onSecondaryContainer: 'var(--xaihi-on-secondary-container, var(--dsw-alias-text-primary, inherit))',
-  error: 'var(--xaihi-error, var(--dsw-alias-text-danger, #b3261e))',
+  surface: 'var(--xaihi-surface, var(--dsw-alias-bg-layer-1, transparent))',
+  onSurface: 'var(--xaihi-on-surface, var(--dsw-alias-label-primary, inherit))',
+  onSurfaceVariant: 'var(--xaihi-on-surface-variant, var(--dsw-alias-label-secondary, inherit))',
+  outline: 'var(--xaihi-outline, var(--dsw-alias-border-l2, currentColor))',
+  primary: 'var(--xaihi-primary, var(--dsw-alias-label-primary, currentColor))',
+  onPrimary: 'var(--xaihi-on-primary, var(--dsw-alias-label-primary-inverted, #fff))',
+  secondaryContainer: 'var(--xaihi-secondary-container, var(--dsw-alias-interactive-bg-hover, rgba(128,128,128,.16)))',
+  onSecondaryContainer: 'var(--xaihi-on-secondary-container, var(--dsw-alias-label-primary, inherit))',
+  error: 'var(--xaihi-error, var(--dsw-alias-state-error-primary, #b3261e))',
 } as const
 
 /** 形状刻度（M3 shape scale 的转译）：像素而不是 rem，面板要能塞进窄栏。 */

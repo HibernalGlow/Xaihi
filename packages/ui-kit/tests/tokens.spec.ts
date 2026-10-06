@@ -21,10 +21,21 @@ function stripVars(css: string): string {
 }
 
 describe('颜色出口纪律', () => {
-  it('每个语义槽都先读 --xaihi-*，再回落 --dsw-alias-*', () => {
+  /**
+   * 形状尺：`var(--xaihi-<slot>, var(--dsw-alias-<实测名>, 兜底))`。
+   * 名字表是实机从 CSSOM 里读出来的（`--dsw-alias-bg-layer-1` 这类**带数字**的名字），
+   * 所以字符类必须含 0-9；早先写死的一批 `--dsw-alias-text-*` 在这台装配里全是 unset。
+   */
+  const LAYERED = /^var\(--xaihi-[a-z0-9-]+, var\(--dsw-alias-[a-z0-9-]+, /
+
+  it('每个语义槽都先读 --xaihi-*，再回落实测存在的 --dsw-alias-*', () => {
     for (const [slot, value] of Object.entries(ALIAS)) {
-      expect(value, slot).toMatch(/^var\(--xaihi-[a-z-]+, var\(--dsw-(?:alias|text)[a-z-]*, /)
+      expect(value, slot).toMatch(LAYERED)
     }
+    // 阳性对照：错形状必须被同一把尺拒掉，否则这条断言是空转。
+    expect('var(--brand-red, var(--dsw-alias-bg-layer-1, #fff))', '命名空间错了').not.toMatch(LAYERED)
+    expect('var(--xaihi-surface, #ffffff)', '少了宿主那一层').not.toMatch(LAYERED)
+    expect('var(--xaihi-surface, var(--dsw-text-primary, #fff))', '不存在的 --dsw-text-* 形状').not.toMatch(LAYERED)
   })
 
   it('KIT_CSS 里除了 var() 没有别处的颜色字面量', () => {

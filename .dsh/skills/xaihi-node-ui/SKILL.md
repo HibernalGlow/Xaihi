@@ -58,4 +58,9 @@ export default function Panel({ contribution, locale, host }: PanelProps) { ... 
 - 门禁是 `pnpm check:panels`（`scripts/check-panels.mjs`，CI 里排在 build 前面）：剥掉注释后跑
   四条规则，并要求每个面板从 kit 取组件；它还报"有 `frontend/` 却没有 `Panel.tsx`"这种会让枚举
   静默变窄的洞。**不要为了让门禁变绿把违规颜色挪进注释**——尺先剥注释，挪进去只是把问题留给下一个人。
+- 回落层的 `--dsw-alias-*` **名字只能从实机 CSSOM 读**（遍历 `document.styleSheets` 收名字，再逐个
+  `getComputedStyle(body).getPropertyValue(name)` 回读）。文档只给前缀规律，不给后缀：抄来的
+  `--dsw-alias-text-primary` 这类名字在这台装配里全是 `unset`，症状是"回落层从来没生效过"。
+  验证回落层是否真的接上：造一个把 `--xaihi-*` 全设成 `initial` 的容器再读计算色，读到的应当是
+  DSH 主题的值，而不是字面量兜底。
 

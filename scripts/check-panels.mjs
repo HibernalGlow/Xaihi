@@ -79,6 +79,35 @@ export function findMissingPanels (pluginDirs, hasFile) {
   return problems
 }
 
+/** 外壳与 kit 自己的样式表：颜色的第一层必须是 `--xaihi-*`，否则那一处就不跟 seed。 */
+const STYLE_SOURCES = ['packages/ui-host/src/client/styles.ts', 'packages/ui-kit/src/tokens.ts']
+
+/**
+ * 找"直接以 `--dsw-*` 起头"的颜色引用。
+ *
+ * 逐次出现地判，不按整行判：一行里同时有分层与裸引用时（`.xaihi-nav { color:
+ * var(--dsw-…); border: var(--xaihi-outline, …) }`），按行判会**放过那个裸的**——
+ * 这条减法跑测真的抓出过一次假绿。
+ * @param lines - 已剥注释的行。
+ * @param label - 报告里显示的文件名。
+ * @returns 违规清单。
+ */
+export function findUnlayeredDsw (lines, label) {
+  const problems = []
+  const layeredBefore = /var\(--xaihi-[a-z0-9-]+,\s*$/
+  lines.forEach((line, index) => {
+    for (let cursor = 0; cursor < line.length;) {
+      const at = line.indexOf('var(--dsw-', cursor)
+      if (at === -1) break
+      if (!layeredBefore.test(line.slice(0, at))) {
+        problems.push(`${label}:${String(index + 1)} unlayered-dsw — 先写 var(--xaihi-*，再兜底 --dsw-alias-*)，否则这一处不跟 seed`)
+      }
+      cursor = at + 1
+    }
+  })
+  return problems
+}
+
 /** 阳性对照：合成一段必须被抓到的代码。 */
 function selfCheck () {
   const bad = stripComments([
@@ -97,7 +126,17 @@ function selfCheck () {
     console.error(`check-panels: 枚举漏口的尺没抓到那个洞（报出 ${String(holes.length)} 处，应为 1）`)
     return 1
   }
-  console.log(`check-panels self-check OK（4 条规则各被抓到一次，命中 ${String(caught.length)} 处；枚举漏口 1 处）`)
+  // 分层尺要同时验三种形状：裸的要抓、带 --xaihi- 层的要放过、同一行两种混着的要抓到那一次。
+  const layered = findUnlayeredDsw(stripComments([
+    'color: var(--dsw-alias-text-danger, #f00)',
+    'color: var(--xaihi-error, var(--dsw-alias-text-danger, #f00))',
+    '.a { color: var(--dsw-alias-text-primary); border-color: var(--xaihi-outline, var(--dsw-alias-border-default, #808080)); }',
+  ].join('\n')), 'self-check')
+  if (layered.length !== 2) {
+    console.error(`check-panels: 分层尺是瞎的（报出 ${String(layered.length)} 处，应为 2：裸的与同行混着的各一次，带层的必须放过）`)
+    return 1
+  }
+  console.log('check-panels self-check OK（4 条面板规则 + 枚举漏口 + 分层尺三种形状各按预期）')
   return 0
 }
 
@@ -122,6 +161,10 @@ if (process.argv.includes('--self-check')) process.exit(selfCheck())
 
 const hasFile = (relative) => existsSync(join(ROOT, relative))
 const problems = findMissingPanels(pluginDirs(), hasFile)
+for (const source of STYLE_SOURCES) {
+  if (!hasFile(source)) continue
+  problems.push(...findUnlayeredDsw(stripComments(readFileSync(join(ROOT, source), 'utf8')), source))
+}
 for (const file of panelFiles()) {
   const relative = file.slice(ROOT.length)
   problems.push(...findViolations(stripComments(readFileSync(file, 'utf8')), relative, true))
@@ -133,4 +176,4 @@ if (problems.length > 0) {
   process.exit(1)
 }
 
-console.log(`check-panels OK（${String(panelFiles().length)} 个面板都只经 kit 上色）`)
+console.log(`check-panels OK（${String(panelFiles().length)} 个面板只经 kit 上色；${String(STYLE_SOURCES.length)} 份样式表的分层引用合格）`)

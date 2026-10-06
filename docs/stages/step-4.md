@@ -884,3 +884,91 @@ P1 一旦落地，要改的只有 `resolveAgent()` 里"从哪儿取值"这一处
 - 没有 a11y / 对比度门禁（`docs/roadmap.md` 的 R2），所以"文字对底色够不够"仍然是未测项。
 - `hello` 保持"不带节点定义"的旧形状。把它迁到 `defineNode` 会丢 `presentResult`
   （工具结果卡片的渲染），而 `xaihi.node/v1` 现在还没有承载它的字段。
+
+## 21 回落层改名：我抄进来的那批 `--dsw-alias-*` 名字，在这台装配里全是 unset
+
+### 发生了什么
+
+`§18` / `§20` 写的三层链 `var(--xaihi-*, var(--dsw-alias-*, 兜底))` 里，中间那一层的**名字**是我
+按计划文档里的命名规律（`--dsw-alias-*`）拼出来的：`surface-bg` / `text-primary` / `text-secondary`
+/ `border-default` / `bg-hover` / `text-danger` / `text-inverse`。实机在 CSSOM 里枚举
+（遍历 142 张表里的规则，收 `--dsw-alias*` / `--dsw-specific*`）得到 **107 个真名**，逐个回读我那
+七个：**全部 `(unset)`**。也就是说第二层从来没生效过，"宿主没装 Xaihi 主题层时面板还能跟着 DSH
+主题走"这句话是假的——真到那一步只剩字面量兜底。
+
+真名与实测值（这台装配当前是暗色）：
+
+| 语义槽 | 改用（实测存在） | 回读值 |
+|---|---|---|
+| surface | `--dsw-alias-bg-layer-1` | `#232324` |
+| onSurface | `--dsw-alias-label-primary` | `#f9fafb` |
+| onSurfaceVariant | `--dsw-alias-label-secondary` | `#cfd3d6` |
+| outline | `--dsw-alias-border-l2` | `#ffffff1f` |
+| primary | `--dsw-alias-label-primary`（本主题 `button-primary-fill` 也是 `#f9fafb`） | `#f9fafb` |
+| onPrimary | `--dsw-alias-label-primary-inverted` | `#353638` |
+| secondaryContainer | `--dsw-alias-interactive-bg-hover` | `#ffffff14` |
+| error | `--dsw-alias-state-error-primary` | `#f25a5a` |
+
+改动落在 `packages/ui-kit/src/tokens.ts`（9 处）与 `packages/ui-host/src/client/styles.ts`（13 处）。
+
+### 顺带把分层规则变成门禁，并且它当场露了一次瞎
+
+- `scripts/check-panels.mjs` 加 `findUnlayeredDsw()`：样式表里每一处 `var(--dsw-` 都必须紧跟在
+  `var(--xaihi-…, ` 之后（逐次出现地判，不按整行判）。检查对象是
+  `packages/ui-host/src/client/styles.ts` 与 `packages/ui-kit/src/tokens.ts`。
+- **第一版按整行判是瞎的**：减法跑测往 `.xaihi-nav` 那一行塞一个裸 `var(--dsw-alias-text-primary)`
+  之后门禁仍然 rc=0——同一行里另有合法的 `var(--xaihi-outline, …)`，按行判就放过了它。改成按
+  每次出现判之后，同一处注入变成 rc=1 并点名 `styles.ts:25`。`--self-check` 现在固定验三种形状：
+  裸的要抓、带层的要放过、同行混着的必须抓到那一次（期望恰好 2 处）。
+- `tokens.spec.ts` 的形状尺同步纠正：字符类要含数字（真名 `bg-layer-1`、`border-l2` 带数字），
+  并加了三条阳性对照（错命名空间 / 少了宿主那一层 / 不存在的 `--dsw-text-*` 形状都必须被拒）。
+
+### 证据
+
+1. 实机回读（隔离宿主，profile `xaihi`，`DSH_HOME=.scratch/dsh-xaihi-home`）：
+   - 枚举：`--dsw-alias` + `--dsw-specific` 共 107 个真名；我那 7 个假名逐个 `(unset)`。
+   - 造一个把九片 `--xaihi-*` 全设成 `initial` 的容器（`var()` 在自定义属性取值为
+     guaranteed-empty 时会用回落项），里面放 `.xaihi-card` / `.xaihi-btn[filled]` / `.xaihi-error`：
+     卡片底 `rgb(35, 35, 36)` = `#232324`、按钮底 `rgb(249, 250, 251)` = `#f9fafb`、
+     边框 `rgba(255, 255, 255, 0.12)` = `#ffffff1f`、错误字色 `rgb(242, 90, 90)` = `#f25a5a`
+     ——**四个都落在真名上，不再是字面量兜底**。
+   - 同一页活面板的卡片仍是 `rgb(20, 18, 24)`（Material You 的 `--xaihi-surface:#141218`），
+     `#xaihi-ui-kit` 样式标签仍只有 1 个。
+2. 外壳那两处 `.xaihi-error` / `[data-outcome="failed"]` 改走 `--xaihi-error` 之后，实机
+   `--xaihi-error` = `#ffb4ab`，探针 `.xaihi-error` 计算色 `rgb(255, 180, 171)` —— 外壳的错误文案
+   从"写死的 `#b3261e`"变成跟 seed 走（改名前它连 DSH 的危险色都没拿到，因为那一层是假名）。
+3. 门禁：`pnpm check:panels` rc=0（`5 个面板只经 kit 上色；2 份样式表的分层引用合格`）、
+   `--self-check` rc=0、`pnpm -F @hibernalglow/xaihi-ui-kit run test:unit` rc=0（6 条），
+   ui-host build/typecheck/test rc=0（19 条）。
+4. 装机：`dsh plugin --profile xaihi add file:…/packages/ui-host file:…/plugins/sleept` rc=0，
+   重启后 `?token=` 从宿主日志现读（不猜）。
+
+### 一处操作失误（记在这里，因为它差点吃掉另一条 lane 的活儿）
+
+减法跑测收尾时我敲了一次**不带 id 的 `but discard`**（还把输出重定向进了 /dev/null）。它丢弃的是
+**整个未提交区**：当时里面同时有我自己未提交的 `check-panels` 分层规则与 `styles.ts` 修改，以及
+另一条 lane 的 `native/findz-go/**`（26 个文件）与 `plugins/findz/**`（17 个文件）。
+`but undo` 一次就全部恢复（GitButler 把这次操作记成 `Discarded changes` 备份提交），恢复后
+`native/findz-go` 与 `plugins/findz` 逐目录回来、`pnpm -r` 门禁重跑仍绿。教训写进
+`~/.qoder-cn/memory/feedback-gitbutler-for-commits.md`：**mutation 命令一律带目标 id，
+永远不要裸 `but discard`，不要把它的输出吞掉**。
+
+### 为什么这样设计
+
+回落层的名字不许靠命名规律推。这批名字唯一的可靠来源是**这台装配自己的 CSSOM**：文档写的是
+上游当时的选择（`docs` 里 `--dsw-alias-*` 这个前缀是对的，具体后缀不是）。所以这次把
+"名字必须实测存在"也变成了尺（分层规则的两次阳性对照 + spec 的三条对照），而不是写成注释提醒人。
+
+### 与 DSH API 的关系
+
+- 前缀规律出处仍是 ui-theme（`ui-theme/src/client/index.ts:78-330`、`styles/design-platform.css`）：
+  `--dsw-alias-*` / `--dsw-specific-*` / `--dsw-static-*`。**这一层只证明前缀，不证明后缀**。
+- `ctx.theme.overrideTokens('xaihi.md3', …)` 仍然只叠 `--xaihi-*`；改名动的是回落层，
+  所以 MD3 装上时视觉不变（实测活面板卡片仍是 `#141218`），只有 MD3 缺席时才走 DSH 主题。
+
+### 后续扩展方式
+
+以后要加语义槽，步骤是：先在真宿主里枚举 CSSOM 拿到存在的 `--dsw-alias-*` 名字并回读值，
+再把名字写进 `tokens.ts` 的回落位，`tokens.spec.ts` 与 `check-panels` 会各自兜住形状。
+**不许**照着前缀规律造名字。
+

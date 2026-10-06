@@ -18,22 +18,22 @@ const CSS = `
   gap: 0;
   height: 100%;
   min-height: 0;
-  background: var(--xaihi-surface, var(--dsw-alias-surface-bg, transparent));
-  color: var(--xaihi-on-surface, var(--dsw-alias-text-primary, inherit));
+  background: var(--xaihi-surface, var(--dsw-alias-bg-layer-1, transparent));
+  color: var(--xaihi-on-surface, var(--dsw-alias-label-primary, inherit));
   font-size: 13px;
 }
-.xaihi-nav { grid-column: 1; grid-row: 1 / span 3; border-right: 0.5px solid var(--xaihi-outline, var(--dsw-alias-border-default, rgba(128,128,128,.35))); overflow: auto; padding: 8px; display: grid; align-content: start; gap: 2px; }
-.xaihi-toolbar { grid-column: 2; grid-row: 1; display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 0.5px solid var(--xaihi-outline, var(--dsw-alias-border-default, rgba(128,128,128,.35))); }
+.xaihi-nav { grid-column: 1; grid-row: 1 / span 3; border-right: 0.5px solid var(--xaihi-outline, var(--dsw-alias-border-l2, rgba(128,128,128,.35))); overflow: auto; padding: 8px; display: grid; align-content: start; gap: 2px; }
+.xaihi-toolbar { grid-column: 2; grid-row: 1; display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 0.5px solid var(--xaihi-outline, var(--dsw-alias-border-l2, rgba(128,128,128,.35))); }
 .xaihi-main { grid-column: 2; grid-row: 2; overflow: auto; min-height: 0; }
-.xaihi-status { grid-column: 2; grid-row: 3; display: flex; gap: 8px; align-items: center; padding: 4px 10px; border-top: 0.5px solid var(--xaihi-outline, var(--dsw-alias-border-default, rgba(128,128,128,.35))); font-size: 12px; opacity: .8; }
+.xaihi-status { grid-column: 2; grid-row: 3; display: flex; gap: 8px; align-items: center; padding: 4px 10px; border-top: 0.5px solid var(--xaihi-outline, var(--dsw-alias-border-l2, rgba(128,128,128,.35))); font-size: 12px; opacity: .8; }
 .xaihi-nav-item { display: block; width: 100%; text-align: left; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
-.xaihi-nav-item[data-selected="true"] { background: var(--xaihi-secondary-container, var(--dsw-alias-bg-hover, rgba(128,128,128,.14))); }
+.xaihi-nav-item[data-selected="true"] { background: var(--xaihi-secondary-container, var(--dsw-alias-interactive-bg-hover, rgba(128,128,128,.14))); }
 .xaihi-empty, .xaihi-error { padding: 16px; display: grid; gap: 6px; font-size: 12px; }
-.xaihi-error { color: var(--dsw-alias-text-danger, #b3261e); }
+.xaihi-error { color: var(--xaihi-error, var(--dsw-alias-state-error-primary, #b3261e)); }
 .xaihi-feed { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.xaihi-feed-item { padding: 1px 6px; border-radius: 999px; border: 0.5px solid var(--xaihi-outline, var(--dsw-alias-border-default, rgba(128,128,128,.35))); font-variant-numeric: tabular-nums; }
-.xaihi-feed-item[data-outcome="running"] { color: var(--xaihi-on-surface-variant, var(--dsw-alias-text-secondary, inherit)); }
-.xaihi-feed-item[data-outcome="failed"] { color: var(--dsw-alias-text-danger, #b3261e); }
+.xaihi-feed-item { padding: 1px 6px; border-radius: 999px; border: 0.5px solid var(--xaihi-outline, var(--dsw-alias-border-l2, rgba(128,128,128,.35))); font-variant-numeric: tabular-nums; }
+.xaihi-feed-item[data-outcome="running"] { color: var(--xaihi-on-surface-variant, var(--dsw-alias-label-secondary, inherit)); }
+.xaihi-feed-item[data-outcome="failed"] { color: var(--xaihi-error, var(--dsw-alias-state-error-primary, #b3261e)); }
 .xaihi-feed-note { opacity: .7; }
 .xaihi-panel-mark {
   display: inline-grid;
@@ -42,12 +42,12 @@ const CSS = `
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .02em;
-  color: var(--xaihi-on-surface, var(--dsw-alias-text-secondary, inherit));
+  color: var(--xaihi-on-surface, var(--dsw-alias-label-secondary, inherit));
   background: transparent;
 }
 .xaihi-panel-mark[data-active="true"] {
-  color: var(--xaihi-on-secondary-container, var(--dsw-alias-text-primary, inherit));
-  background: var(--xaihi-secondary-container, var(--dsw-alias-bg-hover, rgba(128,128,128,.16)));
+  color: var(--xaihi-on-secondary-container, var(--dsw-alias-label-primary, inherit));
+  background: var(--xaihi-secondary-container, var(--dsw-alias-interactive-bg-hover, rgba(128,128,128,.16)));
 }
 `
 
