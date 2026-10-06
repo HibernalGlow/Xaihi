@@ -1336,8 +1336,15 @@ hostRequirements 是 `os-native + external-process + recursive-enumeration + fil
   也就是靠 `src/nodes/shared` 那批视图，不是靠一个自己的 TS 内核；
 - noxide 里有 `packages/czkawka-native`：`package.json#name = @xiranite/czkawka-native`，
   源码只有 `src/{index,native-asset,compatibility}.ts` + `scripts/{build-native,generate-binding-dts}.ts`
-  + `generated/binding.generated.d.ts`，**树内没有一份 `.rs`**（`find packages/czkawka-native -name '*.rs'` 零命中），
-  而且它的构建脚本是 `bun scripts/...`。
+  + `generated/binding.generated.d.ts`，**这一包里没有 `.rs`**，而且它的构建脚本是 `bun scripts/...`。
+- **这一条我当时写过头了**（2026-10-07 02:53 复核更正）：那句"`find … -name '*.rs'` 零命中 ⇒ 引擎是外部件"
+  只在 `packages/czkawka-native` 那一层成立。Rust 在基线的**仓库根 `native/` 那一层**：
+  `native/{czkawka-core,czkawka-node}` 实测 4963 行 `.rs`，`czkawka-core/Cargo.toml` 写的是
+  `czkawka_core = { version = "=12.0.0", default-features = false, features = ["libavif"] }`
+  ——也就是**钉死 crates.io 那份上游引擎 + 我们自己的适配层**，不是 fork；
+  `native/prebuilt/win32-x64/` 还带着现成的 `czkawka.win32-x64.zip`（12,888,672 字节，
+  `manifest.json` 记 `version="12.0.0-api5"` 与两条 sha256），但**没有 darwin 那一档**。
+  裁定与后果写在 `docs/adr/0015-kisaki-engine-is-a-pinned-czkawka-rust-core-in-a-subprocess.md`。
 
 ⇒ `kisaki` 的引擎是**外部原生件**（czkawka 那一系），不是 JS/TS 内核：
 按 ADR-0004 的非 JS 内核路线，它需要先有一份自己的 ADR 裁定"引擎从哪来、按哪个平台预编译、
