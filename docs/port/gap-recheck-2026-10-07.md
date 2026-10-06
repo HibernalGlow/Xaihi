@@ -561,3 +561,17 @@ check-cli-parity: 27 个包，比了 26 张开关表，真跑了 7 条命令，�
 也就是说：这一批现在是"内容已在盘上、锁未更新、未提交"的中间态，
 不是回归，也不是可以按绿提交的状态——**下一步该做的是 ④（把锁按新事实重钉，
 连带改掉那 20 份里写着 G11 理由的注释），② 的中文对译按包逐条做，两者都不该一把梭**。
+
+### 停放与一处要交代的副作用（同日，随后又变了）
+
+- 那 23 份 manifest 与 `packageModules.generated.ts` **已从工作树还原掉**，快照在仓库外：
+  `/Users/glow/Base/Code/Freya/.scratch/xaihi-parked-2026-10-07/`（25 个文件 + `RESTORE.md`
+  + `but-status-raw.txt`）。恢复=逐文件复制回去再跑 `gen-node-registry --check`。
+- 还原时我的 `but discard` id 列表按形状批量匹配，**多带走了并发 lane 未提交的 `plugins/findz/package.json`**；
+  已从快照放回，`gen-node-registry --check` 复验回到 27 条 rc=0。
+- **同一动作也撤回了那条 lane 对 `plugins/hello` 的删除**：现在 `plugins/hello` 又回到 HEAD 状态（目录在、清单在）。
+  如果那条删除仍是他们的意图，需要那条 lane 自己重做——原始状态逐行留在上面那个 `but-status-raw.txt` 里。
+  我没有替他们再删一次：在预算末尾做一次"猜测意图的破坏性动作"比留着一条 HEAD 状态的目录更贵。
+- 顺带修掉我第①步自己引入的门禁回归：`check:vocab` 一度 27/27 → 0/27，
+  因为新校验器只收"面=行数组"，而上游 `node-definitions/*.json` 用的是 `{zh:[],en:[]}` 两份并列；
+  校验器与终端推导器现在两形都收（`sqr`），现读 bandia 双语两档都能摊开。
