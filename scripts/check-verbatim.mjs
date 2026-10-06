@@ -32,9 +32,10 @@
  * 而不是像早先那样按"两侧都存在"过滤掉，让一个没搬内核的包安静地从统计里消失。
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join, resolve } from 'node:path'
+import { tmpdir } from 'node:os'
 
 const ROOT = resolve(import.meta.dirname, '..')
 const BASELINE = '/Users/glow/Base/Code/Freya/.scratch/xiranite-noxide/packages/nodes'
@@ -98,8 +99,8 @@ export function readLedger() {
  * - `stale` 申报还在、差异却已经消失（或文件被改过）⇒ 这条申报是张空通行证，判红逼人来收；
  * - `red` 没申报的差异，或"基线有内核而本仓没有"这一类覆盖缺口。
  */
-export function verdict({ baselineText, oursText, entry }) {
-  const key = entry?.key ?? 'core.ts'
+export function verdict({ baselineText, oursText, entry, label = 'core.ts' }) {
+  const key = label
   const compared = oursText === undefined || baselineText === undefined
     ? null
     : compareFiles(baselineText ?? '', oursText ?? '')
@@ -123,7 +124,7 @@ export function verdict({ baselineText, oursText, entry }) {
   }
 
   if (compared) return { kind: 'red', residue: `${key} 与基线不止差在自动放行的形状上：\n    ${compared.residue}` }
-  return { kind: 'red', residue: `${key}：基线有这份内核，本仓没有 ⇒ 内核没搬` }
+  return { kind: 'red', residue: `${key}：基线有这一份，本仓没有 ⇒ 没搬` }
 }
 
 /** 现读 `plugins/*` 的内核覆盖情况；两侧都没有内核的包单列，不静默消失。 */
@@ -148,6 +149,51 @@ export function kernelCensus() {
       entry: readLedger()[rel],
     }
   })
+}
+
+
+/** 内核文件名单：默认比每包 `src/core.ts`（对 noxide），名单把它扩到界面叶子。 */
+export const KERNEL_FILES_PATH = join(ROOT, 'docs', 'port', 'kernel-files.json')
+
+export function readKernelFiles() {
+  try {
+    return JSON.parse(readFileSync(KERNEL_FILES_PATH, 'utf8'))
+  } catch {
+    return { baselines: {}, compared: [], authored: { names: [], files: {} } }
+  }
+}
+
+/**
+ * 名单里申报的每一份"要比的额外文件"变成判决行。
+ * 三条判据都是会红的：本仓没有这份文件（申报了却没搬）、基线那一版没有这份文件
+ * （申报错版了）、以及它出现在 authored 名单里（同一份文件不能既"逐字比"又"本仓自己的形状"）。
+ */
+export function rowsFromLedger({ ledger, root = ROOT, pluginsDir = join(root, 'plugins') }) {
+  const rows = []
+  const ledgerPath = join(pluginsDir, '..', 'docs')
+  const authoredFiles = new Set(Object.keys(ledger.authored?.files ?? {}))
+  for (const entry of ledger.compared ?? []) {
+    const oursPath = join(root, entry.file)
+    const baseDir = ledger.baselines?.[entry.baseline]
+    const relParts = entry.file.split('/')
+    const id = relParts[1]
+    const name = relParts[relParts.length - 1]
+    const basePath = baseDir ? join(baseDir, id, 'src', name) : undefined
+    rows.push({
+      id,
+      name,
+      rel: entry.file,
+      oursPath,
+      basePath,
+      oursExists: existsSync(oursPath),
+      baseExists: Boolean(basePath) && existsSync(basePath),
+      declared: true,
+      authored: authoredFiles.has(entry.file),
+      entry: (ledger.deltasLookup ? ledger.deltasLookup(entry.file) : undefined) ?? undefined,
+      ledgerPath,
+    })
+  }
+  return rows
 }
 
 if (process.argv.includes('--self-check')) {
@@ -178,6 +224,40 @@ if (process.argv.includes('--self-check')) {
   }
   // 覆盖 census 的那半：一个只造出来的目录形状不该被读成"绿"。
   if (kernelCensus().length === 0) problems.push('kernelCensus() 数为 0 ⇒ 本仓 plugins/ 读空，这把尺没有输入')
+  {
+    // 内核文件名单那一族的阳性对照：三种"申报与树不符"都必须在行级被拦下。
+    // 少比一份文件的症状是"全绿"，比一条红更难发现，所以这三条不是锦上添花。
+    const dir = mkdtempSync(join(tmpdir(), 'xaihi-kernel-rows-'))
+    const pluginsDir = join(dir, 'plugins')
+    const baseDir = join(dir, 'base-ui')
+    mkdirSync(join(pluginsDir, 'kp', 'src'), { recursive: true })
+    mkdirSync(join(baseDir, 'kp', 'src'), { recursive: true })
+    writeFileSync(join(baseDir, 'kp', 'src', 'leaf.ts'), clean)
+    writeFileSync(join(pluginsDir, 'kp', 'src', 'leaf.ts'), dirtyOurs)
+    writeFileSync(join(pluginsDir, 'kp', 'src', 'gone.ts'), clean)
+    const fakeLedger = {
+      baselines: { ui: baseDir },
+      compared: [
+        { file: 'plugins/kp/src/leaf.ts', baseline: 'ui' },
+        { file: 'plugins/kp/src/missing.ts', baseline: 'ui' },
+        { file: 'plugins/kp/src/notinbase.ts', baseline: 'ui' },
+        { file: 'plugins/kp/src/authored.ts', baseline: 'ui' },
+      ],
+      authored: { names: [], files: { 'plugins/kp/src/authored.ts': '两份名单都写了' } },
+    }
+    const rrows = rowsFromLedger({ ledger: fakeLedger, root: dir, pluginsDir })
+    if (rrows.length !== 4) problems.push(`rowsFromLedger 造了 ${rrows.length} 行，期望 4 行`)
+    const byFile = Object.fromEntries(rrows.map((row) => [row.rel.split('/').pop(), row]))
+    if (byFile['leaf.ts']?.oursExists !== true || byFile['leaf.ts']?.baseExists !== true) problems.push('leaf.ts 没被认成"两侧都在" ⇒ 名单行根本没进比较')
+    if (byFile['missing.ts']?.oursExists !== false) problems.push('本仓缺的那份没被标 oursExists=false ⇒ "申报了却没搬"看不见')
+    if (byFile['notinbase.ts']?.baseExists !== false) problems.push('基线缺的那份没被标 baseExists=false ⇒ 版本记错了看不见')
+    if (byFile['authored.ts']?.authored !== true) problems.push('同时挂在 authored 里的份没被标出来 ⇒ compared 与 authored 打架无人管')
+    const lrow = byFile['leaf.ts']
+    const lverdict = verdict({ baselineText: readFileSync(lrow.basePath, 'utf8'), oursText: readFileSync(lrow.oursPath, 'utf8'), label: lrow.rel })
+    if (lverdict.kind !== 'red') problems.push(`叶子差异被判成 ${lverdict.kind} ⇒ 名单行没有真的在比`)
+    if (!lverdict.residue.includes('plugins/kp/src/leaf.ts')) problems.push('叶子的红没点名是哪份文件 ⇒ 读数无法归位')
+    rmSync(dir, { recursive: true, force: true })
+  }
   for (const problem of problems) console.error(`  × ${problem}`)
   if (problems.length > 0) process.exit(1)
   console.log(`check-verbatim --self-check OK（${cases.length} 条夹具：改逻辑必须红、申报可失效、申报过时也算红）`)
@@ -227,8 +307,14 @@ if (declareId) {
 
 const onlyFlag = argOf('--only')
 const only = onlyFlag === undefined ? null : onlyFlag.split(',')
-const census = kernelCensus().filter((row) => only === null || only.includes(row.id))
+const kernelLedger = readKernelFiles()
 const ledger = readLedger()
+// 名单行共用同一份差异台账：申报的键就是仓库相对路径，与 core.ts 那条同一机制。
+for (const row of rowsFromLedger({ ledger: kernelLedger })) {
+  if (row.declared) row.entry = ledger[row.rel]
+}
+const census = [...kernelCensus(), ...rowsFromLedger({ ledger: kernelLedger })]
+  .filter((row) => only === null || only.includes(row.id))
 
 const counts = { ok: 0, declared: 0, red: 0, stale: 0, none: 0 }
 const failures = []
@@ -237,19 +323,35 @@ for (const row of census) {
     counts.none += 1
     continue
   }
+  if (row.declared && row.authored) {
+    failures.push(`${row.rel}：同时出现在 compared 与 authored 两份名单里 ⇒ 同一文件不能既"逐字比"又"本仓自己的形状"`)
+    counts.red += 1
+    continue
+  }
+  if (row.declared && !row.oursExists) {
+    failures.push(`${row.rel}：名单申报了要比，但本仓没有这份文件 ⇒ 申报与树不符（搬了就该在，没搬就不该申报）`)
+    counts.red += 1
+    continue
+  }
+  if (row.declared && !row.baseExists) {
+    failures.push(`${row.rel}：名单申报了要比，但申报的那一版基线里没有这份（${row.basePath ?? '?'}）⇒ 版本记错了`)
+    counts.red += 1
+    continue
+  }
   const baselineText = row.baseExists ? readFileSync(row.basePath, 'utf8') : undefined
   const oursText = row.oursExists ? readFileSync(row.oursPath, 'utf8') : undefined
   // 键按"实际比的那份文件"取，申报可以指到同包别的内核文件（sleept 的 interaction.ts 之类）。
-  const entry = ledger[row.rel] ?? Object.entries(ledger).find(([key]) => key.startsWith(`plugins/${row.id}/`))?.[1]
-  const result = verdict({ baselineText, oursText, entry })
+  const entry = row.entry ?? ledger[row.rel]
+  const result = verdict({ baselineText, oursText, entry, label: row.rel })
   counts[result.kind] += 1
-  if (result.kind === 'red' || result.kind === 'stale') failures.push(`plugins/${row.id} · ${result.residue}`)
-  if (result.kind === 'declared') console.log(`  · ${row.id}：${result.residue}`)
+  if (result.kind === 'red' || result.kind === 'stale') failures.push(result.residue)
+  if (result.kind === 'declared') console.log(`  · ${result.residue}`)
 }
 
-console.log(`check-verbatim: 覆盖 ${census.length} 个包（比对 ${counts.ok + counts.declared + counts.red + counts.stale}、`
-  + `绿 ${counts.ok}、申报 ${counts.declared}、无内核 ${counts.none}、红 ${counts.red + counts.stale}；基线 = noxide ccf465fe）`)
-if (counts.none > 0) console.log(`  · 两侧都没有 core.ts 的包 ${counts.none} 个（无内核 ≠ 漏搬，但这条要看得见）`)
+console.log(`check-verbatim: 覆盖 ${census.length} 份文件（跨 ${new Set(census.map((row) => row.id)).size} 个包）——`
+  + `绿 ${counts.ok}、申报 ${counts.declared}、两侧都空 ${counts.none}、红 ${counts.red + counts.stale}`
+  + `；基线 = noxide ccf465fe 加名单申报的那一版`)
+if (counts.none > 0) console.log(`  · 两侧都没有对应物的条目 ${counts.none} 份（空 ≠ 漏搬，但这条要看得见）`)
 if (failures.length > 0) {
   for (const failure of failures) console.error(`  × ${failure}`)
   process.exit(1)

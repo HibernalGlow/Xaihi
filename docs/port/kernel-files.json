@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "note": "内核保真尺要比哪些文件、各自比哪一版基线。默认只比每包的 src/core.ts（对 noxide）；这份名单把它扩到界面叶子。两条口径来自两条实测：core.ts 与基线确实只差申报过的形状（27 包里 6 条差异全是申报过的类型层让步或一份移动），而 platform.ts 在 24/24 个包里都不是逐字搬——它被拆成\"文件那一半在 platform.ts、外部程序那一半在 exec.ts 走 ctx.subprocess\"，所以它属于本仓自己的形状，比它等于要求一份不存在的逐字关系。",
+  "baselines": {
+    "noxide": "/Users/glow/Base/Code/Freya/.scratch/xiranite-noxide/packages/nodes",
+    "ui": "/Users/glow/Base/Code/Freya/Xiranite/packages/nodes"
+  },
+  "baselineNotes": {
+    "noxide": "tag ccf465fe 的只读 worktree：节点\"内核半边\"的基线（计划里定的那版）。",
+    "ui": "搬运清单 docs/port/xiranite-ui.json 的 sourceRoot 那一版（用户当下的 Xiranite 工作树）。界面叶子必须与界面同版：实测 archive-entries.ts / path-mappings.ts 这一族在 noxide 里根本不存在，它们是上游 2026-10-06 那一刀（\"8 个节点把同一份实现搬到非 core 出口\"）才从 core.ts 拆出来的。"
+  },
+  "compared": [
+    {
+      "file": "plugins/sleept/src/interaction.ts",
+      "baseline": "noxide"
+    },
+    {
+      "file": "plugins/sleept/src/i18n.ts",
+      "baseline": "noxide"
+    },
+    {
+      "file": "plugins/mvz/src/archive-entries.ts",
+      "baseline": "ui"
+    },
+    {
+      "file": "plugins/bandia/src/path-mappings.ts",
+      "baseline": "ui"
+    },
+    {
+      "file": "plugins/enginev/src/filter.ts",
+      "baseline": "ui"
+    },
+    {
+      "file": "plugins/enginev/src/defaults.ts",
+      "baseline": "ui"
+    },
+    {
+      "file": "plugins/cleanf/src/paths.ts",
+      "baseline": "ui"
+    },
+    {
+      "file": "plugins/bitv/src/defaults.ts",
+      "baseline": "ui"
+    },
+    {
+      "file": "plugins/marku/src/workflow.ts",
+      "baseline": "ui"
+    }
+  ],
+  "authored": {
+    "names": [
+      "index.ts",
+      "cli.ts",
+      "cli-support.ts",
+      "help.ts",
+      "contract.ts",
+      "exec.ts",
+      "platform.ts",
+      "interaction-types.ts"
+    ],
+    "reason": "这些是本仓自己的组合层或重新塑形：cordis 接线、终端面、DSH 的 ctx.subprocess 拆分、以及为满足 exactOptionalPropertyTypes 摊开的类型。与基线同名不等于同一份东西，所以不比；要扩进 compared 得先证明它真的逐字来自某一版基线。",
+    "files": {
+      "plugins/classf/src/blacklist.ts": "不比的两条理由：①本包这条把上游的繁简折字整块**可见退化**掉了（opencc-js 是新依赖，待使用者批准），判据因此与基线不同——这不是形状让步，是能力缺口的如实落地，见文件头 CLASSF_BLACKLIST_FOLDING；②DEFAULT_CLASSF_BLACKLIST_KEYWORDS 的定义点今天从 core.ts 移到这里（core 改成 import+再导出），界面三处从 @xiranite/node-classf/blacklist 取它。等 ① 的依赖批下来、退化撤掉之后，这份该并进 compared。"
+    }
+  }
+}
