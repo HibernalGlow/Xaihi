@@ -418,3 +418,36 @@ diff -q packages/shared/src/swimlane.ts <Xiranite>/packages/shared/src/swimlane.
 
 **判据没变好之前不许说"上屏了"**：`dist-ui/` 现在仍然是空的（构建红就不出产物），
 所以"节点界面在屏上"这条还没兑现，只从 43 条错走到了 14 条。
+
+## 13. 文档构建 43 → 8：补 `@xiranite/contract` 少掉的两片叶子，并接掉一处悬空搜索项（2026-10-07 01:44）
+
+`pnpm run build:document` 此前 14 条错里有 **5 条是同一个根**：本仓 `packages/contract/src/` 只有 `index.ts` 一份，
+而上游那个目录是 `index.ts + pluginManifest.ts + pinCoverage.ts + versionRange.ts`（外加三份测试）。
+`index.ts:605-620` 那两块 `export { … } from "./pinCoverage.js"` / `"./versionRange.js"` 因此指向不存在的叶子，
+症状全在浏览器那侧：`ModuleRenderer.tsx:303` 要 `checkContractVersion`、
+`plugins/frontendIntegrity.ts:265,284` 要 `classifyPluginArtifacts` / `enumeratePluginArtifacts` / `isResourceOriginAllowed`，
+rspack 只能报 "was not found in '@xiranite/contract' (possible exports: NODE_HOST_CONTRACT_VERSION, localizeNodeHelp)"。
+
+做法是**逐字搬那两片叶子连同它们自己的测试**（`versionRange.ts`、`pinCoverage.ts` 都是零 import 的叶子，
+不需要先决定依赖；`diff` 后与本包 `index.ts` 已有的 66 条导出没有重名冲突），
+再把两块 re-export 补进 `index.ts`。顺带把上游那三份测试里的两份一起带进来——
+`packages/contract` 不在 pnpm workspace 里（`pnpm-workspace.yaml` 的负向条目），
+所以 `-r run test:unit` 天生扫不到它；为此新增根脚本 `test:contract`（`vitest run packages/contract/src`）
+并排进 `pnpm test`，读数 **2 文件 16 条全绿**。
+`pnpm exec vitest run`（ui-host）仍然 **26 文件 247 条绿**，客户端半边 `pnpm run build` rc=0。
+
+第二条 fix 与 ADR-0013 同源：`settingsNavigation.ts:2,117,118` 还在从 `@/config/webview2` 取
+`WEBVIEW2_FLAG_CATALOG` 生成两条设置搜索项，而那份配置与 `Webview2ExperimentsPanel.tsx` 已在差量台账里
+登记为"有意不要"（`removed: true`）。文件删了、引用还留着 = 构建里一条 `Cannot find module '@/config/webview2'`。
+摘掉这三行是完成那一次删除，不是新决定；被摘掉的只是"设置搜索里那两条 webview2 条目"，
+本仓本来就没有可设的 webview2 面。
+
+**还剩 8 条，四类，都已点名**：`components/views/settings/RuntimeSection.tsx` 3 条
+（15/21/…行仍引 `@/components/views/Webview2ExperimentsPanel`、`@/backend/localBackendControl`、
+`./NodeMemoryProtectionSettings`——三条全部指向台账里 `removed: true` 的那几份，
+修法与上面这条完全同形，但那是正在改 settings 子树那一刀的落点，我不在那里抢行）；
+`nodes/sleept/Component.tsx` 2 条（`node-sleept/{duration,interaction}` 是**真没搬**的定时器内核）；
+`node:{fs,os,module}` 各 1 条（搬运树里桌面侧模块进了浏览器图）。
+
+`dist-ui/` 仍然是空的：构建不绿就不出产物，所以"节点界面在屏上"这条**仍未兑现**，
+只是从 43 条错走到 8 条。

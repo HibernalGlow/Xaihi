@@ -576,3 +576,26 @@ export interface AppNodeEntry<
 }
 
 export type NodeEntry<TCore extends Record<string, unknown> = Record<string, unknown>> = AppNodeEntry<TCore>
+
+// 这两块 re-export 是从上游 `packages/contract/src/index.ts:605-620` 逐字补回来的：
+// 本包原先只带了 66 条导出，少了 `pinCoverage` 与 `versionRange` 这两片叶子，
+// 症状在浏览器那侧——`ModuleRenderer.tsx:303` 要 `checkContractVersion`、
+// `plugins/frontendIntegrity.ts:265` 要 `classifyPluginArtifacts` 等四条，
+// rspack 报 "was not found in '@xiranite/contract' (possible exports: NODE_HOST_CONTRACT_VERSION, localizeNodeHelp)"。
+export {
+  classifyPluginArtifacts,
+  describePinCoverage,
+  enumeratePluginArtifacts,
+  isResourceOriginAllowed,
+  UNENFORCEABLE_GUIDANCE,
+  type PinCoverage,
+  type PinIneffectiveness,
+  type PluginArtifact,
+} from "./pinCoverage.js"
+
+export {
+  checkContractVersion,
+  isContractVersionCompatible,
+  type VersionRangeIssue,
+  type VersionRangeVerdict,
+} from "./versionRange.js"

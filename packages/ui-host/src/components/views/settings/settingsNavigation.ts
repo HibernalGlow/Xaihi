@@ -1,5 +1,4 @@
 import Fuse from "fuse.js"
-import { WEBVIEW2_FLAG_CATALOG } from "@/config/webview2"
 import {
   SETTINGS_STAGES,
   type SettingsSectionId,
@@ -114,8 +113,6 @@ export const SETTINGS_SEARCH_FIELDS: readonly SettingsSearchField[] = [
   field("node-memory-heap", "runtime", "memory-protection", "settings:memoryProtection.fields.heap.label", ["settings:memoryProtection.description"], ["heap memory limit node"]),
   field("node-memory-events", "runtime", "memory-protection", "settings:memoryProtection.fields.events.label", ["settings:memoryProtection.description"], ["event retention logs node"]),
   field("node-memory-sampling", "runtime", "memory-protection", "settings:memoryProtection.fields.interval.label", ["settings:memoryProtection.description"], ["sample interval node"]),
-  ...WEBVIEW2_FLAG_CATALOG.features.map((flag) => field(`webview2-${flag.key}`, "runtime", "webview2", `settings:webview2.flags.${flag.key}.label`, [`settings:webview2.flags.${flag.key}.description`], [flag.id, "webview2 feature chromium"])),
-  ...WEBVIEW2_FLAG_CATALOG.switches.map((flag) => field(`webview2-${flag.key}`, "runtime", "webview2", `settings:webview2.flags.${flag.key}.label`, [`settings:webview2.flags.${flag.key}.description`], [flag.id, "webview2 switch chromium"])),
 ]
 
 /** Normalize URL/query values to a known settings section id, or null. */
