@@ -6,13 +6,16 @@
  * 上游的 sleept 是**定时器**——`countdown / at / netspeed / cpu` 四个触发器 + 触发后的
  * 电源动作，逻辑在 `packages/nodes/sleept/src/core.ts` 的 `runSleept`。本仓的 sleept 是
  * **电源节点**——`status / block / unblock / sleep / displayOff / screensaver`
- * （真源：`package.json#xaihi.node`），那份定时器内核没随迁（`packages/ui-host/src/nodes/sleept/**`
- * 还在引 `@xiranite/node-sleept/duration`，那条 import 本身就是同一件事的账）。
+ * （真源：`package.json#xaihi.node`），那份定时器内核**现在在 `src/core.ts`**
+ * （两条纯函数在 `src/duration.ts`，交互面的折参在 `src/interaction.ts`——工作台那两条
+ * value-import 已经从"未迁"变成解析得到）。**内核在这儿，四条定时器子命令在这个 bin 里仍然是未接**：
+ * `runSleept` 一寸一寸都靠注入的 `SleeptRuntime`（`sleep` / `getCpuPercent` / `getNetCounters` /
+ * `executePowerAction`），缺的不是算法，是喂它的那台运行时。
  * 于是：
  * - 本节点定义里的六个动作成为子命令，flag 与退出码按上游终端面的形状给；
  * - 上游那四个定时器子命令**留在 `--help` 里**，跑起来一律"未接"（退出码 2）。
  *   静默消失比响亮拒绝更糟：那样聚合 CLI 的面板看起来像"这个节点少了四个能力"，
- *   而不是"这块内核还没搬"。
+ *   而不是"这块运行时还没接"。
  *
  * 执行这一半也**未接**：本包的执行一律经 DSH 的 `ctx.subprocess`（`src/exec.ts` 顶部写了
  * 为什么不自建 spawn），而独立 bin 不在宿主进程里，拿不到那条缝。所以 CLI 只做到
@@ -163,14 +166,14 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
       }),
       // ↓ 上游的四个定时器子命令：面在这儿，内核不在这儿。
       countdown: defineCommand({
-        meta: { name: 'countdown', description: 'Run a countdown timer.（未接：定时器内核未迁）' },
+        meta: { name: 'countdown', description: 'Run a countdown timer.（未接：本 bin 没有喂内核的 SleeptRuntime）' },
         args: timerArgs(),
         async run () {
           await runUnwiredTimer('countdown', host)
         },
       }),
       at: defineCommand({
-        meta: { name: 'at', description: 'Run at a specific datetime.（未接：定时器内核未迁）' },
+        meta: { name: 'at', description: 'Run at a specific datetime.（未接：本 bin 没有喂内核的 SleeptRuntime）' },
         args: {
           // **不标 required**：`at` 这一条是"未接"的定时器，先做参数校验会让症状变成
       // "Missing required argument: target."，使用者读到的是"我参数没给对"，
@@ -186,7 +189,7 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
         },
       }),
       netspeed: defineCommand({
-        meta: { name: 'netspeed', description: 'Trigger after sustained low network throughput.（未接：定时器内核未迁）' },
+        meta: { name: 'netspeed', description: 'Trigger after sustained low network throughput.（未接：本 bin 没有喂内核的 SleeptRuntime）' },
         args: {
           upload: { type: 'string', description: 'Upload threshold in KB/s.' },
           download: { type: 'string', description: 'Download threshold in KB/s.' },
@@ -202,7 +205,7 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
         },
       }),
       cpu: defineCommand({
-        meta: { name: 'cpu', description: 'Trigger after sustained low CPU usage.（未接：定时器内核未迁）' },
+        meta: { name: 'cpu', description: 'Trigger after sustained low CPU usage.（未接：本 bin 没有喂内核的 SleeptRuntime）' },
         args: {
           threshold: { type: 'string', description: 'CPU threshold percentage.' },
           duration: { type: 'string', description: 'Low-CPU duration in minutes.' },
@@ -325,8 +328,10 @@ async function runUnwiredTimer (name: string, host: CliHost): Promise<void> {
   }
   writeError(host, `${CLI_NAME} ${name} 未接：上游 sleept 的定时器内核（`
     + '`<Xiranite>/packages/nodes/sleept/src/core.ts` 的 `runSleept`，countdown / specific_time / netspeed / cpu）'
-    + '没有迁进本仓——本包的 sleept 是电源节点，动作真源在 `package.json#xaihi.node`。'
-    + '内核落地后再点亮这四条。')
+    + '已经搬进本仓，就在 `src/core.ts`；缺的是喂它的 `SleeptRuntime`——内核每一步都靠注入的 '
+    + '`sleep` / `getCpuPercent` / `getNetCounters` / `executePowerAction`，而本包的执行一律走 DSH 的 '
+    + '`ctx.subprocess`（`src/exec.ts`），独立 bin 不在宿主进程里，拿不到那条缝。'
+    + '宿主侧那半边（`src/index.ts` 的 `defineNode`）登记的是电源节点那六个动作，也还没把这四条接进去。')
   process.exitCode = 2
 }
 

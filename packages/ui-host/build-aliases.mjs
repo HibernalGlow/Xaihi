@@ -105,6 +105,20 @@ function nodeCoreAliases() {
 Object.assign(XIRANITE_ALIASES, nodeCoreAliases())
 
 /**
+ * `nodeCoreAliases` 只认 `core.ts` 与 `interaction.ts` 这两个**文件名**，所以下面这条要手写：
+ * `@xiranite/node-sleept/duration` → `plugins/sleept/src/duration.ts`。
+ *
+ * 为什么它不在那两个文件名里：`countdownSeconds` / `formatDuration` 是从基线 `core.ts`
+ * 第 116-126 行**单独搬出来**的一份（`Component.tsx` 用 value-import 取这两条纯函数，
+ * 指到 `core.ts` 就把 `runSleept` 整只执行宿主拖进浏览器产物 —— ADR-0007 决定 4）。
+ * 判据是"这条边指得到东西、且指的就是那两条函数"，不是"文件名恰好在名单上"。
+ * `assertAliasTargets` 会盯着它：文件被删或改名，这里立刻红。
+ */
+Object.assign(XIRANITE_ALIASES, {
+  '@xiranite/node-sleept/duration': join(ROOT_PLUGINS, 'sleept/src/duration.ts'),
+})
+
+/**
  * 有意**不给**解析的边：命中就该在构建里响，而不是被一个假 stub 糊过去。
  * 键是子串匹配（这些 specifier 出现在哪些文件由 `scripts/port-debt.mjs` 逐条列）。
  */
@@ -112,10 +126,6 @@ export const UNRESOLVED_BY_DESIGN = [
   // 上游"配置住在后端 toml + HTTP/RPC + 版本历史"那条通路，ADR-0013 整块不接。
   '@xiranite/file-operations',
   '@xiranite/services',
-  // 这两条是**没搬的内核**，不是解析表漏了：sleept 在本仓是电源节点，
-  // 那份定时器内核（duration / interaction）属于"未迁批次"的账，见 docs/roadmap.md。
-  '@xiranite/node-sleept/duration',
-  '@xiranite/node-sleept/interaction',
   // melodeck 节点整个没迁（retain-rewrite 名单里的后面几个）。
   '@xiranite/node-melodeck/lyrics',
   // Go 内核宿主：按 ADR-0004 走 `@hibernalglow/xaihi-findz-<platform>-<arch>` 平台包，

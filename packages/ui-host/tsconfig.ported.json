@@ -160,6 +160,12 @@
       "@xiranite/node-samea/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/samea/src/core.ts"
       ],
+      "@xiranite/node-sleept/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/core.ts"
+      ],
+      "@xiranite/node-sleept/interaction": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/interaction.ts"
+      ],
       "@xiranite/node-smartzip/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/smartzip/src/core.ts"
       ],
@@ -168,6 +174,9 @@
       ],
       "@xiranite/node-trename/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/trename/src/core.ts"
+      ],
+      "@xiranite/node-sleept/duration": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/duration.ts"
       ]
     }
   },

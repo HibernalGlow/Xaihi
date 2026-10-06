@@ -21,6 +21,11 @@
       "reason": "NormalizedGifuInput 的写法：基线 Required<GifuInput>，本仓 { [K in keyof Required<GifuInput>]: NonNullable<GifuInput[K]> }。为何不能照抄：本仓 GifuInput 的可选成员带 | undefined（exactOptionalPropertyTypes 要求的形状，尺子自动放行那一类），Required<> 只去掉 ? 而把 | undefined 留在类型上；实测把基线写法换回来 pnpm --filter @hibernalglow/xaihi-gifu typecheck 立刻 rc=1，报 src/core.ts(285,19) 'template' is possibly 'undefined' 与 (286,44)/(287,32) number|undefined 不能赋给 number 三处——纯类型层让步，运行时零差异（normalizeGifuInput 给每个成员都填了默认值，NonNullable 只是把这件事写进类型）。全文件其余内容与基线逐字符等（除同类已申报的形状外，归一化 diff 仅此一处）。",
       "ours": "06fc479853944dd3ea7fd6e339df834a56b24c2c7d89f0c722d4b34ecaa24c58",
       "declaredAt": "2026-10-06T18:58"
+    },
+    "plugins/sleept/src/core.ts": {
+      "reason": "core.ts 顶部多一条 import 并把 countdownSeconds / formatDuration 的定义移到同包 duration.ts，core.ts 再 re-export 回来（两份函数体逐字取自基线 core.ts:116-126，本体未改）。为何必须这么拆：搬运来的界面 src/nodes/sleept/Component.tsx:5 value-import @xiranite/node-sleept/duration，而 ADR-0007 决定 4 禁的是'面里 value-import 节点 core'（面就成了第二个执行宿主）；把这两个纯算术函数单独成文件正是上游 master 的同一刀（其 duration.ts 的文件头理由与此相同）。实测：sleept test:unit rc=0（43 条）、typecheck rc=0、build rc=0、check-node-bundle rc=0、build-aliases 同步 rc=0；文档构建的 @xiranite/node-sleept/{duration,interaction} 两条边因此消失（5 → 3 条错，剩 3 条全在 RuntimeSection.tsx，属并发 lane）。",
+      "ours": "ef23580cc069bf3cf16ea66794199346b036e914593da7df09ba57ad346da64f",
+      "declaredAt": "2026-10-06T19:10"
     }
   }
 }
