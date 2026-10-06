@@ -50,4 +50,12 @@
   --radius: 0.5rem;
   --font-app-sans: ui-sans-serif, system-ui, sans-serif;
   --font-app-mono: ui-monospace, monospace;
+
+  /* 画布层四个：上游在 themes/base.css:60-63,123-125 直接写 oklch 常量（含 alpha），
+     那是它自己主题引擎的数据。这里只按**角色**换算——alpha 用 color-mix 表达，
+     色相仍然来自上面那三层，所以宿主换主题时这一层跟着走。 */
+  --ws-canvas: var(--background);
+  --ws-grid-color: color-mix(in oklab, var(--border) 58%, transparent);
+  --ws-accent-glow: color-mix(in oklab, var(--primary) 16%, transparent);
+  --ws-focused-overlay: color-mix(in oklab, var(--foreground) 38%, transparent);
 }

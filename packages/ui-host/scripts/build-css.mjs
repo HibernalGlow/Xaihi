@@ -45,3 +45,33 @@ writeFileSync(
   + `export const CLIENT_CSS = ${JSON.stringify(css)}\n`,
 )
 console.log(`build-css: ${css.length} bytes -> lib/client.css + src/client/generated/client-css.ts`)
+
+/**
+ * 覆盖率尺：外壳用到的 utility 必须真的出现在生成 CSS 里。
+ *
+ * 为什么钉在这里而不是测试里：只有这一刻同时知道"生成了哪些规则"和"源码写了哪些 class"；
+ * 放测试就得依赖构建产物、还要解释为什么 skip 不算绿。症状是"接了 class 但屏幕上什么都没有"，
+ * 正是这次要防的那件事。
+ */
+const SHELL = join(ROOT, 'src', 'client', 'workspace.tsx')
+const normalize = (value) => value.replace(/[^a-z0-9]/gi, '')
+const haystack = normalize(css)
+const shell = readFileSync(SHELL, 'utf8')
+const used = new Set()
+for (const match of shell.matchAll(/className=(?:"([^"]*)"|\{[\s\S]*?\})/g)) {
+  const chunk = match[1] ?? match[0]
+  for (const literal of chunk.matchAll(/['"`]([^'"`]*)['"`]/g)) {
+    for (const token of literal[1].split(/\s+/)) {
+      if (token.length === 0 || token.startsWith('xaihi-')) continue
+      if (!/^[\w-]+(:[\w-]+)*(-\[[^\]]*\])?(\/[\w.]+)?$/.test(token)) continue
+      if (!/[-[:[]/.test(token)) continue // 纯词（panel、loading）不是 utility 形状
+      used.add(token)
+    }
+  }
+}
+const missing = [...used].filter((token) => !haystack.includes(normalize(token))).sort()
+console.log(`build-css: 外壳用到 ${used.size} 个 utility，生成 CSS 里缺 ${missing.length} 个`)
+if (missing.length > 0) {
+  for (const token of missing) console.error(`  × 没有生成规则：${token}`)
+  process.exit(1)
+}

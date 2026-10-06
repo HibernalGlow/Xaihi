@@ -6,6 +6,14 @@
  * （packages/client/web-react/README.md:19），所以远程模块的 Promise 必须由宿主
  * 自己变成可见状态：先出骨架，落定后换内容，失败就显示原因加重新加载。
  *
+ * 外观是**搬运来的 DOM 与类名**（`WorkspaceLayout.tsx:52-64` 的根与 main 网格、
+ * `NodeSurfaceChrome.tsx:117-135` 的节点标题条），但数据源是我们自己的：
+ * 面板清单来自 `/xaihi/manifest.json`，颜色来自 `src/styles/xaihi-aliases.css` 那层
+ * 别名（它再解析到 DSH 的 `--dsw-*`）。**不起 `@/store/workspaceStore`，也不挂
+ * `presetThemeRootClass`** —— 前者是 Xiranite 自己的后端状态机，后者是第二套主题引擎，
+ * 两个都不属于 Xaihi（CONTEXT.md「Xaihi 没有第二套主题引擎」）。
+ * 类名前缀按品牌纪律换成 `xaihi-*`（AGENTS.md：会随代码活下去的称呼一律 Xaihi）。
+ *
  * @module xaihi-ui/workspace
  */
 
@@ -13,6 +21,7 @@ import * as React from 'react'
 import type { CommandOutcome, LoadResult, PanelContribution, PanelProps, UIModuleLoader, WorkspaceDocument } from '@hibernalglow/xaihi-sdk'
 import type { Translate } from './locales.ts'
 import type { XaihiSlot } from './slots.ts'
+import { NodeChromeActionButton } from '../components/workspace/NodeChromePrimitives.tsx'
 import { createRemoteLoader } from './loader/remote-modules.ts'
 import { RunFeed } from './run-feed.tsx'
 
@@ -70,12 +79,12 @@ export function WorkspaceRoot(props: RootProps): React.ReactElement {
     return () => { cancelled = true }
   }, [attempt])
 
-  if (state.status === 'loading') return <div className="xaihi-empty">{props.t('panel.loading')}</div>
+  if (state.status === 'loading') return <div className="flex min-h-10 items-center px-3 font-mono text-[10px] tracking-widest text-muted-foreground">{props.t('panel.loading')}</div>
   if (state.status === 'failed' || state.document === undefined) {
     return (
-      <div className="xaihi-error">
-        <strong>{props.t('panel.failed')}</strong>
-        <span>{state.reason ?? 'manifest unavailable'}</span>
+      <div className="xaihi-error flex min-h-10 flex-col items-start gap-1 px-3 py-2">
+        <strong className="font-mono text-[10px] uppercase tracking-widest text-destructive">{props.t('panel.failed')}</strong>
+        <span className="text-xs">{state.reason ?? 'manifest unavailable'}</span>
         <button type="button" onClick={() => setAttempt((value) => value + 1)}>{props.t('panel.reload')}</button>
       </div>
     )
@@ -92,6 +101,20 @@ function collectRemotes(document: WorkspaceDocument): Record<string, string> {
 
 function Workspace({ t, locale, renderSlot, runCommand, document, loader }: WorkspaceProps): React.ReactElement {
   const panels = React.useMemo(() => flatten(document), [document])
+  // 目标形态是挂搬运来的 `WorkspaceLayout` 本体（不需要 WorkspaceProvider：
+  // `useWorkspaceShallowSelector` 读的是模块级 store；主题引擎也不会被起——
+  // `presetThemeRootClass` 的表已收到只剩 wuling 一项，而生成 CSS 里 `theme-wuling` 规则数为 0）。
+  // 现在挂不动，卡在两处 Vite 专属语法被原样搬了进来：
+  //   src/components/workspace/FlowCanvasView.tsx:37  import zhCnTranslationUrl from "@/assets/tldraw-zh-cn.json?url"
+  // 本包构建是 tsdown，不认 `?url` 后缀 ⇒ `pnpm build` 以 UNLOADABLE_DEPENDENCY 红。
+  // 那条 import 属于搬运那一侧，我不替他们改；改完把这行换回 <WorkspaceLayout /> 即可。
+  return <PanelFallback t={t} locale={locale} panels={panels} document={document} loader={loader} renderSlot={renderSlot} runCommand={runCommand} />
+}
+
+/** 我们自己的清单与装载状态那一版外壳（搬运工作台本体挂上来之前的落点）。 */
+function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCommand }: WorkspaceProps & {
+  panels: PanelEntry[]
+}): React.ReactElement {
   const [selected, setSelected] = React.useState<string | null>(panels[0]?.contribution.id ?? null)
   const [notice, setNotice] = React.useState<string | null>(null)
   const [state, setState] = React.useState<{ status: 'idle' | 'loading' | 'ready' | 'failed'; component?: (props: unknown) => unknown; reason?: string }>({ status: 'idle' })
@@ -135,15 +158,19 @@ function Workspace({ t, locale, renderSlot, runCommand, document, loader }: Work
 
   const broken = document.plugins.filter((plugin) => plugin.problems !== undefined)
 
+  const title = active === null ? t('panel.none') : locale === 'zh' ? active.contribution.title.zh : active.contribution.title.en
+
+  // 装载状态必须是**读得回来的**，不靠 toast：标题条上那枚 state label 就是它的落点。
+  const stateLabel = state.status === 'loading' ? t('panel.loading') : state.status === 'failed' ? t('panel.failed') : null
+
   const main = (() => {
-    if (panels.length === 0) return <div className="xaihi-empty">{t('panel.none')}</div>
-    if (active === null) return <div className="xaihi-empty">{t('panel.notFound')}</div>
-    if (state.status === 'loading' || state.status === 'idle') return <div className="xaihi-empty">{t('panel.loading')}</div>
+    if (panels.length === 0) return <div className="p-3 text-xs text-muted-foreground">{t('panel.none')}</div>
+    if (active === null) return <div className="p-3 text-xs text-muted-foreground">{t('panel.notFound')}</div>
+    if (state.status === 'loading' || state.status === 'idle') return <div className="p-3 font-mono text-[10px] tracking-widest text-muted-foreground">{t('panel.loading')}</div>
     if (state.status === 'failed' || state.component === undefined) {
       return (
-        <div className="xaihi-error">
-          <strong>{t('panel.failed')}</strong>
-          <span>{state.reason ?? 'module loader failure'}</span>
+        <div className="xaihi-error flex flex-col items-start gap-1 p-3">
+          <span className="text-xs">{state.reason ?? 'module loader failure'}</span>
           <button type="button" onClick={() => setAttempt((value) => value + 1)}>{t('panel.reload')}</button>
         </div>
       )
@@ -153,33 +180,76 @@ function Workspace({ t, locale, renderSlot, runCommand, document, loader }: Work
   })()
 
   return (
-    <div className="xaihi-shell">
-      <nav className="xaihi-nav" aria-label={t('nav.title')}>
-        {panels.map((entry) => (
-          <button
-            key={entry.contribution.id}
-            type="button"
-            className="xaihi-nav-item"
-            data-selected={entry.contribution.id === selected}
-            onClick={() => setSelected(entry.contribution.id)}
-          >
-            {locale === 'zh' ? entry.contribution.title.zh : entry.contribution.title.en}
-          </button>
-        ))}
-        {broken.map((plugin) => (
-          <div key={plugin.package} className="xaihi-error">
-            {t('plugin.broken')}: {plugin.problems?.join('; ')}
-          </div>
-        ))}
-      </nav>
-      <div className="xaihi-toolbar">{renderSlot('xaihi.toolbar')}</div>
-      <div className="xaihi-main">{main}</div>
-      <div className="xaihi-status">
+    <div className="xaihi-workbench flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
+      <main className="relative flex min-h-0 flex-1 overflow-hidden">
+        <nav
+          aria-label={t('nav.title')}
+          className="flex w-[200px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border p-2"
+        >
+          {panels.map((entry) => {
+            const isActive = entry.contribution.id === selected
+            return (
+              <button
+                key={entry.contribution.id}
+                type="button"
+                data-selected={isActive}
+                onClick={() => setSelected(entry.contribution.id)}
+                className={
+                  isActive
+                    ? 'xaihi-nav-item min-w-0 truncate rounded-md bg-secondary px-2 py-1 text-left font-mono text-[10px] font-semibold uppercase tracking-widest text-secondary-foreground'
+                    : 'xaihi-nav-item min-w-0 truncate rounded-md px-2 py-1 text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground'
+                }
+              >
+                {locale === 'zh' ? entry.contribution.title.zh : entry.contribution.title.en}
+              </button>
+            )
+          })}
+          {broken.map((plugin) => (
+            <div key={plugin.package} className="xaihi-error mt-2 rounded-md bg-destructive/10 px-2 py-1 text-[10px] text-destructive">
+              {t('plugin.broken')}: {plugin.problems?.join('; ')}
+            </div>
+          ))}
+        </nav>
+
+        <section
+          data-context-menu="workspace-canvas"
+          className="flex min-h-0 min-w-0 flex-1 flex-col"
+        >
+          <header className="xaihi-node-chrome-bar flex min-h-10 select-none items-center gap-2 border-b border-transparent px-3">
+            <span className="xaihi-node-chrome-dot h-1.5 w-1.5 shrink-0 rounded-full bg-primary/80 shadow-[0_0_12px_var(--ws-accent-glow)]" />
+            <span className="min-w-0 truncate text-[10px] font-mono font-semibold uppercase tracking-widest text-foreground/80">
+              {title}
+            </span>
+            {stateLabel !== null && (
+              <span className="ml-1 shrink-0 rounded-[3px] bg-muted/35 px-1.5 py-0.5 font-mono text-[9px] tracking-widest text-muted-foreground">
+                {stateLabel}
+              </span>
+            )}
+            <div className="ml-auto flex items-center gap-0.5">
+              {renderSlot('xaihi.toolbar')}
+              {state.status === 'failed' && (
+                <NodeChromeActionButton
+                  key="reload"
+                  danger
+                  label={t('panel.reload')}
+                  icon={<span className="text-[9px]">↻</span>}
+                  onClick={() => setAttempt((value) => value + 1)}
+                >
+                  {t('panel.reload')}
+                </NodeChromeActionButton>
+              )}
+            </div>
+          </header>
+          <div className="min-h-0 flex-1 overflow-auto">{main}</div>
+        </section>
+      </main>
+
+      <footer className="flex items-center gap-2 border-t border-border px-3 py-1 font-mono text-[9px] tracking-widest text-muted-foreground">
         {renderSlot('xaihi.status')}
         <span>{panels.length} {t('status.loaded')}</span>
         {notice !== null && <span>{notice}</span>}
         <RunFeed t={t} />
-      </div>
+      </footer>
     </div>
   )
 }
