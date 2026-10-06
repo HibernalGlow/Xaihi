@@ -1,0 +1,575 @@
+{
+  "name": "@hibernalglow/xaihi-crashu",
+  "version": "0.0.0",
+  "description": "Xaihi node Crashu: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "xcrashu": "./lib/cli.js"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-crashu",
+    "title": {
+      "zh": "Crashu",
+      "en": "Crashu"
+    },
+    "ui": {
+      "remote": "crashu",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.crashu",
+        "title": {
+          "zh": "Crashu面板",
+          "en": "Crashu panel"
+        },
+        "area": "workspace",
+        "remote": "crashu",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "crashu",
+      "title": {
+        "zh": "Crashu",
+        "en": "Crashu"
+      },
+      "description": {
+        "zh": "匹配相似文件夹名称，并可选地移动匹配到的文件夹。",
+        "en": "Match similar folder names and optionally move matched folders."
+      },
+      "actions": [
+        {
+          "id": "scan",
+          "label": {
+            "zh": "⌕ 扫描",
+            "en": "⌕ Scan"
+          }
+        },
+        {
+          "id": "plan",
+          "label": {
+            "zh": "⌁ 规划",
+            "en": "⌁ Plan"
+          }
+        },
+        {
+          "id": "move",
+          "label": {
+            "zh": "⇄ 移动",
+            "en": "⇄ Move"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "命令",
+            "en": "Command"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "scan",
+              "label": {
+                "zh": "⌕ 扫描",
+                "en": "⌕ Scan"
+              }
+            },
+            {
+              "value": "plan",
+              "label": {
+                "zh": "⌁ 规划",
+                "en": "⌁ Plan"
+              }
+            },
+            {
+              "value": "move",
+              "label": {
+                "zh": "⇄ 移动",
+                "en": "⇄ Move"
+              }
+            }
+          ],
+          "default": {
+            "text": "scan"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "sourcePaths",
+          "label": {
+            "zh": "来源目录",
+            "en": "Source directories"
+          },
+          "kind": "path-list",
+          "lines": 3,
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "atLeastLines",
+                "minimum": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "targetPath",
+          "label": {
+            "zh": "目标目录",
+            "en": "Target directory"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "anyFilled",
+                "fieldIds": [
+                  "targetPath",
+                  "targetNames"
+                ]
+              },
+              "message": {
+                "zh": "请输入目标目录或目标名称。",
+                "en": "Enter a target directory or names."
+              }
+            }
+          ]
+        },
+        {
+          "id": "targetNames",
+          "label": {
+            "zh": "目标名称（可选）",
+            "en": "Target names"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "destinationPath",
+          "label": {
+            "zh": "移动目标根目录",
+            "en": "Move destination"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "similarityThreshold",
+          "label": {
+            "zh": "相似度阈值",
+            "en": "Similarity threshold"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "max": 1,
+            "step": 0.05
+          },
+          "default": {
+            "number": 0.65
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "moveDirection",
+          "label": {
+            "zh": "移动方向",
+            "en": "Move direction"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "to_target",
+              "label": {
+                "zh": "来源 → 目标",
+                "en": "Source → target"
+              }
+            },
+            {
+              "value": "to_source",
+              "label": {
+                "zh": "目标 → 来源",
+                "en": "Target → source"
+              }
+            }
+          ],
+          "default": {
+            "text": "to_target"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "conflictPolicy",
+          "label": {
+            "zh": "冲突策略",
+            "en": "Conflict policy"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "skip",
+              "label": {
+                "zh": "跳过",
+                "en": "Skip"
+              }
+            },
+            {
+              "value": "rename",
+              "label": {
+                "zh": "改名",
+                "en": "Rename"
+              }
+            },
+            {
+              "value": "overwrite",
+              "label": {
+                "zh": "覆盖",
+                "en": "Overwrite"
+              }
+            }
+          ],
+          "default": {
+            "text": "skip"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "pairsFileName",
+          "label": {
+            "zh": "配对记录文件",
+            "en": "Pairs file"
+          },
+          "kind": "text",
+          "default": {
+            "text": "folder_pairs.json"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "仅预演",
+            "en": "Dry run"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "move"
+                ]
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [
+        {
+          "id": "collision",
+          "fieldIds": [
+            "action",
+            "sourcePaths",
+            "targetPath",
+            "targetNames",
+            "destinationPath",
+            "similarityThreshold",
+            "moveDirection",
+            "conflictPolicy",
+            "pairsFileName",
+            "dryRun"
+          ],
+          "label": {
+            "zh": "碰撞解析",
+            "en": "Collision resolver"
+          }
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "sourcePaths",
+          "slot": "sourcePaths",
+          "transform": "lines"
+        },
+        {
+          "fieldId": "targetPath",
+          "slot": "targetPath",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "targetNames",
+          "slot": "targetNames",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "destinationPath",
+          "slot": "destinationPath",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "similarityThreshold",
+          "slot": "similarityThreshold",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "moveDirection",
+          "slot": "moveDirection",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "conflictPolicy",
+          "slot": "conflictPolicy",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "pairsFileName",
+          "slot": "pairsFileName",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "move"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认执行目录移动",
+          "en": "Confirm folder moves"
+        },
+        "body": {
+          "zh": "匹配目录将按冲突策略移动，覆盖无法撤销。",
+          "en": "Matched folders will be moved using the conflict policy."
+        },
+        "confirmLabel": {
+          "zh": "确认移动",
+          "en": "Move"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "需要从工作区 UI 或 CLI 使用本节点的文件处理流程时使用 Crashu。",
+          "en": "Use Crashu when you need this node's file workflow from either the workspace UI or CLI."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "notes": {
+            "zh": [
+              "改动文件前优先使用预览或 dry-run 模式。",
+              "处理大型文件夹时请保留备份或撤销记录。"
+            ],
+            "en": [
+              "Prefer preview or dry-run modes before changing files.",
+              "Keep backups or undo records when processing large folders."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
