@@ -77,46 +77,56 @@ const MANAGED_BY_THIS_TABLE = (key) => key.startsWith('@xiranite/') || key.start
 // 这条注释就是它留下的账：解析表必须"每一条都指得到东西"。
 
 /**
- * 节点界面里 value-import 自己节点 core 的那一族（`@xiranite/node-<id>/core`）。
+ * 节点界面里 value-import 自己节点纯逻辑叶子的那一族（`@xiranite/node-<id>/<子路径>`）。
  *
  * ADR-0007 决定 4 禁的是 **`entry.ts` 把执行器挂成 `AppNodeEntry.core`**（"面里能跑节点逻辑，
  * 就是协议之外的第二个执行宿主"），不是"组件不许用纯函数"。上游 noxide 的 `Component.tsx`
  * 直接用了 core 里的纯函数（`splitLines` / `filterLines` / `createDiffRows` 这类），
- * 保真搬运就要保留那条 import；解析上它指到**本仓同一个节点的 `src/core.ts`**，
+ * 保真搬运就要保留那条 import；解析上它指到**本仓同一个节点的 `src/<那片>.ts`**，
  * 由 `noExternal` 在构建期内联进产物（ADR-0002 说的是装进 profile 的包不许引仓内包，
  * 而这里进的是工作台产物，不是那个包的运行时依赖）。
- * 只解析真的存在的那几份；缺的进下面的清单，别编。
+ *
+ * 名单**不靠手抄，也不靠固定几个文件名**：早先只认 `core.ts` 与 `interaction.ts` 两个名字，
+ * 于是每搬一片新的纯逻辑叶子（`classf/blacklist`、`enginev/defaults`、`cleanf/paths` 这一类）
+ * 都要人记得回来加一行——记不得就是"构建红在一个没人想到要去查的地方"。
+ *
+ * 但"文件存在就给边"也是错的：那样 `platform.ts` / `exec.ts` / `cli.ts` 这些**只该住在宿主进程里**
+ * 的文件会一起拿到一条浏览器可解析的边，界面 import 到它们就把 `node:child_process`、`node:fs`
+ * 整只拖进工作台产物——正是 ADR-0007 决定 4 要挡的那个形状，也是本仓花力气清掉的 `node:*` 那批构建错。
+ * 所以判据是**这片文件自己干不干净**：读它的文本，只要 value-import 里出现任何 Node 内建
+ * （`node:*` 与裸名 `fs`/`path`/`os`/`child_process`/`module`/`worker_threads`），就不给它边。
+ * 这条是机器判的，不靠人记；纯函数叶子照常自动多一条边，新搬一片就自动可解析。
+ * 缺的仍然进下面那份"按设计不给"的清单，别编。
  */
-function nodeCoreAliases() {
+function isNodeOnly(source) {
+  for (const match of source.matchAll(/from\s*['"]([^'"]+)['"]/g)) {
+    const spec = match[1]
+    if (spec.startsWith('node:')) return true
+    if (/^(fs|path|os|child_process|module|worker_threads|crypto|stream|url|util|events|http|https|net|dns|zlib|readline|assert|buffer|constants|tty|dgram|cluster|v8|vm|perf_hooks|async_hooks)$/.test(spec)) return true
+  }
+  return false
+}
+
+export function nodeCoreAliases() {
   const out = {}
-  for (const dir of existsSync(join(ROOT_PLUGINS, '')) ? readdirSync(ROOT_PLUGINS, { withFileTypes: true }) : []) {
-    if (!dir.isDirectory()) continue
-    for (const sub of ['core.ts', 'interaction.ts']) {
-      const target = join(ROOT_PLUGINS, dir.name, 'src', sub)
-      if (!existsSync(target)) continue
-      const specifier = `@xiranite/node-${dir.name}/${sub.replace(/\.ts$/, '')}`
-      out[specifier] = target
+  const dirs = existsSync(ROOT_PLUGINS) ? readdirSync(ROOT_PLUGINS, { withFileTypes: true }) : []
+  for (const dir of dirs) {
+    const srcDir = join(ROOT_PLUGINS, dir.name, 'src')
+    if (!dir.isDirectory() || !existsSync(srcDir)) continue
+    for (const name of readdirSync(srcDir)) {
+      if (!name.endsWith('.ts') || name === 'index.ts') continue
+      const target = join(srcDir, name)
+      // `import type` 从 Node-only 文件里取类型是允许的（那一半在构建期就消失了），
+      // 所以这里问的不是"这文件像不像 Node 侧"，而是"界面 value-import 它会不会把执行宿主拖进产物"。
+      if (isNodeOnly(readFileSync(target, 'utf8'))) continue
+      out[`@xiranite/node-${dir.name}/${name.replace(/\.ts$/, '')}`] = target
     }
   }
   return out
 }
 
-/** 表里补上派生出来的 node core 边（不可手抄：新迁一个节点就自动多一条）。 */
+/** 表里补上派生出来的 node 纯逻辑边（不可手抄：新迁一个节点或补一片叶子就自动多一条）。 */
 Object.assign(XIRANITE_ALIASES, nodeCoreAliases())
-
-/**
- * `nodeCoreAliases` 只认 `core.ts` 与 `interaction.ts` 这两个**文件名**，所以下面这条要手写：
- * `@xiranite/node-sleept/duration` → `plugins/sleept/src/duration.ts`。
- *
- * 为什么它不在那两个文件名里：`countdownSeconds` / `formatDuration` 是从基线 `core.ts`
- * 第 116-126 行**单独搬出来**的一份（`Component.tsx` 用 value-import 取这两条纯函数，
- * 指到 `core.ts` 就把 `runSleept` 整只执行宿主拖进浏览器产物 —— ADR-0007 决定 4）。
- * 判据是"这条边指得到东西、且指的就是那两条函数"，不是"文件名恰好在名单上"。
- * `assertAliasTargets` 会盯着它：文件被删或改名，这里立刻红。
- */
-Object.assign(XIRANITE_ALIASES, {
-  '@xiranite/node-sleept/duration': join(ROOT_PLUGINS, 'sleept/src/duration.ts'),
-})
 
 /**
  * 有意**不给**解析的边：命中就该在构建里响，而不是被一个假 stub 糊过去。
@@ -175,13 +185,46 @@ export const BROWSER_GRAPH_ALIASES = {
 
 /** 自检：表里指向的文件必须真的存在（漂了就是构建红，而不是"某些文件解析不到"这种远因）。 */
 export function assertAliasTargets() {
+  // 名单过期也是一种错：那条边本来"必须响"，现在文件真的存在了，就该把它从名单里删掉，
+  // 而不是让一个已经能解析的继续被记成缺口（下一批人会继续照名单去找一个不存在的问题）。
+  const stale = Object.keys(XIRANITE_ALIASES).filter((specifier) =>
+    UNRESOLVED_BY_DESIGN.some((needle) => specifier.includes(needle)))
+  if (stale.length > 0) {
+    throw new Error(`ui-host/aliases: 这些边已经有真文件了，仍挂在"按设计不给解析"名单里：${stale.join(', ')}`)
+  }
   const missing = Object.entries({ ...XIRANITE_ALIASES, ...BROWSER_GRAPH_ALIASES })
     .filter(([, target]) => !existsSync(target))
     .map(([specifier, target]) => `${specifier} → ${target.replace(`${PKGS}/`, 'packages/')}`)
   if (missing.length > 0) {
     throw new Error(`ui-host/aliases: 解析表指向的源码不存在：\n  ${missing.join('\n  ')}`)
   }
+  // 这面"只给纯逻辑叶子边"的旗必须有活干：如果一份 Node-only 的叶子被派生成浏览器边，
+  // 上面那个 filter 就是装饰品；如果一份 Node-only 的文件压根不存在，那就是名单空转。
+  const derived = nodeCoreAliases()
+  const leaked = Object.entries(derived).filter(([, target]) => isNodeOnly(readFileSync(target, 'utf8')))
+  if (leaked.length > 0) {
+    throw new Error(`ui-host/aliases: 这些边指向 Node 专用文件，界面 value-import 它们会把执行宿主拖进产物：\n  ${leaked.map(([s]) => s).join('\n  ')}`)
+  }
+  const skipped = countNodeOnlyLeaves()
+  if (skipped === 0) {
+    throw new Error('ui-host/aliases: 一个 Node 专用叶子都没筛掉 ⇒ 那条过滤是在空转，别把它当防御')
+  }
   return Object.keys(XIRANITE_ALIASES).length
+}
+
+/** 自检用：有几个 src/*.ts 因为是 Node 专用而被拒给边。 */
+function countNodeOnlyLeaves() {
+  if (!existsSync(ROOT_PLUGINS)) return 0
+  let n = 0
+  for (const dir of readdirSync(ROOT_PLUGINS, { withFileTypes: true })) {
+    const srcDir = join(ROOT_PLUGINS, dir.name, 'src')
+    if (!dir.isDirectory() || !existsSync(srcDir)) continue
+    for (const name of readdirSync(srcDir)) {
+      if (!name.endsWith('.ts') || name === 'index.ts') continue
+      if (isNodeOnly(readFileSync(join(srcDir, name), 'utf8'))) n += 1
+    }
+  }
+  return n
 }
 
 /** 给 tsconfig `paths` 用的形状（`extends` 不了 JS，所以由 `scripts/check-alias-sync.mjs` 保证两处一致）。 */
