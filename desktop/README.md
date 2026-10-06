@@ -34,6 +34,11 @@ node desktop/sync-dsh.mjs --reset      # 回到 pin，丢弃 patch 提交（手�
 #   cd desktop/dsh/apps/desktop && DSH_HOME=<隔离 home> XAIHI_DESKTOP_PROFILE=<profile> \
 #     pnpm exec tsx scripts/dev.ts --skip-build           ← 产物齐了才允许 --skip-build
 node desktop/live-check.mjs            # 对着跑着的壳验活体（18 条：产品文档面 / 真文档进第二窗 / 按 node 去重）
+node desktop/dev-shell.mjs profile     # 从零装配隔离 home 的 profile（含 allowBuilds/uiBundleDir/启用集）
+node desktop/dev-shell.mjs check       # 只报就绪状态，并用宿主自己的 --dump-config 验配置
+node desktop/dev-shell.mjs launch      # 起壳（端口被占会拒绝，防连到旧实例拿假结论）
+node desktop/dev-shell.mjs stop        # 只杀我们自己那棵壳
+node desktop/dev-shell.mjs verify      # sync-dsh --verify + live-check
 node desktop/sync-dsh.mjs --proxy http://127.0.0.1:7890   # 上游在本机要过代理
 ```
 
@@ -69,6 +74,21 @@ gateway 的 `lib/` 从 0 个 JS 变 2 个）。之后重启壳 ⇒ `node desktop
 
 判据顺序钉死在这里：**deinit / 全新 clone ⇒ sync ⇒ install ⇒ `pnpm run build` ⇒ 起壳 ⇒ live-check**。
 少任何一步都先怀疑产物不齐，不要去怀疑 patch。
+
+## `dev-shell`：把今天那串手敲顺序变成命令（并且把它自己踩的两次坑焊死）
+
+`profile` 装配一个隔离 home 时，有两处是**今天真的栽过**的，现在写在代码里而不是 README 里：
+
+1. 新 profile 的 `cordis.patch.yml` 内容是 `[]`，直接往后追加块序列会得到
+   `YAMLException: end of the stream or a document separator` ⇒ 宿主 `DesktopHostFatalError`。
+   `ensureProfilePatch()` 因此是"替换空序列"，并且写完用 `dsh --profile X --dump-config`
+   让**宿主自己**判一次（不是我自己看着像 YAML）。
+2. 上一个壳没死干净时，`live-check` 会连到**旧实例**并给出假结论（今天真发生过：9229 被占，
+   我连到的是配置坏掉那一个）。`launch` 现在先查 9229/9222，被占就拒绝并让你 `stop`；
+   `stop` 只匹配 `desktop/dsh/apps/desktop/.desktop-build` 这条路径，不碰机器上其他 Electron 应用。
+
+实测（全新 home `.scratch/dsh-xaihi-desktop-home3`，一次跑通）：`profile` rc=0、
+`check` rc=0（bundles=6、宿主解析通过）、`launch` 起壳、`verify` **rc=0 ⇒ 18/18 全绿**。
 
 ## 官方壳的对照读数（决定 4 的前提不是我说出来的）
 
