@@ -1,0 +1,853 @@
+{
+  "name": "@hibernalglow/xaihi-enginev",
+  "version": "0.0.0",
+  "description": "Xaihi node EngineV: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "xenginev": "./lib/cli.js"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-enginev",
+    "title": {
+      "zh": "EngineV",
+      "en": "EngineV"
+    },
+    "ui": {
+      "remote": "enginev",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.enginev",
+        "title": {
+          "zh": "EngineV面板",
+          "en": "EngineV panel"
+        },
+        "area": "workspace",
+        "remote": "enginev",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "enginev",
+      "title": {
+        "zh": "EngineV",
+        "en": "EngineV"
+      },
+      "description": {
+        "zh": "扫描、筛选、重命名、删除并导出 Wallpaper Engine 创意工坊文件夹。",
+        "en": "Scan, filter, rename, delete, and export Wallpaper Engine workshop folders."
+      },
+      "actions": [
+        {
+          "id": "scan",
+          "label": {
+            "zh": "扫描",
+            "en": "Scan"
+          }
+        },
+        {
+          "id": "filter",
+          "label": {
+            "zh": "筛选",
+            "en": "Filter"
+          }
+        },
+        {
+          "id": "rename",
+          "label": {
+            "zh": "重命名",
+            "en": "Rename"
+          }
+        },
+        {
+          "id": "delete",
+          "label": {
+            "zh": "删除",
+            "en": "Delete"
+          }
+        },
+        {
+          "id": "export",
+          "label": {
+            "zh": "导出",
+            "en": "Export"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "label": {
+            "zh": "工作流",
+            "en": "Workflow"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            {
+              "value": "scan",
+              "label": {
+                "zh": "扫描",
+                "en": "Scan"
+              }
+            },
+            {
+              "value": "filter",
+              "label": {
+                "zh": "筛选",
+                "en": "Filter"
+              }
+            },
+            {
+              "value": "rename",
+              "label": {
+                "zh": "重命名",
+                "en": "Rename"
+              }
+            },
+            {
+              "value": "delete",
+              "label": {
+                "zh": "删除",
+                "en": "Delete"
+              }
+            },
+            {
+              "value": "export",
+              "label": {
+                "zh": "导出",
+                "en": "Export"
+              }
+            }
+          ],
+          "default": {
+            "text": "scan"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ]
+        },
+        {
+          "id": "workshopPath",
+          "label": {
+            "zh": "工坊目录",
+            "en": "Workshop path"
+          },
+          "kind": "text",
+          "default": {
+            "text": "E:\\SteamLibrary\\steamapps\\workshop\\content\\431960"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "nonBlank"
+              }
+            }
+          ]
+        },
+        {
+          "id": "titleFilter",
+          "label": {
+            "zh": "标题筛选",
+            "en": "Title filter"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "ratingFilter",
+          "label": {
+            "zh": "内容分级",
+            "en": "Content rating"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "typeFilter",
+          "label": {
+            "zh": "壁纸类型",
+            "en": "Wallpaper type"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "tagsText",
+          "label": {
+            "zh": "标签",
+            "en": "Tags"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "idsText",
+          "label": {
+            "zh": "已选工坊 ID",
+            "en": "Selected workshop IDs"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "template",
+          "label": {
+            "zh": "命名模板",
+            "en": "Rename template"
+          },
+          "kind": "text",
+          "default": {
+            "text": "[#{id}]{original_name}+{title}"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "maxWorkers",
+          "label": {
+            "zh": "并发数",
+            "en": "Workers"
+          },
+          "kind": "number",
+          "range": {
+            "min": 1,
+            "max": 32,
+            "step": 1
+          },
+          "default": {
+            "number": 4
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "dryRun",
+          "label": {
+            "zh": "预演",
+            "en": "Dry-run"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": true
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "permanent",
+          "label": {
+            "zh": "永久删除",
+            "en": "Permanent delete"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "copyMode",
+          "label": {
+            "zh": "复制模式",
+            "en": "Copy mode"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "targetPath",
+          "label": {
+            "zh": "复制目标",
+            "en": "Copy target"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "exportFormat",
+          "label": {
+            "zh": "导出格式",
+            "en": "Export format"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "json",
+              "label": {
+                "zh": "JSON",
+                "en": "JSON"
+              }
+            },
+            {
+              "value": "paths",
+              "label": {
+                "zh": "路径",
+                "en": "Paths"
+              }
+            }
+          ],
+          "default": {
+            "text": "json"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "exportPath",
+          "label": {
+            "zh": "导出路径",
+            "en": "Export path"
+          },
+          "kind": "text",
+          "default": {
+            "text": ""
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "sortField",
+          "label": {
+            "zh": "排序字段",
+            "en": "Sort field"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "none",
+              "label": {
+                "zh": "none",
+                "en": "none"
+              }
+            },
+            {
+              "value": "size",
+              "label": {
+                "zh": "size",
+                "en": "size"
+              }
+            },
+            {
+              "value": "title",
+              "label": {
+                "zh": "title",
+                "en": "title"
+              }
+            },
+            {
+              "value": "createdTime",
+              "label": {
+                "zh": "createdTime",
+                "en": "createdTime"
+              }
+            },
+            {
+              "value": "modifiedTime",
+              "label": {
+                "zh": "modifiedTime",
+                "en": "modifiedTime"
+              }
+            }
+          ],
+          "default": {
+            "text": "none"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "sortOrder",
+          "label": {
+            "zh": "排序方向",
+            "en": "Sort order"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "desc",
+              "label": {
+                "zh": "降序",
+                "en": "Descending"
+              }
+            },
+            {
+              "value": "asc",
+              "label": {
+                "zh": "升序",
+                "en": "Ascending"
+              }
+            }
+          ],
+          "default": {
+            "text": "desc"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "imageBackend",
+          "label": {
+            "zh": "图片后端",
+            "en": "Image backend"
+          },
+          "kind": "select",
+          "options": [
+            {
+              "value": "auto",
+              "label": {
+                "zh": "自动（SIXEL 优先）",
+                "en": "Auto (SIXEL first)"
+              }
+            },
+            {
+              "value": "sixel",
+              "label": {
+                "zh": "SIXEL",
+                "en": "SIXEL"
+              }
+            },
+            {
+              "value": "kitty",
+              "label": {
+                "zh": "Kitty",
+                "en": "Kitty"
+              }
+            },
+            {
+              "value": "half-block",
+              "label": {
+                "zh": "真彩半块",
+                "en": "TrueColor half-block"
+              }
+            }
+          ],
+          "default": {
+            "text": "auto"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        },
+        {
+          "id": "galleryColumns",
+          "label": {
+            "zh": "列数（0 自动）",
+            "en": "Columns (0 auto)"
+          },
+          "kind": "number",
+          "range": {
+            "min": 0,
+            "max": 6,
+            "step": 1
+          },
+          "default": {
+            "number": 0
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
+        }
+      ],
+      "groups": [],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "workshopPath",
+          "slot": "workshopPath",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "titleFilter",
+          "slot": "filters.title",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "ratingFilter",
+          "slot": "filters.contentRating",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "typeFilter",
+          "slot": "filters.type",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "tagsText",
+          "slot": "filters.tags",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "idsText",
+          "slot": "ids",
+          "transform": "delimited"
+        },
+        {
+          "fieldId": "template",
+          "slot": "template",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "maxWorkers",
+          "slot": "maxWorkers",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "dryRun",
+          "slot": "dryRun",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "permanent",
+          "slot": "permanent",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "copyMode",
+          "slot": "copyMode",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "targetPath",
+          "slot": "targetPath",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "exportFormat",
+          "slot": "exportFormat",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "exportPath",
+          "slot": "exportPath",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "sortField",
+          "slot": "sortField",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "sortOrder",
+          "slot": "sortOrder",
+          "transform": "trim"
+        }
+      ],
+      "danger": {
+        "type": "all",
+        "predicates": [
+          {
+            "test": {
+              "type": "actionIs",
+              "allowed": [
+                "rename",
+                "delete"
+              ]
+            },
+            "negated": false
+          },
+          {
+            "test": {
+              "type": "fieldTrue",
+              "fieldId": "dryRun"
+            },
+            "negated": true
+          }
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认工坊操作",
+          "en": "Confirm workshop operation"
+        },
+        "body": {
+          "zh": "选中的工坊目录将被修改。",
+          "en": "Selected workshop folders will be modified."
+        },
+        "confirmLabel": {
+          "zh": "确认执行",
+          "en": "Run now"
+        }
+      },
+      "previewExport": "preview",
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "需要在工作区 UI 或 CLI 中使用该节点的文件工作流时，使用 EngineV。",
+          "en": "Use EngineV when you need this node's file workflow from either the workspace UI or CLI."
+        },
+        "safety": {
+          "defaultMode": "preview",
+          "notes": {
+            "zh": [
+              "在修改文件前，优先使用预览或 dry-run 模式。",
+              "处理大文件夹时请保留备份或撤销记录。"
+            ],
+            "en": [
+              "Prefer preview or dry-run modes before changing files.",
+              "Keep backups or undo records when processing large folders."
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
