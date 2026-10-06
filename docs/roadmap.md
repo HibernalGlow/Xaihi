@@ -55,7 +55,14 @@ Step 1 的 API 研究结论**不在** `docs/dsh-api-notes.md`（计划里写的�
 
 ## 明确不做
 
-独立桌面壳 / 自有窗口管理 / 自有更新器 / 自有插件市场 / 自有 runtime（含再引一套 WASM 宿主）/
+这些能力住在本仓 **`desktop/` 那一层**（上游是 `desktop/dsh` 的 submodule，我们的改动是
+`desktop/patches/dsh/*.patch`，见 ADR-0011 的改判一节）。"不做"的意思收窄成一条边界：
+**不许散进 `packages/` 或 `plugins/`**——那里不许出现 Electron、上游源码或 dsh 的本地路径，
+bundle 侧仍然只经 registry 装机，并且只有自家壳才支持的能力必须可降级且退化可读。
+
+独立桌面壳（→ 已由 ADR-0011 改住 `desktop/`，不许进 `packages/`/`plugins/`）/
+自有窗口管理（同上）/ 自有更新器（同上）/ 自有插件市场 /
+自有 runtime（含再引一套 WASM 宿主；同上，壳仓的 runtime 不算本仓的 runtime）/
 复杂权限系统 / 复制 DSH 的 loader 或 slots / 依赖 dockkit 内部件 / 占用 `root` 槽 /
 把主题塞进 MF2 / agent-plugin 重造（DSH 自带 agent loop、subagent、schedule、workflow）/
 公开 npm 首发。
