@@ -273,3 +273,31 @@ $ plugins/{sleept,linedup,dissolvef} tsc --noEmit               rc=0
 先回答"OpenTUI 0.4.5 在这台机的 Node 上能不能 createCliRenderer"，再把我们那份 `Tui.test.tsx`
 搬进探针跑一遍——把"端口本身成不成"和"workspace 管道通不通"这两件事分开量。
 读数落 `docs/stages/tui-leg-measurements.md`。
+
+## 十二、交互腿的诚实度第一次有数：52 条腿全在"响亮拒绝并点名缝"这一档（2026-10-07 04:16）
+
+新尺 `scripts/check-tui-face.mjs`（已接进根 `test`，`check:tuiface`）。它 spawn 每个有 `bin` 的节点包的
+`ui` / `gd` 两条腿，按**真跑的退码与文案**分四档，而不是 grep 注释：
+
+| 档 | 判据 | 现读数 |
+|---|---|---|
+| `refused-named` | rc=2 且文案点名具体缺件（OpenTUI / `@clack` / `ctx.fs` / subprocess / `node:ffi` / storage domain） | **52** |
+| `works` | rc=0（将来真接上就该落这里） | 0 |
+| `refused-vague` | rc=2 但只说"未接"，说不出缺什么 | 0 |
+| `crashed` | 其它退码或空输出（未接的能力不该以崩收场） | 0 |
+
+外加两个只报数不判红的读数：**27 个包里有 1 个还没有终端面**（`findz` 没 `bin`，
+这条与 `gen-cli-registry` 的现读互相印证）；**真去走共享探测的包 0 个**
+——`probeTerminalRuntime`（`packages/cli-runtime/src/tui/runtime-capability.ts`，探"这台机能不能把
+OpenTUI 起来"、失败走可见退化、绝不偷偷换运行时）在所有 `plugins/*/src/*.ts` 里零引用。
+⇒ 那份探测目前是**没人走的死路**，这条就是 TUI 这一腿真正的下一步：不是再写拒绝文案，
+而是等 `@opentui` 装得上之后，把节点的手写拒绝换成"探测 → 可见退化 → 探测结论上屏"。
+
+阳性对照（`--self-check`，rc=0）用 5 个临时假 bin 把四档各钉一条，另加
+"没有 `bin` 必须单独成档、不许当跳过"——一把会把'根本没这条腿'算成'这条腿诚实'的尺是没有用的。
+
+一条过程账：这条尺要往根 `package.json` 的 `test` 链里加脚本，而那个文件当时已在并发 lane 的未提交区；
+现读 `git show HEAD:package.json` 里**我先前提交的 `check:noderegistry` 已经不在了**
+（他们那轮 rebase 之后 HEAD 只剩 cli/contract/nodebundle/tipbuild），所以这次连同补回一起提，
+并把搭在同一 hunk 里的两行（`pnpm -r run typecheck`、`measure:tipbuild`）点名成他们的。
+拆开的代价是会留下一个"test 链引用了不存在脚本"的中间态，这比整文件提更坏。
