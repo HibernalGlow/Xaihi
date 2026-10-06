@@ -319,6 +319,31 @@ SDK 那侧（`packages/node-sdk/src/desktop-windows.ts`）同步收第二条参�
 （`GIT_COMMITTER_DATE` 钉在 pin 的 committer date 上）与"少跑一步就得到空网关产物"这两件事，
 现在都各自有读数与判据盯着。
 
+## 官方形状的真构建：stock-shell 那一档在屏幕上读得回来（2026-10-07 06:3x）
+
+决定 4 要的是"退化状态在界面上读得回来"。`no-shell-surface`（浏览器／`dsh web`）那一档 F 段的
+iframe 反向对照已经量到；**`stock-shell` 那一档此前只有单测**。这里补上屏上证据，并且先记下为什么
+不能用注入糊：
+
+- **注入冒充不了**（`live-check` 的 I 段现在就是钉这件事的判据）：CDP
+  `Page.addScriptToEvaluateOnNewDocument` 把 `window.dshDesktop` 重定义成官方那 6 个成员之后，
+  同一个窗重新加载读回来仍是 `attr=supported`、`verb=object` —— preload 的 contextBridge 在注入之后
+  才暴露那份面，页面上的东西改不动。⇒ 想报"官方档已验"只能拿**真没有那个动词的构建**来。
+- **真构建怎么做的**：只改构建产物 `desktop/dsh/apps/desktop/lib/preload-app.cjs`（删掉
+  `xaihiWindow: { open: … }` 那一条，126 B），**被跟踪的源码一个字没动**（`dirty=0` 未受影响）；
+  起壳读一次，再用 `pnpm --filter @deepseek-ai/dsh-desktop run bundle`（rc=0）重建 ——
+  重建后的文件与实验前留的副本 `diff -q` **逐字相同**，所以这条实验是可撤销的。
+- 读回来的现场（一次性探针，跑在真官方形状的壳上）：
+  `Object.keys(window.dshDesktop)` = `browser,deviceInfo,keyboard,protocolVersion,shortcuts,updates`
+  （正好是上游那 6 个成员，没有 `xaihiWindow`），而 Xaihi 文档窗里：
+  - `attr="stock-shell"`
+  - 正文 `这是桌面壳直接开出来的顶层窗，装的是节点 xaihi-linedup 的文档。 独立窗：不可用 —— 官方桌面端没有这个动词，独立窗在这个宿主里不可用`
+  - 探针板在场、`body.innerText` 300 字 ⇒ **不崩、不空白、不伪造**（决定 4 的三件事各自有读数）
+- 恢复之后再跑 `node desktop/live-check.mjs` ⇒ **45 条 OK、rc=0**（42 条既有 + I 段三条）。
+
+**这条还不等于 R8(a)**：那是"真装官方 DMG、真用应用内插件管理器装 Xaihi"那条腿，前置仍是 R9 的发布包。
+本节证的是**界面在官方形状下说得出那句退化**，形状由产物级实验给出，不是由我读代码推的。
+
 ## 0005 与 0006：主窗只是隐藏时节点窗还能继续开，标题也真带得出 node（2026-10-07 05:3x，home `.scratch/dsh-xaihi-desktop-home3`）
 
 **前提（上游现读，不是我推的）**：主窗的 `close` 被 `preventDefault` 换成隐藏

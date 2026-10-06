@@ -464,6 +464,67 @@ const H = await evaluateMain(`(async () => {
 })()`)
 console.log('H 段（产品文档替被嵌的 Xaihi 帧转达开窗）⇒ ' + JSON.stringify(H))
 
+// I 段：这条钉的是"**官方档不能在这里冒充**"，不是"官方档已验"。
+// 实测：CDP 的 addScriptToEvaluateOnNewDocument 先把 dshDesktop 重定义成官方那 6 个成员，
+// 页面重新加载后读到的**仍然是壳的那一份**（preload 的 contextBridge 在注入之后才暴露）
+// ⇒ 屏幕上的 stock-shell 那句只能由**真没打 0001 的那份构建**给出来；注入式读数一律算假证据。
+// 真的那一档在 `desktop/README.md` 的"官方形状真构建"一节里量（改的是构建产物，不碰被跟踪的源码）。
+const I = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 500))
+  const ready = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL('dsh-app://app/')
+  await Promise.race([ready, new Promise((r) => setTimeout(r, 6000))])
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const nodes = manifest.plugins.map((p) => p.manifest.id)
+  const docUrl = 'dsh-app://app' + manifest.ui.documentUrl
+  // 从产品文档这一侧开窗只能用 0007 的转达形状（带自家文档路径）；
+  // 上一版这里漏了第二个参数，撞上的正是 0007 故意保留的那条拒绝（尺写错，不是产品缺陷）。
+  const opening = await app.webContents.executeJavaScript(
+    'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(nodes[0]) + ', '
+    + JSON.stringify(manifest.ui.documentUrl) + ')', true)
+  await new Promise((r) => setTimeout(r, 1200))
+  const win = all().find((w) => w.id === opening.windowId)
+  if (win === undefined) return { skipped: '那个文档窗没开出来' }
+  const READ = "(() => { const el = document.querySelector('[data-xaihi-window-capability]');"
+    + " const board = document.querySelector('[data-xaihi-realm-probe]');"
+    + " return { attr: el ? el.getAttribute('data-xaihi-window-capability') : null,"
+    + " text: el ? el.textContent : null, board: !!board, bodyChars: document.body ? document.body.innerText.length : 0,"
+    + " surface: typeof window.dshDesktop, verb: typeof (window.dshDesktop && window.dshDesktop.xaihiWindow) } })()"
+  const before = await win.webContents.executeJavaScript(READ, true)
+  let injected = 'not-attempted'
+  try {
+    win.webContents.debugger.attach('1.3')
+    await win.webContents.debugger.sendCommand('Page.enable')
+    // 官方桌面端那份面有 6 个成员、没有 xaihiWindow（现读见 desktop/README 的官方壳对照读数）。
+    await win.webContents.debugger.sendCommand('Page.addScriptToEvaluateOnNewDocument', {
+      source: 'Object.defineProperty(window, "dshDesktop", { configurable: true, value:'
+        + ' { protocolVersion: 1, browser: {}, deviceInfo: {}, keyboard: {}, shortcuts: {}, updates: {} } });',
+    })
+    injected = 'attached'
+  } catch (error) { injected = 'attach-failed: ' + String(error).slice(0, 80) }
+  let after = null
+  if (injected === 'attached') {
+    const reloaded = new Promise((r) => win.webContents.once('did-finish-load', r))
+    await win.webContents.loadURL(docUrl + '?node=' + nodes[1])
+    await Promise.race([reloaded, new Promise((r) => setTimeout(r, 6000))])
+    await new Promise((r) => setTimeout(r, 1200))
+    after = await win.webContents.executeJavaScript(READ, true)
+    try { win.webContents.debugger.detach() } catch { /* 已经掉了就不用管 */ }
+  }
+  win.close()
+  await new Promise((r) => setTimeout(r, 600))
+  return { nodes, injected, before, after, ownedLeft: openedWins().length }
+})()`)
+console.log('I 段（注入冒充不了官方形状）⇒ ' + JSON.stringify(I))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -535,6 +596,15 @@ need('H: 对照——不带路径时旧那条拒绝仍在（0007 没把动词整
   hh.withoutPath?.kind === 'rejected' && String(hh.withoutPath?.message).includes('only the Xaihi UI document'))
 need('H: 现场复核被嵌那一帧确实拿不到动词（0007 的存在理由，不是判据）', hh.frameProbe?.dshDesktop === 'undefined')
 need('H: 收尾把自家窗清干净', hh.ownedLeft === 0)
+
+const ii = I.ok === true ? I.value : {}
+need('I: 那个窗本来读到的确实是自家壳（before 半边）',
+  ii.before?.attr === 'supported' && ii.before?.surface === 'object' && ii.before?.verb === 'object')
+// 这一条**期望注入失败**：注入失败才说明页面上那份面来自 preload，改不动 ⇒ 想报 stock-shell
+// 只能拿真没打 0001 的构建来（实测读数值见 desktop/README 的"官方形状真构建"一节）。
+need('I: 注入冒充不了官方形状（after 仍是壳的那份，所以这里不许被写成"官方档已验"）',
+  ii.injected === 'attached' && ii.after?.verb === 'object' && ii.after?.attr === 'supported')
+need('I: 那一窗到点还是清干净的', ii.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {
