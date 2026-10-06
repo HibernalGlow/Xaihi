@@ -29,6 +29,11 @@ node desktop/live-check.mjs        # 对着跑着的壳验活体：13 条判据�
 node desktop/sync-dsh.mjs --sparse     # 按 Desktop 的 workspace 闭包裁检出（默认不开）
 node desktop/sync-dsh.mjs --sparse-off # 恢复整棵树（跑上游构建或 tsc 前必须开回来）
 node desktop/sync-dsh.mjs --reset      # 回到 pin，丢弃 patch 提交（手工脏改动要 --force）
+# 起壳（顺序是硬要求，见"启动配方"一节）：
+#   cd desktop/dsh && pnpm install && pnpm run build      ← 少了 build，网关 lib/ 是空的
+#   cd desktop/dsh/apps/desktop && DSH_HOME=<隔离 home> XAIHI_DESKTOP_PROFILE=<profile> \
+#     pnpm exec tsx scripts/dev.ts --skip-build           ← 产物齐了才允许 --skip-build
+node desktop/live-check.mjs            # 对着跑着的壳验活体（13 条，含真 Xaihi 文档进第二窗）
 node desktop/sync-dsh.mjs --proxy http://127.0.0.1:7890   # 上游在本机要过代理
 ```
 
@@ -46,6 +51,23 @@ node desktop/sync-dsh.mjs --proxy http://127.0.0.1:7890   # 上游在本机要�
 四条阳性对照都跑过，全部按预期变红（`--verify` 的 rc 是不带管道单独测的：无 patch ⇒ rc=1，有 patch ⇒ rc=0）：丢掉 patch 后 `--check` 红（`patch 数不符：树上有 0 个，
 patches/dsh 里有 1 个`）；`--pin` 给错 sha 时红且 **HEAD 未移动**（先验 tag 再 checkout）；
 扰动 patch 的**上下文行**后 `sync` 红、`git am --abort`、树退回 pin 且脏文件 0。
+
+## 启动配方与症状链（这条今天用一轮排查换来）
+
+`--skip-build` 只有在**仓库产物齐**的时候能用。deinit 之后只跑 `build:lib:host` + desktop 的 bundle
+不够：`packages/api/gateway/lib/` 里会**一个 JS 都没有**（只剩 `tsconfig.host.tsbuildinfo` 与 `types/`），
+而 dev 启动器把 `.desktop-build/development/project/node_modules/@deepseek-ai/dsh-api-gateway`
+**软链**到工作树那份 ⇒ 网关 `/api/<ns>/<method>` 直接 404 ⇒ 欢迎面
+`POST /api/settings/describe` 拿到非 2xx ⇒ `src/welcome-backend.ts:63` 抛
+`desktop welcome: Web request failed` ⇒ 上游把它送进**原生致命模态框**，主进程整条阻塞，
+于是 `live-check` 的求值全部超时（30 秒超时机制在这里起了作用：报红，而不是永远挂着）。
+
+正解一条命令：`pnpm run build`（上游 `scripts/build.ts`；实测 rc=0、约 80 s，
+gateway 的 `lib/` 从 0 个 JS 变 2 个）。之后重启壳 ⇒ `node desktop/live-check.mjs` **13/13 全绿**
+（`ui.rev=b6a8cb8bc96f`、正文回显 `node=xaihi-linedup`、`open` ⇒ 窗口数 2→3、新窗同一份 `./main.js`）。
+
+判据顺序钉死在这里：**deinit / 全新 clone ⇒ sync ⇒ install ⇒ `pnpm run build` ⇒ 起壳 ⇒ live-check**。
+少任何一步都先怀疑产物不齐，不要去怀疑 patch。
 
 ## gitlink 规则（这一条今天踩过）
 
@@ -132,11 +154,10 @@ patch 0003 = `XAIHI_DESKTOP_PROFILE`：给了就按 `profiles/<name>` 解析，�
 deinit 会连它一起清掉，所以要 `pnpm install` **并且** `pnpm run build:lib:host`。
 （这条一开始写成"先 pnpm install"就够了，实测装回依赖后 0003 仍取不到模块，才把说明改准。）
 
-**重放之后没能立刻再拿一次绿**：deinit → sync → install → build:lib:host → bundle 之后重启壳，
-`dsh web` 起来了但欢迎面抛 `desktop welcome: Web request failed`（`lib/main.js:8149 invoke`，
-与之前那次 `Web authentication failed` 不是同一条），于是 `live-check` 十三条全报红——
-**报红的是"这一次没验成"，不是"验过再失效"**：上一条 13/13 全绿是在 `live-check` 于 run10 之后、
-deinit 之前跑出来的（`ui.rev=b6a8cb8bc96f`、正文回显 `node=xaihi-linedup`、窗口 2→3）。
+**重放之后先红了一次，查清根因才拿回绿**：deinit → sync → install → `build:lib:host` + bundle 之后
+重启壳，`live-check` 十三条全报红（欢迎面 `desktop welcome: Web request failed`）。根因与修法见上面
+"启动配方与症状链"：缺的是 `pnpm run build`（网关 `lib/` 没有 JS）。补跑后重启 ⇒ **13/13 全绿**，
+而且这一次是在"deinit 重放 + 重装 + 完整构建"整条链之后拿到的，比第一次更接近别人重跑的结果。
 `--skip-build` 这条路里 `.desktop-build/targets/**/primary-runtime` 被 deinit 弄成半截目录会
 `ENOTEMPTY`，删掉 `targets/` 就能过；这条也记在这儿，免得下次又当神秘故障查半天。
 
