@@ -13,6 +13,13 @@
 import { version as reactVersion } from 'react'
 import { NODE_CAPABILITY_IDS, REQUIRED_CAPABILITIES } from '@hibernalglow/xaihi-sdk/bridge'
 import { createDocumentBridge, type DocumentBridge } from '@hibernalglow/xaihi-sdk/bridge'
+import { createPersistedState } from '../client/document-host.ts'
+
+/** 把上一次跑留下的标记读出来（形状不认识时按空处理，不让取证页因为一份旧数据就画不出来）。 */
+function readMarks(data: unknown): string[] {
+  const marks = (data as { marks?: unknown } | undefined)?.marks
+  return Array.isArray(marks) ? marks.filter((row): row is string => typeof row === 'string') : []
+}
 
 /** 由 `/xaihi/ui/<rev>/index.html` 那份文档壳写进 window 的启动信息。 */
 export interface XaihiUiBoot {
@@ -81,6 +88,31 @@ export function startRealm(): Realm | null {
       report(`xaihi realm: config.get 没走通 reason=${reason}${detail === '' ? '' : ` · ${detail}`}（${String(Date.now() - started)}ms）`)
     }
   }
+  /**
+   * 文档那半边的持久路径也走一遍**生产代码**（`createPersistedState`）：
+   * 预取 → 同步改本地 → 往后刷。判据刻意要跨一次**框的重载**才成立：
+   * 第一次跑写一条标记，第二次跑必须 `hydrate()` 读到它并把上一次的标记带在本地值里。
+   * 只量外壳那半边不算数——同步形状有没有被破坏（`getData()` 立刻可读）发生在这一侧。
+   */
+  const probeStatePersistence = async (): Promise<void> => {
+    const node = boot.node === '' || boot.node === undefined ? 'realm-probe' : boot.node
+    const state = createPersistedState({ bridge, node })
+    const marker = `run@${String(Date.now())}`
+    try {
+      const had = await state.hydrate()
+      const before = JSON.stringify(state.getData() ?? null)
+      state.patchData({ marks: [...(readMarks(state.getData())), marker] })
+      // 同步那份立刻就得是新的：上游 `getData()` 是同步返回的，这条是"节点 UI 一行不改"的关键。
+      const syncedImmediately = JSON.stringify(state.getData() ?? null)
+      await state.flush()
+      const err = state.syncError()
+      report(`state 半边（node=${node}）：预取到=${String(had)} 改前=${before.slice(0, 90)} `
+        + `本地即时=${syncedImmediately.slice(0, 90)} 刷后=${err === null ? 'ok' : `失败 ${err}`}`)
+    } catch (error) {
+      const reason = (error as { reason?: string })?.reason ?? 'unknown'
+      report(`state 半边没走通：reason=${reason}（这条是文档侧的预取失败，不是外壳没答）`)
+    }
+  }
   const timer = setInterval(() => {
     const ready = bridge.ready()
     if (ready !== null) {
@@ -99,6 +131,7 @@ export function startRealm(): Realm | null {
       if (required.length > 0) report(`必给却没兑现：${required.map((id) => `${id}: ${reasonOf(id)}`).join(' | ')}`)
       if (others.length > 0) report(`其余没接（在提案账上）：${others.map((id) => `${id}: ${reasonOf(id)}`).join(' | ')}`)
       void probeRoundTrip()
+      void probeStatePersistence()
       return
     }
     report(`xaihi realm: rev=${boot.rev} React=${reactVersion} · 等宿主握手（没应答=这条桥还没人接）`)
