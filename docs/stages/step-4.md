@@ -1261,3 +1261,66 @@ alpha 发布时按 ADR-0005 写好的形状跑一次："新 profile 只装入口
   （`dsh-client-ui-slots/lib/index.js:170-173` 的报错原文就是 "register at a different priority
   to shadow it"，而 `ui-sidebar` 注册 `sidebar` 时没写 priority ⇒ 默认 0），
   不是继续 disable 更多内置行。
+
+## 26 收尾记账：真组件挂不上的拦路已清零，但方向被 ADR-0009 换掉了
+
+### 结论先放
+
+- 目标三条里两条成立（数据源是我们的；不起 store / 主题引擎 / 那两个 provider），
+  第三条（整块搬运工作台在屏上）**没做到**，所以这一刀没收口。
+- 技术上最后那道拦路已经消失：产物形状尺在带着 `AlphabetNodeRail` 挂载的情况下全绿。
+- 方向本身在这期间被改了：ADR-0009 把 Xaihi 的工作台挪去"自己的文档"里，
+  挂在 DSH `main` 槽内的这版外壳因此不再是落点。宿主探针原文：
+  `宿主清单里没有 ui 这一格（Xaihi 的文档产物未知）` /
+  `Xaihi 的工作台跑在自己的文档里（ADR-0009：React 19 …）`。
+
+### Node 垫片的真触发点（三条假设的账，两条是错的，都要留字）
+
+- 指认办法：对失败产物里每条 `require("node:…")` 往前找最近的 `//#region`，
+  命中的是 `\0rolldown/runtime.js` —— 垫片是打包器为**被内联的 CJS 依赖**插的。
+  再看 region 全表：整个图里只有两个 CJS 模块，
+  `lucide-react@1.27.0/dist/cjs/lucide-react.js` 与
+  `use-sync-external-store/cjs/use-sync-external-store-shim.production.js`。
+- 排除项一（我早先的推断，错）：不是 `@module-federation/*` 的 node 分支。
+  递归扫 `src/` 里 `from 'node:'` 只命中测试文件，运行时源码一处都没有。
+- 排除项二（错）：不是 `resolve.mainFields` 能治的。加了
+  `['browser','module','main']` 之后同一批 Node require 照旧，产物还涨到 3.24 MB ⇒ 撤回。
+- 排除项三（第一次测法是无效的，结论要作废重测）：我一度报"`lucide-react` 的 CJS 入口
+  不是触发点"，但那次 alias 实验把目标写成了未声明的裸说明符，构建直接
+  `Could not resolve 'lucide-react'` —— 根本没换成 ESM，所以那次不算数。
+  重测的结论是：**就是它**，而且修法不是我们这边 —— 是那侧把 `lucide-react` 补成声明依赖，
+  之后带挂载的 `pnpm build` rc=0、`check-client-bundle OK`。
+
+### 留在仓里的判据（这三条是这一串真正的产出）
+
+1. `scripts/build-css.mjs` 的 utility 覆盖率断言：外壳用到的类必须出现在生成 CSS 里。
+   它当场抓到 `hover:bg-muted/35` 的 hover 变体没生成（基础类有、变体没有）；
+   没放宽尺，把那个类去掉了。
+2. `tests/workspace-shell.spec.ts` 的来源判据：一条量"用搬运组件"（`<Button` /
+   `<Separator` / `NodeChromeActionButton`），一条量"没起 `@/store` /
+   `presetThemeRootClass` / `WorkspaceProvider`"（剥注释后扫，同 `check-brand` 口径）。
+3. `scripts/check-client-bundle.mjs` 的产物形状尺：浏览器半边必须单文件、
+   不许有 Node 专用 require、`lib/` 不许有多余 `.cjs`；四条阳性对照。
+   它的注释里写着上面三条排除项，免得下一个人在这里再试一遍。
+
+### 待办：三条尺要跟着 ADR-0009 搬家
+
+- 新入口（自己的文档）落下来之后，第 1、3 条基本可以原样搬（都挂在构建上）；
+  第 2 条是**源码级**的，得指向新的外壳文件，并且禁词表要重新核一遍——
+  "自己的文档"这一侧很可能真的会起 provider，那是另一笔账，不能沿用这条尺假装它成立。
+- 如果以后还要在 DSH 面板里挂整块 `WorkspaceLayout`，拦路只剩一条已知的：
+  `src/components/views/settings/NodeMemoryProtectionSettings.tsx` 在本仓还不存在
+  （`WorkspaceLayout → TopBar → views/ThemeSettings → settings/RuntimeSection.tsx:21` 引它）。
+
+### 与 DSH API 的关系
+
+- 无新增缝。这一串只用到既有的三条：`ctx.slots.inject('main'|'shell.overlay'|…)`、
+  `ctx.layout.selectPanel`、`ctx.theme.overrideTokens`；以及装载器的两条硬约束——
+  资源路由只发 `client.*.js`（CSS 必须内联）、require 必须落在模块表基线内。
+
+### 实测（本轮收尾时的读数）
+
+- `pnpm --filter @hibernalglow/xaihi-ui build` rc=0；`check-client-bundle OK`；
+  `test:unit` rc=0（24 文件 / 216 判据）。
+- 工作树里我未提交的挂载实验（`AlphabetNodeRail` 两行）已撤除，只留已提交状态；
+  别人在飞的 hunk 一律没动。
