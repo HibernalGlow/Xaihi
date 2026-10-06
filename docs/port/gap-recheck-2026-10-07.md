@@ -306,3 +306,45 @@ trim       blank     => ""          trimOrOmit  blank     => undefined
 （排除 `findz`——那条 lane 在改；`kisaki` 尚不存在），每条 CLI 行都改写成本包 `bin` 的真实子命令，
 验收是 `check-cli-commands` 里 `absent` 必须为 0、`check:brand` 必须 rc=0（上游原文里满是旧名字）、
 以及生成物 `packageModules.generated.ts` 与清单同批（`gen-node-registry --check` rc=0）。
+
+## 又追加：终端面第二段腿——参数这一层原来没人量（新尺 `scripts/check-cli-parity.mjs`）
+
+`check-cli-face` 量"产物在、`--help` 退 0、屏里认得出自己的 bin"，`check-cli-commands` 量"清单承诺的子命令打得来"。
+**两条都不碰参数**——所以"面板能设、终端设不了"这一类分叉以前看不见。新尺量三件事，判据全部现读：
+上游 `noxide/packages/nodes/<id>/src/cli.ts` 里写过的长开关 vs 我们**每一屏**打出来的开关、
+同参数跑两遍必须一模一样、`--json` 那条路必须解析得出结构。
+挑"哪条动作可以真跑"用的是**契约自己那个** `dangerFor`（`packages/node-sdk/src/define-node.ts:179`，
+从建好的 barrel 里 import）——与宿主给工具上 `ask` 闸门的是同一个判定，不会出现两把尺各说一套。
+
+```
+$ node scripts/check-cli-parity.mjs --self-check
+check-cli-parity --self-check OK（18 条夹具，含"上游开关缺失""两次输出不同""--json 解析失败"三条必须红）
+SELF_RC=0
+$ node scripts/check-cli-parity.mjs
+check-cli-parity: 27 个包，比了 26 张开关表，真跑了 7 条命令；跳过 17 个（形状/基线没有/没跑通）、3 个包每条动作都被契约判成危险。
+  × classf: 上游那 10 条开关在任何一屏都没打出来 ⇒ crashu-source, samea-group-min, target, transfer, classify, placement, existing, items …
+  × gifu: 上游那 3 条开关在任何一屏都没打出来 ⇒ renderer, lang, theme
+PARITY_RC=1
+$ pnpm check:cliregistry → rc=0   $ pnpm check:cliface → rc=0    # 没把邻_gate 带红
+```
+
+**两处我自己写错又改回来的，记下来别重复踩**：
+
+1. **只比顶层 `--help` 会造出一批假阳性**：`--json`、`--dry-run`、`--recursive` 都挂在**子命令屏**上。
+   第一版因此红 11 条，其中 8 条是这种。改成"全部屏取并集"后降到 7 条。
+2. **拼法必须先归一再比**：`plugins/linedup/src/cli-support.ts:210` 明写 `--sourceFile` 与 `--source-file` 都认，
+   而 citty 自动为布尔生成 `--no-x`（屏上通常不打）。上游源码写 `--dry-run`、我们屏上打 `--dryRun`，
+   直接比字符串会把**五个能用的开关**报成缺失。加 `canonicalFlag`（剥 `no-`、去连字符、小写）之后
+   红从 7 降到 **2**；夹具里两条新增的正反例（"kebab 对上 camel 放行""camel 真缺仍要报"）盯着这条规则。
+   还有一条更早的装饰品 bug：`bin` 在本仓 27 个包里都是**对象**形状（`{"xlinedup":"./lib/cli.js"}`），
+   我按 string 判 ⇒ 每个包都被跳过、尺一片绿而什么都没量（"比了 0 张表"就是这么来的）。
+
+**剩下这 2 条红的性质不同，别混成一种**：`rg` 现读——classf 那 10 条**源码里写着**
+（`crashu-source`/`placement`/`existing`/`transfer` 都在 `plugins/classf/src/cli.ts` 里命中），
+是**屏上没打出来**的可发现性缺口；gifu 的 `renderer`/`lang`/`theme` 在我们源码里一条都搜不到，
+是**真的没接**。所以尺的文案是"在任何一屏都没打出来"，并在那条里点名"不证代码里没有"——
+判据不许比它能证明的东西走得更远。
+
+**为什么不接线**：这条尺现在是红的（2 条真发现），塞进根 `test` 会在别人的回归之前先把整条链涂红；
+这两条要先归口（classf 归"补屏"、gifu 归"补参数或申报上游本来没接"）。
+先落在纸上，归口之后进链——与 `check:brand` 当年同一个口径。
