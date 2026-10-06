@@ -11,6 +11,10 @@
       "types": "./lib/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./operations": {
+      "types": "./lib/operations.d.ts",
+      "default": "./lib/operations.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

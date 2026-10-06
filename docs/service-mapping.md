@@ -29,3 +29,18 @@
 
 - 每条"DSH 没有"必须能指出 DSH 侧最接近的那件东西并说明差在哪；写不出差别的，按"有"处理。
 - 每条"搬"必须落成一个可观察面（路由/服务/事件），否则只是搬代码。
+
+## 落 operation stream 时的两条实测更正（Step 4）
+
+1. **存储面**：`ctx.storage` 只是挂载枢纽，插件侧 typed 面是 `ctx.storageDomain.open(defineDomain(...))`
+   （`storage.md:11,24,184`）。0.2.0-rc.2 **确有** `@deepseek-ai/dsh-storage-domain` 与
+   `@deepseek-ai/dsh-storage`（两者的 `next` 标签都是 0.2.0-rc.2，`latest` 又是撒谎的
+   0.0.1-rc.1），但它们不在默认 web / headless 组合里——本机隔离宿主的 146 个已装包里搜不到。
+   所以上表"不搬 storage"仍然成立，但落 checkpoint 时要**往 profile 的 `dsh.profile.bundles`
+   加一行**（合法装配），而不是自己写 JSON 文件层。
+2. **事件转发面**：DSH 的主机→浏览器通道 `ctx.remote.$on` 是闭集
+   （`typert.md` "selected by the Host assembly"；`dsh-api-remotes` 的
+   `API_REMOTE_FORWARDED_EVENTS` 是写死的 27 项数组）。这正是"operation stream 必须自己搬"
+   的证据：合法搬运面只剩 `ctx.webServer` 的命名路由，而 `WebRoute.handler` 的文档原话允许
+   长挂响应（SSE）。落地的形状见 `docs/stages/step-4.md`。
+

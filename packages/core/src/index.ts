@@ -23,10 +23,15 @@ import Schema from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { buildRegistrations, buildWorkspaceDocument, type ServedRegistration } from './registry.ts'
 import { manifestHandler, remoteHandler } from './routes.ts'
+import { createJournal, operationsSnapshotHandler, operationsStreamHandler } from './operations.ts'
+import { OPERATIONS_SERVICE, OPERATIONS_SNAPSHOT_PATH, OPERATIONS_STREAM_PATH } from '@hibernalglow/xaihi-sdk'
 
 export const name = '@hibernalglow/xaihi-core'
 
 export const inject = ['webServer', 'loader', 'tools']
+
+/** 本插件对宿主提供的服务名（节点侧经 `ctx.get(OPERATIONS_SERVICE)` 可选取用）。 */
+export const provide = [OPERATIONS_SERVICE]
 
 export interface Config {
   /** 每次清单请求打一行诊断日志。 */
@@ -148,6 +153,9 @@ export function collect(ctx: DiscoverContext): ServedRegistration[] {
 }
 
 export function apply(ctx: HostContext, config: Config): void {
+  const journal = createJournal()
+  // 服务必须在 fiber 活着的期间可见、卸载时自动收回，所以挂在 effect 里而不是模块作用域。
+  ctx.effect(() => ctx.provide(OPERATIONS_SERVICE, journal), 'xaihi-core: operations journal')
   const snapshot = () => {
     const registrations = collect(ctx)
     if (config.verbose.get()) {
@@ -183,6 +191,20 @@ export function apply(ctx: HostContext, config: Config): void {
     path: '/xaihi/remotes',
     handler: remoteHandler(source),
   }), 'xaihi-core: remote files route')
+
+  // 事件流的合法性来自宿主文档对 WebRoute.handler 的原话："may hold the response open,
+  // e.g. SSE"。快照路由是它的兜底：不是所有宿主形态都允许长连接（桌面壳走 IPC 桥）。
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: OPERATIONS_STREAM_PATH,
+    handler: operationsStreamHandler(journal),
+  }), 'xaihi-core: operations stream route')
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: OPERATIONS_SNAPSHOT_PATH,
+    handler: operationsSnapshotHandler(journal),
+  }), 'xaihi-core: operations snapshot route')
 
   ctx.tools.register(defineTool({
     name: 'xaihi_nodes',

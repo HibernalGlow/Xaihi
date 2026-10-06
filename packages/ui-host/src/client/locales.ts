@@ -16,6 +16,8 @@ export const zh = {
   'status.loaded': '已加载',
   'host.title': 'Xaihi 工作台',
   'panel.notFound': '该面板不在清单里。',
+  'feed.title': '最近的节点运行',
+  'feed.polling': '轮询',
 } as const
 
 export const en: Record<keyof typeof zh, string> = {
@@ -28,6 +30,8 @@ export const en: Record<keyof typeof zh, string> = {
   'status.loaded': 'loaded',
   'host.title': 'Xaihi workspace',
   'panel.notFound': 'That panel is not in the manifest.',
+  'feed.title': 'Recent node runs',
+  'feed.polling': 'polling',
 }
 
 /** 类型化的词典键。 */

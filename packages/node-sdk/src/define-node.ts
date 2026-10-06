@@ -8,8 +8,9 @@
  * 参数表按动作生成：可见性条件与危险闸门共用 `conditions.ts` 那一个求值器，否则
  * 模型看到的参数和界面看到的字段会分叉。
  *
- * 输出的规范值 v1 是字符串：预览与结果视图（`previewExport` / `resultExport`）要等
- * Step 4 的 operation stream，现在接进来只会是个没人读的字段。
+ * 每次调用都开一条运行（`started` / `finished` / `failed` 自动补），动作实现经
+ * `call.run` 上报 `progress` / `preview` / `result_view`。没有 xaihi-core 时
+ * `journal` 缺省，进度上报是无操作而不是失败——节点必须能脱离工作台单独装。
  *
  * @module xaihi-sdk/define-node
  */
@@ -17,6 +18,7 @@
 import { defineTool, type ParameterPropertySpec, type ParameterSchemaSpec } from '@deepseek-ai/dsh-tools'
 import { validateNodeDefinition, type NodeDefinition, type NodeField, type NodeTransform } from './node.ts'
 import { matchCondition } from './conditions.ts'
+import { NULL_RUN, type OperationJournal, type OperationRun } from './operations.ts'
 
 /**
  * 工具参数表。直接用 dsh-tools 的类型而不是长得像的本地副本：它的参数面带
@@ -44,10 +46,11 @@ export interface NodeToolContext {
   on(event: 'tools/pre-execute', listener: (exec: ExecInfo, next: () => Promise<PreDecision>) => Promise<PreDecision>): unknown
 }
 
-/** 一次动作调用的入参：原始参数 + 按 inputBindings 绑好的执行输入。 */
+/** 一次动作调用的入参：原始参数 + 按 inputBindings 绑好的执行输入 + 本次运行的上报句柄。 */
 export interface NodeCall {
   args: Record<string, unknown>
   inputs: Record<string, unknown>
+  run: OperationRun
 }
 
 /** 一个动作的实现。 */
@@ -56,6 +59,9 @@ export type NodeActionHandler = (call: NodeCall) => Promise<string>
 /** 动作 id → 实现。 */
 export type NodeHandlers = Record<string, NodeActionHandler>
 
+/** 账本的给出方式：实例，或每次调用现取的取用器。 */
+export type JournalSource = OperationJournal | (() => OperationJournal | undefined)
+
 /** 注册选项。 */
 export interface DefineNodeOptions {
   /** `package.json#xaihi.node` 的原始值，内部先校验再接线。 */
@@ -63,6 +69,13 @@ export interface DefineNodeOptions {
   handlers: NodeHandlers
   /** `danger.type === 'pluginExport'` 时由节点导出的判定函数。 */
   dangerCheck?: (args: Record<string, unknown>) => boolean
+  /**
+   * xaihi-core 提供的运行账本；缺失时进度上报退化为无操作。
+   *
+   * 插件与 core 的 fiber 谁先激活不由插件决定，所以在注册时读一次会永久读空。
+   * 传取用器（`() => ctx.get(OPERATIONS_SERVICE)`）才是对的接法。
+   */
+  journal?: JournalSource
 }
 
 function fieldProperty(field: NodeField): ParameterPropertySpec {
@@ -200,6 +213,17 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): vo
   const validation = validateNodeDefinition(options.definition)
   if (!validation.ok) throw new Error(`xaihi.node/v1 invalid: ${validation.errors.join('; ')}`)
   const definition = validation.value
+  const source = options.journal
+  const resolve = (): OperationJournal | undefined =>
+    typeof source === 'function' ? source() : source
+  let warnedNoJournal = false
+  const warnNoJournal = (): void => {
+    if (warnedNoJournal || definition.reportsProgress !== true) return
+    warnedNoJournal = true
+    // 声明要报进度却没有账本，是一件必须说出来的事：否则症状是"进度条永远不动"，
+    // 而没人会去查是不是宿主没装 xaihi-core。
+    console.warn(`xaihi.node/v1: node "${definition.nodeId}" sets reportsProgress but no journal resolved; progress will be dropped`)
+  }
   if (definition.danger !== undefined && definition.danger.type === 'pluginExport' && options.dangerCheck === undefined) {
     // 早失败：等第一次真调用才报，症状会是"这个节点偶尔能跑"。
     throw new Error(`xaihi.node/v1: node "${definition.nodeId}" declares danger.type "pluginExport" but defineNode got no dangerCheck`)
@@ -218,7 +242,18 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): vo
       },
       async execute(args) {
         const record = (args ?? {}) as Record<string, unknown>
-        return handler({ args: record, inputs: bindInputs(definition, record) })
+        const journal = resolve()
+        if (journal === undefined) warnNoJournal()
+        const run = journal?.open({ nodeId: definition.nodeId, actionId: action.id }) ?? NULL_RUN
+        try {
+          const result = await handler({ args: record, inputs: bindInputs(definition, record), run })
+          journal?.finish(run.runId)
+          return result
+        } catch (error) {
+          journal?.fail(run.runId, error instanceof Error ? error.message : String(error))
+          // 原样抛出：把失败咽成一次成功输出，症状会是"面板显示了空结果"。
+          throw error
+        }
       },
     }))
   }

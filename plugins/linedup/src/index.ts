@@ -8,7 +8,7 @@
 import { createRequire } from 'node:module'
 import type { Context, Volatile } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
-import { defineNode } from '@hibernalglow/xaihi-sdk'
+import { defineNode, OPERATIONS_SERVICE, type OperationJournal } from '@hibernalglow/xaihi-sdk'
 import { filterLines, splitLines } from './core.ts'
 
 export const name = '@hibernalglow/xaihi-linedup'
@@ -35,13 +35,22 @@ function ownNodeDefinition(): unknown {
 export function apply(ctx: Context, config: Config): void {
   defineNode(ctx, {
     definition: ownNodeDefinition(),
+    // core 的 fiber 可能比本节点晚激活，注册时读一次会永久读空，所以每次调用现取。
+    journal: () => ctx.get(OPERATIONS_SERVICE) as OperationJournal | undefined,
     handlers: {
-      async filter({ inputs }) {
+      async filter({ inputs, run }) {
         const result = filterLines({
           sourceLines: splitLines(String(inputs.sourceText ?? '')),
           filterLines: splitLines(String(inputs.filterText ?? '')),
           caseSensitive: inputs.caseSensitive !== false,
           sort: inputs.sort !== false,
+        })
+        // 纯计算没有中间态，所以只发结果视图：定义里承诺的 resultExport 到此才真的有人发。
+        run.resultView({
+          keptCount: result.keptCount,
+          removedCount: result.removedCount,
+          kept: result.filteredLines,
+          removed: result.removedLines,
         })
         return [
           `${config.label.get()} · kept ${String(result.keptCount)}, removed ${String(result.removedCount)}`,

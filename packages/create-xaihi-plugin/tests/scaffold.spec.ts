@@ -49,6 +49,8 @@ describe('scaffold', () => {
       // 定义只有一份真源：生成的代码从自己的 package.json 读，不再复制一份常量
       expect(entry).toContain('pkg.xaihi?.node')
       expect(entry).not.toContain('const DEFINITION')
+      // 生成的节点必须自带账本接法：写成注册时读一次会让"core 后激活"的会话永久没有运行记录。
+      expect(entry).toContain('journal: () => ctx.get(OPERATIONS_SERVICE)')
       expect(() => scaffold(input, dir)).toThrow('already has a package.json')
     } finally {
       await rm(dir, { recursive: true, force: true })

@@ -14,6 +14,7 @@ import type { LoadResult, PanelContribution, PanelProps, UIModuleLoader, Workspa
 import type { Translate } from './locales.ts'
 import type { XaihiSlot } from './slots.ts'
 import { createRemoteLoader } from './loader/remote-modules.ts'
+import { RunFeed } from './run-feed.tsx'
 
 /** 外壳需要的宿主面。 */
 export interface RootProps {
@@ -174,6 +175,7 @@ function Workspace({ t, locale, renderSlot, document, loader }: WorkspaceProps):
         {renderSlot('xaihi.status')}
         <span>{panels.length} {t('status.loaded')}</span>
         {notice !== null && <span>{notice}</span>}
+        <RunFeed t={t} />
       </div>
     </div>
   )

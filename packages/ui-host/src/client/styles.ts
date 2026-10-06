@@ -30,6 +30,11 @@ const CSS = `
 .xaihi-nav-item[data-selected="true"] { background: var(--xaihi-secondary-container, var(--dsw-alias-bg-hover, rgba(128,128,128,.14))); }
 .xaihi-empty, .xaihi-error { padding: 16px; display: grid; gap: 6px; font-size: 12px; }
 .xaihi-error { color: var(--dsw-alias-text-danger, #b3261e); }
+.xaihi-feed { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.xaihi-feed-item { padding: 1px 6px; border-radius: 999px; border: 0.5px solid var(--xaihi-outline, var(--dsw-alias-border-default, rgba(128,128,128,.35))); font-variant-numeric: tabular-nums; }
+.xaihi-feed-item[data-outcome="running"] { color: var(--xaihi-on-surface-variant, var(--dsw-alias-text-secondary, inherit)); }
+.xaihi-feed-item[data-outcome="failed"] { color: var(--dsw-alias-text-danger, #b3261e); }
+.xaihi-feed-note { opacity: .7; }
 .xaihi-panel-mark {
   display: inline-grid;
   place-items: center;
