@@ -2,7 +2,7 @@
 import { writeFile } from "node:fs/promises"
 import { pathToFileURL } from "node:url"
 import { parseArgs } from "node:util"
-import { createCliHost, writeError, writeJson, writeLine, type CliHost } from "@xiranite/cli-runtime"
+import { createCliHost, writeError, writeJson, writeLine, type CliHost } from "@hibernalglow/xaihi-cli-runtime"
 
 import { serializeLogEnvelope } from "./jsonl.js"
 import { readLogDirectory, resolveLogDirectory } from "./node.js"
@@ -23,7 +23,7 @@ Commands:
   tui                      Open the OpenTUI log explorer
 
 Common options:
-  --dir <path>             Log directory (default: XIRANITE_LOG_DIR or platform path)
+  --dir <path>             Log directory (default: XAIHI_LOG_DIR or platform path)
   --level <severity>       Minimum severity
   --scope <prefix>         Scope prefix
   --event <name>           Event name

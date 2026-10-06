@@ -94,11 +94,11 @@ export class RotatingJsonlLogWriter {
       return `${baseName}.${date}.${index ?? 0}${rotatedExtension}`
     }, {
       path: this.directory,
-      size: options.size ?? envFileSize("XIRANITE_LOG_FILE_SIZE", DEFAULT_LOG_FILE_SIZE),
+      size: options.size ?? envFileSize("XAIHI_LOG_FILE_SIZE", DEFAULT_LOG_FILE_SIZE),
       compress: options.compress === false ? false : "gzip",
       history: `${baseName}.history.json`,
-      maxFiles: options.maxFiles ?? envPositiveInteger("XIRANITE_LOG_MAX_FILES", DEFAULT_LOG_RETENTION_FILES),
-      maxSize: options.maxSize ?? envFileSize("XIRANITE_LOG_MAX_SIZE", DEFAULT_LOG_DIRECTORY_SIZE),
+      maxFiles: options.maxFiles ?? envPositiveInteger("XAIHI_LOG_MAX_FILES", DEFAULT_LOG_RETENTION_FILES),
+      maxSize: options.maxSize ?? envFileSize("XAIHI_LOG_MAX_SIZE", DEFAULT_LOG_DIRECTORY_SIZE),
       encoding: "utf8",
       mode: 0o600,
     })
@@ -136,15 +136,15 @@ export class RotatingJsonlLogWriter {
 
 export function resolveLogDirectory(explicit?: string, environment: NodeJS.ProcessEnv = process.env): string {
   if (explicit?.trim()) return path.resolve(explicit)
-  if (environment.XIRANITE_LOG_DIR?.trim()) return path.resolve(environment.XIRANITE_LOG_DIR)
+  if (environment.XAIHI_LOG_DIR?.trim()) return path.resolve(environment.XAIHI_LOG_DIR)
   const home = homedir()
   if (process.platform === "win32") {
     const base = environment.LOCALAPPDATA ?? environment.APPDATA ?? path.join(home, "AppData", "Local")
-    return path.join(base, "Xiranite", "logs")
+    return path.join(base, "Xaihi", "logs")
   }
-  if (process.platform === "darwin") return path.join(home, "Library", "Logs", "Xiranite")
+  if (process.platform === "darwin") return path.join(home, "Library", "Logs", "Xaihi")
   const state = environment.XDG_STATE_HOME ?? path.join(home, ".local", "state")
-  return path.join(state, "xiranite", "logs")
+  return path.join(state, "xaihi", "logs")
 }
 
 export async function discoverLogFiles(directory = resolveLogDirectory()): Promise<string[]> {

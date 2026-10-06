@@ -16,7 +16,7 @@ test("LogTui renders sessions, queried events, and details", async () => {
   try {
     await act(async () => view.renderOnce())
     const frame = view.captureCharFrame()
-    expect(frame).toContain("XIRANITE LOG EXPLORER")
+    expect(frame).toContain("XAIHI LOG EXPLORER")
     expect(frame).toContain("reader.failed")
     expect(frame).toContain("DecodeError: invalid image")
   } finally {

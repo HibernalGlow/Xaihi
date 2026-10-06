@@ -146,7 +146,7 @@ describe("RotatingJsonlLogWriter", () => {
   })
 
   it("resolves the production log folder and environment override", () => {
-    expect(resolveLogDirectory(undefined, { XIRANITE_LOG_DIR: "custom-logs" })).toBe(join(process.cwd(), "custom-logs"))
-    expect(resolveLogDirectory()).toContain("logs")
+    expect(resolveLogDirectory(undefined, { XAIHI_LOG_DIR: "custom-logs" })).toBe(join(process.cwd(), "custom-logs"))
+    expect(resolveLogDirectory()).toContain("Xaihi")
   })
 })

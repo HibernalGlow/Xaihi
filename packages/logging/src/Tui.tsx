@@ -35,7 +35,7 @@ export function LogTui({ events, directory, onExit }: LogTuiProps): ReactNode {
   const eventWidth = Math.max(42, Math.floor(dimensions.width * 0.48))
   return <box width="100%" height="100%" flexDirection="column" backgroundColor="#101418">
     <box height={3} border borderColor="#5db0d7" paddingLeft={1} paddingRight={1} flexDirection="row">
-      <box width={Math.min(52, Math.max(30, Math.floor(dimensions.width * 0.4)))}><text fg="#f2f5f7"><b>XIRANITE LOG EXPLORER</b>  {directory}</text></box>
+      <box width={Math.min(52, Math.max(30, Math.floor(dimensions.width * 0.4)))}><text fg="#f2f5f7"><b>XAIHI LOG EXPLORER</b>  {directory}</text></box>
       <box flexGrow={1} justifyContent="flex-end"><text fg="#9db0bc">1 trace  2 info  3 warn  4 error  |  arrows navigate  |  q exit</text></box>
     </box>
     <box flexGrow={1} flexDirection="row">
