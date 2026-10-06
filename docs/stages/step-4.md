@@ -1177,3 +1177,87 @@ alpha 发布时按 ADR-0005 写好的形状跑一次："新 profile 只装入口
 
 
 
+
+## 25 外壳改吃搬运来的类名，并把"真组件为什么还挂不上"量到根
+
+### 改了什么
+
+- `packages/ui-host/src/client/workspace.tsx`：外壳不再是自己手写的一套 CSS，改成搬运来的
+  结构与类名词汇（根与 `main` 网格的形状来自 `WorkspaceLayout.tsx:52-64`，节点标题条来自
+  `NodeSurfaceChrome.tsx` 的折叠态：dot + mono 大写标题 + state label + 右侧动作区）。
+  数据源仍然是我们的：面板清单走 `/xaihi/manifest.json`，装载状态在标题条上读得回来。
+  类名前缀按品牌纪律取 `xaihi-*`。
+- `packages/ui-host/src/styles/xaihi-aliases.css`（新）：把搬运 class 依赖的**裸 shadcn 名字**
+  （`--background` / `--foreground` / `--muted-foreground` / `--border` / `--ring` / `--sidebar-*`
+  / `--radius`）与画布四个（`--ws-canvas` / `--ws-grid-color` / `--ws-accent-glow`
+  / `--ws-focused-overlay`）做成**别名层**：值只来自已有的 `--xaihi-*` 与 `--dsw-alias-*`，
+  取不到退回 CSS 系统色；alpha 用 `color-mix` 表达。上游那份是直接写 oklch 常量的
+  （`<Xiranite>/src/styles/themes/base.css:28,60-63,104,123-125`），照抄等于在 Xaihi 里再装一套主题。
+- `packages/ui-host/scripts/build-css.mjs`（新）+ `tsdown.config.ts`：补上工具类 CSS 的生成阶段，
+  以及 Vite `?url` 后缀的构建层支持。
+- 两条新尺：`build-css.mjs` 里的 utility 覆盖率断言（外壳用到的类必须出现在生成 CSS 里）；
+  `tests/workspace-shell.spec.ts` 的来源判据（一条量"用了搬运类名"，一条量"没起
+  `@/store` / `presetThemeRootClass` / `WorkspaceProvider`"，剥注释后扫，同 `check-brand` 口径）。
+
+### 为什么
+
+- 判据先于审美：这一层的对错不看"像不像"，看**搬运 class 有没有色可取**、以及
+  **有没有偷偷把 Xiranite 的状态机或第二套主题引擎起起来**。前者由覆盖率尺守，
+  后者由来源判据守，两条都配了阳性对照（把自己注释里写的 `@/store` 留着时，尺当场变红）。
+- 修在构建层而不是逐行改组件：`?url` 这类 Vite 专属写法会随搬运持续进来，
+  一行插件管住整类，也不动别人正在写的文件。
+
+### 与 DSH API 的关系
+
+- 不新增缝。仍然只用 `ctx.slots.inject('main', …)` 与 `ctx.layout.selectPanel`
+  （`dsh-client-ui-layout/lib/types/client/service.d.ts:31-64`）。
+- **CSS 只能走 JS 通道**：宿主的资源路由是 `/plugins/<id>/<fileName>`，而 fileName 要过
+  `CLIENT_CHUNK = /^client\.[\w.-]+\.js$/` 且响应体按 JS 拼接
+  （`dsh-client-modules/lib/index.js:169,913-947`）⇒ 发不出 `client.css`，
+  所以生成物以 TS 模块形式内联，由 `styles.ts` 注进同一个 `<style>`。
+- 主题出口仍然只有 `ctx.theme` 一条；别名层不产生任何颜色常量。
+
+### 实测（都带 rc 与原文）
+
+- `pnpm --filter @hibernalglow/xaihi-ui build` rc=0；覆盖率尺：用到 13 个 utility、缺 0 个。
+  加 `?url` 插件前同一命令 rc=1，原文
+  `[UNLOADABLE_DEPENDENCY] Could not load src/assets/tldraw-zh-cn.json?url`。
+- 隔离宿主 `127.0.0.1:3199` 真页面探针（class 为 `bg-background text-muted-foreground
+  rounded-[4px] backdrop-blur-md border-border`）算出 `rgb(18,18,18)` / `rgb(128,128,128)` /
+  `4px` / `blur(12px)`；`<style id="xaihi-ui-styles">` 381,735 字节；
+  `mainClaim {ok:true,attempts:1}`。
+- `test:unit` rc=0（23 文件 / 215 判据）；`typecheck` rc=0 且 own=0。
+- **一条假信号烧在这里**：第一次"挂上 `WorkspaceLayout` 后 build rc=0"是假的 —— import 行
+  没落进文件，rolldown 把它当自由变量放过，屏幕空白，控制台原文
+  `ReferenceError: WorkspaceLayout is not defined` + `slot entry crashed in 'main'`。
+  此后判"挂上了"只认产物里有没有那个函数定义（`rg -c 'function WorkspaceLayout' lib/client.js`）。
+
+### 真组件还没上屏：根因收窄到一条，且是已知项
+
+- provider 与主题引擎这两条顾虑**已被实测排除**：`useWorkspaceShallowSelector` 读模块级 store
+  （`workspaceStore.ts:167`），不需要 `WorkspaceProvider`；`presetThemeRootClass` 的映射表已缩到
+  只剩 `wuling` 一项（`src/lib/appearance.ts:144-146`），而生成 CSS 里 `theme-wuling` 规则数为 0
+  ⇒ 那是一枚死类名，不构成第二套主题。
+- 卡点是**包层解析**，不是接线：`WorkspaceLayout → TopBar → views/ThemeSettings →
+  settings/RuntimeSection.tsx:21 → ./NodeMemoryProtectionSettings`（本仓没有）；
+  只挂 `AlphabetNodeRail` / `SelectionToolbar` 也会拖出
+  `@xiranite/{shared,api/client,logging,node-logx/definition}`。
+- 这些包**目录在本仓里存在**（`packages/{shared,contract,api,logging}`，
+  `packages/shared/package.json` 的 name 就是 `@xiranite/shared@0.1.0`），但它们**故意不入 workspace**：
+  `pnpm-workspace.yaml` 里有 `!packages/api` 与一段说明，放行条件是"依赖图换成 Xaihi 真实存在的包名"。
+  我按本仓既有模式（`@hibernalglow/xaihi-sdk` 走 `devDependencies` + `workspace:*`）试过给
+  `packages/ui-host` 加四条 `@xiranite/*` 依赖，实测 `pnpm install` rc=1：
+  `"api@workspace:*" is in the dependencies but no package named "@xiranite/api" is present in the workspace`
+  —— 会躺平全仓每条 pnpm 命令，所以**已撤回**并复测 `pnpm install` rc=0。
+- 结论：这一刀的下一步不在本仓的 UI 层，而在那侧的包层改名/内联（`packages/cli/port-inventory.json`
+  是他们的清单）。等 `@xiranite/*` 能解析之后，把 `PanelFallback` 换回 `<WorkspaceLayout />` 即可，
+  代码位置与替换条件已写进 `workspace.tsx` 的注释。
+
+### 后续扩展方式
+
+- 别名层是"搬运 class 有色可取"的唯一入口；六套设计语言各自的值应由
+  `src/styles/design/*.css` 在被选中时覆盖这一层，而不是往别名里塞常量。
+- 若以后要接管整个窗口（连侧栏也不要），正解是 `register({ name, priority })` 的遮蔽
+  （`dsh-client-ui-slots/lib/index.js:170-173` 的报错原文就是 "register at a different priority
+  to shadow it"，而 `ui-sidebar` 注册 `sidebar` 时没写 priority ⇒ 默认 0），
+  不是继续 disable 更多内置行。
