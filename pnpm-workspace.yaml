@@ -1,6 +1,21 @@
 packages:
   - packages/*
   - plugins/*
+  # 终端面（CLI/TUI）与它抄过来的支撑包**暂时不入 workspace**。
+  # 不是风格问题：它们里的 `@xiranite/*` 依赖写成 `workspace:*`，而本仓没有那些包名，
+  # 一旦入表，pnpm 连依赖树都解不出来 —— 症状是**全仓每条 pnpm 命令**都报
+  # 「Failed to resolve dependency tree」，门禁与构建一起躺平（2026-10-06 实测，
+  # 报错点名 packages/api → @xiranite/file-operations@workspace:*）。
+  # 这正是 ADR-0002 里「profile 解析不了 workspace:*」的同一类失败，只是发生在仓内。
+  # 放行的条件：这些包的依赖图换成 Xaihi 真实存在的包名（见 packages/cli/port-inventory.json），
+  # 或者它们改成构建期内联、不声明运行时 workspace 依赖。逐条改完就从这里删一条。
+  - '!packages/api'
+  - '!packages/cli'
+  - '!packages/cli-runtime'
+  - '!packages/contract'
+  - '!packages/logging'
+  - '!packages/shared'
+  - '!packages/tui'
 
 # pnpm 12 生成的是这个待填名单：占位串不填就 ERR_PNPM_IGNORED_BUILDS，整次 install 判失败。
 # 列出的全是 @deepseek-ai/dsh CLI 自带的原生/生成依赖（终端 PTY、FFI、protobuf 等），

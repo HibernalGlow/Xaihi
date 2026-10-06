@@ -1,0 +1,220 @@
+/*
+  Swiss / 国际主义排版配方的组件层。
+
+  两条与另外三份配方同命的纪律：
+   1. **每条规则都被维度门住** —— `:root[data-app-design="swiss"][data-design-<dim>="on"]`。
+      只靠引擎「这一维关掉就不发变量」是不够的：`border-radius: var(--sw-corner-all)` 在变量缺失时
+      不会退回原样，而是落到该属性的初始值（本仓 2026-10-05 实测过一次全界面直角）。
+      所以「关掉这一维」必须是这条声明**不存在**。
+   2. **一个维度一条长写属性，不混简写** —— `border` 简写会把 geometry 的线宽和 states 的线色绑死，
+      关掉颜色那条就把线宽一起清零（同一天被浏览器测抓到的洞）。
+
+  值全部来自 `src/lib/design-theme/swiss/spec.ts`（逐条带出处，反查在 `swiss/spec.test.ts`），
+  这个文件里不许出现任何新的魔法数：能看到的数都是 `var(--sw-*)`。
+  唯一两个不带 token 的字面量是 `border-style: solid`（线宽要有效果必须有 style，它不属于任何一维的
+  「值」）与 `transition-property` 的那份清单——后者就是「悬停绝不是淡出」这条律的形状，
+  它按属性名排除 opacity，所以不需要一个「状态层透明度」的假开关。
+
+  组件皮肤（tabs/switch/slider/scrollbar/choice-control/field-title 六族）优先级高于本层：
+  撞车的选择器由 `scripts/md3-yield-to-skins.ts` 补 `:not([data-…-style])` 门，
+  门禁是 `bun run audit:design-skin-priority`。
+*/
+
+/* ── shape：直角是第一律 ─────────────────────────────────────────────────── */
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="card"],
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="dialog-content"],
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="popover-content"],
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="select-content"],
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="badge"],
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="button"],
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="input"],
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="select-trigger"],
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="progress"],
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="progress-indicator"],
+:root[data-app-design="swiss"][data-design-shape="on"] [data-slot="table-container"] {
+  border-radius: var(--sw-corner-all);
+}
+
+/* ── geometry：线是看得见的结构，网格是含蓄的纹理 ───────────────────────── */
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="card"],
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="badge"],
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="button"],
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="input"],
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="select-trigger"],
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="table-container"] {
+  border-style: solid;
+  border-width: var(--sw-rule-hairline);
+}
+
+/* 抬起面用粗一档的框：组合参考的 Pricing/FAQ 就是 `border-4`，随 ruleWeight 档走。 */
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="dialog-content"],
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="popover-content"],
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="select-content"] {
+  border-style: solid;
+  border-width: var(--sw-rule-structural);
+}
+
+/* 卡片面的内边距走 SBB 的 medium/large 两档（16/24）。宿主原样是 py-6 + px-6（24/24），
+   所以默认档下这一步几乎不动画面——它要的是「间距也由规范阶管」这件事可回读，不是重新排一遍版。 */
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="card"] {
+  padding-block: var(--sw-gap-section);
+  padding-inline: var(--sw-gap-gutter);
+}
+
+/* 表格密度：SBB 的 8px 档（xSmall），标题行与数据行同一条横向内边距。 */
+:root[data-app-design="swiss"][data-design-geometry="on"] .xiranite-node-surface th,
+:root[data-app-design="swiss"][data-design-geometry="on"] .xiranite-node-surface td {
+  padding-inline: var(--sw-gap-pad);
+}
+
+/* 网格图案：24px 见方的两条墨线，用当前墨色而不是新色，所以永远只是「含蓄」。 */
+:root[data-app-design="swiss"][data-design-geometry="on"] .xiranite-node-surface {
+  background-image:
+    linear-gradient(90deg, color-mix(in oklab, var(--sw-pattern-ink) var(--sw-grid-opacity), transparent) 0 1px, transparent 1px 100%),
+    linear-gradient(180deg, color-mix(in oklab, var(--sw-pattern-ink) var(--sw-grid-opacity), transparent) 0 1px, transparent 1px 100%);
+  background-size: var(--sw-grid-size) var(--sw-grid-size);
+}
+
+/* 点阵用在卡片面上（组合参考：点阵用在区块标题与特性侧栏）。 */
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="card"] {
+  background-image: radial-gradient(color-mix(in oklab, var(--sw-pattern-ink) var(--sw-dots-opacity), transparent) 1px, transparent 1px);
+  background-size: var(--sw-dots-size) var(--sw-dots-size);
+}
+
+:root[data-app-design="swiss"][data-design-geometry="on"] .ws-canvas-bg {
+  background-size: var(--sw-grid-size) var(--sw-grid-size);
+}
+
+/* 那条 32×4 的点缀条：编号标签旁边的结构条，不是下划线，也不是装饰。 */
+:root[data-app-design="swiss"][data-design-geometry="on"] [data-slot="card-title"]::before {
+  block-size: var(--sw-section-rule-thickness);
+  content: "";
+  display: block;
+  inline-size: var(--sw-section-rule-width);
+  margin-block-end: var(--sw-gap-cluster);
+  background-color: var(--sw-accent-ground);
+}
+
+/* ── elevation：什么都不许浮起来 ─────────────────────────────────────────── */
+:root[data-app-design="swiss"][data-design-elevation="on"] [data-slot="card"] {
+  box-shadow: var(--sw-shadow-flat);
+}
+
+:root[data-app-design="swiss"][data-design-elevation="on"] [data-slot="dialog-content"],
+:root[data-app-design="swiss"][data-design-elevation="on"] [data-slot="popover-content"],
+:root[data-app-design="swiss"][data-design-elevation="on"] [data-slot="select-content"] {
+  box-shadow: var(--sw-shadow-raised);
+}
+
+:root[data-app-design="swiss"][data-design-elevation="on"] [data-slot="card"] {
+  -webkit-backdrop-filter: var(--sw-blur);
+  backdrop-filter: var(--sw-blur);
+}
+
+/* ── typography：两档字重 + 标签装置 + 规范行高 ──────────────────────────── */
+:root[data-app-design="swiss"][data-design-typography="on"] .xiranite-node-surface {
+  line-height: var(--sw-line-height-body);
+}
+
+:root[data-app-design="swiss"][data-design-typography="on"] [data-slot="badge"] {
+  font-weight: var(--sw-weight-emphasis);
+  letter-spacing: var(--sw-tracking-label);
+  line-height: var(--sw-line-height-label);
+  text-transform: var(--sw-label-transform);
+}
+
+:root[data-app-design="swiss"][data-design-typography="on"] .xiranite-node-surface th {
+  font-weight: var(--sw-weight-emphasis);
+  letter-spacing: var(--sw-tracking-label);
+  text-transform: var(--sw-label-transform);
+}
+
+/* 成组数字只动字距（tracking-figure），**不动字号**：字号这一轴本配方整个不接，
+   理由（宿主各面板的父级字号不统一、`1em` 没有公共分母）写在 swiss/spec.ts 的「字号」那段。 */
+:root[data-app-design="swiss"][data-design-typography="on"] .xiranite-node-surface td {
+  font-weight: var(--sw-weight-text);
+  letter-spacing: var(--sw-tracking-figure);
+}
+
+/* ── motion：机械、利落、绝无弹簧 ───────────────────────────────────────── */
+/* 悬停绝不是淡出：把 opacity 从可过渡属性里去掉，这条律就有了一个不需要假开关的形状。 */
+:root[data-app-design="swiss"][data-design-motion="on"] [data-slot="button"],
+:root[data-app-design="swiss"][data-design-motion="on"] [data-slot="badge"],
+:root[data-app-design="swiss"][data-design-motion="on"] [data-slot="card"] {
+  transition-property: background-color, border-color, color, outline-color, transform;
+  transition-duration: var(--sw-motion-duration);
+  transition-timing-function: var(--sw-motion-ease);
+}
+
+:root[data-app-design="swiss"][data-design-motion="on"] [data-slot="dialog-content"],
+:root[data-app-design="swiss"][data-design-motion="on"] [data-slot="popover-content"],
+:root[data-app-design="swiss"][data-design-motion="on"] [data-slot="select-content"] {
+  animation-duration: var(--sw-motion-enter-duration);
+}
+
+/* ── states：反馈是反色，不是变深 ───────────────────────────────────────── */
+:root[data-app-design="swiss"][data-design-states="on"] [data-slot="card"],
+:root[data-app-design="swiss"][data-design-states="on"] [data-slot="input"],
+:root[data-app-design="swiss"][data-design-states="on"] [data-slot="select-trigger"],
+:root[data-app-design="swiss"][data-design-states="on"] [data-slot="table-container"] {
+  border-color: var(--border);
+}
+
+:root[data-app-design="swiss"][data-design-states="on"] [data-slot="input"]:focus-visible,
+:root[data-app-design="swiss"][data-design-states="on"] [data-slot="select-trigger"]:focus-visible {
+  border-color: var(--ring);
+}
+
+:root[data-app-design="swiss"][data-design-states="on"] .xiranite-node-surface th {
+  border-bottom-color: var(--border);
+}
+
+:root[data-app-design="swiss"][data-design-states="on"] .xiranite-node-surface td {
+  border-bottom-color: var(--border);
+}
+
+:root[data-app-design="swiss"][data-design-states="on"] .xiranite-node-surface tbody tr:hover {
+  background-color: var(--sw-hover-ground);
+}
+
+/* 完整色彩反相：底反了，字必须跟着反。 */
+:root[data-app-design="swiss"][data-design-states="on"] [data-slot="button"]:hover {
+  border-color: var(--sw-invert-ground);
+  background-color: var(--sw-invert-ground);
+  color: var(--sw-invert-ink);
+}
+
+:root[data-app-design="swiss"][data-design-states="on"] [data-slot="button"]:active {
+  border-color: var(--sw-accent-ground);
+  background-color: var(--sw-accent-ground);
+  color: var(--sw-invert-ink);
+}
+
+/* 焦点：高对比红环（组合参考的 `focus-visible:ring-2`）。用 outline 而不是 box-shadow，
+   因为这一维与 elevation 的「不许阴影」互不打架，而 outline 不会被 clip-path 裁掉。 */
+:root[data-app-design="swiss"][data-design-states="on"] [data-slot="button"]:focus-visible,
+:root[data-app-design="swiss"][data-design-states="on"] [data-slot="badge"]:focus-visible {
+  outline-color: var(--ring);
+  outline-style: solid;
+  outline-width: var(--sw-focus-ring-width);
+}
+
+/* 按下不许位移：那条律在 Swiss 里的值是 0（武陵那档才是 0px 的反例）。 */
+:root[data-app-design="swiss"][data-design-motion="on"] [data-slot="button"]:active {
+  transform: translateY(var(--sw-press-travel));
+}
+
+/* 减少动效时不留半套：时长与位移一起归零。 */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-app-design="swiss"][data-design-motion="on"] [data-slot="button"],
+  :root[data-app-design="swiss"][data-design-motion="on"] [data-slot="badge"],
+  :root[data-app-design="swiss"][data-design-motion="on"] [data-slot="card"] {
+    transition-duration: 0ms;
+  }
+
+  :root[data-app-design="swiss"][data-design-motion="on"] [data-slot="dialog-content"],
+  :root[data-app-design="swiss"][data-design-motion="on"] [data-slot="popover-content"],
+  :root[data-app-design="swiss"][data-design-motion="on"] [data-slot="select-content"] {
+    animation-duration: 0ms;
+  }
+}

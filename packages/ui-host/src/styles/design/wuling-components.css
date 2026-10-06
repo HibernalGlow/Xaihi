@@ -1,0 +1,211 @@
+/*
+  武陵配方（jade industrial）的组件层。
+
+  与风格派那一份同一条纪律，两条都要命：
+   1. **每条规则都被维度门住** —— `:root[data-app-design="wuling"][data-design-<dim>="on"]`。
+      只靠引擎「这一维关掉就不发变量」是不够的：一条 `border-radius: var(--wl-corner-chip)`
+      在变量缺失时不会退回原样，而是落到该属性的初始值（本仓 2026-10-05 实测过一次全界面直角）。
+      所以「关掉这一维」必须是这条声明**不存在**。
+   2. **一个维度一条属性，不混用简写** —— `border` 简写会把 geometry 的线宽和 states 的线色绑死，
+      关掉颜色那条就把线宽一起清零（同一天被浏览器测抓到的洞）。这里一律拆长写。
+
+  值全部来自 `src/lib/design-theme/wuling/spec.ts` 的表（逐条带 wuling.css 行号），
+  这个文件里不许出现任何新的魔法数：能看到的数都是 `var(--wl-*)`。
+  组件皮肤（tabs/switch/slider/…档位）优先级高于本层，由 `scripts/md3-yield-to-skins.ts`
+  往撞车的选择器上加 `:not([data-…-style])` 门，门禁是 `bun run audit:design-skin-priority`。
+*/
+
+/* ── shape：角半径阶梯 ─────────────────────────────────────────────────── */
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="card"],
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="dialog-content"],
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="popover-content"],
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="select-content"] {
+  border-radius: var(--wl-corner-panel);
+}
+
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="badge"],
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="button"],
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="input"],
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="select-trigger"] {
+  border-radius: var(--wl-corner-chip);
+}
+
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="progress"],
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="progress-indicator"] {
+  border-radius: var(--wl-corner-track);
+}
+
+:root[data-app-design="wuling"][data-design-shape="on"] [data-slot="table-container"],
+:root[data-app-design="wuling"][data-design-shape="on"] .xiranite-node-surface table {
+  border-radius: var(--wl-corner-table);
+}
+
+/* ── elevation：硬偏移、零模糊、内高光 ─────────────────────────────────── */
+:root[data-app-design="wuling"][data-design-elevation="on"] [data-slot="card"] {
+  box-shadow: var(--wl-edge-shadow);
+}
+
+:root[data-app-design="wuling"][data-design-elevation="on"] [data-slot="button"] {
+  box-shadow: var(--wl-shadow-sm);
+}
+
+:root[data-app-design="wuling"][data-design-elevation="on"] [data-slot="dialog-content"] {
+  box-shadow: var(--wl-shadow-md);
+}
+
+:root[data-app-design="wuling"][data-design-elevation="on"] [data-slot="popover-content"],
+:root[data-app-design="wuling"][data-design-elevation="on"] [data-slot="select-content"] {
+  box-shadow: var(--wl-shadow-lg);
+}
+
+:root[data-app-design="wuling"][data-design-elevation="on"] [data-slot="table-container"] {
+  box-shadow: var(--wl-inset-highlight);
+}
+
+/* 层级靠硬投影，不靠毛玻璃：预设显式把 backdrop-filter 关掉（wuling.css:146）。 */
+:root[data-app-design="wuling"][data-design-elevation="on"] [data-slot="card"] {
+  backdrop-filter: var(--wl-blur);
+  -webkit-backdrop-filter: var(--wl-blur);
+}
+
+/* ── typography：账本式小标签 + 三档行高 ───────────────────────────────── */
+:root[data-app-design="wuling"][data-design-typography="on"] .xiranite-node-surface {
+  line-height: var(--wl-line-height);
+}
+
+:root[data-app-design="wuling"][data-design-typography="on"] [data-slot="input"],
+:root[data-app-design="wuling"][data-design-typography="on"] [data-slot="select-trigger"] {
+  line-height: var(--wl-field-line-height);
+}
+
+:root[data-app-design="wuling"][data-design-typography="on"] .xiranite-node-surface pre,
+:root[data-app-design="wuling"][data-design-typography="on"] .xiranite-node-surface code {
+  line-height: var(--wl-code-line-height);
+}
+
+:root[data-app-design="wuling"][data-design-typography="on"] [data-slot="badge"] {
+  font-family: var(--wl-label-font);
+  font-size: var(--wl-label-size);
+  font-weight: var(--wl-label-weight);
+  letter-spacing: var(--wl-label-tracking);
+  text-transform: var(--wl-label-transform);
+}
+
+:root[data-app-design="wuling"][data-design-typography="on"] .xiranite-node-surface th {
+  font-family: var(--wl-label-font);
+  font-size: var(--wl-label-size);
+  letter-spacing: var(--wl-label-tracking-wide);
+  text-transform: var(--wl-label-transform);
+}
+
+/* ── motion：一个时长、一条曲线、一次入场 ──────────────────────────────── */
+:root[data-app-design="wuling"][data-design-motion="on"] [data-slot="button"],
+:root[data-app-design="wuling"][data-design-motion="on"] [data-slot="input"],
+:root[data-app-design="wuling"][data-design-motion="on"] [data-slot="card"] {
+  transition-duration: var(--wl-motion-duration);
+  transition-timing-function: var(--wl-motion-ease);
+}
+
+:root[data-app-design="wuling"][data-design-motion="on"] .xiranite-node-surface > * {
+  animation: wuling-dl-enter var(--wl-enter-duration) var(--wl-motion-ease) both;
+}
+
+/* 按下去不许位移：预设的 active 就是 translateY(0)（wuling.css:201）。 */
+:root[data-app-design="wuling"][data-design-motion="on"] [data-slot="button"]:active {
+  transform: translateY(var(--wl-press-travel));
+}
+
+@keyframes wuling-dl-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--wl-enter-offset));
+    filter: blur(var(--wl-enter-blur));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* ── states：结构线随主色，反馈是「加线」不是「变深」───────────────────── */
+:root[data-app-design="wuling"][data-design-states="on"] [data-slot="card"],
+:root[data-app-design="wuling"][data-design-states="on"] [data-slot="input"],
+:root[data-app-design="wuling"][data-design-states="on"] [data-slot="select-trigger"],
+:root[data-app-design="wuling"][data-design-states="on"] [data-slot="table-container"] {
+  border-color: var(--wl-rule);
+}
+
+:root[data-app-design="wuling"][data-design-states="on"] [data-slot="card"]:hover,
+:root[data-app-design="wuling"][data-design-states="on"] [data-slot="card"]:focus-within {
+  border-color: var(--wl-rule-strong);
+}
+
+:root[data-app-design="wuling"][data-design-states="on"] [data-slot="button"]:hover {
+  background-color: var(--wl-hover-wash);
+  box-shadow: inset 0 0 0 1px var(--wl-hover-ring);
+}
+
+:root[data-app-design="wuling"][data-design-states="on"] [data-slot="button"]:focus-visible {
+  box-shadow: 0 0 0 1px var(--ring), inset 0 0 0 1px var(--wl-focus-inset);
+}
+
+:root[data-app-design="wuling"][data-design-states="on"] .xiranite-node-surface tbody tr:hover {
+  background-color: var(--wl-row-hover);
+}
+
+/* ── geometry：蓝图纸、网格、账本底色 ─────────────────────────────────── */
+:root[data-app-design="wuling"][data-design-geometry="on"] .xiranite-node-surface {
+  background-image:
+    linear-gradient(90deg, var(--wl-blueprint-color) 0 var(--wl-blueprint-stroke), transparent var(--wl-blueprint-stroke) 100%),
+    linear-gradient(180deg, var(--wl-surface-tint), var(--wl-surface-tint));
+  background-size: var(--wl-blueprint-size) var(--wl-blueprint-size);
+}
+
+:root[data-app-design="wuling"][data-design-geometry="on"] .ws-canvas-bg {
+  background-size: var(--wl-canvas-grid) var(--wl-canvas-grid);
+}
+
+:root[data-app-design="wuling"][data-design-geometry="on"] [data-slot="input"],
+:root[data-app-design="wuling"][data-design-geometry="on"] [data-slot="select-trigger"] {
+  background-color: var(--wl-field-tint);
+}
+
+:root[data-app-design="wuling"][data-design-geometry="on"] [data-slot="progress"] {
+  background-color: var(--wl-progress-tint);
+}
+
+:root[data-app-design="wuling"][data-design-geometry="on"] [data-slot="progress-indicator"] {
+  background-image: var(--wl-progress-fill);
+}
+
+:root[data-app-design="wuling"][data-design-geometry="on"] .xiranite-node-surface th {
+  background-color: var(--wl-header-tint);
+  border-bottom-color: var(--wl-rule-strong);
+}
+
+:root[data-app-design="wuling"][data-design-geometry="on"] .xiranite-node-surface td {
+  border-bottom-color: var(--wl-rule);
+}
+
+:root[data-app-design="wuling"][data-design-geometry="on"] .xiranite-node-surface tbody tr:nth-child(even) {
+  background-color: var(--wl-stripe);
+}
+
+:root[data-app-design="wuling"][data-design-geometry="on"] .xiranite-node-surface pre {
+  background-image: var(--wl-code-surface);
+  border-color: var(--wl-code-border);
+}
+
+/* 减少动效时不许留半套入场：预设自己就是这么处理的（wuling.css:317-331）。 */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-app-design="wuling"][data-design-motion="on"] .xiranite-node-surface > * {
+    animation: none;
+  }
+
+  :root[data-app-design="wuling"][data-design-motion="on"] [data-slot="button"],
+  :root[data-app-design="wuling"][data-design-motion="on"] [data-slot="input"],
+  :root[data-app-design="wuling"][data-design-motion="on"] [data-slot="card"] {
+    transition-duration: 0ms;
+  }
+}

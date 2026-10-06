@@ -1,0 +1,4051 @@
+{
+  "common": {
+    "appName": "XIRANITE",
+    "version": "v{{version}}",
+    "search": "Search",
+    "searchPlaceholder": "SEARCH...",
+    "close": "Close",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "copyFailed": "Copy failed",
+    "rename": "Rename",
+    "add": "Add",
+    "remove": "Remove",
+    "hide": "Hide",
+    "loading": "Loading...",
+    "empty": "Empty",
+    "unknown": "Unknown",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "toggleCollapse": "Toggle collapse",
+    "duplicate": "Duplicate",
+    "focus": "Focus",
+    "exitFocus": "Exit focus",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "openFloatingWindow": "Open floating window",
+    "openedInNewWindow": "{{name}} was opened in a new window.",
+    "unableToOpenInNewWindow": "Unable to open {{name}} in a new window.",
+    "moveToView": "Move to view",
+    "hideIn": "Hide in {{view}}",
+    "live": "live",
+    "keepAliveOnViewSwitch": "Keep state across view switches: {{state}}",
+    "on": "On",
+    "off": "Off",
+    "reset": "Reset",
+    "copy": "Copy",
+    "clear": "Clear",
+    "dock": "DOCKED",
+    "float": "FLOAT",
+    "compact": "COMPACT",
+    "focusState": "FOCUS",
+    "full": "FULL",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "toggleTheme": "Toggle theme",
+    "closeWindow": "Close window",
+    "resizeLane": "Resize lane",
+    "addLane": "Add lane",
+    "unfiled": "UNFILED",
+    "widthRatio": "WIDTH RATIO",
+    "moreActions": "More actions",
+    "dragReorder": "Drag to reorder",
+    "dragToOtherLane": "Drag to other lane",
+    "workspaceN": "WORKSPACE {{n}}",
+    "state": {
+      "docked": "Docked",
+      "floating": "Floating",
+      "focused": "Focused",
+      "fullscreen": "Fullscreen",
+      "compact": "Compact"
+    }
+  },
+  "topbar": {
+    "viewMode": {
+      "dashboard": "DASHBOARD",
+      "dashboardHint": "Usage analytics",
+      "cards": "CARDS",
+      "cardsHint": "Card layout",
+      "dockview": "DOCKVIEW",
+      "dockviewHint": "Dockview panels",
+      "flow": "FLOW",
+      "flowHint": "React Flow nodes",
+      "lane": "LANE",
+      "laneHint": "Swimlane mode",
+      "bento": "BENTO",
+      "bentoHint": "Resizable bento grid"
+    },
+    "cardLayout": {
+      "grid": "GRID",
+      "gridHint": "auto tile",
+      "stack": "MASONRY",
+      "stackHint": "waterfall columns",
+      "split": "SPLIT",
+      "splitHint": "two columns",
+      "focus": "FOCUS",
+      "focusHint": "hero + strip"
+    },
+    "theme": {
+      "label": "Theme",
+      "preset": "THEME PRESET",
+      "colorMode": "COLOR MODE",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark",
+      "openSettings": "OPEN THEME SETTINGS",
+      "wuling": "Wuling"
+    },
+    "workspace": {
+      "new": "NEW WORKSPACE",
+      "select": "Select Workspace",
+      "current": "Current Workspace",
+      "rename": "Rename",
+      "delete": "Delete Workspace",
+      "setIcon": "Set Icon",
+      "defaults": {
+        "alpha": "WORKSPACE ALPHA",
+        "grid": "ANALYTICAL GRID",
+        "kern": "SYSTEM KERNEL",
+        "net": "NETWORK NODE",
+        "arch": "ARCHIVE"
+      }
+    },
+    "registry": "REGISTRY",
+    "operations": "Node operations",
+    "history": "Run history",
+    "deletions": "Deletion history",
+    "search": "SEARCH...",
+    "searchHint": "Search",
+    "devRuntime": {
+      "vite": "Dev port mode",
+      "packaged": "Packaged asset mode"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "header": "Settings",
+    "headerSubtitle": "Browse settings along a timeline: Appearance → Workspace → View → Runtime → Data.",
+    "search": {
+      "placeholder": "Search settings (theme, swimlane, WebView2…)",
+      "clear": "Clear search",
+      "results": "Search results",
+      "empty": "No matching settings",
+      "stage": "Stage",
+      "stepInStage": "In “{{stage}}”",
+      "fieldInStep": "{{step}} · {{stage}}"
+    },
+    "sections": {
+      "appearance": "Appearance",
+      "background": "Background",
+      "workspace": "Workspace",
+      "runtime": "Runtime",
+      "data": "Data",
+      "view": "View"
+    },
+    "workspace": {
+      "startupRestore": "Restore nodes on startup",
+      "startupRestoreDesc": "Restore the previous workspace's saved node instances when the app starts."
+    },
+    "view": {
+      "swimlane": {
+        "soloOnFocus": "Solo lane on focus",
+        "showNavigatorInSolo": "Show the lane navigator in solo mode",
+        "edgeRevealDelay": "Edge lane reveal delay",
+        "focusOnHover": "Refocus lane on hover",
+        "focusDelay": "Hover refocus delay"
+      }
+    },
+    "timeline": {
+      "navLabel": "Settings timeline",
+      "railTitle": "Timeline",
+      "stepsLabel": "Sub-section",
+      "advanced": "Advanced",
+      "advShort": "Adv",
+      "stageDesc": {
+        "appearance": "Theme, color mode, typeface, language, and atmosphere.",
+        "workspace": "Canvas background, operation bar, and alphabet index.",
+        "view": "Swimlane interaction, component skins, and card clicks.",
+        "runtime": "Local backend connection, node memory protection, hot reload, and WebView2 flags.",
+        "data": "Workspace persistence and database ownership."
+      },
+      "steps": {
+        "theme": "Theme",
+        "designLanguage": "Design language",
+        "color": "Color mode",
+        "typography": "Font & language",
+        "atmosphere": "Atmosphere",
+        "themeImport": "Import theme JSON",
+        "background": "Background canvas",
+        "chrome": "Operation bar",
+        "alphabet": "Alphabet index",
+        "swimlane": "Swimlane",
+        "components": "Component skins",
+        "cardInteraction": "Card interaction",
+        "connection": "Runtime connection",
+        "memoryProtection": "Node memory protection",
+        "webview2": "WebView2",
+        "storage": "Local data"
+      },
+      "stepDesc": {
+        "theme": "Pick a built-in preset and inspect its palette and source.",
+        "typography": "Global UI font and interface language.",
+        "atmosphere": "Vignette, grain, and ambient lighting toggles.",
+        "background": "Grid / dots / image background and texture preview.",
+        "swimlane": "Solo focus, hover re-focus, and navigator behavior."
+      },
+      "fieldsTitle": "Fields & exclusive option groups",
+      "fieldsDesc": "Title styles apply to shared Select, input, and slider fields, plus exclusive groups such as compression mode and output location. Keyboard and form semantics stay unchanged.",
+      "controlStyle": "Control style",
+      "fieldTitleStyle": "Global field title",
+      "choice": {
+        "segmented": "Segmented",
+        "pills": "Pills",
+        "tabs": "Tabs",
+        "tiles": "Tiles",
+        "none": "None"
+      },
+      "fieldTitle": {
+        "stacked": "Stacked",
+        "legend": "Floating legend",
+        "inline": "Inline",
+        "hidden": "Hidden",
+        "none": "None"
+      },
+      "compressionPreview": "Compression mode",
+      "lossless": "Lossless",
+      "lossy": "Lossy",
+      "modulePanelTitle": "Module panels",
+      "modulePanelDesc": "Unify node section titles, panel surfaces, and resize handles. Nodes on shared components update immediately.",
+      "moduleTitleStyle": "Title style",
+      "modulePanelStyle": "Panel style",
+      "resizableHandle": "Resize handle",
+      "moduleTitle": {
+        "legend": "Floating badge",
+        "inline": "Inline",
+        "bar": "Top bar",
+        "minimal": "Minimal"
+      },
+      "modulePanel": {
+        "soft": "Soft",
+        "solid": "Solid",
+        "outline": "Outline",
+        "flat": "Flat"
+      },
+      "handle": {
+        "grip": "Grip",
+        "dots": "Dots",
+        "line": "Accent line",
+        "minimal": "Minimal"
+      },
+      "previewModule": "Preview module",
+      "previewBadge": "12 items",
+      "previewModuleDesc": "Title and panel use global styles; shared ResizableHandle keeps the divider in sync.",
+      "nodeHotReload": "Node backend source hot reload",
+      "nodeHotReloadDesc": "After saving backend source for a used node, the next run loads the new code without restarting the desktop shell or other nodes."
+    },
+    "view": {
+      "cardInteraction": "Card Interaction",
+      "cardInteractionDesc": "Customize single-click and double-click behavior for cards in card view.",
+      "clickAction": "Single Click",
+      "clickActionDesc": "Action triggered by single-clicking a card. Set to \"None\" to disable.",
+      "doubleClickAction": "Double Click",
+      "doubleClickActionDesc": "Action triggered by double-clicking a card. Set to \"None\" to disable.",
+      "action": {
+        "none": "None",
+        "focus": "Focus",
+        "fullscreen": "Fullscreen"
+      },
+      "componentDisplay": {
+        "title": "Component skins",
+        "description": "Each block below skins one shared control family used across nodes. Appearance only — behavior and keyboard semantics stay the same.",
+        "guide": "Scan by number and component badge. Options sit under each header; live previews use the same primitives as node UIs.",
+        "livePreview": "Live preview",
+        "preview": "Preview",
+        "history": "History",
+        "details": "Details",
+        "previewHint": "This is the same shared Tabs component used by node result rails.",
+        "historyHint": "Changing the display type never changes tab content or actions.",
+        "detailsHint": "Other component preferences can be added here without changing node implementations.",
+        "styles": {
+          "underline": "Underline",
+          "surface": "Surface",
+          "pill": "Pill",
+          "boxed": "Boxed",
+          "quiet": "Quiet",
+          "none": "None"
+        },
+        "tabs": {
+          "title": "Tabs",
+          "target": "Tabs",
+          "description": "Node result rails, settings previews, and any shared Radix Tabs list."
+        },
+        "switches": {
+          "title": "Switches",
+          "target": "Switch",
+          "description": "Boolean toggles in node cards, settings rows, and configuration panels.",
+          "preview": "Off",
+          "previewOn": "On",
+          "styles": {
+            "outlined": "Outlined",
+            "filled": "Filled",
+            "minimal": "Minimal",
+            "none": "None"
+          }
+        },
+        "sliders": {
+          "title": "Sliders",
+          "target": "Slider",
+          "description": "Horizontal parameter rails such as Magic Card glow, density, and every shared Radix Slider.",
+          "previewHint": "Same control family as Magic Card parameter rails and settings density sliders.",
+          "previewRadius": "Glow radius",
+          "previewIntensity": "Glow intensity",
+          "previewStrength": "Primary strength",
+          "styles": {
+            "solid": "Solid",
+            "soft": "Soft",
+            "pill": "Pill",
+            "line": "Line",
+            "minimal": "Minimal",
+            "none": "None"
+          }
+        },
+        "scrollbars": {
+          "title": "Scrollbars",
+          "target": "Scrollbar",
+          "description": "Vertical rails and horizontal bottom strips for native overflow and ScrollArea across node panels.",
+          "previewHint": "Top box: vertical + horizontal together. Bottom strip: horizontal rail only.",
+          "previewLine": "Shared scrollbar line {{n}} — wide row for vertical rail and horizontal strip",
+          "horizontalOnly": "Horizontal strip",
+          "horizontalHint": "Drag this bottom rail — same style as wide node tables.",
+          "styles": {
+            "thin": "Thin",
+            "soft": "Soft",
+            "solid": "Solid",
+            "rounded": "Rounded",
+            "minimal": "Minimal",
+            "none": "None"
+          }
+        },
+        "fields": {
+          "target": "Field / Choice"
+        },
+        "modulePanel": {
+          "target": "ModulePanel"
+        }
+      }
+    },
+    "data": {
+      "title": "Local data",
+      "description": "Workspace persistence and database configuration belong to the local backend service.",
+      "backendEndpoint": "BACKEND",
+      "backendStatus": "STATUS",
+      "token": "TOKEN",
+      "databasePath": "DATABASE",
+      "databasePathManaged": "Managed by Local Backend config",
+      "nextTitle": "Database path selector",
+      "nextDescription": "The frontend now has a dedicated data section. A real path picker should be wired after the Elysia backend exposes current database path and update APIs."
+    },
+    "activePreset": "ACTIVE PRESET",
+    "selectPreset": "SELECT THEME PRESET",
+    "designTheme": {
+      "label": "Advanced theme · design language",
+      "description": "A second axis next to the color theme. It replaces the whole design language — color roles, shape, elevation, typography, motion, state layers and component geometry. Every number comes from Google's own generated Material 3 token dictionary (@material/web, design system v0.192); nothing here is typed from memory.",
+      "nativeBadge": "off — color theme only",
+      "pickTheme": "DESIGN LANGUAGE",
+      "native": {
+        "label": "Native (Xiranite styling)",
+        "description": "No design language is applied. The color theme and the built-in component styling stay exactly as they are."
+      },
+      "md3": {
+        "label": "Material 3",
+        "description": "Material You color roles from a source color, plus M3 shape, elevation, type scale, motion curves, state layers and per-component metrics."
+      },
+      "mondrian": {
+        "label": "De Stijl · Mondrian",
+        "description": "Neoplasticism: only primary colours and non-colours, only rectangles and straight horizontal/vertical lines, zero radius, zero shadow, feedback by opposition. Colours are measured from public-domain reproductions; every token records its own source."
+      },
+      "wuling": {
+        "label": "Wuling · Jade Industrial",
+        "description": "The app's own Wuling preset promoted to a design language: hard offset shadows with no blur, a 2/4/8px corner ladder, ledger-style mono labels, one 180ms curve and a blueprint grid. Every value is measured from the surviving preset with its line number, so the default tiers look exactly like the preset today."
+      },
+      "swiss": {
+        "label": "Swiss · International Typographic",
+        "description": "International Typographic Style (Zurich, 1950s) on SBB's published numbers: zero radius everywhere, hierarchy carried by hairlines and background steps instead of shadow, one functional red, two weights only, and grid/dot textures for depth. Values come from the SBB design system v5.2.0 and the Swiss-Minimalist composition brief; the colour axis deliberately has no picker - there is only one red, and it is a signal."
+      },
+      "lonestar": {
+        "label": "Lone Star · 孤星",
+        "description": "Arknights 孤星 as a cassette-futurism skin on the same bones: two grounds only (a polyester-tinted paper over a machine chassis), a high-brightness orange reserved for mechanical interaction, 45° cut corners instead of fillets, monospaced tabular figures, and selection that is always the contract's cyan - never that orange. Nobody publishes the event's hex values, so every colour here is a calibration against its four documented properties; the settings panel says so out loud."
+      },
+      "mondrianAccent": "Primary action plane",
+      "mondrianLine": "Structural line weight",
+      "cornerScale": "Corner ladder",
+      "ledgerLabels": "Ledger labels",
+      "ledgerLabelsDesc": "Mono, uppercase, tracked small labels on badges and table heads",
+      "noSeedNote": "There is deliberately no colour picker here: this language has exactly one accent, and that accent is a signal colour (SBB brand and product roles resolve to the same red). A swatch that changes nothing would be a lie.",
+      "swissRule": "Structural rule weight",
+      "rules": {
+        "1": "1px hairline (SBB divider)",
+        "2": "2px border-2",
+        "4": "4px border-4"
+      },
+      "upperLabels": "Uppercase label devices",
+      "upperLabelsDesc": "Uppercase + tracking on badges and table heads only; body copy keeps its grammar",
+      "monoFigures": "Monospaced figures",
+      "monoFiguresDesc": "Digits and identifiers set in the app mono with tabular numerals so columns align on the digit",
+      "cutNote": "Cut corners are fixed by the token contract: 6px on panels, 12px on lifted blocks - one cut treatment per component, so there is no slider here.",
+      "swissProvenanceNote": "Font families and sizes stay with the colour theme, the font preset and your zoom: this language only multiplies the size that is already in effect (ADR-0080). Per-token sources: docs/advanced-design-theme-md3.md §13.",
+      "lonestarProvenanceNote": "No official colour list exists for this event. These values are a calibration against four documented properties plus the extracted token contract, inherited from the sister project that already shipped them - see docs/advanced-design-theme-md3.md §14.",
+      "accents": {
+        "red": "Red",
+        "blue": "Blue",
+        "yellow": "Yellow"
+      },
+      "lines": {
+        "1": "Hairline",
+        "2": "Standard",
+        "3": "Heavy"
+      },
+      "provenanceNote": "Numbers marked as UI translations (line width, spacing, type sizes) have no documented De Stijl value — see docs/advanced-design-theme-md3.md.",
+      "variant": "Scheme variant",
+      "variants": {
+        "tonalSpot": "Tonal Spot — the Material You default",
+        "neutral": "Neutral — near-grey, very restrained",
+        "vibrant": "Vibrant — highest saturation",
+        "expressive": "Expressive — rotates the hue on purpose",
+        "fidelity": "Fidelity — stays closest to the source color",
+        "content": "Content — derived from image content",
+        "monochrome": "Monochrome — greyscale",
+        "rainbow": "Rainbow — playful, wide hue spread",
+        "fruitSalad": "Fruit Salad — playful multi-hue"
+      },
+      "seedSource": "Source color",
+      "sources": {
+        "manual": "Picked",
+        "activeTheme": "From current theme",
+        "systemAccent": "System accent"
+      },
+      "seed": "Seed color",
+      "seedHex": "Seed color hex",
+      "seedUnavailable": "This platform does not expose a system accent color to the webview, so that source is unavailable here.",
+      "seedFallback": "The requested source could not be resolved — using your manual seed instead: {{seed}}",
+      "contrast": "Contrast level",
+      "contrastHint": "Material 3 contrast levels, resolved inside the color engine (−1 / 0 / 0.5 / 1).",
+      "contrasts": {
+        "reduced": "Reduced",
+        "standard": "Standard",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "shapeScale": "Shape scale",
+      "elevationShadows": "Elevation shadows",
+      "elevationShadowsDesc": "Turning this off keeps only the surface-tint layering, which is how Material 3 dark schemes read.",
+      "dimensions": "What it takes over",
+      "dims": {
+        "color": {
+          "label": "Color roles",
+          "description": "Material dynamic colors replace the color theme's CSS variables."
+        },
+        "shape": {
+          "label": "Shape",
+          "description": "Corner radii from the M3 shape scale."
+        },
+        "elevation": {
+          "label": "Elevation",
+          "description": "M3 elevation levels 0–5 (shadow recipe + surface tint)."
+        },
+        "typography": {
+          "label": "Typography",
+          "description": "M3 type scale: size, line height, weight, tracking. Typeface stays yours — we do not ship Roboto Flex."
+        },
+        "motion": {
+          "label": "Motion",
+          "description": "M3 durations and easing curves on interactive parts."
+        },
+        "states": {
+          "label": "State layers",
+          "description": "Hover / focus / pressed / dragged overlays at the M3 opacities."
+        },
+        "geometry": {
+          "label": "Component geometry",
+          "description": "Heights, paddings, stroke widths and gaps taken from the per-component M3 metrics."
+        }
+      },
+      "previewCaption": "live",
+      "previewButton": "Save",
+      "previewTonal": "Tonal",
+      "previewOutline": "Outline",
+      "previewBadge": "Label"
+    },
+    "themeSource": {
+      "source": "Source",
+      "repo": "Repo",
+      "evidenceCount": "{{count}} evidence",
+      "kindInternal": "Internal",
+      "kindOnePageLove": "One Page Love",
+      "kindAwwwards": "Awwwards",
+      "kindPublicSite": "Public site",
+      "kindOpenSource": "Open source"
+    },
+    "colorMode": {
+      "label": "COLOR MODE",
+      "description": "Switching theme preset applies its preferred default mode. Override it here.",
+      "system": "Follow System",
+      "systemDesc": "Auto-switch with OS light/dark preference",
+      "light": "Light",
+      "lightDesc": "Force light color scheme",
+      "dark": "Dark",
+      "darkDesc": "Force dark color scheme"
+    },
+    "liquidGlass": {
+      "title": "LIQUID GLASS",
+      "description": "Apply a library-backed glass material across nodes, panels, menus, and workspace chrome.",
+      "opacity": "Opacity",
+      "blur": "Blur",
+      "displacement": "Refraction"
+    },
+    "language": {
+      "label": "LANGUAGE",
+      "subtitle": "Interface language",
+      "description": "Choose the display language for the application interface.",
+      "en": "English",
+      "zh": "中文（简体）",
+      "restartHint": "Changes apply instantly."
+    },
+    "background": {
+      "title": "Background Canvas",
+      "mode": "BACKGROUND MODE",
+      "modes": {
+        "grid": "Grid Lines",
+        "dot-grid": "Dotted Grid",
+        "image": "Custom Image",
+        "none": "Solid Color"
+      },
+      "uploadImage": "UPLOAD IMAGE",
+      "chooseFile": "Choose File",
+      "imageUrl": "OR IMAGE URL",
+      "inlineImage": "Current background is an embedded image (~{{size}}); type an address to replace it",
+      "autoCompressHint": "Images above {{limit}} are resized to {{edge}} and re-encoded before saving",
+      "compressing": "Compressing image…",
+      "compressed": "Auto-compressed {{from}} → {{to}}",
+      "keptOriginal": "Original image kept ({{size}})",
+      "stillTooLarge": "Still above {{limit}} after compression; choose a smaller image",
+      "processFailed": "Image processing failed: {{message}}",
+      "opacity": "Opacity",
+      "blur": "Blur",
+      "coverTopBar": "Cover Top Bar",
+      "coverTopBarHint": "Extend background image across the whole window; the top bar becomes transparent"
+    },
+    "atmospheric": {
+      "title": "Atmospheric Effects",
+      "vignette": "Vignette Depth",
+      "vignetteDesc": "Controls the peripheral darkness of the workspace canvas.",
+      "grain": "Grain Texture Intensity",
+      "silkFinish": "SILK-FINISH NOISE",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "ambient": "AMBIENT LIGHTING",
+      "actionGlow": "Action Glow",
+      "actionGlowDesc": "Soft colored aura behind primary buttons",
+      "cardElevation": "Card Elevation Highlights",
+      "cardElevationDesc": "Subtle top-border shine on elevated surfaces"
+    },
+    "wheel": {
+      "actions": "Wheel sectors",
+      "actionsDesc": "Drag to reorder; actions moved to Hidden do not appear on the top-right wheel",
+      "visibleActions": "On the wheel",
+      "hiddenActions": "Hidden",
+      "dragAction": "Drag {{action}}",
+      "resetActions": "Restore defaults",
+      "overflow": "{{count}} actions exceed the sector limit and are not shown",
+      "radius": "Radius",
+      "spacing": "Sector spacing",
+      "radiusValue": "{{value}} px",
+      "spacingValue": "{{value}}°"
+    },
+    "chrome": {
+      "title": "Operation Bar",
+      "description": "Shared floating action bar for cards and node views. Can be fully hidden, or adjust position and style to reduce obstruction.",
+      "visible": "Show operation bar",
+      "visibleDesc": "When off, the bar is not rendered (components can still be operated via the context menu)",
+      "position": "Position",
+      "positionDesc": "Horizontal position of the bar on a card",
+      "positionLeft": "Left",
+      "positionIsland": "Island",
+      "positionRight": "Right",
+      "style": "Style",
+      "styleDesc": "Visual style of the bar, independent of position",
+      "styleDefault": "Default",
+      "styleDefaultDesc": "Pill-shaped buttons, appears on hover",
+      "styleTrafficLight": "Traffic Light",
+      "styleTrafficLightDesc": "macOS-style colored dots, always visible, icons on hover",
+      "islandCustom": "Island Customization",
+      "islandCustomDesc": "Tune the centered operation bar size, motion, and idle mark position.",
+      "islandScale": "Overall Size",
+      "islandMotion": "Motion Speed",
+      "islandDelay": "Button Delay",
+      "islandIdleOffset": "Idle Offset",
+      "actions": "Buttons",
+      "actionsDesc": "Set the shared node toolbar order and hide actions you do not use.",
+      "visibleActions": "Visible",
+      "hiddenActions": "Hidden",
+      "dragAction": "Drag {{action}}",
+      "resetActions": "Restore default buttons",
+      "actionLabels": {
+        "node-help": "Node help",
+        "collapse": "Collapse",
+        "focus": "Focus",
+        "fullscreen": "Fullscreen",
+        "float": "Open floating window",
+        "moveToView": "Move to view",
+        "keepAliveOnViewSwitch": "Keep NeoView in memory",
+        "hide": "Hide in current view"
+      }
+    },
+    "floatingWindowCaption": {
+      "title": "Standalone Window Controls",
+      "description": "Position and style the desktop controls for ordinary node windows. NeoView keeps its own window chrome.",
+      "position": "Position",
+      "positionLeft": "Top left",
+      "positionCenter": "Top center",
+      "positionRight": "Top right",
+      "style": "Style",
+      "styleWindows": "Windows",
+      "styleWindowsDesc": "Three separate transparent Windows caption buttons.",
+      "styleCapsule": "Capsule",
+      "styleCapsuleDesc": "A unified toolbar-like capsule with compact window actions.",
+      "styleTrafficLight": "Traffic Light",
+      "styleTrafficLightDesc": "Colored window dots with icons revealed on hover.",
+      "autoCollapse": "Auto-collapse capsule",
+      "autoCollapseDesc": "Collapse to a locator mark when idle; turn off to keep all window actions visible."
+    },
+    "alphabetIndex": {
+      "title": "Alphabet Index",
+      "description": "A compact launcher at the bottom of the workspace. Hover a letter to browse matching nodes, then click a node to add it.",
+      "visible": "Show alphabet index",
+      "visibleDesc": "Keep the launcher available at the bottom of the workspace.",
+      "style": "Style",
+      "styles": {
+        "glass": "Glass",
+        "solid": "Solid",
+        "minimal": "Minimal"
+      },
+      "opacity": "Opacity",
+      "wave": "Wave response"
+    },
+    "texture": {
+      "title": "Texture Canvas",
+      "basePalette": "BASE PALETTE",
+      "resetDefaults": "RESET DEFAULTS",
+      "applyChanges": "APPLY CHANGES",
+      "paletteLabels": {
+        "bg": "BG",
+        "primary": "Primary",
+        "border": "Border",
+        "text": "Text",
+        "void": "Void",
+        "card": "Card",
+        "green": "Green",
+        "deep": "Deep",
+        "surface": "Surface",
+        "gold": "Gold",
+        "jade": "Jade",
+        "cyan": "Cyan",
+        "signal": "Signal",
+        "paper": "Paper",
+        "ink": "Ink",
+        "blue": "Blue",
+        "yellow": "Yellow",
+        "sky": "Sky",
+        "chrome": "Chrome",
+        "mist": "Mist",
+        "canvas": "Canvas",
+        "violet": "Violet",
+        "tool": "Tool",
+        "orange": "Orange",
+        "nebula": "Nebula",
+        "star": "Star",
+        "panel": "Panel",
+        "photo": "Photo",
+        "sage": "Sage",
+        "amber": "Amber"
+      }
+    },
+    "themes": {
+      "wuling": {
+        "label": "Wuling Jade Industrial",
+        "subtitle": "Arknights Endfield",
+        "description": "A jade industrial workspace inspired by Wuling's Endfield direction: cool laboratory surfaces, hard technical panels, Hanken Grotesk text, and JetBrains Mono data labels across light and dark modes."
+      }
+    },
+    "desktopTray": {
+      "title": "System tray",
+      "description": "Control the desktop shell's notification-area presence. Nodes can contribute actions here or declare their own tray icon.",
+      "keepRunning": "Keep Xiranite in the system tray",
+      "keepRunningDescription": "Closing the main window hides it. Use the tray icon to restore Xiranite or exit it explicitly.",
+      "unsupported": "The active runtime does not provide a system tray adapter."
+    },
+    "developerRuntime": {
+      "title": "Developer Runtime",
+      "description": "Inspect the frontend source and local backend used by the desktop shell. The loopback channel is resolved at startup, so it is not a hot runtime toggle.",
+      "hostRuntime": "HOST",
+      "frontend": "FRONTEND",
+      "backend": "BACKEND",
+      "token": "TOKEN",
+      "status": "STATUS",
+      "configured": "Configured",
+      "notConfigured": "Not configured",
+      "statusReady": "READY",
+      "statusChecking": "CHECKING",
+      "statusMissingConfig": "MISSING CONFIG",
+      "statusUnreachable": "UNREACHABLE",
+      "frontendSource": {
+        "vite-dev": "VITE DEV",
+        "packaged": "PACKAGED"
+      },
+      "hotSwitchHint": "During development, run bun run dev first, then bun run dev:desktop:attach to make the desktop shell attach to the existing Vite/Elysia ports. Use bun run dev:desktop when you want one command to start everything.",
+      "reload": "Reload WebView",
+      "refreshStatus": "Refresh status",
+      "restartBackend": "Restart backend",
+      "restartingBackend": "Restarting backend",
+      "copyAttach": "Copy attach command",
+      "copyStart": "Copy one-shot command",
+      "copied": "Copied",
+      "openFrontend": "Open frontend"
+    },
+    "memoryProtection": {
+      "title": "Node memory protection",
+      "description": "Limit RSS and JavaScript heap growth relative to each operation's baseline, and bound retained backend events.",
+      "applied": "Applied",
+      "unavailable": "The local backend must be ready before node memory protection can be loaded or changed.",
+      "loading": "Loading the active memory protection policy...",
+      "unsupported": "The active backend does not support runtime memory protection settings.",
+      "retry": "Reload memory protection settings",
+      "invalid": "One or more values are outside the allowed range.",
+      "unsaved": "There are unapplied changes.",
+      "liveHint": "Saving applies immediately to newly started operations; running operations keep their startup policy.",
+      "restore": "Restore recommended values",
+      "apply": "Apply settings",
+      "saving": "Applying",
+      "scopes": {
+        "default": {
+          "title": "General node defaults",
+          "description": "These limits apply to every node without a dedicated override."
+        }
+      },
+      "fields": {
+        "rss": {
+          "label": "RSS growth limit",
+          "description": "Allowed resident-memory growth from the operation baseline ({{min}}–{{max}} MiB)."
+        },
+        "heap": {
+          "label": "Heap growth limit",
+          "description": "Allowed JavaScript heap growth from the operation baseline ({{min}}–{{max}} MiB)."
+        },
+        "events": {
+          "label": "Retained events",
+          "description": "Latest progress and log events retained for one operation ({{min}}–{{max}})."
+        },
+        "interval": {
+          "label": "Memory sample interval",
+          "description": "How often the backend samples process memory ({{min}}–{{max}} ms)."
+        }
+      },
+      "units": {
+        "mib": "MiB",
+        "events": "events",
+        "ms": "ms"
+      }
+    },
+    "webview2": {
+      "title": "WebView2 Experiments",
+      "description": "Manage Chromium features and startup switches through xiranite.config.toml. The startup configuration stays framework-neutral; the desktop shell only maps the arguments.",
+      "features": "FEATURES",
+      "switches": "SWITCHES",
+      "restartTitle": "Takes effect after restart",
+      "restartDescription": "Saving only updates the config file. Fully quit and restart Xiranite; reloading the WebView or restarting only the local backend will not apply these arguments.",
+      "unavailableTitle": "Configuration service unavailable",
+      "unavailable": "The local backend must be ready before xiranite.config.toml can be loaded or saved.",
+      "errorTitle": "WebView2 configuration failed",
+      "save": "Save configuration",
+      "saving": "Saving",
+      "reset": "Restore recommended defaults",
+      "openConfig": "Open config file",
+      "openingConfig": "Opening",
+      "openDevTools": "Open developer tools",
+      "openingDevTools": "Opening developer tools",
+      "saved": "Configuration saved",
+      "savedDescription": "The browser arguments will be applied the next time Xiranite starts from a fully closed state.",
+      "tier": {
+        "recommended": "Recommended",
+        "optional": "Optional",
+        "experimental": "Experimental"
+      },
+      "flags": {
+        "jxl": {
+          "label": "JPEG XL",
+          "description": "Attempt to enable Chromium JPEG XL decoding so NeoView Reader can keep original image/jxl responses on the direct path; this only works when the current WebView2 Runtime was built with the JXL decoder."
+        },
+        "codeCache": {
+          "label": "WebView2 Code Cache",
+          "description": "Cache compiled JavaScript to improve subsequent starts for React, Vite, and similar frontends."
+        },
+        "nativeEventDispatch": {
+          "label": "Native Event Dispatch",
+          "description": "Use WebView2's native event dispatch path to reduce host-to-page interaction overhead."
+        },
+        "draggableRegions": {
+          "label": "Draggable Regions",
+          "description": "Enable WebView2 draggable-region support for frameless windows."
+        },
+        "canvasOopRasterization": {
+          "label": "Canvas OOP Rasterization",
+          "description": "Move Canvas raster work outside the renderer process for canvases, whiteboards, and image editors."
+        },
+        "backForwardCache": {
+          "label": "Back/Forward Cache",
+          "description": "Cache navigation history pages for faster back and forward actions; desktop SPA gains are usually modest."
+        },
+        "vulkan": {
+          "label": "Vulkan",
+          "description": "Use the experimental Vulkan graphics backend; the default D3D path remains safer for Windows releases."
+        },
+        "skiaGraphite": {
+          "label": "Skia Graphite",
+          "description": "Enable Skia's experimental next-generation GPU backend, which may have compatibility or rendering issues."
+        },
+        "gpuRasterization": {
+          "label": "GPU Rasterization",
+          "description": "Move more paint work to the GPU, potentially helping long lists, SVG, and complex shadows."
+        },
+        "zeroCopy": {
+          "label": "Zero Copy",
+          "description": "Reduce memory copies during texture upload, which may help image-heavy views."
+        },
+        "parallelDownloading": {
+          "label": "Parallel Downloading",
+          "description": "Allow segmented parallel downloads for large files; ordinary desktop pages see limited benefit."
+        },
+        "accelerated2dCanvas": {
+          "label": "Accelerated 2D Canvas",
+          "description": "Prefer GPU acceleration for 2D Canvas workloads such as Pixi, Konva, and Fabric."
+        }
+      }
+    },
+    "backendBanner": {
+      "missingConfig": "Local Backend is not configured, so workspace and node execution are paused.",
+      "hostReason": "Local Backend could not start: {{reason}}",
+      "unreachable": "Local Backend is unreachable: {{url}}. Workspace and node execution are paused.",
+      "retry": "Retry",
+      "copyDiagnostics": "Copy diagnostics",
+      "diagnosticsCopied": "Diagnostics copied",
+      "diagnosticsCopyFailed": "Copy diagnostics failed",
+      "openRuntime": "Runtime settings"
+    }
+  },
+  "registry": {
+    "title": "Module library",
+    "subtitle": "Drag a module into the current view, or deploy it directly.",
+    "searchPlaceholder": "SEARCH_MODULES...",
+    "filter": "FILTER",
+    "all": "ALL",
+    "deploy": "DEPLOY",
+    "module": "Module",
+    "description": "Description",
+    "dragHint": "Drag into the workspace",
+    "deployToCurrent": "Deploy to current view",
+    "dropHint": "Drop to deploy here",
+    "version": "VERSION",
+    "category": "CATEGORY",
+    "categories": {
+      "UTILITY": "UTILITY",
+      "STATE": "STATE",
+      "PROCESS": "PROCESS",
+      "SYSTEM": "SYSTEM",
+      "ORGANIZE": "ORGANIZE",
+      "META": "META",
+      "INPUT": "INPUT",
+      "OUTPUT": "OUTPUT",
+      "FILES": "FILES",
+      "NETWORK": "NETWORK",
+      "MEDIA": "MEDIA",
+      "TEXT": "TEXT",
+      "OTHER": "OTHER"
+    },
+    "help": {
+      "title": "Node help",
+      "description": "Shared UI and CLI usage notes.",
+      "tooltip": "Node help",
+      "open": "Open {{name}} help",
+      "missingTitle": "No help entry",
+      "missingDescription": "This module does not expose shared node help yet.",
+      "errorTitle": "Help failed to load",
+      "tabs": {
+        "overview": "Overview",
+        "workflows": "Workflows",
+        "details": "Details"
+      },
+      "sections": {
+        "whenToUse": "When to use",
+        "workflows": "Workflows",
+        "workflowsDescription": "Follow each UI or CLI path in order.",
+        "fields": "Fields",
+        "fieldsDescription": "Inputs and defaults exposed by this node.",
+        "safety": "Safety",
+        "safetyDescription": "Review live-change risks before running the node.",
+        "links": "Related resources"
+      },
+      "labels": {
+        "tip": "Tip",
+        "required": "required",
+        "defaultValue": "default: {{value}}",
+        "defaultMode": "Default mode",
+        "destructive": "Destructive",
+        "note": "Note"
+      }
+    }
+  },
+  "overlay": {
+    "registry": "MODULE REGISTRY",
+    "settings": "SETTINGS",
+    "operations": "NODE OPERATIONS",
+    "history": "RUN HISTORY",
+    "deletions": "FILE DELETION HISTORY",
+    "floatingMode": "Use floating overlay",
+    "dockMode": "Dock as fixed panel",
+    "resize": "Drag to resize panel",
+    "drag": "Drag to move panel"
+  },
+  "view": {
+    "deletions": {
+      "title": "Deleted files",
+      "subtitle": "Cross-node deletion ledger",
+      "nodeFilter": "Filter by node",
+      "stateFilter": "Filter by restore state",
+      "allNodes": "All nodes",
+      "export": "Export",
+      "restore": "Restore",
+      "restorePath": "Restore {{path}}",
+      "restoreUnavailable": "This entry can no longer be restored",
+      "restoreFailed": "Restore failed",
+      "undoAvailable": "Recoverable",
+      "loading": "Loading deletion history...",
+      "loadingMore": "Loading more deletion history",
+      "loadFailed": "Deletion history could not be loaded",
+      "empty": "No deletion records match these filters",
+      "filters": {
+        "all": "All states",
+        "recoverable": "Recoverable only",
+        "pending": "Pending",
+        "trashed": "In recycle bin",
+        "restored": "Restored",
+        "permanent": "Permanent",
+        "delete-failed": "Delete failed",
+        "restore-failed": "Restore failed"
+      },
+      "states": {
+        "pending": "Pending",
+        "trashed": "In recycle bin",
+        "restored": "Restored",
+        "permanent": "Permanent",
+        "delete-failed": "Delete failed",
+        "restore-failed": "Restore failed"
+      },
+      "kinds": {
+        "trash": "Recycle bin",
+        "delete": "Permanent deletion"
+      },
+      "pathKinds": {
+        "file": "File",
+        "directory": "Directory",
+        "symbolic-link": "Symbolic link",
+        "other": "Other"
+      }
+    },
+    "dashboard": {
+      "scope": "usage command center",
+      "title": "Runtime Intelligence Dashboard",
+      "subtitle": "Track operation history, backend stability, node execution volume, and active workspace composition in one analytic cockpit.",
+      "liveSignal": "live signal",
+      "loading": "SYNCING HISTORY...",
+      "rangeDays": "Last {{count}}d",
+      "backend": {
+        "ready": "ready",
+        "missing-config": "missing config",
+        "unreachable": "unreachable",
+        "checking": "checking",
+        "unknown": "unknown"
+      },
+      "metrics": {
+        "operations": "operations",
+        "operationsDetail": "{{count}} node execution record(s)",
+        "successRate": "success rate",
+        "successRateDetail": "{{count}} non-success event(s)",
+        "components": "nodes deployed",
+        "componentsDetail": "{{count}} active lane(s)",
+        "avgDuration": "avg duration",
+        "p95Duration": "p95 {{value}}ms"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "stability": "Stability",
+        "history": "History"
+      },
+      "charts": {
+        "activity": "Operation activity",
+        "activityDesc": "Daily success, failure, and info events from runtime history.",
+        "stability": "Runtime stability",
+        "stabilityDesc": "Composite score from backend health, success rate, and active operation errors.",
+        "status": "Status distribution",
+        "statusDesc": "Terminal operation outcomes across the selected time window.",
+        "nodeUsage": "Node usage",
+        "nodeUsageDesc": "Most frequently executed or deployed nodes in the workspace.",
+        "duration": "Execution latency",
+        "durationDesc": "Average node run duration by day."
+      },
+      "health": {
+        "backend": "Backend",
+        "history": "History quality",
+        "active": "Active operations",
+        "rate": "{{value}}% success"
+      },
+      "labels": {
+        "count": "Count",
+        "events": "events"
+      },
+      "live": {
+        "title": "Live operation feed",
+        "description": "Recent node phases and messages currently tracked in memory.",
+        "empty": "No live operations right now."
+      },
+      "history": {
+        "title": "Recent operation history",
+        "description": "Latest persisted runtime records for audit and debugging.",
+        "empty": "No operation history in this range.",
+        "columns": {
+          "operation": "Operation",
+          "status": "Status",
+          "kind": "Kind",
+          "duration": "Duration"
+        }
+      },
+      "categories": {
+        "title": "Node categories",
+        "description": "Workspace node mix grouped by registry category.",
+        "empty": "No node category data."
+      }
+    },
+    "cards": {
+      "empty": "// canvas is empty",
+      "emptyHint": "Deploy modules from the registry to populate this workspace.",
+      "openRegistry": "OPEN MODULE REGISTRY",
+      "exitFullscreen": "ESC · EXIT FULLSCREEN"
+    },
+    "flow": {
+      "empty": "// flow canvas is empty",
+      "openRegistry": "OPEN MODULE REGISTRY",
+      "loadCanvas": "Open flow canvas",
+      "loadingCanvas": "Loading flow canvas"
+    },
+    "lane": {
+      "empty": "// no lanes — create one to start",
+      "addLane": "ADD LANE",
+      "emptyLane": "// empty lane",
+      "defaultName": "DEFAULT LANE",
+      "laneN": "LANE {{n}}"
+    },
+    "floating": {
+      "title": "COMPONENT",
+      "missingModule": "missing module",
+      "loadingState": "loading persisted component state",
+      "missingTarget": "// missing floating component target"
+    },
+    "dockview": {
+      "empty": "// dock is empty",
+      "openRegistry": "OPEN MODULE REGISTRY"
+    },
+    "bento": {
+      "empty": "// bento view is empty",
+      "emptyHint": "Drop modules into a resizable workspace grid.",
+      "openRegistry": "OPEN MODULE REGISTRY"
+    },
+    "operations": {
+      "title": "Node operations",
+      "subtitle": "Live backend node runs, recent results, and stream events.",
+      "all": "All",
+      "active": "Active",
+      "recent": "Recent",
+      "finished": "Finished",
+      "clearLocal": "Clear finished",
+      "cleanupBackend": "Cleanup backend",
+      "empty": "No node operations have run in this session.",
+      "cancel": "Cancel",
+      "progress": "Progress",
+      "events": "{{count}} event(s)",
+      "started": "Started {{time}}",
+      "updated": "Updated {{time}}",
+      "noMessage": "No message yet",
+      "noEvents": "No stream events yet",
+      "phase": {
+        "queued": "queued",
+        "running": "running",
+        "paused": "paused",
+        "completed": "completed",
+        "error": "error",
+        "cancelled": "cancelled"
+      }
+    },
+    "history": {
+      "title": "Run history",
+      "subtitle": "Saved node runs and key runtime operations.",
+      "all": "All",
+      "success": "Success",
+      "error": "Error",
+      "cancelled": "Cancelled",
+      "clearAll": "Clear all",
+      "clearNode": "Clear node",
+      "delete": "Delete",
+      "copyInput": "Copy input JSON",
+      "restore": "Restore",
+      "viewDetail": "View detail",
+      "empty": "No run history yet.",
+      "emptyHint": "Run any node and a parameter snapshot will be saved automatically.",
+      "loadMore": "Load more",
+      "loading": "Loading...",
+      "duration": "{{ms}}ms",
+      "events": "{{count}} event(s)",
+      "input": "Input",
+      "result": "Result",
+      "stats": "Stats",
+      "outputPath": "Output path",
+      "copied": "Copied",
+      "operation": "Operation",
+      "kindLabel": "Kind",
+      "statusLabel": "Status",
+      "nodeId": "Node",
+      "componentId": "Component",
+      "workspaceId": "Workspace",
+      "finishedAt": "Finished",
+      "inputSummary": "Parameters",
+      "noInputSummary": "Input recorded, no readable summary",
+      "message": "Message",
+      "durationLabel": "Duration",
+      "actions": "Actions",
+      "metadata": "Metadata",
+      "output": "Output",
+      "filterNode": "Filter nodes...",
+      "filterInput": "Filter parameters...",
+      "filterMessage": "Filter messages...",
+      "noInput": "No input recorded",
+      "noResult": "No result data",
+      "recent": "Recent runs",
+      "openCenter": "Open history center",
+      "restoreParams": "Restore parameters",
+      "noHistoryHint": "Run this node to save history.",
+      "status": {
+        "success": "success",
+        "error": "error",
+        "cancelled": "cancelled",
+        "info": "info"
+      },
+      "statusFilter": {
+        "all": "All",
+        "success": "Success",
+        "error": "Error",
+        "cancelled": "Cancelled",
+        "info": "Info"
+      },
+      "kind": {
+        "all": "All",
+        "node": "Nodes",
+        "workspace": "Workspace",
+        "config": "Config",
+        "system": "System"
+      }
+    }
+  },
+  "contextMenu": {
+    "focus": "Focus",
+    "exitFocus": "Exit Focus",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit Fullscreen",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "openWindow": "Open in Window",
+    "duplicate": "Duplicate",
+    "raise": "Bring to Front",
+    "layout": "Layout",
+    "layoutGrid": "Grid",
+    "layoutFocus": "Focus",
+    "copy": "Copy",
+    "copyComponentId": "Copy Component ID",
+    "copyModuleId": "Copy Module ID",
+    "copyDataJson": "Copy Data JSON",
+    "reset": "Reset",
+    "clearData": "Clear Data",
+    "clearDataConfirmTitle": "Clear component data?",
+    "clearDataConfirmDescription": "This removes all stored data for this component. This cannot be undone.",
+    "resetPosition": "Reset Position",
+    "delete": "Delete",
+    "deleteConfirmTitle": "Delete component?",
+    "deleteConfirmDescription": "This removes the component from the workspace.",
+    "deleteDuplicates": "Delete Duplicates",
+    "deleteDuplicatesConfirmTitle": "Delete all duplicate cards?",
+    "deleteDuplicatesConfirmDescription": "This removes all cards of the same module type ({{count}} total), including the current one. This cannot be undone.",
+    "compact": "Compact",
+    "viewMode": "View Mode",
+    "appearance": "Appearance",
+    "background": "Background",
+    "workspace": "Workspace",
+    "newWorkspace": "New Workspace",
+    "copyWorkspaceId": "Copy Workspace ID",
+    "deleteLane": "Delete Lane",
+    "deleteLaneConfirmTitle": "Delete lane?",
+    "deleteLaneConfirmDescription": "This removes the lane and its card ordering. This cannot be undone.",
+    "copyLaneId": "Copy Lane ID",
+    "revealInCards": "Reveal in Cards",
+    "resetFlowSize": "Reset Flow Size",
+    "hideFromFlow": "Hide from Flow",
+    "resetBentoLayout": "Reset Bento Layout",
+    "hideFromBento": "Hide from Bento",
+    "multiSelected": "{{count}} selected",
+    "multiDelete": "Delete all",
+    "multiDeleteConfirmTitle": "Delete {{count}} selected components?",
+    "multiDuplicate": "Duplicate all",
+    "multiToggleCollapse": "Toggle collapse",
+    "multiMoveToView": "Move to view",
+    "multiClearSelection": "Clear selection"
+  },
+  "module": {
+    "unknown": "// unknown module: {{id}}",
+    "configCenter": {
+      "trigger": "Configuration center",
+      "description": "Manage this node's settings, history, backups, and portable configuration.",
+      "tabs": { "current": "Current configuration", "presets": "Presets", "history": "Change history", "transfer": "Import / export", "backup": "Backup / sync" },
+      "autoRestore": "Restore on startup",
+      "save": "Save as default",
+      "restore": "Restore saved configuration",
+      "reload": "Reload from TOML",
+      "clear": "Clear override",
+      "openFile": "Open TOML file",
+      "dirty": "Current parameters differ from the saved configuration.",
+      "empty": "No configuration data.",
+      "source": { "loading": "Loading TOML view...", "sections": "Sections", "fields": "Fields", "booleans": "Enabled switches", "items": "Collection items", "colors": "Colors", "title": "TOML source", "copy": "Copy", "copied": "Copied" },
+      "preset": "Preset",
+      "presetPlaceholder": "Select preset",
+      "presetDescription": "Apply a reusable node configuration.",
+      "presetNew": "New",
+      "presetApply": "Apply",
+      "presetRename": "Rename",
+      "presetOverwrite": "Overwrite",
+      "presetDelete": "Delete",
+      "presetName": "Preset name",
+      "presetPreview": "Preset data",
+      "presetImport": "Import presets",
+      "presetExport": "Export presets",
+      "presetDeleteTitle": "Delete this preset?",
+      "presetDeleteDescription": "This action cannot be undone.",
+      "presetOverwriteTitle": "Overwrite this preset?",
+      "presetOverwriteDescription": "The preset values will be replaced by the current configuration.",
+      "presets": { "empty": "This node does not declare presets." },
+      "history": { "loading": "Loading history...", "unavailable": "Version history is unavailable for this node.", "empty": "No configuration changes have been recorded yet.", "detail": "Change detail", "restore": "Restore this version", "select": "Select a version.", "noTextChanges": "No textual changes in this backup." },
+      "export": { "title": "Export configuration", "description": "Export only this node's section in a portable format." },
+      "import": { "title": "Import configuration", "description": "Paste TOML or JSON. Only this node's section will be updated.", "action": "Import and reload" },
+      "backup": { "title": "Local Git backup", "description": "Snapshots are incremental and stored outside the live TOML file.", "loading": "Loading repository...", "create": "Create backup", "unavailable": "Git backup is unavailable for this node." },
+      "sync": { "title": "Remote synchronization", "description": "Pull updates the history repository only; it never overwrites the active configuration.", "remote": "Git remote", "saveRemote": "Save remote", "pull": "Pull history", "push": "Push history" }
+    },
+    "scratch": {
+      "name": "SCRATCH",
+      "description": "Ephemeral text buffer. Temporary storage for quick notes, variables, or copy-paste ops.",
+      "placeholder": "// ephemeral buffer — type anything...",
+      "chars": "{{count}} chars"
+    },
+    "counter": {
+      "name": "COUNTER",
+      "description": "Incremental tracking node. Stateful integer tracking with broadcast capabilities.",
+      "defaultLabel": "COUNT",
+      "step": "STEP",
+      "stepValue": "STEP: {{step}}"
+    },
+    "acidMixer": {
+      "name": "ACID MIXER",
+      "description": "Compound synthesizer logic board. Combine distinct data streams to generate new outputs.",
+      "synthesize": "SYNTHESIZE",
+      "operation": "OP",
+      "streamA": "STREAM_A",
+      "streamB": "STREAM_B",
+      "streamN": "STREAM_{{letter}}"
+    },
+    "terminal": {
+      "name": "TERMINAL",
+      "description": "Command line interface node. Direct execution access to core system services.",
+      "motd1": "WULING_CITY_OS v4.0.0 — Terminal Interface Active",
+      "motd2": "Type 'help' for available commands.",
+      "notFound": "command not found: {{cmd}}",
+      "help": {
+        "available": "Available commands:",
+        "help": "  help          — show this message",
+        "echo": "  echo <text>   — print text",
+        "clear": "  clear         — clear terminal",
+        "date": "  date          — show current date/time",
+        "whoami": "  whoami        — show operator identity",
+        "status": "  status        — show system status",
+        "ls": "  ls            — list workspace modules"
+      },
+      "whoami": "OPERATOR_01 // SYS_VER_4.0_STABLE",
+      "status": [
+        "SYS: ONLINE",
+        "NET: NOMINAL",
+        "DB: SYNCED",
+        "UPTIME: 99.9%"
+      ]
+    },
+    "tasks": {
+      "name": "TASKS",
+      "description": "Linear objective tracker. Sequential list management for operator workflows.",
+      "complete": "{{done}}/{{total}} COMPLETE",
+      "empty": "// no tasks — add below",
+      "placeholder": "New task...",
+      "defaults": {
+        "task1": "Initialize workspace configuration",
+        "task2": "Deploy core modules to active canvas",
+        "task3": "Review system kernel diagnostics"
+      }
+    },
+    "clock": {
+      "name": "CLOCK",
+      "description": "Global/Local temporal reference. High-precision sync with central server time.",
+      "local": "LOCAL",
+      "sync": "SYNC"
+    },
+    "calculator": {
+      "name": "CALCULATOR",
+      "description": "Arithmetic processing unit. Essential localized computation and conversion tool.",
+      "error": "ERR"
+    },
+    "blocknote": {
+      "name": "BLOCKNOTE",
+      "description": "BlockNote rich text editor based on shadcn. Block-level document editing, drag-and-drop reordering, slash menu, styles follow project theme automatically.",
+      "loadEditor": "Open editor",
+      "loading": "Loading editor"
+    },
+    "settings": {
+      "name": "SETTINGS",
+      "description": "Universal project settings: appearance, background, runtime, and local data configuration."
+    },
+    "module-registry": {
+      "name": "MODULE REGISTRY",
+      "description": "Browse, search, and deploy all available modules into the workspace."
+    },
+    "node-history": {
+      "name": "RUN HISTORY",
+      "description": "Runtime history of node, workspace, config, and system events with filtering."
+    },
+    "node-operations": {
+      "name": "NODE OPERATIONS",
+      "description": "Live backend node runs: active, recent, and finished operations with stream events."
+    },
+    "enginev": {
+      "name": "EngineV",
+      "description": "Scan, filter, rename, delete, and export Wallpaper Engine workshop folders.",
+      "title": "enginev",
+      "meta": "{{scanned}} scanned / {{visible}} visible / {{selected}} selected",
+      "starting": "starting",
+      "pasteWorkshopPath": "Paste workshop path",
+      "scan": "Scan",
+      "filter": "Filter",
+      "rename": "Rename",
+      "copyResults": "Copy results",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "workshopPath": "workshop path",
+      "ids": "ids",
+      "titleFilter": "title filter",
+      "rating": "rating",
+      "type": "type",
+      "renameTemplate": "rename template",
+      "targetExportPath": "target/export path",
+      "dryRun": "dry run",
+      "copyMode": "copy mode",
+      "delete": "Delete",
+      "export": "Export",
+      "stats": {
+        "total": "total",
+        "filtered": "filtered",
+        "types": "types",
+        "ok": "ok",
+        "failed": "failed",
+        "visible": "visible",
+        "scanned": "scanned",
+        "selected": "selected"
+      },
+      "unknown": "unknown",
+      "unrated": "unrated",
+      "wallpaperLine": "{{id}} / {{type}} / {{rating}} / {{title}}",
+      "readyToScan": "Ready to scan Wallpaper Engine workshop folders.",
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "completed": "Done",
+        "error": "Failed"
+      },
+      "statusDesc": {
+        "idle": "Pick a workshop path to start scanning.",
+        "running": "EngineV is processing the current task.",
+        "completed": "Last task completed.",
+        "error": "Last task failed, see results and logs."
+      },
+      "buttons": {
+        "run": "Run",
+        "dryRun": "Dry run",
+        "copy": "Copy",
+        "copyResults": "Copy results",
+        "clearState": "Clear state",
+        "cancel": "Cancel",
+        "confirmDelete": "Confirm delete",
+        "quickAction": "Quick {{action}}",
+        "executeAction": "Run {{action}}"
+      },
+      "sections": {
+        "input": "Input",
+        "inputDesc": "Workshop path, action, and frequent buttons stay at the top so they aren't pushed out by the gallery and logs.",
+        "filter": "Filter",
+        "writeOptions": "Write options"
+      },
+      "tabs": {
+        "gallery": "Gallery",
+        "results": "Results",
+        "logs": "Logs"
+      },
+      "empty": {
+        "results": "Rename, delete, or export results and errors will appear here.",
+        "logs": "Run logs will appear here.",
+        "gallery": "No gallery data yet",
+        "galleryHint": "Pick a Wallpaper Engine workshop folder and run scan; previews use local file URLs.",
+        "waitingRun": "Waiting to run",
+        "itemCount": "{{count}} items",
+        "visibleItems": "{{count}} visible items",
+        "truncatedItems": "Showing first {{visible}} of {{total}} items."
+      },
+      "dialog": {
+        "confirmDeleteTitle": "Confirm delete selected items?",
+        "confirmDeleteDesc": "Will process {{count}} Wallpaper Engine workshop items. Defaults to recycle bin; if dry run is off and permanent delete is enabled, this cannot be undone."
+      },
+      "aria": {
+        "exportFormat": "enginev export format",
+        "actionSelect": "enginev action",
+        "workshopPath": "enginev workshop path",
+        "pastePath": "enginev paste path",
+        "useDefaultPath": "enginev use default path",
+        "filterSelect": "enginev filter and selection",
+        "templateOptions": "enginev template and options",
+        "defaults": "enginev defaults",
+        "gallerySettings": "enginev gallery display settings",
+        "galleryColumns": "enginev gallery columns",
+        "deleteSelected": "Delete selected",
+        "selectWallpaper": "Select {{title}}",
+        "copyWallpaperPath": "Copy {{title}} path",
+        "copyPath": "Copy path"
+      },
+      "summary": {
+        "visibleSelected": "{{visible}} visible · {{selected}} selected",
+        "headerLine": "{{visible}} visible / {{scanned}} scanned / {{selected}} selected",
+        "failedItems": "{{count}} failed items",
+        "visibleItems": "{{count}} visible items",
+        "selectWorkshop": "Select workshop folder"
+      },
+      "actionStart": "Running {{action}}.",
+      "noNative": "Local backend is unavailable; cannot run enginev.",
+      "pathRequired": "Pick a Wallpaper Engine workshop folder first, or complete a scan first.",
+      "deleteRequiresSelection": "Select at least one item in the gallery before deleting.",
+      "exportRequiresPath": "Export requires a target file path."
+    },
+    "bandia": {
+      "name": "Bandia",
+      "description": "Batch extract, compress, repack, and export archive paths with Bandizip.",
+      "title": "bandia",
+      "run": "Run",
+      "pasteInput": "Paste input",
+      "exportEfu": "Export EFU",
+      "copyResults": "Copy results",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "extract": "Extract",
+      "compress": "Compress",
+      "dryRun": "dry-run",
+      "live": "live",
+      "delete": "delete",
+      "trash": "trash",
+      "parallel": "parallel",
+      "deleteSource": "delete source",
+      "workers": "workers",
+      "prefix": "prefix",
+      "overwrite": "overwrite",
+      "outputDir": "output dir",
+      "archivePaths": "archive paths",
+      "sourcePaths": "source paths",
+      "placeholderArchivePaths": "one .zip/.7z/.rar path per line",
+      "placeholderSourcePaths": "folders/files to compress, one per line",
+      "mappings": "mappings",
+      "done": "done",
+      "failed": "failed",
+      "efu": "efu",
+      "progress": {
+        "start": "{{action}} started"
+      },
+      "noResult": "No result",
+      "starting": "starting",
+      "ok": "ok",
+      "fail": "fail",
+      "meta": "{{mode}} / {{state}} / {{archives}} archive(s) / {{mappings}} mapping(s)",
+      "modes": {
+        "extract": "extract",
+        "compress": "compress"
+      },
+      "extractModes": {
+        "auto": "auto",
+        "normal": "normal"
+      },
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "success": "Done",
+        "error": "Failed"
+      },
+      "desc": {
+        "idle": "Paste paths or mappings to dry-run.",
+        "running": "Bandia is processing the current queue.",
+        "success": "Last task completed.",
+        "error": "Last task failed, check results and logs."
+      },
+      "actions": {
+        "stop": "Stop",
+        "exportEfu": "Export EFU",
+        "copyResults": "Copy results",
+        "clearState": "Clear state",
+        "confirmExecute": "Confirm execute",
+        "runLabel": "{{mode}}{{action}}"
+      },
+      "labels": {
+        "task": "Task",
+        "taskHint": "Pick extract, compress, or repack; dangerous writes are dry-run by default.",
+        "switches": "Key switches",
+        "advanced": "Advanced options"
+      },
+      "confirm": {
+        "title": "Confirm live Bandia?",
+        "description": "Dry-run is off and source deletion options are enabled. Confirm paths, mappings, and trash strategy before continuing."
+      },
+      "summary": {
+        "failed": "{{count}} failed",
+        "archives": "{{count}} archive(s) / {{mode}}",
+        "items": "{{count}} item(s) / {{mode}}"
+      },
+      "subtitle": {
+        "full": "{{label}} / {{mode}} / {{count}} item(s)"
+      },
+      "tabs": {
+        "results": "Results",
+        "logs": "Logs"
+      },
+      "aria": {
+        "running": "bandia running"
+      },
+      "error": {
+        "noRunEnv": "No local run capability in this environment; use desktop mode or CLI.",
+        "stopRequested": "Stop requested"
+      },
+      "empty": "No result",
+      "mode": {
+        "dry": "Dry run",
+        "live": "Live",
+        "execute": "Run",
+        "liveExecute": "Live execute"
+      },
+      "actionLabel": {
+        "extract": "Extract",
+        "compress": "Compress",
+        "repack": "Repack",
+        "export_efu": "Export"
+      }
+    },
+    "cleanf": {
+      "name": "Cleanf",
+      "description": "Remove empty folders, backup files, temp folders, and trash patterns.",
+      "title": "cleanf",
+      "run": "Run",
+      "pastePaths": "Paste paths",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "preview": "Preview",
+      "delete": "Delete",
+      "paths": "paths",
+      "placeholderPaths": "one folder path per line",
+      "found": "found",
+      "skipped": "skipped",
+      "excludeKeywords": "exclude keywords",
+      "noResult": "No result",
+      "previewing": "Previewing...",
+      "cleaning": "Cleaning...",
+      "meta": "{{paths}} path(s) / {{presets}} preset(s) / {{state}}",
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "success": "Done",
+        "error": "Failed"
+      },
+      "desc": {
+        "idle": "Paste directories and pick presets to dry-run or clean.",
+        "running": "Cleanf is scanning and cleaning.",
+        "success": "Last task completed.",
+        "error": "Last task failed, check logs."
+      },
+      "actions": {
+        "copyResults": "Copy results",
+        "clearState": "Clear state",
+        "dryClean": "Dry clean",
+        "liveClean": "Live clean",
+        "confirmExecute": "Confirm execute",
+        "undoLastCleanup": "Undo last cleanup",
+        "pastePaths": "Paste paths",
+        "clearPaths": "Clear paths"
+      },
+      "labels": {
+        "input": "Input",
+        "inputHint": "Paste directories, pick presets, and dry-run before moving matches to the recycle bin.",
+        "presets": "Clean presets",
+        "switches": "Key switches"
+      },
+      "fields": {
+        "scanPaths": {
+          "label": "Scan paths",
+          "count": "{{count}} paths",
+          "placeholder": "One folder path per line\nD:/gallery\nD:/archives"
+        },
+        "previewMode": {
+          "label": "Preview mode",
+          "description": "Scan and preview cleanup targets without writing to the file system. Turning it off moves matches to the recycle bin."
+        },
+        "excludeKeywords": {
+          "label": "Exclude keywords",
+          "placeholder": "Comma-separated, for example: node_modules, .git"
+        }
+      },
+      "presets": {
+        "emptyFolders": { "label": "Empty folders", "description": "Recursively remove empty folders." },
+        "backupFiles": { "label": "Backup files", "description": "Remove .bak backup files." },
+        "tempFolders": { "label": "Temporary folders", "description": "Remove folders beginning with temp_." },
+        "trashFiles": { "label": "Trash files", "description": "Remove .trash files and folders." },
+        "hbTxtFiles": { "label": "[#hb] text", "description": "Remove txt files beginning with [#hb]." },
+        "logFiles": { "label": "Log files", "description": "Remove .log and rotated log files." },
+        "upscale": { "label": "Upscale cache", "description": "Remove .upbak files." }
+      },
+      "advanced": {
+        "title": "Advanced options",
+        "description": "Exclude keywords skip items whose paths contain these strings."
+      },
+      "defaults": {
+        "title": "Defaults",
+        "description": "Save Cleanf paths, presets, and preview mode as plain-text configuration.",
+        "save": "Save as default",
+        "restore": "Restore defaults",
+        "clearOverride": "Clear override",
+        "view": "View configuration",
+        "dialogTitle": "Cleanf configuration",
+        "dialogDescription": "Current nodes.cleanf defaults and configuration file location.",
+        "openFile": "Open file",
+        "noConfig": "No default nodes.cleanf configuration",
+        "configFile": "Configuration file",
+        "noConfigService": "No local configuration service connected"
+      },
+      "results": {
+        "itemCount": "{{count}} items",
+        "waiting": "Waiting to run",
+        "total": "Total {{count}}",
+        "restored": "Restored {{count}} items",
+        "restoredBadge": "Restored {{count}}",
+        "empty": "Deleted-item previews and category counts appear here after running."
+      },
+      "logs": {
+        "lineCount": "{{count}} lines",
+        "waiting": "Waiting for logs",
+        "empty": "Run logs appear here."
+      },
+      "confirm": {
+        "title": "Confirm live Cleanf?",
+        "description": "This moves scanned files and folders to the system recycle bin. {{presets}} preset(s) enabled, {{paths}} path(s). Use Undo last cleanup to restore them; confirm paths and exclude keywords."
+      },
+      "summary": {
+        "removed": "Moved {{removed}} to recycle bin / skipped {{skipped}}",
+        "restored": "Restored {{restored}} / failed {{failed}}",
+        "paths": "{{paths}} path(s) / {{presets}} preset(s) / {{mode}}",
+        "empty": "Paste directories to preview clean results"
+      },
+      "subtitle": {
+        "full": "{{paths}} paths / {{presets}} presets / {{mode}}"
+      },
+      "tabs": {
+        "results": "Results",
+        "logs": "Logs"
+      },
+      "aria": {
+        "running": "cleanf running",
+        "scanPaths": "cleanf scan paths",
+        "advancedOptions": "cleanf advanced options",
+        "defaults": "cleanf defaults",
+        "description": "{{label}} description"
+      },
+      "error": {
+        "noScanPath": "Please enter at least one scan path.",
+        "noRunEnv": "No local run capability in this environment; use desktop mode or CLI."
+      },
+      "empty": "No result",
+      "mode": {
+        "dry": "Dry run",
+        "live": "Live",
+        "liveExecute": "Live execute"
+      },
+      "stats": {
+        "total": "Total",
+        "skipped": "Skipped",
+        "preview": "Preview items",
+        "progress": "Progress"
+      },
+      "gate": {
+        "progress": "Progress",
+        "presetsCount": "{{count}} preset(s)",
+        "pathsCount": "{{count}} path(s)",
+        "previewHint": "Dry-run: scan only, no deletion.",
+        "liveHint": "Live mode: move matches to the recycle bin with undo available."
+      },
+      "actionLabel": {
+        "preview": "Dry run",
+        "clean": "Clean",
+        "undo": "Undo"
+      },
+      "progress": {
+        "start": "{{action}} started"
+      }
+    },
+    "classq": {
+      "name": "ClassQ",
+      "description": "Recursively classify folders by keyword and route waiting items to their destinations.",
+      "identity": {
+        "subtitle": "Recursive keyword classifier",
+        "description": "Recursively identify keyword folders and route waiting items to the matching classification target."
+      },
+      "command": {
+        "title": "Classification rules",
+        "description": "Define root paths, keyword folders, and waiting-folder rules.",
+        "input": "Root directories",
+        "inputDescription": "Enter one recursively scanned root directory per line.",
+        "folders": "Folder rules",
+        "foldersDescription": "Keyword folders create matches; waiting folders receive sibling items."
+      },
+      "config": {
+        "trigger": "Configuration management",
+        "title": "Configuration management",
+        "description": "Save reusable classification rules or restore the saved default configuration.",
+        "save": "Save as default",
+        "restore": "Restore defaults",
+        "reload": "Reload",
+        "view": "View configuration",
+        "previewTitle": "Default configuration",
+        "noPath": "No configuration file is connected",
+        "openFile": "Open configuration file",
+        "dirty": "Current classification rules differ from the saved defaults."
+      },
+      "fields": {
+        "roots": "One root directory per line",
+        "keyword": "Keyword folder",
+        "wait": "Waiting folder"
+      },
+      "action": {
+        "scanLabel": "Scan roots",
+        "scanShort": "Scan",
+        "classifyLabel": "Run classification",
+        "classifyShort": "Classify",
+        "classifyPreview": "Preview classification"
+      },
+      "mode": {
+        "scan": {
+          "title": "Recursive scan",
+          "description": "Recursively scan keyword folders and build the waiting-item plan."
+        },
+        "classify": {
+          "previewDescription": "Build the current move or copy plan without changing files.",
+          "liveDescription": "Apply the current routing rules to ready items after confirmation."
+        }
+      },
+      "transfer": {
+        "move": "Move",
+        "copy": "Copy"
+      },
+      "risk": {
+        "dryRun": "Preview",
+        "dryRunDescription": "Files stay unchanged",
+        "live": "Live",
+        "liveDescription": "Files will change"
+      },
+      "topology": {
+        "title": "Routing topology",
+        "description": "Shows sources, the classification route, and destination folders."
+      },
+      "explorer": {
+        "tree": "Recursive file tree",
+        "description": "Expand real scan results by root and parent directory."
+      },
+      "detail": {
+        "title": "Result details"
+      },
+      "metrics": {
+        "roots": "Roots",
+        "keyword": "Keywords",
+        "wait": "Waiting",
+        "ready": "Ready",
+        "moved": "Moved",
+        "progress": "Progress"
+      },
+      "tabs": {
+        "plan": "Plan",
+        "issues": "Issues",
+        "log": "Logs"
+      },
+      "table": {
+        "source": "Source",
+        "target": "Waiting target",
+        "type": "Type",
+        "status": "Status"
+      },
+      "type": {
+        "folder": "Folder",
+        "file": "File"
+      },
+      "empty": {
+        "addRoots": "Add root directories to preview the classification plan.",
+        "runScan": "Run a scan to populate the recursive file tree and classification plan.",
+        "treeTitle": "Waiting for the file tree",
+        "topologyTitle": "Waiting for routing topology",
+        "detailTitle": "Waiting for results",
+        "issues": "No issues",
+        "logs": "Run logs will appear here.",
+        "table": "This directory has no waiting items."
+      },
+      "plan": {
+        "itemCount": "{{count}} items",
+        "waiting": "Waiting for scan"
+      },
+      "text": {
+        "lineCount": "{{count}} lines"
+      },
+      "actions": {
+        "copy": "Copy",
+        "copyPlan": "Copy plan",
+        "copyLogs": "Copy logs"
+      },
+      "confirm": {
+        "title": "Run live ClassQ classification?",
+        "description": "ClassQ will move or copy ready sibling items into waiting folders. Existing targets are skipped as conflicts.",
+        "cancel": "Cancel",
+        "classify": "Confirm classification"
+      },
+      "status": {
+        "ready": "Ready",
+        "readyDescription": "Scan keyword folders and waiting items inside the configured roots.",
+        "running": "Running",
+        "runningDescription": "ClassQ is scanning keyword folders or processing waiting items.",
+        "done": "Complete",
+        "doneDescription": "The previous ClassQ task completed.",
+        "failed": "Failed",
+        "failedDescription": "The previous task failed. Review issues and logs.",
+        "started": "{{action}} started",
+        "item": {
+          "found": "Found",
+          "ready": "Ready",
+          "skipped": "Skipped",
+          "moved": "Moved",
+          "copied": "Copied",
+          "conflict": "Conflict",
+          "error": "Error"
+        }
+      },
+      "summary": {
+        "result": "Keywords {{keyword}} / waiting {{wait}} / ready {{ready}}",
+        "roots": "{{count}} roots / {{action}}",
+        "idle": "Recursively classify folders by keyword"
+      }
+    },
+    "crashu": {
+      "name": "Crashu",
+      "description": "Match similar folder names and optionally move matched folders.",
+      "title": "crashu",
+      "scan": "Scan",
+      "plan": "Plan",
+      "move": "Move",
+      "copyResults": "Copy results",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "sources": "sources",
+      "targets": "targets",
+      "placeholderSources": "one source folder per line",
+      "placeholderTargets": "manual target names, one per line",
+      "targetFolder": "target folder",
+      "pasteTargetFolder": "Paste target folder",
+      "destination": "destination",
+      "pasteDestination": "Paste destination",
+      "threshold": "threshold",
+      "autoMove": "auto move",
+      "toTarget": "to target",
+      "toSource": "to source",
+      "skip": "skip",
+      "rename": "rename",
+      "overwrite": "overwrite",
+      "matches": "matches",
+      "moved": "moved",
+      "skipped": "skipped",
+      "errors": "errors",
+      "noMatches": "No matches yet",
+      "meta": "{{phase}} / {{matches}} match(es)",
+      "phases": {
+        "idle": "idle",
+        "scan": "scan",
+        "plan": "plan",
+        "move": "move",
+        "moving": "moving",
+        "completed": "completed",
+        "error": "error"
+      },
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "success": "Done",
+        "error": "Failed"
+      },
+      "desc": {
+        "idle": "Paste source directories and target names to start matching.",
+        "running": "Crashu is matching or moving folders.",
+        "success": "Last task completed.",
+        "error": "Last task failed, check results and logs."
+      },
+      "actions": {
+        "scanMatch": "Scan matches",
+        "plan": "Generate plan",
+        "copyResults": "Copy results",
+        "copy": "Copy",
+        "clearState": "Clear state",
+        "dryMove": "Dry move",
+        "liveMove": "Live move",
+        "confirmExecute": "Confirm execute"
+      },
+      "labels": {
+        "input": "Input",
+        "inputHint": "Source directories and target names are used for similarity matching; target folder can auto-read subfolders.",
+        "switches": "Key switches",
+        "advanced": "Advanced options",
+        "moveDirection": "Move direction",
+        "conflictPolicy": "Conflict policy"
+      },
+      "input": {
+        "sourceFolders": "Source folders",
+        "targetNames": "Target names",
+        "sourcePlaceholder": "One source root per line\nD:/source/gallery",
+        "targetPlaceholder": "One target folder name per line, or provide a target folder to read automatically",
+        "pasteSources": "Paste source folders",
+        "clearSources": "Clear source folders",
+        "lineCount": "{{count}} entries"
+      },
+      "fields": {
+        "preview": "Preview",
+        "previewDescription": "Scans and builds a plan only; no folders are moved until this is turned off.",
+        "autoMove": "Auto move",
+        "autoMoveDescription": "Moves immediately after scanning. A destination folder is required.",
+        "similarityThreshold": "Similarity threshold",
+        "targetFolder": "Target folder",
+        "targetFolderPlaceholder": "Read its child folders automatically as target names",
+        "destinationRoot": "Destination root",
+        "destinationRootPlaceholder": "Final root folder for move operations"
+      },
+      "advanced": {
+        "title": "Advanced options",
+        "description": "Similarity threshold, target folder, and conflict policy live here."
+      },
+      "execution": {
+        "previewState": "Preview: folders stay in place",
+        "liveState": "Live: folders will be moved",
+        "previewDescription": "Build matching and move plans without writing to the file system.",
+        "liveDescription": "A confirmation is still required before moving folders."
+      },
+      "moveDirection": {
+        "toTarget": "Source → Target",
+        "toSource": "Target → Source"
+      },
+      "conflictPolicy": {
+        "skip": "Skip",
+        "rename": "Rename",
+        "overwrite": "Overwrite"
+      },
+      "defaults": {
+        "title": "Default settings",
+        "description": "Save Crashu source folders, targets, and move policy in a plain-text configuration.",
+        "save": "Save as default",
+        "restore": "Restore default",
+        "clear": "Clear override",
+        "view": "View settings",
+        "openFile": "Open file",
+        "dialogTitle": "Crashu settings",
+        "dialogDescription": "Current nodes.crashu defaults and the settings file location.",
+        "none": "# No nodes.crashu defaults\n",
+        "configFile": "Settings file",
+        "noConfigService": "No local settings service connected"
+      },
+      "boards": {
+        "itemCount": "{{count}} items",
+        "lineCount": "{{count}} lines",
+        "matches": "{{count}} matches",
+        "waitingRun": "Waiting to run",
+        "waitingLogs": "Waiting for logs",
+        "matchListEmpty": "Matches and move plans will appear here after a run.",
+        "matchBoardEmpty": "Matching lanes, similarity scores, and the move plan will appear after a run.",
+        "logsEmpty": "Run logs will appear here.",
+        "unspecified": "Unspecified"
+      },
+      "planStatus": {
+        "success": "Complete",
+        "error": "Error",
+        "skipped": "Skipped",
+        "pending": "Pending"
+      },
+      "confirm": {
+        "title": "Confirm live Crashu?",
+        "description": "This will really move matched folders to {{destination}}, {{sources}} source directory(s), similarity threshold {{threshold}}%. Moves are irreversible; confirm target and conflict policy."
+      },
+      "summary": {
+        "matches": "Matched {{matched}} / moved {{moved}}",
+        "sources": "{{sources}} sources / {{targets}} targets / {{mode}}",
+        "empty": "Paste source directories to start matching"
+      },
+      "subtitle": {
+        "full": "{{sources}} sources / {{targets}} targets / {{mode}}"
+      },
+      "tabs": {
+        "results": "Results",
+        "logs": "Logs"
+      },
+      "aria": {
+        "running": "crashu running",
+        "sourcePaths": "crashu source paths",
+        "targetNames": "crashu target names",
+        "moveDirection": "crashu move direction",
+        "conflictPolicy": "crashu conflict policy",
+        "advancedOptions": "crashu advanced options",
+        "defaults": "crashu defaults",
+        "description": "{{label}} description",
+        "previewSwitch": "crashu preview switch"
+      },
+      "error": {
+        "noSource": "Please enter at least one source directory.",
+        "noRunEnv": "No local run capability in this environment; use desktop mode or CLI."
+      },
+      "empty": "No matches yet",
+      "mode": {
+        "dry": "Dry run",
+        "live": "Live",
+        "liveExecute": "Live execute"
+      },
+      "stats": {
+        "sources": "Sources",
+        "targets": "Targets",
+        "matches": "Matches",
+        "moved": "Moved",
+        "skipped": "Skipped",
+        "progress": "Progress",
+        "error": "Error"
+      },
+      "actionLabel": {
+        "scan": "Scan",
+        "plan": "Plan",
+        "move": "Move"
+      },
+      "progress": {
+        "start": "{{action}} started"
+      }
+    },
+    "dissolvef": {
+      "name": "DissolveF",
+      "description": "Dissolve nested, single-media, single-archive, or direct folders with undo history.",
+      "title": "dissolvef",
+      "plan": "Plan",
+      "run": "Run",
+      "history": "History",
+      "undo": "Undo",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "folder": "folder",
+      "pasteFolder": "Paste folder",
+      "historyPath": "history",
+      "bundle": "bundle",
+      "direct": "direct",
+      "nested": "nested",
+      "media": "media",
+      "archive": "archive",
+      "preview": "preview",
+      "protect": "protect",
+      "similarity": "similarity",
+      "exclude": "exclude",
+      "threshold": "threshold",
+      "fileConflict": "file conflict",
+      "dirConflict": "dir conflict",
+      "skipped": "skipped",
+      "errors": "errors",
+      "operations": "operation(s)",
+      "undone": "undone",
+      "none": "none",
+      "noResult": "No result",
+      "meta": "{{phase}} / {{mode}}",
+      "phases": {
+        "idle": "idle",
+        "running": "running",
+        "completed": "completed",
+        "error": "error"
+      },
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "success": "Done",
+        "error": "Failed"
+      },
+      "desc": {
+        "idle": "Paste a folder to dry-run or dissolve.",
+        "running": "Dissolvef is generating a plan or dissolving.",
+        "success": "Last task completed.",
+        "error": "Last task failed, check plan and logs."
+      },
+      "actions": {
+        "history": "Read history",
+        "undoRecent": "Undo recent",
+        "clearState": "Clear state",
+        "dryDissolve": "Dry dissolve",
+        "liveDissolve": "Live dissolve",
+        "confirmExecute": "Confirm execute",
+        "pasteFolder": "Paste folder",
+        "clearPath": "Clear path",
+        "copy": "Copy",
+        "preview": "Preview",
+        "execute": "Execute",
+        "undoItem": "Undo {{id}}"
+      },
+      "labels": {
+        "input": "Input",
+        "inputHint": "Pick bundle or direct mode, dry-run before live dissolve.",
+        "switches": "Key switches",
+        "advanced": "Advanced options",
+        "defaults": "Defaults",
+        "targetFolder": "Target folder",
+        "similarityThreshold": "Similarity threshold",
+        "excludeKeywords": "Exclude keywords",
+        "historyPath": "History path",
+        "fileConflict": "File conflict",
+        "dirConflict": "Dir conflict",
+        "modePipeline": "Dissolve pipeline"
+      },
+      "switches": {
+        "preview": "Dry run",
+        "protectFirstLevel": "Protect first level",
+        "enableSimilarity": "Similarity check",
+        "previewDescription": "Builds a plan only. No folders are moved or deleted until this is turned off.",
+        "protectFirstLevelDescription": "Skips the first child-folder level to protect the top-level archive structure.",
+        "enableSimilarityDescription": "Compares parent and child names, skipping items below the selected similarity threshold."
+      },
+      "confirm": {
+        "title": "Confirm live Dissolvef?",
+        "description": "This will really move and delete folders, mode {{mode}}, target {{path}}. Operations are recorded to history and can be undone, but deletions cannot be restored."
+      },
+      "summary": {
+        "total": "{{total}} items / {{success}} success",
+        "mode": "{{mode}} / {{preview}}",
+        "empty": "Paste a folder to start dissolving"
+      },
+      "subtitle": {
+        "full": "{{mode}} / {{preview}}"
+      },
+      "tabs": {
+        "plan": "Plan",
+        "history": "History",
+        "logs": "Logs"
+      },
+      "aria": {
+        "running": "dissolvef running",
+        "targetFolder": "dissolvef target folder",
+        "advancedOptions": "dissolvef advanced options",
+        "defaults": "dissolvef defaults",
+        "bundleMode": "Bundle mode",
+        "directMode": "Direct mode",
+        "modeStrategy": "dissolvef mode strategy",
+        "bundleModes": "dissolvef bundle modes",
+        "previewSwitch": "dissolvef preview switch",
+        "description": "{{label}} description"
+      },
+      "error": {
+        "noPath": "Please enter a target folder.",
+        "noRunEnv": "No local run capability in this environment; use desktop mode or CLI."
+      },
+      "empty": "No result",
+      "mode": {
+        "bundle": "Bundle",
+        "direct": "Direct",
+        "dry": "Dry run",
+        "live": "Live",
+        "liveExecute": "Live execute"
+      },
+      "stats": {
+        "total": "Total",
+        "nested": "Nested",
+        "media": "Media",
+        "archive": "Archive",
+        "skipped": "Skipped",
+        "progress": "Progress",
+        "failed": "Failed",
+        "error": "Error"
+      },
+      "actionLabel": {
+        "plan": "Dry run",
+        "dissolve": "Dissolve",
+        "history": "History",
+        "undo": "Undo"
+      },
+      "progress": {
+        "start": "{{action}} started"
+      },
+      "input": {
+        "pathPlaceholder": "Folder to dissolve\nD:/library/outer"
+      },
+      "bundleModes": {
+        "nested": {
+          "label": "Nested dissolve",
+          "shortLabel": "Nested",
+          "description": "Lifts contents from a single nested subfolder and removes the empty shell."
+        },
+        "media": {
+          "label": "Single-media dissolve",
+          "shortLabel": "Media",
+          "description": "Lifts one media file from its folder and removes the empty shell."
+        },
+        "archive": {
+          "label": "Single-archive dissolve",
+          "shortLabel": "Archive",
+          "description": "Lifts one archive file from its folder and removes the empty shell."
+        }
+      },
+      "advanced": {
+        "title": "Advanced options",
+        "description": "Similarity threshold, exclusions, conflict policy, and history path are kept here.",
+        "excludePlaceholder": "Comma or newline separated, for example: CG, pixiv",
+        "historyPlaceholder": "Leave blank to use the default history file"
+      },
+      "conflictModes": {
+        "auto": { "label": "Auto" },
+        "skip": { "label": "Skip" },
+        "overwrite": { "label": "Overwrite" },
+        "rename": { "label": "Rename" }
+      },
+      "boards": {
+        "itemCount": "{{count}} items",
+        "lineCount": "{{count}} lines",
+        "total": "Total {{count}}",
+        "waitingRun": "Waiting to run",
+        "waitingLogs": "Waiting for logs",
+        "planListEmpty": "Moves and empty-folder deletions will appear after a run.",
+        "planBoardEmpty": "Lifts, empty-shell deletions, and skipped conflicts will appear after a run.",
+        "historyCount": "{{count}} entries",
+        "noHistory": "No history",
+        "historyMeta": "{{mode}} / {{count}} items{{undone}}",
+        "undoneSuffix": " / undone",
+        "historyEmpty": "Completed operations are recorded here and can be undone.",
+        "logsEmpty": "Run logs will appear here.",
+        "unspecified": "Unspecified"
+      },
+      "planStatus": {
+        "success": "Complete",
+        "error": "Error",
+        "skipped": "Skipped",
+        "pending": "Pending"
+      },
+      "execution": {
+        "title": "Execution gate",
+        "previewState": "Preview: no folders change",
+        "liveState": "Live: content moves and empty shells are removed",
+        "previewDescription": "Builds the dissolve plan only; folders stay unchanged.",
+        "liveDescription": "Moves content and deletes empty folders; confirmation is still required."
+      },
+      "defaults": {
+        "title": "Default settings",
+        "description": "Save DissolveF paths, modes, and conflict policy in local defaults.",
+        "save": "Save as default",
+        "restore": "Restore default",
+        "clear": "Clear override",
+        "view": "View settings",
+        "openFile": "Open file",
+        "dialogTitle": "DissolveF settings",
+        "dialogDescription": "Current nodes.dissolvef defaults and the settings file location.",
+        "none": "# No nodes.dissolvef defaults\n",
+        "configFile": "Settings file",
+        "noConfigService": "No local settings service connected"
+      },
+      "pipeline": {
+        "directHint": "Lift every item to the parent folder.",
+        "switchBundle": "Switch to bundle mode",
+        "switchDirect": "Switch to direct mode"
+      }
+    },
+    "diny": {
+      "name": "Diny",
+      "description": "AI-powered git commit message generator wrapping the diny binary.",
+      "title": "diny",
+      "generate": "Generate",
+      "copyLogs": "Copy Logs",
+      "reset": "Reset",
+      "copy": "Copy",
+      "stop": "Stop",
+      "saveDefaults": "Save as Defaults",
+      "meta": "{{staged}} staged / {{branch}} / {{state}}",
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "success": "Done",
+        "error": "Failed"
+      },
+      "desc": {
+        "idle": "Generate an AI commit message or enter one manually.",
+        "running": "Diny is executing.",
+        "success": "Last operation completed.",
+        "error": "Last operation failed, check logs."
+      },
+      "actions": {
+        "generate": "Generate",
+        "commit": "Commit",
+        "dryCommit": "Dry Commit",
+        "push": "Push",
+        "copy": "Copy",
+        "stop": "Stop",
+        "reset": "Reset",
+        "saveDefaults": "Save as Defaults"
+      },
+      "labels": {
+        "commitMessage": "Commit Message",
+        "stagedFiles": "Staged Files",
+        "diffPreview": "Diff Preview",
+        "logs": "Logs"
+      },
+      "stats": {
+        "staged": "Staged",
+        "branch": "Branch",
+        "insertions": "Insertions",
+        "deletions": "Deletions"
+      },
+      "switches": {
+        "dryRunOn": "Dry Run",
+        "dryRunOff": "Live",
+        "noVerifyOn": "Skip Hooks",
+        "noVerifyOff": "Hooks"
+      },
+      "fields": {
+        "repoPath": {
+          "label": "Repo Path",
+          "placeholder": "Leave empty for current directory"
+        },
+        "dinyPath": {
+          "label": "diny Path",
+          "placeholder": "Leave empty to resolve from PATH"
+        },
+        "manualMessage": {
+          "label": "Manual Message"
+        }
+      },
+      "empty": {
+        "staged": "No staged files",
+        "message": "No message generated yet"
+      },
+      "placeholder": {
+        "manualMessage": "Enter a commit message manually, or leave empty to use diny AI..."
+      },
+      "progress": {
+        "start": "Starting..."
+      },
+      "error": {
+        "noRunEnv": "No local execution available in this host. Use desktop mode or CLI."
+      }
+    },
+    "encodeb": {
+      "name": "Encodeb",
+      "description": "Preview and recover garbled filenames by re-decoding path components.",
+      "title": "encodeb",
+      "find": "Find",
+      "preview": "Preview",
+      "recover": "Recover",
+      "pastePaths": "Paste paths",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "paths": "paths",
+      "placeholderPaths": "one file or folder path per line",
+      "src": "src",
+      "dst": "dst",
+      "matches": "matches",
+      "noPreviewRows": "No preview rows",
+      "running": "running...",
+      "meta": "{{paths}} path(s) / {{src}} -> {{dst}} / {{strategy}}",
+      "presets": {
+        "cn": "cn",
+        "jp": "jp",
+        "kr": "kr",
+        "custom": "custom"
+      },
+      "strategies": {
+        "replace": "replace",
+        "copy": "copy"
+      },
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "completed": "Done",
+        "error": "Failed"
+      },
+      "statusDesc": {
+        "running": "Encodeb is processing filenames.",
+        "completed": "Last task completed.",
+        "error": "Last task failed, see logs.",
+        "idle": "Paste paths to scan garbled names or preview encoding."
+      },
+      "buttons": {
+        "scanGarbled": "Scan garbled",
+        "previewConvert": "Preview convert",
+        "copyResults": "Copy results",
+        "clearState": "Clear state",
+        "running": "Running",
+        "execute": "Execute fix",
+        "cancel": "Cancel",
+        "confirmExecute": "Confirm execute",
+        "copy": "Copy"
+      },
+      "sections": {
+        "input": "Input",
+        "inputDesc": "Paste a folder with garbled filenames, pick a preset, then preview or recover.",
+        "encoding": "Encoding & strategy"
+      },
+      "tabs": {
+        "results": "Results",
+        "logs": "Logs"
+      },
+      "stats": {
+        "preview": "Preview",
+        "garbled": "Garbled",
+        "progress": "Progress"
+      },
+      "empty": {
+        "results": "Scan or preview to see garbled matches and encoding mappings.",
+        "logs": "Run logs will appear here.",
+        "waitingRun": "Waiting to run",
+        "itemCount": "{{count}} items"
+      },
+      "dialog": {
+        "confirmTitle": "Confirm Encodeb fix?",
+        "confirmDesc": "Will perform live filename recovery on {{count}} path(s), strategy: {{strategy}}, encoding {{src}} -> {{dst}}. This cannot be undone."
+      },
+      "aria": {
+        "running": "encodeb running"
+      },
+      "summary": {
+        "mappings": "{{count}} encoding mappings",
+        "matches": "{{count}} garbled",
+        "pathWaiting": "{{count}} paths waiting to scan",
+        "pasteHint": "Paste paths to scan garbled filenames"
+      },
+      "strategyCopy": "copy",
+      "strategyReplace": "rename",
+      "actionStart": "{{action}} started",
+      "noNative": "No native runtime in this host. Use desktop mode or CLI.",
+      "pathRequired": "Enter at least one source path first."
+    },
+    "findz": {
+      "name": "Findz",
+      "description": "Search files and archive members with SQL-like filters.",
+      "title": "findz",
+      "meta": "{{action}} / {{count}} path(s) / {{where}}",
+      "actionSearch": "Search",
+      "actionArchives": "Archives",
+      "actionNested": "Nested",
+      "noArchive": "no archive",
+      "links": "links",
+      "imageMeta": "image meta",
+      "pastePaths": "Paste paths",
+      "run": "Run",
+      "filterHelp": "Filter help",
+      "copyResults": "Copy results",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "fieldMax": "max",
+      "fieldReturn": "return",
+      "fieldGroup": "group",
+      "fieldRefine": "refine",
+      "pathsLabel": "paths",
+      "pathsPlaceholder": "one folder or file per line",
+      "whereLabel": "where",
+      "statTotal": "total",
+      "statFiles": "files",
+      "statDirs": "dirs",
+      "statArchive": "archive",
+      "statErrors": "errors",
+      "statProgress": "progress",
+      "noResult": "No search yet",
+      "starting": "starting",
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "completed": "Done",
+        "error": "Failed"
+      },
+      "statusDesc": {
+        "idle": "Paste paths and a SQL filter to start searching.",
+        "running": "Findz is scanning and filtering.",
+        "completed": "Last search completed.",
+        "error": "Last search failed, see logs."
+      },
+      "buttons": {
+        "run": "Run {{action}}",
+        "running": "Running",
+        "filterHelp": "Filter help",
+        "copyResults": "Copy results",
+        "copyLogs": "Copy logs",
+        "clearState": "Clear state",
+        "copy": "Copy"
+      },
+      "sections": {
+        "task": "Task",
+        "taskDesc": "Pick a search action, paste paths, write a SQL filter.",
+        "switches": "Key switches"
+      },
+      "tabs": {
+        "files": "Files",
+        "groups": "Groups",
+        "logs": "Logs",
+        "help": "Help"
+      },
+      "stats": {
+        "total": "Total",
+        "files": "Files",
+        "dirs": "Dirs",
+        "archive": "Archive members",
+        "nested": "Nested",
+        "errors": "Errors",
+        "scanned": "Scanned",
+        "progress": "Progress"
+      },
+      "empty": {
+        "help": "Help text will appear here.",
+        "files": "Matched files and archive members will appear here after running.",
+        "groups": "Group summaries appear here after setting a group-by field.",
+        "logs": "Run logs will appear here.",
+        "waitingRun": "Waiting to run",
+        "itemCount": "{{count}} items"
+      },
+      "summary": {
+        "result": "{{total}} items / {{archive}} archive members",
+        "pathWaiting": "{{count}} paths waiting to search",
+        "pasteHint": "Paste paths to start searching"
+      },
+      "actionStart": "{{action}} started",
+      "noNative": "No native runtime in this host. Use desktop mode or CLI.",
+      "pathRequired": "Enter at least one search path first.",
+      "actions": {
+        "search": "Search",
+        "archives_only": "Archive listing",
+        "nested": "Nested archives",
+        "help": "Help"
+      },
+      "aria": {
+        "searchPaths": "findz search paths",
+        "whereFilter": "findz SQL filter",
+        "advancedOptions": "findz advanced options",
+        "defaults": "findz defaults"
+      },
+      "workspace": {
+        "title": "Findz",
+        "searchLabel": "Search Findz index",
+        "searchPlaceholder": "Search archive and member paths",
+        "areaMetricLabel": "Treemap area metric",
+        "filters": "Filters",
+        "advancedFilters": "Advanced filters",
+        "exportJson": "Export filtered archives as JSON",
+        "exportCsv": "Export filtered archives as CSV",
+        "library": "Library",
+        "archiveResults": "Findz archive results",
+        "lanes": {
+          "source": "Source",
+          "results": "Results",
+          "analysis": "Analysis",
+          "query": "Search and filters",
+          "scope": "Library scope",
+          "hierarchy": "Archive hierarchy"
+        },
+        "laneActions": {
+          "restoreSource": "Restore Source lane",
+          "collapseSource": "Collapse Source lane",
+          "resizeSource": "Resize Source lane",
+          "restoreResults": "Restore Results lane",
+          "collapseResults": "Collapse Results lane",
+          "resizeResults": "Resize Results lane",
+          "restoreAnalysis": "Restore Analysis lane",
+          "collapseAnalysis": "Collapse Analysis lane",
+          "resizeAnalysis": "Resize Analysis lane",
+          "enterSolo": "Focus current lane",
+          "exitSolo": "Show all lanes"
+        },
+        "header": {
+          "rootLabel": "Findz library root",
+          "rootPlaceholder": "Local ZIP / CBZ library root",
+          "openLibrary": "Open library",
+          "scanLibrary": "Scan library",
+          "scanTooltip": "Scan ZIP central directories",
+          "analyzeHeaders": "Analyze image headers",
+          "analyzeTooltip": "Analyze image headers on demand",
+          "watching": "Watching",
+          "watcherDegraded": "Watcher degraded",
+          "noLibrary": "No library",
+          "librarySummary": "{{archives}} archives · {{members}} members",
+          "openLibraryHint": "Open a local library to create its separate Findz index.",
+          "resumeTask": "Resume task",
+          "pauseTask": "Pause task",
+          "cancelTask": "Cancel task"
+        },
+        "taskKinds": { "scan": "Scan", "analysis": "Analysis" },
+        "taskStatus": { "running": "Running", "paused": "Paused", "completed": "Done", "completed_with_warnings": "Done with warnings", "cancelled": "Cancelled", "failed": "Failed" },
+        "table": {
+          "indexedSummary": "{{visible}} of {{total}} indexed archives",
+          "previousPage": "Previous archive page",
+          "nextPage": "Next archive page",
+          "expandArchive": "Expand archive",
+          "columns": { "archive": "Archive", "size": "Size", "images": "Images", "analyzed": "Analyzed", "density": "Density", "anomalies": "Anomalies", "savings": "Savings" },
+          "empty": "Open a library, then run a ZIP scan to populate the index.",
+          "folderArchiveCount": "{{count}} archives",
+          "loadingMembers": "Loading archive members...",
+          "noMembers": "This archive has no indexed members.",
+          "pending": "Pending",
+          "deepRetry": "Retry metadata with a deeper read",
+          "deepRetryTooltip": "Retry with a larger read budget",
+          "metadataStatuses": {
+            "complete": "Complete",
+            "budgetExceeded": "Read budget exceeded",
+            "unsupportedFormat": "Unsupported format",
+            "parserFailure": "Parser failure",
+            "encrypted": "Encrypted"
+          },
+          "anomalyKinds": {
+            "highBytesPerMegapixel": "High bytes / MP",
+            "largeMember": "Large member"
+          },
+          "ascending": "ascending",
+          "descending": "descending",
+          "scanStates": { "corrupt": "Corrupt archive", "unsupported": "Unsupported archive", "rejected": "Rejected archive" }
+        },
+        "treemap": "Treemap",
+        "treemapPanel": {
+          "area": "Area",
+          "empty": "No indexed archive area for this view.",
+          "openArchive": "Open archive {{name}}",
+          "drillInto": "Drill into {{name}}"
+        }
+      },
+      "metrics": {
+        "archiveSize": "Archive size",
+        "totalImageSize": "Total image size",
+        "averageImageSize": "Average image size",
+        "averageBytesPerMegapixel": "Average bytes / MP",
+        "medianBytesPerMegapixel": "Median bytes / MP",
+        "anomalyCount": "Anomaly count",
+        "estimatedSavings": "Estimated savings"
+      },
+      "sort": {
+        "path": "Path",
+        "archiveSize": "Archive size",
+        "imageCount": "Image candidates",
+        "analysisCoverage": "Analysis coverage",
+        "totalImageSize": "Total image size",
+        "averageImageSize": "Average image size",
+        "averageBytesPerMegapixel": "Average bytes / MP",
+        "anomalyCount": "Anomalies",
+        "estimatedSavings": "Estimated savings"
+      },
+      "rules": {
+        "select": "Select",
+        "true": "True",
+        "false": "False",
+        "addCondition": "+ Condition",
+        "addConditionTitle": "Add condition",
+        "addGroup": "+ Group",
+        "addGroupTitle": "Add condition group",
+        "removeCondition": "Remove condition",
+        "removeGroup": "Remove condition group",
+        "cloneCondition": "Clone condition",
+        "cloneGroup": "Clone condition group",
+        "drag": "Drag to reorder",
+        "not": "Not",
+        "notTitle": "Invert this group",
+        "all": "All",
+        "any": "Any",
+        "operators": { "equal": "is", "notEqual": "is not", "contains": "contains", "doesNotContain": "does not contain", "startsWith": "starts with", "endsWith": "ends with", "in": "is one of", "notIn": "is not one of", "lessThan": "is less than", "lessThanInclusive": "is at most", "greaterThan": "is greater than", "greaterThanInclusive": "is at least", "isEmpty": "is empty", "isNotEmpty": "is not empty" },
+        "fields": {
+          "relativePath": "Archive path", "scanState": "Index state", "archiveSize": "Archive size", "memberCount": "Members", "imageCount": "Image candidates", "memberPath": "Member path", "memberSize": "Member size", "extension": "Member extension", "actualFormat": "Actual format", "width": "Image width", "height": "Image height", "pixels": "Pixels", "bytesPerMegapixel": "Bytes / MP", "analysisStatus": "Analysis status", "anomalyKind": "Anomaly kind", "anomalyScore": "Anomaly score", "memberEstimatedSavings": "Member estimated savings", "analysisCoverage": "Analyzed images", "totalImageSize": "Total image size", "averageBytesPerMegapixel": "Average bytes / MP", "anomalyCount": "Anomalies", "estimatedSavings": "Estimated savings"
+        },
+        "options": { "indexed": "Indexed", "corrupt": "Corrupt", "unsupported": "Unsupported", "rejected": "Rejected", "complete": "Complete", "budgetExceeded": "Budget exceeded", "unsupportedFormat": "Unsupported format", "parserFailure": "Parser failure", "encrypted": "Encrypted", "highBytesPerMegapixel": "High bytes / MP", "largeMember": "Large member" }
+      },
+      "errors": {
+        "libraryMissing": "Findz did not return a library.",
+        "taskMissing": "Findz did not create a task."
+      }
+    },
+    "formatv": {
+      "name": "FormatV",
+      "description": "Scan video folders, add/remove .nov suffixes, and check prefixed duplicates.",
+      "title": "formatv",
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "error": "Failed",
+        "completed": "Done"
+      },
+      "statusDesc": {
+        "idle": "Paste video folders then scan or check duplicates.",
+        "running": "FormatV is processing video files.",
+        "error": "Last task failed, check results and logs.",
+        "completed": "Last task completed."
+      },
+      "buttons": {
+        "scan": "Scan videos",
+        "addNov": "Add .nov",
+        "removeNov": "Remove .nov",
+        "checkDuplicates": "Check duplicates",
+        "reset": "Clear state",
+        "cancel": "Cancel",
+        "confirmExecute": "Confirm execute",
+        "copy": "Copy",
+        "pastePath": "Paste path",
+        "clearPath": "Clear path",
+        "saveDefault": "Save as default",
+        "restoreDefault": "Restore default",
+        "clearOverride": "Clear overrides",
+        "viewConfig": "View config",
+        "openFile": "Open file"
+      },
+      "sections": {
+        "input": "Input",
+        "inputDesc": "Paste video folders; after scanning you can add/remove .nov or check duplicates.",
+        "keySwitches": "Key switches"
+      },
+      "tabs": {
+        "results": "Results",
+        "logs": "Logs"
+      },
+      "stats": {
+        "normal": "Normal",
+        "nov": ".nov",
+        "success": "Success",
+        "duplicates": "Dups",
+        "progress": "Progress"
+      },
+      "empty": {
+        "results": "File list and operation results will appear here after scanning, adding/removing .nov, or checking duplicates.",
+        "logs": "Run logs will appear here.",
+        "itemCount": "{{count}} items",
+        "waitingRun": "Waiting to run"
+      },
+      "dialog": {
+        "confirmRealTitle": "Confirm real execute {{action}}?",
+        "confirmRealDesc": "Dry-run is off; this will perform real file renames on {{count}} path(s). This cannot be undone — verify paths and prefix."
+      },
+      "aria": {
+        "running": "formatv running"
+      },
+      "summary": {
+        "duplicates": "{{count}} duplicates",
+        "errors": "{{count}} failed",
+        "videos": "{{count}} videos",
+        "pathWaiting": "{{count}} paths waiting to scan",
+        "pasteHint": "Paste video folders then scan"
+      },
+      "actionStart": "{{action}} starting",
+      "pathRequired": "Enter at least one video path first.",
+      "noNative": "No native run capability in this environment; use desktop mode or CLI.",
+      "headerSubtitle": "{{count}} paths / {{mode}} / prefix {{prefix}}",
+      "modeDryRun": "dry-run",
+      "modeWrite": "write",
+      "pathsLabel": "Video folders",
+      "pathsCount": "{{count}} entries",
+      "switches": {
+        "recursive": "Recursive",
+        "recursiveDesc": "Recursively scan video files in subdirectories.",
+        "dryRun": "Dry-run",
+        "dryRunDesc": "When on, only generates a rename plan without writing to the filesystem. When off, performs real renames."
+      },
+      "options": {
+        "title": "Task options",
+        "description": "Prefix name and recursive/dry-run switches are here."
+      },
+      "defaults": {
+        "title": "Default config",
+        "description": "Save FormatV paths, prefix, and switches to a plaintext config.",
+        "noConfig": "# nodes.formatv has no default config yet",
+        "notConnected": "Not connected to local config service",
+        "configFile": "Config file",
+        "configTitle": "FormatV config",
+        "configDesc": "Current nodes.formatv defaults and config file location."
+      },
+      "prefix": {
+        "label": "Prefix name"
+      }
+    },
+    "lata": {
+      "name": "Lata",
+      "description": "List, plan, and execute Taskfile tasks.",
+      "title": "lata",
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "error": "Failed",
+        "completed": "Done"
+      },
+      "statusDesc": {
+        "idle": "Specify a Taskfile path then load tasks.",
+        "running": "Lata is loading or executing tasks.",
+        "error": "Last task failed, check logs.",
+        "completed": "Last task completed."
+      },
+      "buttons": {
+        "list": "Load tasks",
+        "plan": "Preview commands",
+        "execute": "Execute task",
+        "copyLogs": "Copy logs",
+        "reset": "Clear state",
+        "cancel": "Cancel",
+        "confirmExecute": "Confirm execute",
+        "pasteTaskfile": "Paste Taskfile path",
+        "saveDefault": "Save as default",
+        "restoreDefault": "Restore default",
+        "clearOverride": "Clear overrides",
+        "viewConfig": "View config",
+        "openFile": "Open file",
+        "copy": "Copy"
+      },
+      "sections": {
+        "taskfile": "Taskfile config",
+        "taskfileDesc": "Specify the Taskfile path and task args; after loading you can select a task.",
+        "tasks": "Task list",
+        "tasksDesc": "Click a task name to select it, then preview or execute."
+      },
+      "tabs": {
+        "tasks": "Tasks",
+        "commands": "Commands",
+        "logs": "Logs"
+      },
+      "stats": {
+        "tasks": "Tasks",
+        "commands": "Commands",
+        "exitCode": "Exit code"
+      },
+      "empty": {
+        "tasks": "Tasks will appear here after loading a Taskfile.",
+        "commands": "Commands will appear here after previewing or executing a task.",
+        "logs": "Run logs will appear here.",
+        "logCount": "{{count}} entries",
+        "waitingRun": "Waiting to run"
+      },
+      "dialog": {
+        "confirmTitle": "Confirm execute Lata task?",
+        "confirmDesc": "This will actually execute the \"{{task}}\" task command from the Taskfile. Verify the command before continuing."
+      },
+      "aria": {
+        "running": "lata running"
+      },
+      "summary": {
+        "completed": "Task completed",
+        "taskCount": "{{task}} / {{count}} tasks"
+      },
+      "actionStart": "{{action}} starting",
+      "noNative": "No native run capability in this environment; use desktop mode or CLI.",
+      "noTaskSelected": "No task selected",
+      "fields": {
+        "taskfile": "Taskfile path",
+        "args": "Task args",
+        "noTasks": "No tasks yet"
+      },
+      "defaults": {
+        "title": "Default config",
+        "description": "Save Lata Taskfile path, task name, and args to a plaintext config.",
+        "noConfig": "# nodes.lata has no default config yet",
+        "notConnected": "Not connected to local config service",
+        "configFile": "Config file",
+        "configTitle": "Lata config",
+        "configDesc": "Current nodes.lata defaults and config file location."
+      }
+    },
+    "linedup": {
+      "name": "Linedup",
+      "description": "Filter source lines by removing any line containing a filter token.",
+      "title": "linedup",
+      "meta": "{{source}} source / {{filters}} filters",
+      "pasteSource": "Paste source",
+      "pasteFilters": "Paste filters",
+      "filter": "Filter",
+      "reset": "Reset",
+      "sourceLabel": "source",
+      "sourcePlaceholder": "one item per line",
+      "filtersLabel": "filters",
+      "filtersPlaceholder": "remove source lines containing these tokens",
+      "statKept": "kept",
+      "statRemoved": "removed",
+      "kept": "Kept",
+      "removed": "Removed",
+      "save": "Save",
+      "runToPreview": "Run filter to preview removed lines.",
+      "config": {
+        "trigger": "Configuration management",
+        "title": "Configuration management",
+        "description": "Save reusable defaults or restore this node's saved configuration.",
+        "save": "Save as default",
+        "restore": "Restore defaults",
+        "reload": "Reload",
+        "view": "View configuration",
+        "previewTitle": "Default configuration",
+        "noPath": "No configuration file is connected",
+        "openFile": "Open configuration file",
+        "dirty": "Current parameters differ from the saved defaults."
+      }
+    },
+    "linku": {
+      "name": "Linku",
+      "description": "Create, move, list, and recover symlink records.",
+      "title": "linku",
+      "meta": "{{phase}} / {{count}} record(s)",
+      "info": "Info",
+      "create": "Create",
+      "move": "Move",
+      "list": "List",
+      "recover": "Recover",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "pasteField": "Paste {{field}}",
+      "sourceLabel": "source",
+      "targetLinkLabel": "target/link",
+      "configLabel": "config",
+      "createdLabel": "created",
+      "recoveredLabel": "recovered",
+      "failedLabel": "failed",
+      "noResult": "No result",
+      "existsLabel": "exists",
+      "symlinkLabel": "symlink"
+    },
+    "marku": {
+      "name": "Marku",
+      "description": "Run Markdown cleanup and conversion modules with preview diff.",
+      "title": "marku",
+      "meta": "{{phase}} / {{module}} / {{mode}}",
+      "run": "Run",
+      "history": "History",
+      "undo": "Undo",
+      "copyOutput": "Copy output",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "textInputLabel": "text input",
+      "textInputPlaceholder": "paste markdown text, or leave empty to use paths",
+      "pathsConfigLabel": "paths / config",
+      "pathsConfigPlaceholder": "one file or folder per line",
+      "configJsonLabel": "config json",
+      "pasteText": "Paste text",
+      "pastePath": "Paste path",
+      "recursive": "recursive",
+      "dryRun": "dry-run",
+      "writeMode": "write",
+      "undoToggle": "undo",
+      "processedLabel": "processed",
+      "changed": "changed",
+      "same": "same",
+      "diffsLabel": "diffs",
+      "errorsLabel": "errors",
+      "historyItem": "{{id}} {{module}} {{count}} file(s)",
+      "undoneLabel": "/ undone",
+      "noResult": "No result"
+    },
+    "migratef": {
+      "name": "MigrateF",
+      "description": "Move or copy files with preserve, flat, and direct modes plus undo history.",
+      "title": "migratef",
+      "meta": "{{phase}} / {{mode}}",
+      "plan": "Plan",
+      "move": "Move",
+      "copy": "Copy",
+      "history": "History",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "targetLabel": "target",
+      "historyLabel": "history",
+      "pasteTarget": "Paste target",
+      "pasteHistory": "Paste history",
+      "preserveMode": "preserve",
+      "flatMode": "flat",
+      "directMode": "direct",
+      "sourcesLabel": "sources",
+      "migratedLabel": "migrated",
+      "skippedLabel": "skipped",
+      "errorsLabel": "errors",
+      "batchLabel": "batch",
+      "historyItem": "{{id}} / {{action}} / {{count}} item(s)",
+      "undoneLabel": "/ undone",
+      "noResult": "No result"
+    },
+    "mvz": {
+      "name": "MVZ",
+      "description": "Delete, extract, move, or rename files inside archives from findz output.",
+      "title": "mvz",
+      "meta": "{{action}} / {{mode}} / {{files}} file(s) / {{archives}} archive(s)",
+      "run": "Run",
+      "extract": "Extract",
+      "move": "Move",
+      "delete": "Delete",
+      "rename": "Rename",
+      "dryRun": "dry-run",
+      "live": "live",
+      "near": "near",
+      "autoDir": "auto dir",
+      "flatten": "flatten",
+      "pasteFindzEntries": "Paste findz entries",
+      "copyResults": "Copy results",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "outputLabel": "output",
+      "separatorLabel": "separator",
+      "patternLabel": "pattern",
+      "replacementLabel": "replacement",
+      "archiveEntriesLabel": "archive entries",
+      "archiveEntriesPlaceholder": "C:/packs/book.zip//chapter/page.jpg",
+      "successLabel": "success",
+      "failedLabel": "failed",
+      "archivesLabel": "archives",
+      "filesLabel": "files",
+      "progressLabel": "progress",
+      "planLabel": "plan",
+      "okLabel": "ok",
+      "failLabel": "fail",
+      "noOperation": "No operation yet"
+    },
+    "rawfilter": {
+      "name": "Rawfilter",
+      "description": "Group similar archives and move duplicate/raw versions to trash or multi.",
+      "title": "rawfilter",
+      "meta": "{{phase}} / {{count}} archive(s)",
+      "plan": "Plan",
+      "run": "Run",
+      "copyPlan": "Copy plan",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "folder": "folder",
+      "pasteFolder": "Paste folder",
+      "similarity": "similarity",
+      "nameOnly": "name only",
+      "shortcuts": "shortcuts",
+      "trashOnly": "trash only",
+      "groups": "groups",
+      "trash": "trash",
+      "multi": "multi",
+      "links": "links",
+      "errors": "errors",
+      "noPlanYet": "No plan yet"
+    },
+    "recycleu": {
+      "name": "Recycleu",
+      "description": "Empty the Windows recycle bin immediately or on a finite/unlimited timer.",
+      "title": "recycleu",
+      "meta": "{{phase}} / {{interval}}s interval",
+      "start": "Start",
+      "clean": "Clean",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "intervalSeconds": "interval seconds",
+      "cycles": "cycles",
+      "driveLetter": "drive",
+      "runs": "{{count}} runs",
+      "phase": "phase",
+      "last": "last",
+      "progress": "progress",
+      "waiting": "waiting",
+      "starting": "Starting...",
+      "common": {
+        "unlimited": "Unlimited",
+        "none": "None"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "checkStatus": "Check status",
+        "cleanNow": "Clean now",
+        "cleanTitle": "Empty the recycle bin now?",
+        "command": "Actions and settings",
+        "confirmClean": "Confirm clean",
+        "confirmStart": "Confirm start",
+        "copy": "Copy",
+        "reset": "Reset",
+        "settings": "Cleanup settings",
+        "start": "Start",
+        "startTitle": "Start automatic cleanup?",
+        "stop": "Stop automatic cleanup",
+        "stopping": "Stopping",
+        "status": "Status",
+        "statusShort": "Status"
+      },
+      "command": {
+        "title": "Recycleu actions",
+        "description": "Collapsed mode keeps all cleanup parameters and actions available."
+      },
+      "confirm": {
+        "clean": "This immediately empties the recycle bin for {{target}}. This cannot be undone.",
+        "startLimited": "Clean {{target}} every {{interval}} seconds, for at most {{cycles}} cycles.",
+        "startUnlimited": "Clean {{target}} every {{interval}} seconds indefinitely, until the task is stopped or cancelled."
+      },
+      "controls": {
+        "title": "Cleanup controls",
+        "description": "Set the target drive, cleanup interval, and cycle limit."
+      },
+      "config": {
+        "trigger": "Configuration management",
+        "title": "Configuration management",
+        "description": "Save reusable defaults or restore this node's saved configuration.",
+        "save": "Save as default",
+        "restore": "Restore defaults",
+        "reload": "Reload",
+        "view": "View configuration",
+        "previewTitle": "Default configuration",
+        "noPath": "No configuration file is connected",
+        "openFile": "Open configuration file",
+        "dirty": "Current parameters differ from the saved defaults."
+      },
+      "dial": {
+        "aria": "Cleanup cycle progress",
+        "cleaned": "{{count}} cleanups",
+        "cycleLimit": "Limit {{count}}",
+        "unlimited": "Unlimited cycles"
+      },
+      "errors": {
+        "backendUnavailable": "Local Backend is unavailable; recycleu cannot run.",
+        "cancelUnavailable": "This host cannot cancel a task from the node.",
+        "noActiveRun": "There is no active Recycleu task to cancel."
+      },
+      "fields": {
+        "allDrives": "All drives",
+        "cycles": "Cycle count",
+        "cyclesAria": "Maximum cycle count",
+        "cyclesDescription": "Set to 0 for unlimited cycles",
+        "cyclesUnlimitedDescription": "Runs until the task is cancelled",
+        "drive": "Target drive",
+        "driveAria": "Drive letter",
+        "driveDescription": "Leave blank to clean every recycle bin",
+        "driveSelected": "Only clean drive {{drive}}",
+        "interval": "Cleanup interval",
+        "intervalAria": "Cleanup interval in seconds",
+        "intervalDescription": "Minimum 5 seconds"
+      },
+      "history": {
+        "description": "Countdowns, cleanup results, and errors in execution order.",
+        "emptyDescription": "Countdowns, cleanup results, and errors appear after a run starts.",
+        "emptyTitle": "No logs yet",
+        "sequence": "Entry #{{count}}",
+        "title": "Run log"
+      },
+      "metrics": {
+        "cycles": "Cycle limit",
+        "interval": "Interval",
+        "last": "Last cleanup",
+        "seconds": "{{count}} seconds",
+        "target": "Scope",
+        "times": "{{count}} times"
+      },
+      "monitor": {
+        "title": "Cleanup monitor"
+      },
+      "presets": {
+        "aria": "Cleanup interval presets",
+        "label": "Quick intervals",
+        "minute": "1 minute",
+        "seconds": "{{count}} seconds"
+      },
+      "settings": {
+        "description": "Adjust the target drive, interval, and cycle limit; 0 means unlimited.",
+        "title": "Cleanup settings"
+      },
+      "status": {
+        "cancelled": "Cancelled",
+        "cancelledDescription": "Automatic cleanup has stopped.",
+        "checking": "Reading status.",
+        "cleaning": "Emptying the recycle bin.",
+        "completed": "Completed",
+        "completedDescription": "The latest operation completed.",
+        "failed": "Failed",
+        "failedDescription": "The latest operation failed.",
+        "progressAria": "Current cycle progress",
+        "ready": "Ready",
+        "readyDescription": "Waiting to start a cleanup task.",
+        "running": "Running",
+        "runningDescription": "Waiting for the next cleanup.",
+        "starting": "Automatic cleanup started.",
+        "startingUnlimited": "Unlimited cleanup started until cancelled.",
+        "stopping": "Stopping automatic cleanup…"
+      },
+      "summary": {
+        "last": "{{count}} cleanups · last at {{time}}",
+        "ready": "Periodically empty the recycle bin",
+        "readyUnlimited": "Periodic recycle-bin cleanup · unlimited mode",
+        "running": "Next cleanup in {{seconds}}s · {{count}} completed",
+        "runningUnlimited": "Unlimited cycles · next cleanup in {{seconds}}s",
+        "settings": "{{drive}} · {{interval}}s · {{cycles}}"
+      },
+      "units": {
+        "secondsShort": "s"
+      }
+    },
+    "repacku": {
+      "name": "Repacku",
+      "description": "Analyze folder structures and repack matching folders into zip archives.",
+      "title": "repacku",
+      "meta": "{{types}} / min {{minCount}} / {{mode}}",
+      "pastePath": "Paste path",
+      "analyze": "Analyze",
+      "full": "Full",
+      "compress": "Compress",
+      "copyResults": "Copy results",
+      "copyLogs": "Copy logs",
+      "reset": "Reset",
+      "folderPath": "folder path",
+      "configJson": "config json",
+      "types": "types",
+      "minFiles": "min files",
+      "dryRun": "dry run",
+      "deleteAfter": "delete after",
+      "single": "Single",
+      "gallery": "Gallery",
+      "folders": "folders",
+      "entire": "entire",
+      "selective": "selective",
+      "ops": "ops",
+      "failed": "failed",
+      "readyToAnalyze": "Ready to analyze or repack folders.",
+      "starting": "starting",
+      "pathRequired": "Folder path is required.",
+      "configOrPathRequired": "Config JSON or folder path is required.",
+      "nativeUnavailable": "Native node runner is unavailable in this host.",
+      "allFiles": "all files",
+      "write": "write",
+      "dryRunMode": "dry-run"
+    },
+    "sleept": {
+      "name": "Sleept",
+      "description": "System timer for countdown, scheduled time, network, and CPU triggers.",
+      "title": "sleept",
+      "meta": "{{timerMode}} / {{powerMode}} / {{mode}}",
+      "starting": "starting",
+      "start": "Start",
+      "stats": "Stats",
+      "reset": "Reset",
+      "timerCountdown": "Countdown",
+      "timerAt": "At",
+      "timerNet": "Net",
+      "timerCpu": "CPU",
+      "powerSleep": "Sleep",
+      "powerOff": "Off",
+      "powerReboot": "Reboot",
+      "powerDisplaySleep": "Display sleep",
+      "powerScreensaver": "Start screensaver",
+      "dry": "Dry",
+      "dryRun": "dry-run",
+      "live": "live",
+      "statDuration": "duration",
+      "statCpu": "cpu",
+      "statUp": "up",
+      "statDown": "down",
+      "waiting": "waiting",
+      "targetDatetime": "target datetime",
+      "upload": "upload",
+      "download": "download",
+      "minutes": "minutes",
+      "thresholdPct": "threshold %",
+      "hours": "hours",
+      "seconds": "seconds",
+      "phaseIdle": "idle",
+      "phaseRunning": "running",
+      "phaseCompleted": "completed",
+      "phaseError": "error",
+      "phaseCancelled": "cancelled"
+    },
+    "trename": {
+      "name": "Trename",
+      "description": "Scan folders into rename JSON, validate translated targets, rename, and undo.",
+      "title": "trename",
+      "meta": "{{total}} total / {{ready}} ready / {{conflicts}} conflicts",
+      "starting": "starting",
+      "pastePath": "Paste path",
+      "scan": "Scan",
+      "json": "JSON",
+      "validate": "Validate",
+      "rename": "Rename",
+      "copyJson": "Copy JSON",
+      "reset": "Reset",
+      "copyLogs": "Copy logs",
+      "scanPaths": "scan paths",
+      "basePath": "base path",
+      "batchId": "batch id",
+      "excludeExt": "exclude ext",
+      "excludePattern": "exclude pattern",
+      "splitLines": "split lines",
+      "root": "root",
+      "hidden": "hidden",
+      "compact": "compact",
+      "dryRun": "dry run",
+      "count": "Count",
+      "undo": "Undo",
+      "statTotal": "total",
+      "statPending": "pending",
+      "statReady": "ready",
+      "statOk": "ok",
+      "statConflicts": "conflicts",
+      "renameJson": "rename json",
+      "progressLine": "[{{progress}}%] {{text}}",
+      "readyToScan": "Ready to scan folders into rename JSON.",
+      "status": {
+        "idle": "Ready",
+        "running": "Running",
+        "success": "Done",
+        "error": "Failed",
+        "warning": "Has conflicts",
+        "pending": "Pending validation"
+      },
+      "desc": {
+        "idle": "Paste directories and scan into rename JSON.",
+        "running": "Trename is processing the current task.",
+        "success": "Last task completed.",
+        "error": "Last task failed, check conflicts and logs.",
+        "warning": "{{count}} conflict(s) to resolve.",
+        "pending": "{{total}} items, {{ready}} ready to rename."
+      },
+      "actions": {
+        "scanPaths": "Scan paths",
+        "validate": "Validate conflicts",
+        "history": "Read history",
+        "clearState": "Clear state",
+        "dryRename": "Dry rename",
+        "liveRename": "Live rename",
+        "confirmExecute": "Confirm execute"
+      },
+      "labels": {
+        "input": "Input",
+        "inputHint": "Paste directories, scan into rename JSON; edit large JSON in the dialog.",
+        "switches": "Key switches"
+      },
+      "confirm": {
+        "title": "Confirm live Trename?",
+        "description": "This will perform real file renames. {{plan}} planned, {{conflicts}} conflicts, base path {{basePath}}."
+      },
+      "summary": {
+        "conflicts": "{{count}} conflict(s)",
+        "tree": "{{total}} items / {{ready}} ready / {{mode}}",
+        "waiting": "{{count}} path(s) waiting to scan",
+        "empty": "Select directories then scan rename JSON"
+      },
+      "subtitle": {
+        "full": "{{paths}} paths / {{ready}} ready / {{mode}}"
+      },
+      "tabs": {
+        "results": "Results",
+        "logs": "Logs"
+      },
+      "aria": {
+        "running": "trename running",
+        "scanMode": "trename scan mode",
+        "scanPaths": "trename scan paths",
+        "advancedOptions": "trename advanced options",
+        "defaults": "trename defaults",
+        "jsonText": "trename json text",
+        "jsonEditor": "open trename json editor"
+      },
+      "error": {
+        "noScanPath": "Please enter at least one scan path.",
+        "noJson": "Please scan or import rename JSON first.",
+        "noRunEnv": "No local run capability in this environment; use desktop mode or CLI."
+      },
+      "empty": "No paths scanned yet",
+      "mode": {
+        "dry": "Dry run",
+        "live": "Live",
+        "liveExecute": "Live execute"
+      },
+      "stats": {
+        "progress": "Progress"
+      },
+      "actionLabel": {
+        "scan": "Scan",
+        "import": "Import",
+        "validate": "Validate",
+        "rename": "Rename",
+        "undo": "Undo",
+        "history": "Read history"
+      },
+      "progress": {
+        "start": "{{action}} started"
+      }
+    },
+    "classf": {
+      "name": "ClassF",
+      "description": "Orchestrate SameA artist extraction, CrashU folder matching, and MigrateF already/wait transfers.",
+      "sections": {
+        "scanSources": "Scan sources",
+        "classificationMatrix": "Classification matrix",
+        "executionGate": "Execution gate"
+      },
+      "modes": {
+        "dryRun": "Preview",
+        "live": "Live execution"
+      },
+      "execution": {
+        "planReadiness": "Plan readiness",
+        "ready": "Ready",
+        "pending": "Pending",
+        "reviewed": "Plan reviewed",
+        "stale": "Plan required"
+      },
+      "actions": { "plan": "Plan", "classify": "Classify", "planRun": "Build plan", "classifyRun": "Classify items", "prepareClassify": "Build execution plan first", "copy": "Copy", "paste": "Paste paths", "clear": "Clear state", "clearPaths": "Clear paths" },
+      "classifyModes": { "auto": "Auto", "only": "Already only", "del": "Del only", "off": "Target" },
+      "queues": { "title": "Classification queues", "already": "already", "wait": "wait", "del": "del", "enable": "Enable {{stage}}", "group": "Group {{stage}} artists" },
+      "transferModes": { "move": "Move", "copy": "Copy" },
+      "fields": { "sameaRoots": "SameA archive roots", "target": "Target folder", "dryRun": "Preview mode", "blacklistKeywords": "Blacklisted authors" },
+      "blacklist": {
+        "extractSamea": "Extract SameA tag",
+        "stripOuterBrackets": "Remove outer brackets",
+        "splitArtistCircle": "Split circle and artist",
+        "importDeletionHistory": "Import deletion history",
+        "importingDeletionHistory": "Importing",
+        "deletionHistoryTitle": "Deletion history analysis",
+        "deletionHistoryDescription": "Counts only trashed or permanently deleted records; candidates must meet the threshold.",
+        "pickDeletionHistory": "Choose deletion history CSV",
+        "minimumDeletions": "Minimum deletions",
+        "importedDeletionRecords": "{{count}} records imported",
+        "successfulDeletions": "{{count}} successful deletions",
+        "artistDeletions": "{{count}} artist matches",
+        "candidateCount": "{{count}} candidates",
+        "addCandidates": "Add {{count}} candidates",
+        "noCandidates": "No author candidates meet the current threshold.",
+        "historyImportUnsupported": "This host cannot select local CSV files.",
+        "historyReadFailed": "Could not read {{path}}: HTTP {{status}}"
+      },
+      "placeholders": { "sameaRoots": "Example: D:/set/reviewed.zip", "crashuSources": "One CrashU source directory per line; blank uses the default library", "targetRequired": "Required in target mode", "targetOptional": "Optional; defaults to already", "blacklistKeywords": "One SameA artist label per line, for example [artist] or [circle (artist)]" },
+      "tabs": { "plan": "Plan", "matrix": "Classification matrix", "tree": "File tree", "issues": "Issues", "logs": "Logs" },
+      "tree": { "empty": "Waiting for a classification plan", "emptyDescription": "Build a plan to preview the exact target directory structure here.", "targetRoot": "Target folder", "source": "Source", "toggle": "Expand/collapse" },
+      "table": { "source": "Source", "status": "Status", "target": "Location after execution", "queue": "Classification queue", "mapping": "Source → location after execution" },
+      "stages": { "samea": "Source organization", "crashu": "Directory matching", "del": "Del queue", "already": "Already queue", "wait": "Wait queue" },
+      "itemStatus": { "running": "Running", "moved": "Moved", "copied": "Copied", "ready": "Ready", "conflict": "Conflict", "error": "Error", "skipped": "Skipped" },
+      "stats": { "selected": "Selected", "ready": "Ready", "del": "Blacklist", "wait": "Wait", "completed": "Completed", "conflicts": "Conflicts", "progress": "Progress" },
+      "status": { "running": "Running", "failed": "Failed", "done": "Done", "ready": "Ready", "stale": "Plan stale", "runningDescription": "Building or applying the classification plan.", "failedDescription": "The last run failed. Check Issues.", "doneDescription": "The last ClassF run completed.", "readyDescription": "Add sources and preview every already / wait target first." },
+      "empty": { "ready": "Build a plan to list every source and target before execution.", "noSources": "Add source paths to preview the full classification result.", "noIssues": "No issues yet.", "logs": "Run logs will appear here.", "waitingPlan": "Waiting for plan" },
+      "summary": { "items": "{{count}} items", "result": "{{count}} items / ready {{ready}} / del {{del}} / wait {{wait}}", "selected": "{{count}} selected" },
+      "progress": { "buildingPlan": "Building the complete classification plan…", "executing": "Applying the reviewed classification plan…", "planReady": "Plan ready: {{count}} executable items.", "completed": "Execution complete: {{count}} items processed.", "planVisible": "The complete plan is ready. Review every target in the matrix.", "itemRunning": "Processing: {{name}}", "itemCompleted": "Updated: {{name}}", "stage": { "samea": "Analyzing and organizing sources…", "crashu": "Matching classification directories…", "del": "Building the del queue…", "already": "Building the already queue…", "wait": "Building the wait queue…" } },
+      "confirm": { "title": "Apply the reviewed classification plan?", "description": "ClassF moves or copies items to their reviewed targets; blacklisted items go to del and conflicts are skipped.", "action": "Confirm execution" },
+      "common": { "cancel": "Cancel", "done": "Done" },
+      "config": {
+        "trigger": "Configuration",
+        "title": "Configuration",
+        "description": "Save reusable defaults, or restore saved configuration for this node.",
+        "save": "Save as default",
+        "restore": "Restore defaults",
+        "reload": "Reload",
+        "view": "View configuration",
+        "previewTitle": "Default configuration",
+        "noPath": "No config file connected",
+        "openFile": "Open config file",
+        "dirty": "Current parameters differ from saved defaults.",
+        "preset": "Preset",
+        "presetPlaceholder": "Select preset",
+        "presetDescription": "After switching, save as default to write to the TOML config."
+      }
+    },
+    "nameu": {
+      "name": "NameU",
+      "description": "Preview and apply archive filename cleanup for artist folders.",
+      "config": {
+        "trigger": "Configuration",
+        "title": "Configuration",
+        "description": "Save reusable defaults, or restore saved configuration for this node.",
+        "save": "Save as default",
+        "restore": "Restore defaults",
+        "reload": "Reload",
+        "view": "View configuration",
+        "previewTitle": "Default configuration",
+        "noPath": "No config file connected",
+        "openFile": "Open config file",
+        "dirty": "Current parameters differ from saved defaults.",
+        "preset": "Preset",
+        "presetPlaceholder": "Select preset",
+        "presetDescription": "After switching, save as default to write to the TOML config."
+      }
+    },
+    "bitv": {
+      "name": "BitV",
+      "description": "Analyze video bitrate with ffprobe and classify files without overwriting existing data.",
+      "config": {
+        "trigger": "Configuration",
+        "title": "Configuration",
+        "description": "Save reusable defaults, or restore saved configuration for this node.",
+        "save": "Save as default",
+        "restore": "Restore defaults",
+        "reload": "Reload",
+        "view": "View configuration",
+        "previewTitle": "Default configuration",
+        "noPath": "No config file connected",
+        "openFile": "Open config file",
+        "dirty": "Current parameters differ from saved defaults.",
+        "preset": "Preset",
+        "presetPlaceholder": "Select preset",
+        "presetDescription": "After switching, save as default to write to the TOML config."
+      }
+    },
+    "simiu": {
+      "name": "Simiu",
+      "description": "Scan similar images and generate grouping and file operation plans by size and signature.",
+      "actions": {
+        "clear": "Clear state",
+        "running": "Running",
+        "runApply": "Run apply",
+        "runScan": "Run scan",
+        "runPlan": "Run plan",
+        "paste": "Paste directories",
+        "copy": "Copy",
+        "saveDefault": "Save as default",
+        "restoreDefault": "Restore default",
+        "clearOverride": "Clear override",
+        "viewConfig": "View config",
+        "openFile": "Open file",
+        "scan": {
+          "label": "Scan images",
+          "shortLabel": "Scan",
+          "description": "Scan image root directories and batches without generating a move plan."
+        },
+        "plan": {
+          "label": "Generate groups",
+          "shortLabel": "Plan",
+          "description": "Generate groups and file operation plans by size and signature."
+        },
+        "apply": {
+          "label": "Apply groups",
+          "shortLabel": "Apply",
+          "description": "Execute move, copy, or link operations, modifying the file system."
+        }
+      },
+      "status": {
+        "running": "Running",
+        "runningDescription": "Simiu is scanning or planning similar image groups.",
+        "completed": "Done",
+        "completedDescription": "Last task completed.",
+        "error": "Failed",
+        "errorDescription": "Last task failed, please check the logs.",
+        "idle": "Ready",
+        "idleDescription": "Enter image root directories to scan or generate a plan."
+      },
+      "error": {
+        "noRoots": "Please enter at least one image root directory first.",
+        "noRunEnv": "The current environment has no local execution capability. Please use desktop mode or CLI."
+      },
+      "progress": {
+        "start": "{{action}} started"
+      },
+      "confirm": {
+        "applyTitle": "Confirm real group application?",
+        "applyDescription": "Dry run is currently off. Files will be moved, copied, or linked according to the selected apply mode. Please verify the root directories and grouping rules are correct.",
+        "cancel": "Cancel",
+        "apply": "Confirm apply"
+      },
+      "labels": {
+        "input": "Input",
+        "inputDescription": "Image root directories are fixed on the left. Scanning, planning, and applying share the same inputs.",
+        "grouping": "Grouping",
+        "runtime": "Runtime",
+        "scanningParameters": "Scanning parameters",
+        "scanningParametersDescription": "Source path, clustering rule, and run mode.",
+        "clusterHub": "Cluster hub",
+        "confirmed": "{{count}} confirmed",
+        "clusterHubDescription": "Size and signature groups derived from the current image batches.",
+        "cluster": "Cluster {{index}}: {{name}}",
+        "items": "{{count}} items",
+        "planned": "planned → {{name}}",
+        "selectedItems": "Selected items: {{count}}",
+        "fileCount": "{{count}} files",
+        "groupOptions": "Group options",
+        "groupOptionsDescription": "Apply mode, scan order, and dry run toggle are all here.",
+        "defaults": "Default config",
+        "defaultsDescription": "Save Simiu's directory, grouping, and runtime options.",
+        "configTitle": "Simiu config",
+        "configDescription": "Current nodes.simiu defaults and config file location.",
+        "noDefaults": "# No default config for nodes.simiu yet\n",
+        "configFile": "Config file",
+        "noConfigService": "Not connected to local config service"
+      },
+      "fields": {
+        "roots": "Image root directories",
+        "rootsHint": "jpg / png / webp",
+        "applyMode": "Apply mode",
+        "scanOrder": "Scan order",
+        "dryRun": "Dry run",
+        "dryRunDescription": "Only generate an operation plan without moving, copying, or linking files.",
+        "recordRun": "Record run",
+        "recordRunDescription": "Write scan or apply results to JSONL."
+      },
+      "placeholder": {
+        "roots": "One image directory per line",
+        "namePrefix": "Group prefix, default simiu_set",
+        "minGroupSize": "Min group size, default 2",
+        "sizeTolerance": "Size tolerance bytes",
+        "configPath": "simiu.toml, optional",
+        "databasePath": ".xiranite/simiu-runs.jsonl"
+      },
+      "aria": {
+        "action": "simiu action",
+        "running": "simiu running",
+        "roots": "simiu image root directories",
+        "applyMode": "simiu apply mode",
+        "applyModeItem": "Apply mode {{label}}",
+        "scanOrder": "simiu scan order",
+        "scanOrderItem": "Scan order {{label}}",
+        "namePrefix": "simiu group prefix",
+        "minGroupSize": "simiu min group size",
+        "sizeTolerance": "simiu size tolerance",
+        "configPath": "simiu config TOML",
+        "databasePath": "simiu run log JSONL",
+        "groupOptions": "simiu group options",
+        "defaults": "simiu default config",
+        "hint": "{{label}} info"
+      },
+      "tabs": {
+        "groups": "Groups",
+        "operations": "Operations",
+        "logs": "Logs"
+      },
+      "stats": {
+        "images": "Images",
+        "groups": "Groups",
+        "operations": "Operations",
+        "errors": "Errors"
+      },
+      "empty": {
+        "logsText": "Run logs will appear here.",
+        "groupsTitle": "Waiting for groups",
+        "groupsDescription": "Similar image groups will appear after generating a plan.",
+        "operationsTitle": "Waiting for operations",
+        "operationsDescription": "File operations will appear after generating a plan or applying groups.",
+        "logsTitle": "Waiting for logs"
+      },
+      "panel": {
+        "count": "{{count}} items {{label}}",
+        "waiting": "Waiting for {{label}}"
+      },
+      "summary": {
+        "result": "{{images}} images / {{groups}} groups / {{operations}} operations",
+        "waiting": "{{count}} root directories waiting for {{action}}",
+        "clusters": "{{groups}} clusters / {{images}} images"
+      },
+      "applyMode": {
+        "move": "Move",
+        "copy": "Copy",
+        "link": "Link"
+      },
+      "scanOrder": {
+        "path": "Path",
+        "smallest-first": "Smallest first",
+        "deepest-first": "Deepest first"
+      },
+      "config": {
+        "trigger": "Config",
+        "title": "Config",
+        "description": "Save reusable defaults or restore saved configuration for this node.",
+        "save": "Save as default",
+        "restore": "Restore default",
+        "reload": "Reload",
+        "view": "View config",
+        "previewTitle": "Default config",
+        "noPath": "No config file connected",
+        "openFile": "Open config file",
+        "dirty": "Current parameters differ from saved defaults.",
+        "preset": "Preset",
+        "presetPlaceholder": "Select preset",
+        "presetDescription": "Switching saves as default, writing to the TOML config."
+      }
+    },
+    "smartzip": {
+      "name": "SmartZip",
+      "description": "A native TypeScript port of SmartZip's intelligent archive workflow, backed by auto-detected 7-Zip.",
+      "actions": {
+        "clear": "Clear state",
+        "cancel": "Cancel",
+        "confirm": "Confirm run",
+        "pastePaths": "Paste paths",
+        "copy": "Copy",
+        "status": {
+          "label": "View status",
+          "shortLabel": "Status",
+          "description": "Load SmartZip config, list archive extensions and passwords."
+        },
+        "inspectCodepage": {
+          "label": "Inspect filename encoding",
+          "shortLabel": "Inspect encoding",
+          "description": "Read raw ZIP filename bytes and preview every candidate codepage with confidence."
+        },
+        "extract": {
+          "label": "Extract archives",
+          "shortLabel": "Extract",
+          "description": "Intelligently extract archives with password attempts, multipart handling, flattening, and post-processing."
+        },
+        "extractCodepage": {
+          "label": "Extract with codepage",
+          "shortLabel": "Codepage",
+          "description": "Extract archives with a specified codepage to handle non-ASCII filenames."
+        },
+        "open": {
+          "label": "Open archive",
+          "shortLabel": "Open",
+          "description": "Open archives in the auto-detected 7-Zip File Manager; non-archives are packed."
+        },
+        "archive": {
+          "label": "Create archive",
+          "shortLabel": "Pack",
+          "description": "Pack selected paths into an archive file."
+        }
+      },
+      "fields": {
+        "workbench": "Archive workbench",
+        "paths": "Paths",
+        "codePage": "Legacy ZIP filename encoding",
+        "executables": "Runtime config · auto-detect 7-Zip",
+        "run": "Run",
+        "archivesOrDirs": "Archives or directories"
+      },
+      "placeholders": {
+        "iniPath": "SmartZip.ini config file",
+        "databasePath": ".xiranite/smartzip-runs.jsonl"
+      },
+      "labels": {
+        "operationChamber": "Operation chamber",
+        "commandPlan": "; TYPESCRIPT WORKFLOW PLAN",
+        "queuedArchives": "; QUEUED ARCHIVES",
+        "runCommandHint": "Run an action to produce the TypeScript SmartZip workflow plan.",
+        "hintSuffix": "{{label}} hint"
+      },
+      "badges": {
+        "planned": "planned",
+        "idle": "idle"
+      },
+      "status": {
+        "running": "Running",
+        "runningDesc": "SmartZip is loading config or executing commands.",
+        "completed": "Completed",
+        "completedDesc": "Last task completed.",
+        "error": "Failed",
+        "errorDesc": "Last task failed, check logs.",
+        "idle": "Ready",
+        "idleDesc": "Select an action to view status, intelligently extract, pack, or open."
+      },
+      "tabs": {
+        "command": "Command",
+        "encoding": "Encoding preview",
+        "tree": "File tree",
+        "config": "Config",
+        "logs": "Logs"
+      },
+      "stats": {
+        "selected": "Selected",
+        "archives": "Archives",
+        "extensions": "Extensions",
+        "errors": "Errors"
+      },
+      "options": {
+        "title": "Run options",
+        "description": "SmartZip INI compatibility and run switches; 7-Zip is detected automatically."
+      },
+      "defaults": {
+        "title": "Defaults",
+        "description": "Save SmartZip INI, run-log, and execution defaults.",
+        "save": "Save as default",
+        "restore": "Restore defaults",
+        "clear": "Clear overrides",
+        "view": "View config",
+        "previewTitle": "SmartZip config",
+        "previewDescription": "Current nodes.smartzip defaults and config file location.",
+        "openFile": "Open file",
+        "noConfig": "# No default config for nodes.smartzip\n",
+        "configFile": "Config file",
+        "notConnected": "Not connected to local config service"
+      },
+      "switches": {
+        "dryRun": "Dry run",
+        "dryRunDesc": "Only generate a workflow plan; do not modify archives or files.",
+        "recordRun": "Record runs",
+        "recordRunDesc": "Write each run's command and result to JSONL."
+      },
+      "empty": {
+        "waitingCommand": "Waiting for command",
+        "waitingCommandDesc": "Select an action and run to see the TypeScript workflow plan.",
+        "waitingConfig": "Waiting for config",
+        "waitingConfigDesc": "Run status check to see SmartZip config.",
+        "waitingLogs": "Waiting for logs",
+        "logsHint": "Run logs will appear here."
+      },
+      "configRows": {
+        "sevenZipDir": "7-Zip directory",
+        "passwords": "Passwords",
+        "archiveExtensions": "Archive extensions",
+        "default": "(default)",
+        "contextMenu": "Context menu",
+        "sendTo": "Send to",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "panelHeader": {
+        "items": "{{count}} items {{label}}",
+        "waiting": "Waiting for {{label}}"
+      },
+      "progress": {
+        "start": "{{action}} starting"
+      },
+      "error": {
+        "noPaths": "Please enter at least one archive or directory path.",
+        "noRunEnv": "No local execution capability in this environment, use desktop mode or CLI."
+      },
+      "confirm": {
+        "title": "Confirm {{action}}?",
+        "description": "Dry run is off. The TypeScript SmartZip workflow will execute {{action}} through auto-detected 7-Zip and may modify files on disk."
+      },
+      "summary": {
+        "stats": "{{paths}} paths / {{archives}} archives / {{errors}} errors"
+      },
+      "hints": {
+        "directActions": "Enter paths and run an action directly—there is no mode-selection step.",
+        "codePage": "Auto mode inspects raw filename bytes and recommends a codepage; choose another candidate after reviewing its preview.",
+        "pathsHelp": "Archives or directories, one per line. Status does not need paths.",
+        "pathsDescription": "One path per line, supports .zip .7z .rar .tar etc."
+      },
+      "encoding": {
+        "recommended": "Recommended",
+        "empty": "Waiting for encoding inspection",
+        "emptyDescription": "Run “Inspect filename encoding” to compare filename previews for each candidate codepage."
+      },
+      "tree": {
+        "expand": "Expand",
+        "empty": "Waiting for file tree",
+        "emptyDescription": "Run encoding inspection to list archive members and show their directory structure."
+      },
+      "passwords": {
+        "title": "Password list",
+        "show": "Show passwords",
+        "hide": "Hide passwords",
+        "add": "Add password",
+        "item": "Archive password {{index}}",
+        "remove": "Remove password {{index}}",
+        "moveUp": "Move password {{index}} up",
+        "moveDown": "Move password {{index}} down",
+        "empty": "No extra passwords; SmartZip.ini [password] entries are still loaded.",
+        "hint": "Tried in order. Create, update, delete, and reorder operations save automatically; passwords are never written to logs or results."
+      }
+    },
+    "timeu": {
+      "name": "TimeU",
+      "description": "Scan, back up, and restore file timestamps with JSON records and preview mode.",
+      "sections": {
+        "pathQueue": "Path queue",
+        "timeRecords": "Time records",
+        "execution": "Execution"
+      },
+      "actions": {
+        "saveDefault": "Save default",
+        "restoreDefault": "Restore default",
+        "clearState": "Clear state",
+        "pastePath": "Paste paths",
+        "clearPath": "Clear paths",
+        "copy": "Copy",
+        "cancel": "Cancel",
+        "confirmExecute": "Confirm execution"
+      },
+      "fields": {
+        "paths": "Files or directories",
+        "record": "Record file"
+      },
+      "placeholder": {
+        "paths": "One file or directory per line\nD:/archive",
+        "record": "Leave empty to generate timeu-timestamps.json next to the first path"
+      },
+      "switches": {
+        "dryRun": "Preview",
+        "recursive": "Recursive",
+        "includeDirectories": "Include dirs"
+      },
+      "badges": {
+        "preview": "Preview",
+        "write": "Write"
+      },
+      "status": {
+        "running": "Running",
+        "error": "Failed",
+        "completed": "Done",
+        "ready": "Ready"
+      },
+      "desc": {
+        "running": "TimeU is scanning or writing timestamps.",
+        "error": "The last task failed. Check the issues list.",
+        "completed": "The last timestamp task completed.",
+        "idle": "Enter files or directories to scan timestamps."
+      },
+      "itemStatus": {
+        "success": "Done",
+        "error": "Error",
+        "skipped": "Skipped",
+        "pending": "Pending"
+      },
+      "tabs": {
+        "records": "Records",
+        "errors": "Issues",
+        "logs": "Logs"
+      },
+      "empty": {
+        "timestampRows": "Current time, recorded time, and restore plan will appear after running.",
+        "noIssues": "No issues",
+        "logsHere": "Run logs will appear here.",
+        "waitingRun": "Waiting to run"
+      },
+      "stats": {
+        "paths": "Paths",
+        "scanned": "Scanned",
+        "backup": "Backed up",
+        "restored": "Restored",
+        "skipped": "Skipped",
+        "progress": "Progress"
+      },
+      "timestamps": {
+        "atime": "Access time",
+        "mtime": "Modify time",
+        "drifted": "Drifted",
+        "missing": "Missing",
+        "notWritten": "Not written",
+        "current": "Now",
+        "stored": "Stored"
+      },
+      "dialog": {
+        "confirmBackupTitle": "Confirm backup timestamps?",
+        "confirmRestoreTitle": "Confirm restore timestamps?",
+        "confirmDescription": "This will write to the record file or modify file atime/mtime. Please verify the paths and record file are correct."
+      },
+      "error": {
+        "noPaths": "Please enter at least one file or directory path first.",
+        "noRunEnv": "This environment cannot run nodes locally. Use desktop mode or the CLI."
+      },
+      "progress": {
+        "start": "{{action}} started"
+      },
+      "summary": {
+        "result": "{{count}} items / {{records}} records",
+        "paths": "{{count}} paths / {{action}}"
+      },
+      "actionLabel": {
+        "scan": "Scan time",
+        "backup": "Backup time",
+        "restore": "Restore time"
+      },
+      "actionShortLabel": {
+        "scan": "Scan",
+        "backup": "Backup",
+        "restore": "Restore"
+      },
+      "actionDescription": {
+        "scan": "Read current timestamps and generate a record preview.",
+        "backup": "Write JSON timestamp records for later restoration.",
+        "restore": "Restore access and modification times from records."
+      },
+      "units": {
+        "items": "{{count}} items",
+        "lines": "{{count}} lines"
+      }
+    },
+    "samea": {
+      "name": "SameA",
+      "description": "Archive extractor protocol that analyzes and classifies archives by artist naming patterns.",
+      "errors": {
+        "noPaths": "Add at least one archive root before scanning.",
+        "noRunEnv": "Native execution is unavailable in this host."
+      },
+      "progress": {
+        "init": "Initializing SameA extractor."
+      },
+      "header": {
+        "title": "SameA: Extractor Protocol",
+        "sessionLabel": "WORKSPACE SESSION: ",
+        "targetLabel": "TARGET: ARCHIVE TRIAGE"
+      },
+      "collapsed": {
+        "archiveCandidates": "{{count}} archive candidates"
+      },
+      "sections": {
+        "sourceControl": "Source Control",
+        "operationGate": "Operation Gate",
+        "analysisChamber": "Analysis Chamber",
+        "filterProtocols": "Filter Protocols"
+      },
+      "source": {
+        "ingestionLabel": "Ingestion paths (line separated)",
+        "placeholder": "D:/Archives/Unsorted\nE:/Staging/New",
+        "pastePaths": "Paste paths",
+        "ignorePathBlacklist": "Ignore path blacklist"
+      },
+      "operation": {
+        "minOccurrences": "Min occurrences",
+        "centralizeLabel": "Centralize output",
+        "centralizeDesc": "Move to [00画师分类]",
+        "dryRunLabel": "Dry run mode",
+        "dryRunDesc": "Simulate without moving"
+      },
+      "analysis": {
+        "scanned": "scanned",
+        "ready": "Ready to scan archive nomenclature patterns.",
+        "entityColumn": "Detected entity",
+        "countColumn": "Count",
+        "actionColumn": "Action",
+        "empty": "Run a dry scan to populate the artist matrix."
+      },
+      "filters": {
+        "artists": "Artists",
+        "paths": "Paths",
+        "regex": "Regex",
+        "addExclusion": "Add exclusion…"
+      },
+      "compact": {
+        "input": "Input",
+        "analysis": "Analysis",
+        "filters": "Filters"
+      },
+      "logs": {
+        "title": "SYSTEM_LOGS // STDOUT",
+        "clear": "Clear",
+        "copy": "Copy",
+        "idle": "[idle] SameA is ready. Dry run is enabled by default."
+      },
+      "actions": {
+        "running": "Running",
+        "executeScan": "Execute scan",
+        "planScan": "Plan scan",
+        "classifyTitle": "Classify archives live?",
+        "classifyDesc": "SameA will move ready archives into detected artist folders.",
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      }
+    }
+  }
+}

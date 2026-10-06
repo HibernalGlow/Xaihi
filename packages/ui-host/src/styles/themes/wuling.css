@@ -1,0 +1,331 @@
+/*
+  Wuling Jade Industrial theme pack.
+  Source: ref/stitch_wuling_city_theme_design/jade_industrial_light/DESIGN.md
+
+  This file owns the Wuling preset only: light/dark tokens, node-internal
+  treatment, and motion. Keep broad app bridge styles in index.css.
+*/
+
+.theme-wuling {
+  color-scheme: light;
+  --radius: 0.5rem;
+  --wuling-motion-duration: 180ms;
+  --wuling-motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --wuling-line-height: 1.55;
+  --wuling-rule: color-mix(in oklch, var(--primary) 18%, var(--border));
+  --wuling-rule-strong: color-mix(in oklch, var(--primary) 42%, var(--border));
+  --wuling-surface-stripe: color-mix(in oklch, var(--primary) 5%, var(--muted));
+  --wuling-hard-shadow: 2px 2px 0 color-mix(in oklch, var(--primary) 14%, transparent);
+
+  --background: oklch(0.981 0.006 180);
+  --foreground: oklch(0.235 0.025 166);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.235 0.025 166);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.235 0.025 166);
+  --primary: oklch(0.72 0.13 173);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.91 0.017 168);
+  --secondary-foreground: oklch(0.39 0.028 166);
+  --muted: oklch(0.945 0.008 180);
+  --muted-foreground: oklch(0.50 0.032 166);
+  --accent: oklch(0.91 0.045 172);
+  --accent-foreground: oklch(0.29 0.04 166);
+  --destructive: oklch(0.60 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.84 0.025 168);
+  --input: oklch(0.92 0.012 168);
+  --ring: oklch(0.72 0.13 173);
+
+  --chart-1: oklch(0.72 0.13 173);
+  --chart-2: oklch(0.60 0.10 195);
+  --chart-3: oklch(0.66 0.10 135);
+  --chart-4: oklch(0.70 0.11 82);
+  --chart-5: oklch(0.55 0.08 230);
+
+  --sidebar: oklch(0.955 0.008 180);
+  --sidebar-foreground: oklch(0.235 0.025 166);
+  --sidebar-primary: oklch(0.72 0.13 173);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.91 0.045 172);
+  --sidebar-accent-foreground: oklch(0.29 0.04 166);
+  --sidebar-border: oklch(0.84 0.025 168);
+  --sidebar-ring: oklch(0.72 0.13 173);
+
+  --shadow-color: hsl(166 34% 34% / 0.14);
+  --shadow-2xs: 2px 2px 0 0 hsl(166 34% 34% / 0.05);
+  --shadow-xs: 2px 2px 0 0 hsl(166 34% 34% / 0.05);
+  --shadow-sm: 2px 2px 0 0 hsl(166 34% 34% / 0.08);
+  --shadow: 2px 2px 0 0 hsl(166 34% 34% / 0.08);
+  --shadow-md: 3px 3px 0 0 hsl(166 34% 34% / 0.10);
+  --shadow-lg: 4px 4px 0 0 hsl(166 34% 34% / 0.10);
+  --shadow-xl: 6px 6px 0 0 hsl(166 34% 34% / 0.12);
+  --shadow-2xl: 8px 8px 0 0 hsl(166 34% 34% / 0.16);
+
+  --ws-grid-color: oklch(0.84 0.025 168 / 0.58);
+  --ws-canvas: oklch(0.965 0.008 180);
+  --ws-accent-glow: oklch(0.72 0.13 173 / 0.16);
+  --ws-focused-overlay: oklch(0.235 0.025 166 / 0.38);
+}
+
+.theme-wuling.dark,
+.dark .theme-wuling {
+  color-scheme: dark;
+  --wuling-motion-duration: 180ms;
+  --wuling-motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --wuling-line-height: 1.55;
+  --wuling-rule: color-mix(in oklch, var(--primary) 20%, var(--border));
+  --wuling-rule-strong: color-mix(in oklch, var(--primary) 48%, var(--border));
+  --wuling-surface-stripe: color-mix(in oklch, var(--primary) 8%, var(--muted));
+  --wuling-hard-shadow: 2px 2px 0 color-mix(in oklch, var(--primary) 20%, transparent);
+
+  --background: oklch(0.17 0.018 174);
+  --foreground: oklch(0.91 0.012 178);
+  --card: oklch(0.205 0.018 174);
+  --card-foreground: oklch(0.91 0.012 178);
+  --popover: oklch(0.19 0.018 174);
+  --popover-foreground: oklch(0.91 0.012 178);
+  --primary: oklch(0.80 0.12 173);
+  --primary-foreground: oklch(0.16 0.02 174);
+  --secondary: oklch(0.29 0.02 166);
+  --secondary-foreground: oklch(0.88 0.012 178);
+  --muted: oklch(0.25 0.014 174);
+  --muted-foreground: oklch(0.66 0.022 170);
+  --accent: oklch(0.30 0.04 172);
+  --accent-foreground: oklch(0.88 0.06 172);
+  --destructive: oklch(0.64 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.36 0.028 166);
+  --input: oklch(0.29 0.022 166);
+  --ring: oklch(0.80 0.12 173);
+
+  --chart-1: oklch(0.80 0.12 173);
+  --chart-2: oklch(0.70 0.10 195);
+  --chart-3: oklch(0.74 0.10 135);
+  --chart-4: oklch(0.78 0.12 82);
+  --chart-5: oklch(0.68 0.09 230);
+
+  --sidebar: oklch(0.145 0.018 174);
+  --sidebar-foreground: oklch(0.91 0.012 178);
+  --sidebar-primary: oklch(0.80 0.12 173);
+  --sidebar-primary-foreground: oklch(0.16 0.02 174);
+  --sidebar-accent: oklch(0.30 0.04 172);
+  --sidebar-accent-foreground: oklch(0.88 0.06 172);
+  --sidebar-border: oklch(0.32 0.026 166);
+  --sidebar-ring: oklch(0.80 0.12 173);
+
+  --shadow-color: hsl(173 60% 58% / 0.18);
+  --shadow-2xs: 2px 2px 0 0 hsl(173 60% 58% / 0.08);
+  --shadow-xs: 2px 2px 0 0 hsl(173 60% 58% / 0.08);
+  --shadow-sm: 2px 2px 0 0 hsl(173 60% 58% / 0.10);
+  --shadow: 2px 2px 0 0 hsl(173 60% 58% / 0.10);
+  --shadow-md: 3px 3px 0 0 hsl(173 60% 58% / 0.12);
+  --shadow-lg: 4px 4px 0 0 hsl(173 60% 58% / 0.14);
+  --shadow-xl: 6px 6px 0 0 hsl(173 60% 58% / 0.16);
+  --shadow-2xl: 8px 8px 0 0 hsl(173 60% 58% / 0.20);
+
+  --ws-grid-color: oklch(0.36 0.03 166 / 0.62);
+  --ws-canvas: oklch(0.16 0.018 174);
+  --ws-accent-glow: oklch(0.80 0.12 173 / 0.20);
+  --ws-focused-overlay: oklch(0.05 0.01 174 / 0.72);
+}
+
+.theme-wuling .comp-card--animated {
+  transition-duration: var(--wuling-motion-duration);
+  transition-timing-function: var(--wuling-motion-ease);
+}
+
+.theme-wuling.theme-bg-grid .ws-canvas-bg::before {
+  background-size: 32px 32px;
+}
+
+.theme-wuling .comp-card--animated {
+  border: 1px solid var(--wuling-rule);
+  background-color: color-mix(in oklch, var(--card) 86%, transparent);
+  box-shadow: var(--wuling-hard-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.theme-wuling .comp-card--animated:hover,
+.theme-wuling .comp-card--focused,
+.theme-wuling .comp-card--fullscreen {
+  outline-color: var(--wuling-rule-strong);
+  border-color: var(--wuling-rule-strong);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 18%, transparent), var(--wuling-hard-shadow);
+}
+
+.theme-wuling .xiranite-node-drag-handle {
+  border-radius: 4px;
+}
+
+.theme-wuling .xiranite-node-surface {
+  line-height: var(--wuling-line-height);
+  color: var(--foreground);
+  background:
+    linear-gradient(90deg, color-mix(in oklch, var(--primary) 12%, transparent) 0 1px, transparent 1px 100%) 0 0 / 16px 16px,
+    linear-gradient(180deg, color-mix(in oklch, var(--card) 96%, transparent), color-mix(in oklch, var(--muted) 32%, transparent));
+}
+
+.theme-wuling .xiranite-node-surface > * {
+  animation: wuling-panel-enter 220ms var(--wuling-motion-ease) both;
+}
+
+.theme-wuling .xiranite-node-surface section,
+.theme-wuling .xiranite-node-surface [class*="rounded-md"][class*="border"],
+.theme-wuling .xiranite-node-surface [class*="rounded-lg"][class*="border"] {
+  border-color: var(--wuling-rule);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--card) 86%, var(--primary));
+}
+
+.theme-wuling .xiranite-node-surface button,
+.theme-wuling .xiranite-node-surface [role="button"] {
+  transition:
+    transform var(--wuling-motion-duration) var(--wuling-motion-ease),
+    background-color var(--wuling-motion-duration) var(--wuling-motion-ease),
+    border-color var(--wuling-motion-duration) var(--wuling-motion-ease),
+    color var(--wuling-motion-duration) var(--wuling-motion-ease),
+    box-shadow var(--wuling-motion-duration) var(--wuling-motion-ease);
+}
+
+.theme-wuling .xiranite-node-surface button:hover,
+.theme-wuling .xiranite-node-surface [role="button"]:hover {
+  transform: none;
+  border-color: var(--wuling-rule-strong);
+  background-color: color-mix(in oklch, var(--primary) 10%, var(--background));
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--primary) 18%, transparent);
+}
+
+.theme-wuling .xiranite-node-surface button:active,
+.theme-wuling .xiranite-node-surface [role="button"]:active {
+  transform: translateY(0);
+}
+
+.theme-wuling .xiranite-node-surface input,
+.theme-wuling .xiranite-node-surface textarea,
+.theme-wuling .xiranite-node-surface select,
+.theme-wuling .xiranite-node-surface [contenteditable="true"] {
+  line-height: 1.45;
+  background-color: color-mix(in oklch, var(--card) 74%, var(--muted));
+  border-color: var(--wuling-rule);
+}
+
+.theme-wuling .xiranite-node-surface input:focus,
+.theme-wuling .xiranite-node-surface textarea:focus,
+.theme-wuling .xiranite-node-surface select:focus,
+.theme-wuling .xiranite-node-surface [contenteditable="true"]:focus {
+  box-shadow: 0 0 0 1px var(--ring), inset 0 0 0 1px color-mix(in oklch, var(--primary) 35%, transparent);
+}
+
+.theme-wuling [data-slot="badge"],
+.theme-wuling .xiranite-node-surface [data-slot="badge"] {
+  border-radius: 4px;
+  border-color: var(--wuling-rule);
+  font-family: var(--font-app-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.theme-wuling [data-slot="progress"] {
+  height: 0.375rem;
+  border-radius: 2px;
+  background-color: color-mix(in oklch, var(--primary) 12%, var(--muted));
+}
+
+.theme-wuling [data-slot="progress-indicator"] {
+  background:
+    linear-gradient(90deg, var(--primary), color-mix(in oklch, var(--primary) 72%, var(--foreground)));
+}
+
+.theme-wuling .xiranite-node-surface pre,
+.theme-wuling .xiranite-node-surface code,
+.theme-wuling .xiranite-node-surface kbd,
+.theme-wuling .xiranite-node-surface samp {
+  font-family: var(--font-app-mono);
+  line-height: 1.65;
+}
+
+.theme-wuling .xiranite-node-surface pre {
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--muted) 84%, transparent), color-mix(in oklch, var(--background) 70%, transparent));
+  border-color: color-mix(in oklch, var(--primary) 24%, var(--border));
+}
+
+.theme-wuling .xiranite-node-surface table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.theme-wuling .xiranite-node-surface [data-slot="table-container"],
+.theme-wuling .xiranite-node-surface .overflow-hidden.rounded-md.border {
+  border-color: var(--wuling-rule);
+  border-radius: 8px;
+  background-color: color-mix(in oklch, var(--card) 90%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--card) 82%, var(--primary));
+}
+
+.theme-wuling .xiranite-node-surface th {
+  font-family: var(--font-app-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  background-color: color-mix(in oklch, var(--primary) 8%, var(--muted));
+  border-bottom-color: var(--wuling-rule-strong);
+}
+
+.theme-wuling .xiranite-node-surface td {
+  border-bottom-color: var(--wuling-rule);
+}
+
+.theme-wuling .xiranite-node-surface tbody tr:nth-child(even) {
+  background-color: var(--wuling-surface-stripe);
+}
+
+.theme-wuling .xiranite-node-surface tr {
+  transition: background-color var(--wuling-motion-duration) var(--wuling-motion-ease);
+}
+
+.theme-wuling .xiranite-node-surface tr:hover {
+  background-color: color-mix(in oklch, var(--primary) 8%, transparent);
+}
+
+.theme-wuling .xiranite-node-surface .font-mono,
+.theme-wuling .xiranite-node-surface [class*="tracking-widest"] {
+  letter-spacing: 0.035em;
+}
+
+.theme-wuling .xiranite-node-surface .rounded-full:not([data-slot="progress"]):not([data-slot="progress-indicator"]):not([data-slot="switch"]):not([data-slot="switch-thumb"]) {
+  border-radius: 4px;
+}
+
+@keyframes wuling-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-wuling .xiranite-node-surface > * {
+    animation: none;
+  }
+
+  .theme-wuling .xiranite-node-surface button,
+  .theme-wuling .xiranite-node-surface [role="button"] {
+    transition: none;
+  }
+
+  .theme-wuling .xiranite-node-surface button:hover,
+  .theme-wuling .xiranite-node-surface [role="button"]:hover {
+    transform: none;
+  }
+}

@@ -14,7 +14,7 @@
  */
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /** DSH 0.2.0 浏览器模块表的基线 externals（shell seed 真带的那些）。 */
@@ -61,11 +61,16 @@ function findModuleRequests(bundle: string): string[] {
   return [...bundle.matchAll(/require\(\s*["']([^"']+)["']\s*\)/g)].map((match) => match[1] as string)
 }
 
-const clientDir = fileURLToPath(new URL('../src/client/', import.meta.url))
+// 路径基准用 import.meta.dirname，不用 new URL(…, import.meta.url)：
+// 本包测试环境现在是 happy-dom（搬过来的设计语言有一批判据要走 DOM 侧读回），
+// 而 happy-dom 下 vitest 把 import.meta.url 换成 http:// 形态，fileURLToPath 直接抛
+// 「The URL must be of scheme file」——症状离原因很远（看起来像 fs 问题，其实是环境）。
+// dirname 在 node 与 happy-dom 两种环境下都是真源码目录。
+const clientDir = join(import.meta.dirname, '../src/client')
 const sourceFiles = (): string[] => readdirSync(clientDir, { recursive: true })
   .map((name) => String(name))
   .filter((name) => /\.(ts|tsx)$/.test(name) && !name.includes('node_modules'))
-  .map((name) => `${clientDir}${name}`)
+  .map((name) => join(clientDir, name))
 
 describe('浏览器半边依赖纪律', () => {
   it('src/client 下没有 value-import harness 包', () => {
@@ -77,17 +82,17 @@ describe('浏览器半边依赖纪律', () => {
   })
 
   it('阳性对照：value-import harness 包会被抓到', () => {
-    const sample = readFileSync(fileURLToPath(new URL('./fixtures/bad-value-import.sample.ts.txt', import.meta.url)), 'utf8')
+    const sample = readFileSync(join(import.meta.dirname, './fixtures/bad-value-import.sample.ts.txt'), 'utf8')
     expect(findHarnessValueImports(sample)).toHaveLength(1)
   })
 
   it('阳性对照：纯 type-import 与 declare module 不会被误抓', () => {
-    const clean = readFileSync(fileURLToPath(new URL('../src/client/index.ts', import.meta.url)), 'utf8')
+    const clean = readFileSync(join(import.meta.dirname, '../src/client/index.ts'), 'utf8')
     expect(findHarnessValueImports(clean)).toEqual([])
   })
 
   it('产物只请求基线 externals（跑 pnpm build 之后生效）', () => {
-    const bundlePath = fileURLToPath(new URL('../lib/client.js', import.meta.url))
+    const bundlePath = join(import.meta.dirname, '../lib/client.js')
     if (!existsSync(bundlePath)) throw new Error('lib/client.js 不存在：先跑 pnpm -r run build，再跑测试')
     const requests = findModuleRequests(readFileSync(bundlePath, 'utf8'))
     const offenders = requests.filter((specifier) => !BASELINE_EXTERNALS.includes(specifier))
@@ -95,7 +100,7 @@ describe('浏览器半边依赖纪律', () => {
   })
 
   it('阳性对照：基线之外的请求会被抓到', () => {
-    const sample = readFileSync(fileURLToPath(new URL('./fixtures/bad-client.sample.js.txt', import.meta.url)), 'utf8')
+    const sample = readFileSync(join(import.meta.dirname, './fixtures/bad-client.sample.js.txt'), 'utf8')
     const requests = findModuleRequests(sample)
     expect(requests.filter((specifier) => !BASELINE_EXTERNALS.includes(specifier))).toEqual([
       '@deepseek-ai/dsh-client-ui-layout',

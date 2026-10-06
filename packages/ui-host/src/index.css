@@ -1,0 +1,1645 @@
+@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=LXGW+WenKai+Screen&display=swap");
+
+/* 隐藏 tldraw 未授权水印（个人项目用途） */
+[data-testid^="tl-watermark"] {
+  display: none !important;
+}
+
+/* ── BlockNote 主题桥接 ──
+   BlockNote 用自己的 --bn-colors-* 变量，且通过 [data-color-scheme="dark"]
+   自动切换暗色（导致编辑器背景变黑），不读项目的 shadcn 变量。
+   这里强制让 --bn-colors-* 读取项目的 --background / --foreground / --popover 等，
+   这样无论项目用 spatial / endfield / wuling 主题，BlockNote 都自动跟随。
+   覆盖 dark scheme 的变量让它在暗色下也读项目主题。 */
+.bn-shadcn .bn-root,
+.bn-shadcn.bn-root,
+.bn-root[data-color-scheme="dark"] {
+  --bn-colors-editor-text: var(--foreground);
+  --bn-colors-editor-background: var(--background);
+  --bn-colors-menu-text: var(--foreground);
+  --bn-colors-menu-background: var(--popover);
+  --bn-colors-tooltip-text: var(--foreground);
+  --bn-colors-tooltip-background: var(--popover);
+  --bn-colors-hovered-text: var(--foreground);
+  --bn-colors-hovered-background: var(--accent);
+  --bn-colors-selected-text: var(--primary-foreground);
+  --bn-colors-selected-background: var(--primary);
+  --bn-colors-disabled-text: var(--muted-foreground);
+  --bn-colors-disabled-background: var(--muted);
+  --bn-colors-shadow: var(--border);
+  --bn-colors-border: var(--border);
+  --bn-colors-side-menu: var(--muted-foreground);
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  background-color: var(--background, #141414);
+  color: var(--foreground, #f5f5f5);
+}
+
+/* 文本选中高亮跟随主题主色（内置预设或 tweakcn 导入均可） */
+::selection {
+  background-color: color-mix(in oklch, var(--primary) 38%, transparent);
+  color: var(--primary-foreground);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  font-family: var(--font-app-sans);
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-app-mono);
+}
+
+:root[data-custom-font="enabled"] body {
+  font-family: var(--font-custom-sans, var(--font-app-sans));
+}
+
+:root[data-custom-font="enabled"] code,
+:root[data-custom-font="enabled"] pre,
+:root[data-custom-font="enabled"] kbd,
+:root[data-custom-font="enabled"] samp {
+  font-family: var(--font-custom-mono, var(--font-app-mono));
+}
+
+.xiranite-app-region-drag,
+.xiranite-app-region-drag * {
+  --wails-draggable: drag;
+  -webkit-app-region: drag;
+}
+
+.xiranite-app-region-no-drag,
+.xiranite-app-region-no-drag * {
+  --wails-draggable: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+.xiranite-floating-window,
+.xiranite-floating-window * {
+  --wails-draggable: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+.xiranite-floating-window .xiranite-app-region-drag,
+.xiranite-floating-window .xiranite-app-region-drag *,
+.xiranite-floating-window [data-floating-window-drag-row="true"],
+.xiranite-floating-window [data-floating-window-drag-row="true"] * {
+  --wails-draggable: drag;
+  -webkit-app-region: drag;
+}
+
+.xiranite-floating-window .xiranite-app-region-no-drag,
+.xiranite-floating-window .xiranite-app-region-no-drag * {
+  --wails-draggable: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+.xiranite-floating-window :is([data-floating-window-titlebar="true"], [data-floating-window-drag-row="true"]) :is(button, a, input, textarea, select, [role="button"], [draggable="true"]),
+.xiranite-floating-window :is([data-floating-window-titlebar="true"], [data-floating-window-drag-row="true"]) :is(button, a, input, textarea, select, [role="button"], [draggable="true"]) * {
+  --wails-draggable: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+.xiranite-floating-window[data-floating-window-caption-style="windows"] {
+  --xiranite-window-caption-inline-size: 6.75rem;
+}
+
+.xiranite-floating-window[data-floating-window-caption-style="capsule"] {
+  --xiranite-window-caption-inline-size: 5.75rem;
+}
+
+.xiranite-floating-window[data-floating-window-caption-style="traffic-light"] {
+  --xiranite-window-caption-inline-size: 4.75rem;
+}
+
+.xiranite-floating-window[data-floating-window-caption-position="right"] :is(
+  [data-floating-window-drag-row="true"],
+  [data-floating-window-titlebar="true"]:not([data-floating-window-drag-row="true"] [data-floating-window-titlebar="true"])
+) {
+  padding-right: var(--xiranite-window-caption-inline-size);
+}
+
+.xiranite-floating-window[data-floating-window-caption-position="left"] :is(
+  [data-floating-window-drag-row="true"],
+  [data-floating-window-titlebar="true"]:not([data-floating-window-drag-row="true"] [data-floating-window-titlebar="true"])
+) {
+  padding-left: var(--xiranite-window-caption-inline-size);
+}
+
+.xiranite-floating-window [data-reader-window-drag-region="true"] :is(button, a, input, textarea, select, [role="button"], [draggable="true"]),
+.xiranite-floating-window [data-reader-window-drag-region="true"] :is(button, a, input, textarea, select, [role="button"], [draggable="true"]) * {
+  --wails-draggable: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+/* Window caption controls are host chrome, not node controls. Keep them out
+   of per-theme button treatments so they remain flush with the titlebar. */
+.xiranite-node-surface [data-window-caption-style="native"] [data-window-caption-button],
+.xiranite-node-surface [data-window-caption-style="windows"] [data-window-caption-button] {
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.xiranite-node-surface [data-window-caption-style="native"] [data-window-caption-button],
+.xiranite-node-surface [data-window-caption-style="windows"] [data-window-caption-button] {
+  border-radius: 0 !important;
+}
+
+.xiranite-node-surface [data-window-caption-style="native"] [data-window-caption-button]:hover,
+.xiranite-node-surface [data-window-caption-style="windows"] [data-window-caption-button]:hover {
+  background: color-mix(in oklch, var(--foreground) 9%, transparent) !important;
+  color: var(--foreground) !important;
+}
+
+.xiranite-node-surface [data-window-caption-style="native"] [data-window-caption-button][data-window-caption-tone="close"]:hover,
+.xiranite-node-surface [data-window-caption-style="windows"] [data-window-caption-button][data-window-caption-tone="close"]:hover {
+  background: #c42b1c !important;
+  color: white !important;
+}
+
+.xiranite-node-surface [data-window-caption-style="native"][data-window-caption-density="compact"] [data-window-caption-button],
+.xiranite-node-surface [data-window-caption-style="windows"] [data-window-caption-button] {
+  min-height: 1.75rem !important;
+  width: 2rem !important;
+}
+
+.xiranite-node-surface [data-window-caption-style="traffic-light"] [data-window-caption-button] {
+  min-height: 0.875rem !important;
+  width: 0.875rem !important;
+  border-radius: 9999px !important;
+}
+
+.xiranite-node-surface [data-window-caption-style="traffic-light"] [data-window-control-action="close"] {
+  background: color-mix(in oklch, #ef4444 80%, transparent) !important;
+}
+
+.xiranite-node-surface [data-window-caption-style="traffic-light"] [data-window-control-action="minimize"] {
+  background: color-mix(in oklch, #eab308 80%, transparent) !important;
+}
+
+.xiranite-node-surface [data-window-caption-style="traffic-light"] [data-window-control-action="maximize"] {
+  background: color-mix(in oklch, #10b981 80%, transparent) !important;
+}
+
+/* Operation-chrome buttons share one continuous pill surface. Theme-level
+   node control treatments must not turn each ghost action into its own tile. */
+.xiranite-node-chrome-action {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.xiranite-node-chrome-action:hover {
+  background: color-mix(in oklch, var(--foreground) 9%, transparent) !important;
+  color: var(--primary) !important;
+}
+
+.xiranite-node-chrome-action[data-node-chrome-danger="true"]:hover {
+  background: color-mix(in oklch, var(--destructive) 10%, transparent) !important;
+  color: var(--destructive) !important;
+}
+
+[data-window-caption-visibility="expand-on-hover"] {
+  width: 1.75rem;
+  transition: width 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-window-caption-visibility="expand-on-hover"]:is(:hover, :focus-within) {
+  width: 4.25rem;
+}
+
+[data-window-caption-visibility="always-expanded"] {
+  width: 4.25rem;
+}
+
+[data-window-caption-visibility="expand-on-hover"] [data-node-chrome-action] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms ease;
+}
+
+[data-window-caption-visibility="expand-on-hover"] [data-node-chrome-expanded-surface] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms ease;
+}
+
+[data-window-caption-visibility="expand-on-hover"]:is(:hover, :focus-within) [data-node-chrome-expanded-surface] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+[data-window-caption-visibility="expand-on-hover"]:is(:hover, :focus-within) [data-node-chrome-action] {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 45ms;
+}
+
+[data-window-caption-visibility="expand-on-hover"] [data-node-chrome-idle-indicator] {
+  opacity: 1;
+  transition: opacity 80ms ease;
+}
+
+[data-window-caption-visibility="expand-on-hover"]:is(:hover, :focus-within) [data-node-chrome-idle-indicator] {
+  opacity: 0;
+}
+
+/* ── Workspace canvas dot/grid background ── */
+.ws-canvas-bg {
+  position: relative;
+  background-color: var(--ws-canvas);
+  isolation: isolate; /* Create stacking context for ::before and ::after */
+}
+
+/* Base pattern layer */
+.ws-canvas-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: background-image 0.2s ease;
+}
+
+/* Grid mode */
+.theme-bg-grid .ws-canvas-bg::before {
+  background-image:
+    linear-gradient(var(--ws-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ws-grid-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Dot grid mode */
+.theme-bg-dot-grid .ws-canvas-bg::before {
+  background-image: radial-gradient(var(--ws-grid-color) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+/* None mode */
+.theme-bg-none .ws-canvas-bg::before {
+  background-image: none;
+}
+
+/* Image mode - Xlchemy-style background image overlay */
+.theme-bg-image .ws-canvas-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: var(--ws-bg-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: var(--ws-bg-opacity, 0.3);
+  filter: blur(var(--ws-bg-blur, 5px));
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.theme-bg-image .ws-canvas-bg--resizing::after {
+  filter: none;
+  transition: none;
+}
+
+/* Cover topbar mode - background image extends to cover the top bar */
+.theme-bg-image.theme-bg-cover-topbar {
+  position: relative;
+  isolation: isolate; /* Create stacking context so ::before stays behind all children */
+}
+
+.theme-bg-image.theme-bg-cover-topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* Behind all children, but above the root's own background */
+  pointer-events: none;
+  background-image: var(--ws-bg-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: var(--ws-bg-opacity, 0.3);
+  filter: blur(var(--ws-bg-blur, 5px));
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+/* TopBar transparent so the root background image shows through */
+.theme-bg-image.theme-bg-cover-topbar > header {
+  background: transparent;
+}
+
+/* Canvas becomes transparent to let the root background image show through */
+.theme-bg-image.theme-bg-cover-topbar .ws-canvas-bg {
+  background-color: transparent;
+}
+
+/* Disable per-canvas image layer to avoid duplicate rendering */
+.theme-bg-image.theme-bg-cover-topbar .ws-canvas-bg::after {
+  display: none;
+}
+
+/* ── Dockview 主题桥接 ──
+   dockview-react 的 DockviewReact 组件默认 className 是 `dockview-theme-abyss`
+   （见 dockview-react.js 源码），它在自己根 div 上写死了：
+     --dv-color-abyss-dark: #000c18
+     --dv-color-abyss: #10192c
+     --dv-color-abyss-light: #1c1c2a
+     --dv-color-abyss-lighter: #2b2b4a
+   这些变量定义在 dockview 内部根 div 上，比外层容器的 .dv-theme-bridge 优先级高，
+   所以单纯在外层覆盖 --dv-* 不生效。
+
+   解决方案：用 `.dv-theme-bridge .dockview-theme-abyss` 双类选择器（外层 + dockview 内部根），
+   在 dockview 内部根 div 上重新覆盖这些 abyss 变量，让它们读项目的 --card / --muted / --border。
+   这样切换 spatial / endfield / wuling 主题时 dockview 自动跟随。 */
+.dv-theme-bridge .dockview-theme-abyss,
+.dv-theme-bridge.dockview-theme-abyss {
+  --dv-color-abyss-dark: var(--card);
+  --dv-color-abyss: var(--card);
+  --dv-color-abyss-light: var(--muted);
+  --dv-color-abyss-lighter: var(--border);
+  --dv-color-abyss-accent: var(--primary);
+  --dv-color-abyss-primary-text: var(--foreground);
+  --dv-color-abyss-secondary-text: var(--muted-foreground);
+
+  --dv-paneview-active-outline-color: var(--primary);
+  --dv-drag-over-background-color: var(--muted);
+  --dv-drag-over-border-color: transparent;
+  --dv-icon-hover-background-color: var(--muted);
+  --dv-floating-box-shadow: 0 8px 32px oklch(0 0 0 / 0.2);
+
+  /* 半透明背景 + backdrop-filter 实现 Dock 视图的磨砂质感，
+     与 CardView 的 bg-card/72 backdrop-blur-md 保持一致。 */
+  --dv-group-view-background-color: color-mix(in oklch, var(--card) 72%, transparent);
+  --dv-tabs-and-actions-container-background-color: color-mix(in oklch, var(--muted) 72%, transparent);
+  --dv-activegroup-visiblepanel-tab-background-color: color-mix(in oklch, var(--card) 72%, transparent);
+  --dv-activegroup-hiddenpanel-tab-background-color: color-mix(in oklch, var(--muted) 72%, transparent);
+  --dv-inactivegroup-visiblepanel-tab-background-color: color-mix(in oklch, var(--card) 72%, transparent);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: color-mix(in oklch, var(--muted) 72%, transparent);
+  --dv-activegroup-visiblepanel-tab-color: var(--foreground);
+  --dv-activegroup-hiddenpanel-tab-color: var(--muted-foreground);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--muted-foreground);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--muted-foreground);
+  --dv-tab-divider-color: var(--border);
+  --dv-activegroup-visiblepanel-tab-active-background-color: var(--primary);
+  --dv-separator-border: var(--border);
+  --dv-paneview-header-border-color: var(--border);
+  --dv-scrollbar-background-color: var(--scrollbar-thumb, var(--muted-foreground));
+  --dv-tabs-container-scrollbar-color: var(--scrollbar-thumb, var(--muted-foreground));
+}
+
+/* 在 groupview 上应用磨砂模糊，让半透明背景透出画布纹理。
+   backdrop-filter 必须设在有 background-color 的元素上才生效。 */
+.dv-theme-bridge .dv-groupview {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ── TLDraw 主题桥接 ──
+   TLDraw 把 .tl-theme__light / .tl-theme__dark 加在 .tl-container 同一元素上，
+   且 tldraw.css 通过 FlowView.tsx 的 import "tldraw/tldraw.css" 加载，
+   比 index.css 后加载，相同优先级下会覆盖我们的变量。
+   用 .tl-container.tl-theme__light 交集选择器（优先级 0,2,0 > 0,1,0）确保覆盖。 */
+.tl-container.tl-theme__light,
+.tl-container.tl-theme__dark {
+  --tl-color-background: transparent;
+  --tl-color-grid: transparent;
+  --tl-color-selection-fill: color-mix(in oklch, var(--primary) 24%, transparent);
+  --tl-color-selection-stroke: var(--primary);
+  --tl-color-panel: var(--popover);
+  --tl-color-panel-contrast: var(--border);
+  --tl-color-panel-overlay: var(--popover);
+  --tl-color-panel-transparent: var(--popover);
+  --tl-color-low: var(--muted);
+  --tl-color-low-border: var(--border);
+  --tl-color-muted-none: transparent;
+  --tl-color-muted-0: var(--muted);
+  --tl-color-muted-1: color-mix(in oklch, var(--primary) 18%, transparent);
+  --tl-color-muted-2: var(--muted);
+  --tl-color-hint: var(--muted);
+  --tl-color-overlay: oklch(0 0 0 / 0.2);
+  --tl-color-divider: var(--border);
+  --tl-color-selected: var(--primary);
+  --tl-color-selected-contrast: var(--primary-foreground);
+  --tl-color-focus: var(--ring);
+  --tl-color-tooltip: var(--popover);
+  --tl-color-text: var(--foreground);
+  --tl-color-text-0: var(--foreground);
+  --tl-color-text-1: var(--foreground);
+  --tl-color-text-3: var(--muted-foreground);
+  --tl-color-text-disabled: var(--muted-foreground);
+  --tl-color-text-shadow: var(--background);
+  --tl-color-primary: var(--primary);
+  --tl-color-danger: var(--destructive);
+  --tl-color-success: var(--primary);
+  --tl-color-info: var(--primary);
+  --tl-color-warning: var(--primary);
+  --tl-shadow-1: 0 1px 2px oklch(0 0 0 / 0.1);
+  --tl-shadow-2: 0 2px 8px oklch(0 0 0 / 0.12);
+  --tl-shadow-3: 0 4px 16px oklch(0 0 0 / 0.15);
+  --tl-shadow-4: 0 8px 24px oklch(0 0 0 / 0.18);
+}
+
+/* Flow module nodes are full React UIs. tldraw's selection background sits on
+   the overlays layer (above shapes) with pointer-events:all, which blocks
+   node buttons / dropdowns / config popovers after the shape is selected.
+   ModuleShapeUtil also hides the bg; this is belt-and-suspenders for mixed
+   selections that still render a selection rect over module HTML. */
+.xiranite-flow-canvas .tl-selection__bg {
+  pointer-events: none !important;
+}
+
+/* TLDraw shape 选中框/resize handles 默认是蓝色，
+   --tl-color-selected 变量已被覆盖为 var(--primary)，
+   但部分 SVG 元素直接用 stroke/fill 不读变量，这里强制覆盖。 */
+.tl-container .tl-selection__fg,
+.tl-container .tl-selection__fg *,
+.tl-container [data-testid*="selection"],
+.tl-container [class*="tl-selected"] svg [class*="selected"],
+.tl-container [class*="tl-selection"] svg [stroke],
+.tl-container [class*="tl-indicator"] svg [stroke] {
+  stroke: var(--primary) !important;
+}
+
+.tl-container [class*="tl-selection"] svg [fill]:not(.tl-transparent),
+.tl-container [class*="tl-indicator"] svg [fill]:not(.tl-transparent) {
+  fill: color-mix(in oklch, var(--primary) 24%, transparent) !important;
+}
+
+.tl-container [class*="tl-handle"],
+.tl-container [class*="tl-handle"] svg [fill] {
+  background: var(--primary) !important;
+  fill: var(--primary) !important;
+  border-color: var(--primary-foreground) !important;
+}
+/* TLDraw 主工具栏（底部）的 toggle 按钮 active 态用 inline style 硬编码蓝色
+   rgb(68,101,233)。这里用 !important 覆盖，让 active 工具按钮跟随 primary 色。
+   只覆盖 .tlui-main-toolbar__tools 内的按钮，不影响右上角 style-panel 的调色盘。 */
+.tl-container .tlui-main-toolbar__tools .tlui-toolbar-toggle-group-item[aria-pressed="true"] {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+.tl-container .tlui-main-toolbar__tools .tlui-toolbar-toggle-group-item[aria-pressed="true"] .tlui-icon {
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+/* ── Component card visuals ──
+   Card geometry is driven by inline transform/size styles; CSS transitions keep
+   layout changes smooth without pulling an animation runtime into the main path. */
+/* TLDraw canvas chrome: match Xiranite's frosted workspace surfaces. */
+.tl-container .tlui-menu-zone,
+.tl-container .tlui-main-toolbar__tools,
+.tl-container .tlui-main-toolbar__extras__controls,
+.tl-container .tlui-style-panel__wrapper,
+.tl-container .tlui-popover__content,
+.tl-container .xiranite-tldraw-style-panel-toggle {
+  background-color: color-mix(in oklch, var(--popover) 72%, transparent) !important;
+  border-color: color-mix(in oklch, var(--border) 72%, transparent) !important;
+  box-shadow: 0 18px 50px -36px oklch(0 0 0 / 0.42), inset 0 0 0 1px color-mix(in oklch, var(--border) 45%, transparent) !important;
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+
+.tl-container .tlui-navigation-panel::before {
+  background-color: color-mix(in oklch, var(--popover) 72%, transparent) !important;
+  border-color: color-mix(in oklch, var(--background) 70%, transparent) !important;
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+
+.tl-container .tlui-minimap {
+  background: color-mix(in oklch, var(--background) 76%, transparent);
+}
+
+.tl-container .tlui-minimap__canvas {
+  border-radius: 6px;
+}
+
+.xiranite-tldraw-style-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px;
+  pointer-events: all;
+}
+
+.xiranite-tldraw-style-panel .tlui-style-panel__wrapper {
+  margin: 0 !important;
+}
+
+.xiranite-tldraw-style-panel-toggle {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  margin: 8px;
+  border: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
+  border-radius: 8px;
+  color: var(--foreground);
+  pointer-events: all;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.xiranite-tldraw-style-panel-toggle--open {
+  margin: 0;
+}
+
+.xiranite-tldraw-style-panel-toggle:hover {
+  background-color: color-mix(in oklch, var(--primary) 16%, var(--popover)) !important;
+  border-color: color-mix(in oklch, var(--primary) 58%, var(--border)) !important;
+  color: var(--primary);
+}
+
+.xiranite-tldraw-style-panel-toggle:active {
+  transform: translateY(1px);
+}
+
+.xiranite-tldraw-style-panel-toggle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.comp-card--animated {
+  will-change: transform;
+}
+
+.comp-card--focused {
+  z-index: 20;
+}
+
+.comp-card--fullscreen {
+  z-index: 50;
+}
+
+.comp-card--floating {
+  z-index: 30;
+  box-shadow: 0 24px 60px oklch(0 0 0 / 0.35);
+}
+
+.comp-card--compact {
+  /* header-only — body hidden via conditional render */
+}
+
+/* Bento view: GridStack supplies geometry; these rules only bridge it into
+   Xiranite's workspace surface and keep widget motion GPU-friendly. */
+.xiranite-bento-grid {
+  min-height: calc(100vh - 7rem);
+}
+
+.xiranite-bento-grid.grid-stack > .grid-stack-item > .grid-stack-item-content {
+  inset: 0;
+  overflow: hidden;
+  border-radius: 0.375rem;
+}
+
+.xiranite-bento-grid .grid-stack-placeholder > .placeholder-content {
+  border: 1px dashed var(--primary);
+  border-radius: 0.375rem;
+  background: color-mix(in oklch, var(--primary) 10%, transparent);
+}
+
+.xiranite-bento-grid .grid-stack-item.ui-draggable-dragging,
+.xiranite-bento-grid .grid-stack-item.ui-resizable-resizing {
+  z-index: 30;
+}
+
+.xiranite-bento-grid .grid-stack-item.ui-draggable-dragging > .grid-stack-item-content,
+.xiranite-bento-grid .grid-stack-item.ui-resizable-resizing > .grid-stack-item-content {
+  box-shadow: 0 24px 70px -24px var(--ws-accent-glow);
+}
+
+/* ── Glow effect for primary ── */
+.xiranite-apple-resize-handle {
+  opacity: 0.9;
+}
+
+/* Cards / Bento 共享的边缘进度条不定式动画 */
+.xiranite-progress-indeterminate {
+  width: 40% !important;
+  animation: xiranite-progress-indeterminate 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes xiranite-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.grid-stack.xiranite-bento-grid > .grid-stack-item > .ui-resizable-e,
+.grid-stack.xiranite-bento-grid > .grid-stack-item > .ui-resizable-s,
+.grid-stack.xiranite-bento-grid > .grid-stack-item > .ui-resizable-w {
+  opacity: 0 !important;
+}
+
+.grid-stack.xiranite-bento-grid > .grid-stack-item > .ui-resizable-se {
+  right: -8px !important;
+  bottom: -8px !important;
+  width: 44px !important;
+  height: 44px !important;
+  cursor: nwse-resize !important;
+  opacity: 0 !important;
+  background: none !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  overflow: visible !important;
+  text-indent: 0 !important;
+  z-index: 40 !important;
+}
+
+.grid-stack.xiranite-bento-grid > .grid-stack-item > .ui-resizable-se::before {
+  display: none !important;
+}
+
+.grid-stack.xiranite-bento-grid > .grid-stack-item > .ui-resizable-se::after {
+  display: none !important;
+}
+
+.btn-primary-glow {
+  box-shadow: 0 0 18px var(--ws-accent-glow), 0 2px 8px oklch(0 0 0 / 0.22);
+}
+
+/* ── Typography routing ── */
+.font-mono { font-family: var(--font-app-sans) !important; }
+
+:root[data-custom-font="enabled"] .font-mono {
+  font-family: var(--font-custom-sans, var(--font-app-sans)) !important;
+}
+
+.xiranite-font-mono,
+.xiranite-code-font {
+  font-family: var(--font-app-mono) !important;
+}
+
+:root[data-custom-font="enabled"] .xiranite-font-mono,
+:root[data-custom-font="enabled"] .xiranite-code-font {
+  font-family: var(--font-custom-mono, var(--font-app-mono)) !important;
+}
+
+.xiranite-topbar,
+.xiranite-topbar .font-mono {
+  font-family: var(--font-app-sans) !important;
+}
+
+:root[data-custom-font="enabled"] .xiranite-topbar,
+:root[data-custom-font="enabled"] .xiranite-topbar .font-mono {
+  font-family: var(--font-custom-sans, var(--font-app-sans)) !important;
+}
+
+.xiranite-ui-copy,
+.xiranite-ui-copy .font-mono {
+  font-family: var(--font-app-sans) !important;
+}
+
+:root[data-custom-font="enabled"] .xiranite-ui-copy,
+:root[data-custom-font="enabled"] .xiranite-ui-copy .font-mono {
+  font-family: var(--font-custom-sans, var(--font-app-sans)) !important;
+}
+
+/* ── Focused overlay (legacy — kept for non-focus-mode dimming) ── */
+.focused-overlay {
+  background-color: var(--ws-focused-overlay);
+}
+
+/* ── Tab animations (Arc style) ── */
+.tab-slide-in {
+  animation: tabSlideIn 0.18s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes tabSlideIn {
+  from { opacity: 0; transform: translateY(-5px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Scrollbar styling ──
+   Shared tokens drive both native overflow scrollbars and Radix ScrollArea.
+   Workspace preference sets data-scrollbar-style on <html>; intentional hide
+   helpers (toolbars / swimlanes) always opt out via .hide-scrollbar or
+   data-scrollbar="hidden". */
+:root {
+  --scrollbar-size: 8px;
+  --scrollbar-radius: 999px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: color-mix(in oklch, var(--border) 88%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklch, var(--muted-foreground) 72%, transparent);
+  --scrollbar-thumb-active: color-mix(in oklch, var(--muted-foreground) 88%, transparent);
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+:root[data-scrollbar-style="thin"] {
+  --scrollbar-size: 4px;
+  --scrollbar-radius: 2px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: color-mix(in oklch, var(--border) 92%, transparent);
+  --scrollbar-thumb-hover: var(--muted-foreground);
+  --scrollbar-thumb-active: var(--muted-foreground);
+  scrollbar-width: thin;
+}
+
+:root[data-scrollbar-style="soft"] {
+  --scrollbar-size: 8px;
+  --scrollbar-radius: 999px;
+  --scrollbar-track: color-mix(in oklch, var(--muted) 35%, transparent);
+  --scrollbar-thumb: color-mix(in oklch, var(--border) 80%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklch, var(--muted-foreground) 68%, transparent);
+  --scrollbar-thumb-active: color-mix(in oklch, var(--muted-foreground) 84%, transparent);
+  scrollbar-width: thin;
+}
+
+:root[data-scrollbar-style="solid"] {
+  --scrollbar-size: 10px;
+  --scrollbar-radius: 6px;
+  --scrollbar-track: color-mix(in oklch, var(--muted) 55%, transparent);
+  --scrollbar-thumb: color-mix(in oklch, var(--muted-foreground) 42%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklch, var(--primary) 55%, var(--muted-foreground));
+  --scrollbar-thumb-active: color-mix(in oklch, var(--primary) 72%, var(--muted-foreground));
+  scrollbar-width: auto;
+}
+
+:root[data-scrollbar-style="rounded"] {
+  --scrollbar-size: 12px;
+  --scrollbar-radius: 999px;
+  --scrollbar-track: color-mix(in oklch, var(--muted) 40%, transparent);
+  --scrollbar-thumb: color-mix(in oklch, var(--border) 70%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklch, var(--muted-foreground) 60%, transparent);
+  --scrollbar-thumb-active: color-mix(in oklch, var(--muted-foreground) 78%, transparent);
+  scrollbar-width: auto;
+}
+
+:root[data-scrollbar-style="minimal"] {
+  --scrollbar-size: 3px;
+  --scrollbar-radius: 999px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: color-mix(in oklch, var(--border) 45%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
+  --scrollbar-thumb-active: color-mix(in oklch, var(--muted-foreground) 70%, transparent);
+  scrollbar-width: thin;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+:root[data-scrollbar-style="solid"] *,
+:root[data-scrollbar-style="rounded"] * {
+  scrollbar-width: auto;
+}
+
+/* width = vertical rail; height = horizontal strip. Both axes share tokens. */
+::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+::-webkit-scrollbar:vertical {
+  width: var(--scrollbar-size);
+}
+
+::-webkit-scrollbar:horizontal {
+  height: var(--scrollbar-size);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--scrollbar-radius);
+}
+
+::-webkit-scrollbar-track:vertical,
+::-webkit-scrollbar-track:horizontal {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--scrollbar-radius);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:vertical,
+::-webkit-scrollbar-thumb:horizontal {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--scrollbar-radius);
+}
+
+:root[data-scrollbar-style="thin"] ::-webkit-scrollbar-thumb,
+:root[data-scrollbar-style="minimal"] ::-webkit-scrollbar-thumb {
+  border-width: 0;
+  background-clip: border-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+:root[data-scrollbar-style="thin"] ::-webkit-scrollbar-thumb:hover,
+:root[data-scrollbar-style="minimal"] ::-webkit-scrollbar-thumb:hover {
+  background-clip: border-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+  background-clip: padding-box;
+}
+
+:root[data-scrollbar-style="thin"] ::-webkit-scrollbar-thumb:active,
+:root[data-scrollbar-style="minimal"] ::-webkit-scrollbar-thumb:active {
+  background-clip: border-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Radix ScrollArea uses its own thumb element; map the same tokens so native
+   overflow and ScrollArea never diverge across node surfaces. */
+[data-slot="scroll-area-scrollbar"] {
+  --scroll-area-size: var(--scrollbar-size);
+  border: 0 !important;
+  padding: 0 !important;
+  transition: background-color 160ms ease, opacity 160ms ease;
+}
+
+[data-slot="scroll-area-scrollbar"][data-orientation="vertical"] {
+  width: var(--scroll-area-size) !important;
+  height: 100% !important;
+}
+
+/* Horizontal strip — same visual language as native overflow-x bars. */
+[data-slot="scroll-area-scrollbar"][data-orientation="horizontal"] {
+  width: 100% !important;
+  height: var(--scroll-area-size) !important;
+  flex-direction: column !important;
+}
+
+[data-slot="scroll-area-thumb"] {
+  background: var(--scrollbar-thumb) !important;
+  border-radius: var(--scrollbar-radius) !important;
+}
+
+[data-slot="scroll-area-scrollbar"][data-orientation="horizontal"] [data-slot="scroll-area-thumb"] {
+  min-height: 100%;
+}
+
+[data-slot="scroll-area-scrollbar"]:hover [data-slot="scroll-area-thumb"],
+[data-slot="scroll-area-thumb"]:hover {
+  background: var(--scrollbar-thumb-hover) !important;
+}
+
+[data-slot="scroll-area-thumb"]:active {
+  background: var(--scrollbar-thumb-active) !important;
+}
+
+:root[data-scrollbar-style="soft"] [data-slot="scroll-area-scrollbar"],
+:root[data-scrollbar-style="solid"] [data-slot="scroll-area-scrollbar"],
+:root[data-scrollbar-style="rounded"] [data-slot="scroll-area-scrollbar"] {
+  background: var(--scrollbar-track);
+}
+
+/* Keep dockview scroll chrome on the same token pipeline. */
+.dv-theme-bridge {
+  --dv-scrollbar-background-color: var(--scrollbar-thumb);
+  --dv-tabs-container-scrollbar-color: var(--scrollbar-thumb);
+}
+
+/* Shared Tabs display preference. The Radix structure stays unchanged; this
+   only switches its visual treatment through the workspace appearance setting. */
+:root[data-tabs-style] [data-slot="tabs-list"] {
+  isolation: isolate;
+}
+
+/* A long official tab set stays in one row and scrolls instead of collapsing
+   into the vertical pill seen in narrow configuration panels. */
+[data-slot="tabs-list"][data-layout="scroll"] {
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  justify-content: flex-start !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+[data-slot="tabs-list"][data-layout="scroll"] > [data-slot="tabs-trigger"] {
+  flex: 0 0 auto !important;
+}
+
+/* The upstream Radix line variant uses a trigger pseudo-element. A global
+   display preference must suppress that local decoration for every non-line
+   treatment, otherwise an underline leaks below surface, pill, boxed, and
+   quiet tabs. */
+:root[data-tabs-style="surface"] [data-slot="tabs-trigger"]::after,
+:root[data-tabs-style="pill"] [data-slot="tabs-trigger"]::after,
+:root[data-tabs-style="boxed"] [data-slot="tabs-trigger"]::after,
+:root[data-tabs-style="quiet"] [data-slot="tabs-trigger"]::after {
+  display: none !important;
+}
+
+:root[data-tabs-style="surface"] [data-slot="tabs-list"] {
+  gap: 0 !important;
+  border: 0 !important;
+  border-radius: var(--radius-lg) !important;
+  background: var(--muted) !important;
+  padding: 3px !important;
+}
+
+:root[data-tabs-style="surface"] [data-slot="tabs-trigger"] {
+  border-radius: calc(var(--radius-lg) - 3px) !important;
+}
+
+:root[data-tabs-style="surface"] [data-slot="tabs-trigger"][data-state="active"] {
+  background: var(--background) !important;
+  box-shadow: var(--shadow-xs, 0 1px 2px oklch(0 0 0 / 0.08)) !important;
+}
+
+:root[data-tabs-style="underline"] [data-slot="tabs-list"] {
+  height: auto !important;
+  gap: 0.25rem !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:root[data-tabs-style="underline"] [data-slot="tabs-trigger"] {
+  height: 2.25rem !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-inline: 0.75rem !important;
+}
+
+:root[data-tabs-style="underline"] [data-slot="tabs-trigger"][data-state="active"] {
+  border-bottom-color: var(--primary) !important;
+  color: var(--foreground) !important;
+}
+
+:root[data-tabs-style="pill"] [data-slot="tabs-list"] {
+  height: auto !important;
+  gap: 0.25rem !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  background: color-mix(in oklch, var(--muted) 82%, transparent) !important;
+  padding: 0.25rem !important;
+}
+
+:root[data-tabs-style="pill"] [data-slot="tabs-trigger"] {
+  height: 2rem !important;
+  border: 0 !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-inline: 0.875rem !important;
+}
+
+:root[data-tabs-style="pill"] [data-slot="tabs-trigger"][data-state="active"] {
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  box-shadow: var(--shadow-xs, 0 1px 2px oklch(0 0 0 / 0.08)) !important;
+}
+
+:root[data-tabs-style="boxed"] [data-slot="tabs-list"] {
+  height: auto !important;
+  gap: 0 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:root[data-tabs-style="boxed"] [data-slot="tabs-trigger"] {
+  height: 2.125rem !important;
+  border: 0 !important;
+  border-right: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-inline: 0.75rem !important;
+}
+
+:root[data-tabs-style="boxed"] [data-slot="tabs-trigger"]:last-child {
+  border-right: 0 !important;
+}
+
+:root[data-tabs-style="boxed"] [data-slot="tabs-trigger"][data-state="active"] {
+  background: color-mix(in oklch, var(--primary) 11%, transparent) !important;
+  color: var(--foreground) !important;
+}
+
+:root[data-tabs-style="quiet"] [data-slot="tabs-list"] {
+  height: auto !important;
+  gap: 0.5rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:root[data-tabs-style="quiet"] [data-slot="tabs-trigger"] {
+  height: 2rem !important;
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-inline: 0.5rem !important;
+}
+
+:root[data-tabs-style="quiet"] [data-slot="tabs-trigger"][data-state="active"] {
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+}
+
+:root[data-tabs-style] [data-slot="tabs"][data-orientation="vertical"] [data-slot="tabs-list"] {
+  border-bottom: 0 !important;
+  border-right: 1px solid var(--border) !important;
+}
+
+:root[data-tabs-style] [data-slot="tabs"][data-orientation="vertical"] [data-slot="tabs-trigger"] {
+  border-right: 2px solid transparent !important;
+  border-bottom: 0 !important;
+}
+
+:root[data-tabs-style] [data-slot="tabs"][data-orientation="vertical"] [data-slot="tabs-trigger"][data-state="active"] {
+  border-right-color: var(--primary) !important;
+}
+
+/* Shared Switch display preference. This augments the upstream Radix-backed
+   shadcn component instead of replacing its control or accessibility model. */
+:root[data-switch-style="outlined"] [data-slot="switch"][data-state="unchecked"] {
+  border-color: var(--muted-foreground) !important;
+  background: var(--background) !important;
+}
+
+:root[data-switch-style="outlined"] [data-slot="switch"][data-state="unchecked"] [data-slot="switch-thumb"] {
+  background: var(--muted-foreground) !important;
+  opacity: 0.8;
+}
+
+:root[data-switch-style="filled"] [data-slot="switch"][data-state="unchecked"] {
+  border-color: var(--input) !important;
+  background: var(--muted) !important;
+}
+
+:root[data-switch-style="filled"] [data-slot="switch"][data-state="unchecked"] [data-slot="switch-thumb"] {
+  background: var(--background) !important;
+}
+
+:root[data-switch-style="minimal"] [data-slot="switch"][data-state="unchecked"] {
+  border-color: var(--border) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:root[data-switch-style="minimal"] [data-slot="switch"][data-state="unchecked"] [data-slot="switch-thumb"] {
+  background: var(--muted-foreground) !important;
+  opacity: 0.7;
+}
+
+/* Shared Slider display preference — Radix Slider AND native <input type="range">
+   (NeoView still has many legacy range inputs in bottom bar / material / cards).
+   data-slider-style on <html>. */
+:root[data-slider-style] [data-slot="slider"] [data-slot="slider-track"] {
+  overflow: hidden !important;
+  border-radius: 9999px !important;
+  transition: background-color 160ms ease, height 160ms ease, width 160ms ease;
+}
+
+:root[data-slider-style] [data-slot="slider"] [data-slot="slider-range"] {
+  transition: background-color 160ms ease;
+}
+
+:root[data-slider-style] [data-slot="slider"] [data-slot="slider-thumb"] {
+  border-radius: 9999px !important;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    width 160ms ease,
+    height 160ms ease,
+    opacity 160ms ease;
+}
+
+/* solid — filled primary rail + solid primary thumb (Magic Card look). */
+:root[data-slider-style="solid"] [data-slot="slider"] [data-slot="slider-track"] {
+  height: 0.375rem !important;
+  background: color-mix(in oklch, var(--foreground) 18%, transparent) !important;
+}
+
+:root[data-slider-style="solid"] [data-slot="slider"][data-orientation="vertical"] [data-slot="slider-track"] {
+  width: 0.375rem !important;
+  height: 100% !important;
+}
+
+:root[data-slider-style="solid"] [data-slot="slider"] [data-slot="slider-range"] {
+  background: var(--primary) !important;
+}
+
+:root[data-slider-style="solid"] [data-slot="slider"] [data-slot="slider-thumb"] {
+  width: 0.95rem !important;
+  height: 0.95rem !important;
+  border: 0 !important;
+  background: var(--primary) !important;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--background) 55%, transparent) !important;
+}
+
+:root[data-slider-style="solid"] [data-slot="slider"] [data-slot="slider-thumb"]:hover,
+:root[data-slider-style="solid"] [data-slot="slider"] [data-slot="slider-thumb"]:focus-visible {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--background) 55%, transparent),
+    0 0 0 4px color-mix(in oklch, var(--primary) 28%, transparent) !important;
+}
+
+/* soft — taller muted track, soft primary fill, card-colored thumb. */
+:root[data-slider-style="soft"] [data-slot="slider"] [data-slot="slider-track"] {
+  height: 0.5rem !important;
+  background: color-mix(in oklch, var(--muted) 88%, var(--border)) !important;
+}
+
+:root[data-slider-style="soft"] [data-slot="slider"][data-orientation="vertical"] [data-slot="slider-track"] {
+  width: 0.5rem !important;
+  height: 100% !important;
+}
+
+:root[data-slider-style="soft"] [data-slot="slider"] [data-slot="slider-range"] {
+  background: color-mix(in oklch, var(--primary) 78%, var(--background)) !important;
+}
+
+:root[data-slider-style="soft"] [data-slot="slider"] [data-slot="slider-thumb"] {
+  width: 1.05rem !important;
+  height: 1.05rem !important;
+  border: 2px solid color-mix(in oklch, var(--primary) 70%, var(--border)) !important;
+  background: var(--card) !important;
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.12) !important;
+}
+
+/* pill — thick bar track, large thumb. */
+:root[data-slider-style="pill"] [data-slot="slider"] [data-slot="slider-track"] {
+  height: 0.75rem !important;
+  background: color-mix(in oklch, var(--muted) 75%, transparent) !important;
+}
+
+:root[data-slider-style="pill"] [data-slot="slider"][data-orientation="vertical"] [data-slot="slider-track"] {
+  width: 0.75rem !important;
+  height: 100% !important;
+}
+
+:root[data-slider-style="pill"] [data-slot="slider"] [data-slot="slider-range"] {
+  background: var(--primary) !important;
+}
+
+:root[data-slider-style="pill"] [data-slot="slider"] [data-slot="slider-thumb"] {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  border: 3px solid var(--background) !important;
+  background: var(--primary) !important;
+  box-shadow: 0 1px 4px oklch(0 0 0 / 0.16) !important;
+}
+
+/* line — thin technical rail, small outlined thumb. */
+:root[data-slider-style="line"] [data-slot="slider"] [data-slot="slider-track"] {
+  height: 0.125rem !important;
+  background: var(--border) !important;
+}
+
+:root[data-slider-style="line"] [data-slot="slider"][data-orientation="vertical"] [data-slot="slider-track"] {
+  width: 0.125rem !important;
+  height: 100% !important;
+}
+
+:root[data-slider-style="line"] [data-slot="slider"] [data-slot="slider-range"] {
+  background: var(--primary) !important;
+}
+
+:root[data-slider-style="line"] [data-slot="slider"] [data-slot="slider-thumb"] {
+  width: 0.75rem !important;
+  height: 0.75rem !important;
+  border: 1.5px solid var(--primary) !important;
+  background: var(--background) !important;
+  box-shadow: none !important;
+}
+
+/* minimal — hairline, quiet thumb until hover. */
+:root[data-slider-style="minimal"] [data-slot="slider"] [data-slot="slider-track"] {
+  height: 0.1rem !important;
+  background: color-mix(in oklch, var(--border) 70%, transparent) !important;
+}
+
+:root[data-slider-style="minimal"] [data-slot="slider"][data-orientation="vertical"] [data-slot="slider-track"] {
+  width: 0.1rem !important;
+  height: 100% !important;
+}
+
+:root[data-slider-style="minimal"] [data-slot="slider"] [data-slot="slider-range"] {
+  background: color-mix(in oklch, var(--primary) 72%, transparent) !important;
+}
+
+:root[data-slider-style="minimal"] [data-slot="slider"] [data-slot="slider-thumb"] {
+  width: 0.65rem !important;
+  height: 0.65rem !important;
+  border: 0 !important;
+  background: color-mix(in oklch, var(--muted-foreground) 55%, transparent) !important;
+  box-shadow: none !important;
+  opacity: 0.85;
+}
+
+:root[data-slider-style="minimal"] [data-slot="slider"]:hover [data-slot="slider-thumb"],
+:root[data-slider-style="minimal"] [data-slot="slider"] [data-slot="slider-thumb"]:focus-visible {
+  background: var(--primary) !important;
+  opacity: 1;
+}
+
+/* Native range inputs — same visual language as Radix Slider skins.
+   NeoView bottom progress, material cards, sidebar height, toolbars, etc. */
+:root[data-slider-style] input[type="range"] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  /* Do not force width:100% — NeoView toolbars use fixed w-20/w-24 ranges. */
+  max-width: 100%;
+  height: 1.25rem;
+  margin: 0;
+  cursor: pointer;
+  background: transparent !important;
+  accent-color: var(--primary);
+}
+
+:root[data-slider-style] input[type="range"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+:root[data-slider-style] input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  border: 0;
+  border-radius: 9999px;
+  transition: background-color 160ms ease, height 160ms ease;
+}
+
+:root[data-slider-style] input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  border-radius: 9999px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    width 160ms ease,
+    height 160ms ease;
+}
+
+:root[data-slider-style] input[type="range"]::-moz-range-track {
+  width: 100%;
+  border: 0;
+  border-radius: 9999px;
+}
+
+:root[data-slider-style] input[type="range"]::-moz-range-thumb {
+  border-radius: 9999px;
+}
+
+:root[data-slider-style="solid"] input[type="range"] {
+  --slider-track-size: 0.375rem;
+  --slider-thumb-size: 0.95rem;
+  --slider-track-bg: color-mix(in oklch, var(--foreground) 18%, transparent);
+  --slider-thumb-bg: var(--primary);
+  --slider-thumb-border: 0 solid transparent;
+  --slider-thumb-shadow: 0 0 0 1px color-mix(in oklch, var(--background) 55%, transparent);
+}
+
+:root[data-slider-style="soft"] input[type="range"] {
+  --slider-track-size: 0.5rem;
+  --slider-thumb-size: 1.05rem;
+  --slider-track-bg: color-mix(in oklch, var(--muted) 88%, var(--border));
+  --slider-thumb-bg: var(--card);
+  --slider-thumb-border: 2px solid color-mix(in oklch, var(--primary) 70%, var(--border));
+  --slider-thumb-shadow: 0 1px 3px oklch(0 0 0 / 0.12);
+}
+
+:root[data-slider-style="pill"] input[type="range"] {
+  --slider-track-size: 0.75rem;
+  --slider-thumb-size: 1.25rem;
+  --slider-track-bg: color-mix(in oklch, var(--muted) 75%, transparent);
+  --slider-thumb-bg: var(--primary);
+  --slider-thumb-border: 3px solid var(--background);
+  --slider-thumb-shadow: 0 1px 4px oklch(0 0 0 / 0.16);
+}
+
+:root[data-slider-style="line"] input[type="range"] {
+  --slider-track-size: 0.125rem;
+  --slider-thumb-size: 0.75rem;
+  --slider-track-bg: var(--border);
+  --slider-thumb-bg: var(--background);
+  --slider-thumb-border: 1.5px solid var(--primary);
+  --slider-thumb-shadow: none;
+}
+
+:root[data-slider-style="minimal"] input[type="range"] {
+  --slider-track-size: 0.1rem;
+  --slider-thumb-size: 0.65rem;
+  --slider-track-bg: color-mix(in oklch, var(--border) 70%, transparent);
+  --slider-thumb-bg: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
+  --slider-thumb-border: 0 solid transparent;
+  --slider-thumb-shadow: none;
+}
+
+/* Fill grows from the reading start edge:
+   LTR = left→right, RTL (NeoView bottom progress) = right→left. */
+:root[data-slider-style] input[type="range"] {
+  --slider-fill-gradient: linear-gradient(
+    to right,
+    var(--primary) 0%,
+    var(--primary) var(--slider-progress, 0%),
+    var(--slider-track-bg) var(--slider-progress, 0%),
+    var(--slider-track-bg) 100%
+  );
+}
+
+:root[data-slider-style] input[type="range"][dir="rtl"],
+:root[data-slider-style] input[type="range"]:dir(rtl),
+:root[data-slider-style] input[type="range"][data-slider-direction="rtl"] {
+  --slider-fill-gradient: linear-gradient(
+    to left,
+    var(--primary) 0%,
+    var(--primary) var(--slider-progress, 0%),
+    var(--slider-track-bg) var(--slider-progress, 0%),
+    var(--slider-track-bg) 100%
+  );
+}
+
+:root[data-slider-style] input[type="range"]::-webkit-slider-runnable-track {
+  height: var(--slider-track-size);
+  background: var(--slider-fill-gradient);
+}
+
+:root[data-slider-style] input[type="range"]::-webkit-slider-thumb {
+  width: var(--slider-thumb-size);
+  height: var(--slider-thumb-size);
+  margin-top: calc((var(--slider-track-size) - var(--slider-thumb-size)) / 2);
+  border: var(--slider-thumb-border);
+  background: var(--slider-thumb-bg);
+  box-shadow: var(--slider-thumb-shadow);
+}
+
+:root[data-slider-style] input[type="range"]::-moz-range-track {
+  height: var(--slider-track-size);
+  background: var(--slider-track-bg);
+}
+
+/* Firefox paints progress from the start edge and follows dir automatically. */
+:root[data-slider-style] input[type="range"]::-moz-range-progress {
+  height: var(--slider-track-size);
+  border-radius: 9999px;
+  background: var(--primary);
+}
+
+:root[data-slider-style] input[type="range"]::-moz-range-thumb {
+  width: var(--slider-thumb-size);
+  height: var(--slider-thumb-size);
+  border: var(--slider-thumb-border);
+  background: var(--slider-thumb-bg);
+  box-shadow: var(--slider-thumb-shadow);
+}
+
+:root[data-slider-style="minimal"] input[type="range"]:hover::-webkit-slider-thumb,
+:root[data-slider-style="minimal"] input[type="range"]:focus-visible::-webkit-slider-thumb {
+  background: var(--primary);
+}
+
+:root[data-slider-style="minimal"] input[type="range"]:hover::-moz-range-thumb,
+:root[data-slider-style="minimal"] input[type="range"]:focus-visible::-moz-range-thumb {
+  background: var(--primary);
+}
+
+/* Shared mutually-exclusive choice controls. The Radix ToggleGroup remains
+   the interaction primitive; these rules only provide globally selectable,
+   theme-token-based treatments with an unmistakable selected state. */
+:root[data-choice-control-style] [data-slot="toggle-group"] {
+  pointer-events: auto;
+  box-shadow: none !important;
+}
+
+:root[data-choice-control-style] [data-slot="toggle-group-item"] {
+  pointer-events: auto;
+}
+
+:root[data-choice-control-style="segmented"] [data-slot="toggle-group"] {
+  gap: 0.125rem !important;
+  border: 0 !important;
+  border-radius: var(--radius-md) !important;
+  background: color-mix(in oklch, var(--muted) 88%, transparent) !important;
+  padding: 0.1875rem !important;
+}
+
+:root[data-choice-control-style="segmented"] [data-slot="toggle-group-item"] {
+  border: 1px solid transparent !important;
+  border-radius: calc(var(--radius-md) - 0.125rem) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:root[data-choice-control-style="segmented"] [data-slot="toggle-group-item"][data-state="on"] {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  box-shadow: var(--shadow-sm) !important;
+  font-weight: 650;
+}
+
+:root[data-choice-control-style="pills"] [data-slot="toggle-group"] {
+  gap: 0.375rem !important;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:root[data-choice-control-style="pills"] [data-slot="toggle-group-item"] {
+  border: 1px solid var(--input) !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+}
+
+:root[data-choice-control-style="pills"] [data-slot="toggle-group-item"][data-state="on"] {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  font-weight: 650;
+}
+
+:root[data-choice-control-style="tabs"] [data-slot="toggle-group"] {
+  gap: 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:root[data-choice-control-style="tabs"] [data-slot="toggle-group-item"] {
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:root[data-choice-control-style="tabs"] [data-slot="toggle-group-item"][data-state="on"] {
+  border-bottom-color: var(--primary) !important;
+  background: color-mix(in oklch, var(--primary) 9%, transparent) !important;
+  color: var(--primary) !important;
+  font-weight: 650;
+}
+
+:root[data-choice-control-style="tiles"] [data-slot="toggle-group"] {
+  gap: 0.375rem !important;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:root[data-choice-control-style="tiles"] [data-slot="toggle-group-item"] {
+  border: 1px solid var(--input) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--background) !important;
+}
+
+:root[data-choice-control-style="tiles"] [data-slot="toggle-group-item"][data-state="on"] {
+  border-color: var(--primary) !important;
+  background: color-mix(in oklch, var(--primary) 14%, var(--background)) !important;
+  color: var(--primary) !important;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 45%, transparent) !important;
+  font-weight: 650;
+}
+
+/* Shared field titles. This intentionally targets the official shadcn Field
+   composition used by node forms, while ChoiceControlField keeps the matching
+   FieldSet/FieldLegend treatment. One workspace preference therefore applies
+   to Select, Input, Slider and other labelled controls across every node. */
+:root[data-field-title-style] [data-slot="field"][data-orientation="vertical"]:has(> [data-slot="field-label"], > :not([data-slot="field"]) > [data-slot="field-label"]) {
+  min-width: 0;
+}
+
+:root[data-field-title-style] [data-slot="field"][data-orientation="vertical"] > [data-slot="field-label"],
+:root[data-field-title-style] [data-slot="field"][data-orientation="vertical"] > :not([data-slot="field"]) > [data-slot="field-label"] {
+  color: var(--muted-foreground);
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Typography only: ChoiceControlField keeps its original fieldset/legend
+   layout, while both title implementations render at exactly the same size. */
+:root[data-field-title-style] [data-slot="field"][data-orientation="vertical"] > [data-slot="field-label"],
+:root[data-field-title-style] [data-slot="field"][data-orientation="vertical"] > :not([data-slot="field"]) > [data-slot="field-label"],
+:root[data-field-title-style] [data-slot="choice-control-field"] > [data-slot="field-legend"] {
+  color: var(--muted-foreground) !important;
+  font-size: 0.625rem !important;
+  line-height: 1rem !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+}
+
+:root[data-field-title-style="stacked"] [data-slot="field"][data-orientation="vertical"]:has(> [data-slot="field-label"], > :not([data-slot="field"]) > [data-slot="field-label"]) {
+  gap: 0.25rem;
+}
+
+:root[data-field-title-style="legend"] [data-slot="field"][data-orientation="vertical"]:has(> [data-slot="field-label"], > :not([data-slot="field"]) > [data-slot="field-label"]) {
+  position: relative;
+  gap: 0.25rem;
+  padding-top: 0.375rem;
+}
+
+:root[data-field-title-style="legend"] [data-slot="field"][data-orientation="vertical"] > [data-slot="field-label"],
+:root[data-field-title-style="legend"] [data-slot="field"][data-orientation="vertical"] > :not([data-slot="field"]) > [data-slot="field-label"] {
+  position: absolute;
+  top: 0.375rem;
+  left: 0.375rem;
+  z-index: 1;
+  max-width: calc(100% - 0.75rem);
+  padding-inline: 0;
+  transform: translateY(-50%);
+  background: transparent !important;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+
+:root[data-field-title-style="inline"] [data-slot="field"][data-orientation="vertical"]:has(> [data-slot="field-label"], > :not([data-slot="field"]) > [data-slot="field-label"]) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+:root[data-field-title-style="inline"] [data-slot="field"][data-orientation="vertical"] > [data-slot="field-label"],
+:root[data-field-title-style="inline"] [data-slot="field"][data-orientation="vertical"] > :not([data-slot="field"]) > [data-slot="field-label"] {
+  white-space: nowrap;
+}
+
+:root[data-field-title-style="hidden"] [data-slot="field"][data-orientation="vertical"] > [data-slot="field-label"],
+:root[data-field-title-style="hidden"] [data-slot="field"][data-orientation="vertical"] > :not([data-slot="field"]) > [data-slot="field-label"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Xlchemy keeps the reference prototype's instrument language while deriving
+   every accent from the active shadcn theme. */
+.xlchemy-grid {
+  background-image:
+    linear-gradient(color-mix(in oklch, var(--primary) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklch, var(--primary) 5%, transparent) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.xlchemy-hazard {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    color-mix(in oklch, var(--primary) 10%, transparent) 10px,
+    color-mix(in oklch, var(--primary) 10%, transparent) 20px
+  );
+}
+
+.xlchemy-matrix-wave {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: xlchemy-matrix-drift 7s linear infinite;
+  will-change: transform;
+}
+
+@keyframes xlchemy-matrix-drift {
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xlchemy-matrix-wave {
+    animation: none;
+  }
+}

@@ -1,0 +1,162 @@
+/*
+  App-wide token **fallback** layer — not a theme preset.
+
+  Provenance, recorded because it is not guessable: until 2026-10-05 these declarations lived in
+  `spatial.css`, which carried a bare `:root` (76 declarations) and a `:root.dark:not(…)` (23) plus
+  `:root.dark` badges (36) alongside its own `.theme-spatial` identity. Deleting the 16 built-in
+  presets in the same sweep deleted that fallback with them, and the failure was silent: with no
+  `.theme-*` class on the root — the HTML before React applies a preset, and **every** imported custom
+  theme, because `applyCustomTheme` removes all preset classes — `--radius`, `--badge-*` and
+  `--font-app-*` had no declaration at all, so `rounded-[var(--radius)]` resolved to the property's
+  initial value `0px`. `src/styles/design/stijl-components.browser.test.tsx` caught it as its own
+  positive control going red, which is why this file exists.
+
+  Colour values are **wuling's** (the surviving preset), so the pre-preset paint matches the default
+  preset instead of flashing the retired spatial palette; the names wuling does not declare
+  (`--radius`, `--font-app-sans/mono`, the `--badge-*` ramp) keep the recovered spatial values verbatim.
+
+  Load order is the contract: this file is imported **before** `wuling.css`, and `:root` / `.theme-wuling`
+  have equal specificity, so a preset always wins over the fallback and an imported custom theme (inline
+  vars on the same element) wins over both.
+*/
+
+:root {
+  color-scheme: light;
+  --radius: 0.5rem;
+  --font-app-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-app-mono: "JetBrains Mono", ui-monospace, monospace;
+  --background: oklch(0.981 0.006 180);
+  --foreground: oklch(0.235 0.025 166);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.235 0.025 166);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.235 0.025 166);
+  --primary: oklch(0.72 0.13 173);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.91 0.017 168);
+  --secondary-foreground: oklch(0.39 0.028 166);
+  --muted: oklch(0.945 0.008 180);
+  --muted-foreground: oklch(0.50 0.032 166);
+  --accent: oklch(0.91 0.045 172);
+  --accent-foreground: oklch(0.29 0.04 166);
+  --destructive: oklch(0.60 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.84 0.025 168);
+  --input: oklch(0.92 0.012 168);
+  --ring: oklch(0.72 0.13 173);
+  --chart-1: oklch(0.72 0.13 173);
+  --chart-2: oklch(0.60 0.10 195);
+  --chart-3: oklch(0.66 0.10 135);
+  --chart-4: oklch(0.70 0.11 82);
+  --chart-5: oklch(0.55 0.08 230);
+  --sidebar: oklch(0.955 0.008 180);
+  --sidebar-foreground: oklch(0.235 0.025 166);
+  --sidebar-primary: oklch(0.72 0.13 173);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.91 0.045 172);
+  --sidebar-accent-foreground: oklch(0.29 0.04 166);
+  --sidebar-border: oklch(0.84 0.025 168);
+  --sidebar-ring: oklch(0.72 0.13 173);
+  --ws-grid-color: oklch(0.84 0.025 168 / 0.58);
+  --ws-canvas: oklch(0.965 0.008 180);
+  --ws-accent-glow: oklch(0.72 0.13 173 / 0.16);
+  --ws-focused-overlay: oklch(0.235 0.025 166 / 0.38);
+  --badge-gray: oklch(0.65 0 0);
+  --badge-gray-foreground: oklch(0.985 0 0);
+  --badge-gray-subtle: oklch(0.94 0 0);
+  --badge-gray-subtle-foreground: oklch(0.205 0 0);
+  --badge-blue: oklch(57.61% 0.2508 258.23);
+  --badge-blue-foreground: oklch(1 0 0);
+  --badge-blue-subtle: oklch(96.29% 0.0195 250.59);
+  --badge-blue-subtle-foreground: oklch(53.18% 0.2399 256.99);
+  --badge-purple: oklch(55.5% 0.3008 306.12);
+  --badge-purple-foreground: oklch(1 0 0);
+  --badge-purple-subtle: oklch(96.73% 0.0228 309.8);
+  --badge-purple-subtle-foreground: oklch(47.18% 0.2579 304);
+  --badge-yellow: oklch(81.87% 0.1969 76.46);
+  --badge-yellow-foreground: oklch(0 0 0);
+  --badge-yellow-subtle: oklch(96.81% 0.0495 90.2423);
+  --badge-yellow-subtle-foreground: oklch(52.79% 0.1496 54.65);
+  --badge-orange: oklch(64.6% 0.222 41.116);
+  --badge-orange-foreground: oklch(1 0 0);
+  --badge-orange-subtle: oklch(95.4% 0.038 75.164);
+  --badge-orange-subtle-foreground: oklch(55.3% 0.195 38.402);
+  --badge-red: oklch(62.56% 0.2524 23.03);
+  --badge-red-foreground: oklch(1 0 0);
+  --badge-red-subtle: oklch(95.41% 0.0299 14.2526);
+  --badge-red-subtle-foreground: oklch(54.99% 0.232 25.29);
+  --badge-pink: oklch(63.52% 0.238 1.01);
+  --badge-pink-foreground: oklch(1 0 0);
+  --badge-pink-subtle: oklch(93.83% 0.0451 356.29);
+  --badge-pink-subtle-foreground: oklch(53.5% 0.2058 2.84);
+  --badge-green: oklch(64.58% 0.1746 147.27);
+  --badge-green-foreground: oklch(1 0 0);
+  --badge-green-subtle: oklch(96.92% 0.037 147.15);
+  --badge-green-subtle-foreground: oklch(51.75% 0.1453 147.65);
+  --badge-teal: oklch(64.92% 0.1572 181.95);
+  --badge-teal-foreground: oklch(1 0 0);
+  --badge-teal-subtle: oklch(94.92% 0.0478 182.07);
+  --badge-teal-subtle-foreground: oklch(52.08% 0.1251 182.93);
+}
+
+:root.dark {
+  color-scheme: dark;
+  --background: oklch(0.17 0.018 174);
+  --foreground: oklch(0.91 0.012 178);
+  --card: oklch(0.205 0.018 174);
+  --card-foreground: oklch(0.91 0.012 178);
+  --popover: oklch(0.19 0.018 174);
+  --popover-foreground: oklch(0.91 0.012 178);
+  --primary: oklch(0.80 0.12 173);
+  --primary-foreground: oklch(0.16 0.02 174);
+  --secondary: oklch(0.29 0.02 166);
+  --secondary-foreground: oklch(0.88 0.012 178);
+  --muted: oklch(0.25 0.014 174);
+  --muted-foreground: oklch(0.66 0.022 170);
+  --accent: oklch(0.30 0.04 172);
+  --accent-foreground: oklch(0.88 0.06 172);
+  --border: oklch(0.36 0.028 166);
+  --input: oklch(0.29 0.022 166);
+  --ring: oklch(0.80 0.12 173);
+  --sidebar: oklch(0.145 0.018 174);
+  --sidebar-foreground: oklch(0.91 0.012 178);
+  --ws-grid-color: oklch(0.36 0.03 166 / 0.62);
+  --ws-canvas: oklch(0.16 0.018 174);
+  --ws-accent-glow: oklch(0.80 0.12 173 / 0.20);
+  --badge-gray: oklch(0.65 0 0);
+  --badge-gray-foreground: oklch(0.985 0 0);
+  --badge-gray-subtle: oklch(0.239 0 0);
+  --badge-gray-subtle-foreground: oklch(0.946 0 0);
+  --badge-blue: oklch(57.61% 0.2321 258.23);
+  --badge-blue-foreground: oklch(0.985 0 0);
+  --badge-blue-subtle: oklch(25.45% 0.0811 255.8);
+  --badge-blue-subtle-foreground: oklch(71.7% 0.1648 250.794);
+  --badge-purple: oklch(55.5% 0.2186 306.12);
+  --badge-purple-foreground: oklch(0.985 0 0);
+  --badge-purple-subtle: oklch(25.91% 0.0921 314.41);
+  --badge-purple-subtle-foreground: oklch(69.87% 0.2037 309.51);
+  --badge-yellow: oklch(81.87% 0.1969 76.46);
+  --badge-yellow-foreground: oklch(0 0 0);
+  --badge-yellow-subtle: oklch(24.95% 0.0642 64.78);
+  --badge-yellow-subtle-foreground: oklch(77.21% 0.1991 64.28);
+  --badge-orange: oklch(64.6% 0.222 41.116);
+  --badge-orange-foreground: oklch(0.985 0 0);
+  --badge-orange-subtle: oklch(26.5% 0.08 40);
+  --badge-orange-subtle-foreground: oklch(74% 0.19 50);
+  --badge-red: oklch(62.56% 0.2234 23.03);
+  --badge-red-foreground: oklch(0.985 0 0);
+  --badge-red-subtle: oklch(25.93% 0.0834 19.02);
+  --badge-red-subtle-foreground: oklch(69.96% 0.2136 22.03);
+  --badge-pink: oklch(63.52% 0.2346 1.01);
+  --badge-pink-foreground: oklch(0.985 0 0);
+  --badge-pink-subtle: oklch(26.2% 0.0859 356.68);
+  --badge-pink-subtle-foreground: oklch(69.36% 0.2223 3.91);
+  --badge-green: oklch(64.58% 0.199 147.27);
+  --badge-green-foreground: oklch(0.985 0 0);
+  --badge-green-subtle: oklch(27.12% 0.0895 150.09);
+  --badge-green-subtle-foreground: oklch(73.1% 0.2158 148.29);
+  --badge-teal: oklch(64.92% 0.1403 181.95);
+  --badge-teal-foreground: oklch(0.985 0 0);
+  --badge-teal-subtle: oklch(31.5% 0.0767 180.99);
+  --badge-teal-subtle-foreground: oklch(74.56% 0.1765 182.8);
+}

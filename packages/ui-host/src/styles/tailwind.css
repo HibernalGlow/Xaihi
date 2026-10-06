@@ -1,0 +1,108 @@
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+
+/* 由 Vite 启动/构建时生成；避免组件 class 编辑触发全局 CSS HMR。 */
+@source ".tailwind-candidates.txt";
+
+
+/* 扫描 @blocknote/shadcn 内的 class 名。 */
+@source "../../node_modules/@blocknote/shadcn";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-ws-canvas: var(--ws-canvas);
+  --color-ws-grid: var(--ws-grid-color);
+  --font-mono: var(--font-app-sans);
+  --font-sans: var(--font-app-sans);
+
+  /* ocean badge 扩展色 — 与 ocean-dataview 内部 bg-badge-*-subtle 等类对齐。 */
+  --color-badge-gray: var(--badge-gray);
+  --color-badge-gray-foreground: var(--badge-gray-foreground);
+  --color-badge-gray-subtle: var(--badge-gray-subtle);
+  --color-badge-gray-subtle-foreground: var(--badge-gray-subtle-foreground);
+  --color-badge-blue: var(--badge-blue);
+  --color-badge-blue-foreground: var(--badge-blue-foreground);
+  --color-badge-blue-subtle: var(--badge-blue-subtle);
+  --color-badge-blue-subtle-foreground: var(--badge-blue-subtle-foreground);
+  --color-badge-purple: var(--badge-purple);
+  --color-badge-purple-foreground: var(--badge-purple-foreground);
+  --color-badge-purple-subtle: var(--badge-purple-subtle);
+  --color-badge-purple-subtle-foreground: var(--badge-purple-subtle-foreground);
+  --color-badge-yellow: var(--badge-yellow);
+  --color-badge-yellow-foreground: var(--badge-yellow-foreground);
+  --color-badge-yellow-subtle: var(--badge-yellow-subtle);
+  --color-badge-yellow-subtle-foreground: var(--badge-yellow-subtle-foreground);
+  --color-badge-orange: var(--badge-orange);
+  --color-badge-orange-foreground: var(--badge-orange-foreground);
+  --color-badge-orange-subtle: var(--badge-orange-subtle);
+  --color-badge-orange-subtle-foreground: var(--badge-orange-subtle-foreground);
+  --color-badge-red: var(--badge-red);
+  --color-badge-red-foreground: var(--badge-red-foreground);
+  --color-badge-red-subtle: var(--badge-red-subtle);
+  --color-badge-red-subtle-foreground: var(--badge-red-subtle-foreground);
+  --color-badge-pink: var(--badge-pink);
+  --color-badge-pink-foreground: var(--badge-pink-foreground);
+  --color-badge-pink-subtle: var(--badge-pink-subtle);
+  --color-badge-pink-subtle-foreground: var(--badge-pink-subtle-foreground);
+  --color-badge-green: var(--badge-green);
+  --color-badge-green-foreground: var(--badge-green-foreground);
+  --color-badge-green-subtle: var(--badge-green-subtle);
+  --color-badge-green-subtle-foreground: var(--badge-green-subtle-foreground);
+  --color-badge-teal: var(--badge-teal);
+  --color-badge-teal-foreground: var(--badge-teal-foreground);
+  --color-badge-teal-subtle: var(--badge-teal-subtle);
+  --color-badge-teal-subtle-foreground: var(--badge-teal-subtle-foreground);
+}
+
+/* Shared chrome contract: scrolling remains functional without visible rails. */
+.hide-scrollbar,
+[data-scrollbar="hidden"],
+[role="tablist"].overflow-x-auto {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar,
+[data-scrollbar="hidden"]::-webkit-scrollbar,
+[role="tablist"].overflow-x-auto::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}

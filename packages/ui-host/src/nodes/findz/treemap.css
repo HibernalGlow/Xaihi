@@ -1,0 +1,32 @@
+.findz-treemap .webtreemap-node {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--border) 75%, transparent);
+  background: color-mix(in oklch, var(--muted) 55%, transparent);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.findz-treemap .webtreemap-caption {
+  overflow: hidden;
+  padding: 2px 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.findz-treemap .webtreemap-node[data-findz-anomaly="high"] {
+  background: color-mix(in oklch, var(--destructive) 38%, var(--muted));
+}
+
+.findz-treemap .webtreemap-node[data-findz-anomaly="medium"] {
+  background: color-mix(in oklch, var(--chart-4) 34%, var(--muted));
+}
+
+.findz-treemap .webtreemap-node[data-findz-selected="true"] {
+  z-index: 2;
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}

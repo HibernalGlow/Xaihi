@@ -1,0 +1,793 @@
+/*
+ * Material 3 → shadcn component mapping, part 2: selection controls, navigation and
+ * workspace composites, plus the typography and motion dimensions.
+ *
+ * Split from `md3-components.css` (part 1: aliases, state layers, buttons, containers,
+ * text fields, selects) only because the repo caps a source file at 1000 physical lines.
+ * Gating, cascade and the deviations are documented there; everything here follows the
+ * same rules: one aspect per declaration block, `!important` only where `src/index.css`
+ * or a Tailwind `!` utility already uses it, and no fallbacks on `--md-*` variables.
+ */
+
+/*
+ * VAR INVENTORY — every `--md-*` variable this sheet reads, grouped by namespace.
+ * Regenerated from the sheet and cross-checked against the engine by
+ * `bun run audit:design-theme-tokens` (both directions) and against the
+ * --md-comp-checkbox- (6):
+ *   --md-comp-checkbox-container-shape, --md-comp-checkbox-container-size
+ *   --md-comp-checkbox-selected-container-color, --md-comp-checkbox-selected-icon-color
+ *   --md-comp-checkbox-unselected-outline-color, --md-comp-checkbox-unselected-outline-width
+ * --md-comp-data-table- (6):
+ *   --md-comp-data-table-header-container-height, --md-comp-data-table-header-headline-color
+ *   --md-comp-data-table-row-item-container-height, --md-comp-data-table-row-item-label-text-color
+ *   --md-comp-data-table-row-item-outline-color, --md-comp-data-table-row-item-outline-width
+ * --md-comp-dialog- (4):
+ *   --md-comp-dialog-headline-font, --md-comp-dialog-headline-line-height, --md-comp-dialog-headline-size
+ *   --md-comp-dialog-headline-weight
+ * --md-comp-divider- (2):
+ *   --md-comp-divider-color, --md-comp-divider-thickness
+ * --md-comp-elevated-card- (2):
+ *   --md-comp-elevated-card-container-color, --md-comp-elevated-card-container-shape
+ * --md-comp-filled-button- (5):
+ *   --md-comp-filled-button-label-text-font, --md-comp-filled-button-label-text-line-height
+ *   --md-comp-filled-button-label-text-size, --md-comp-filled-button-label-text-tracking
+ *   --md-comp-filled-button-label-text-weight
+ * --md-comp-input-chip- (6):
+ *   --md-comp-input-chip-container-height, --md-comp-input-chip-container-shape
+ *   --md-comp-input-chip-selected-container-color, --md-comp-input-chip-selected-label-text-color
+ *   --md-comp-input-chip-unselected-label-text-color, --md-comp-input-chip-unselected-outline-color
+ * --md-comp-linear-progress-indicator- (5):
+ *   --md-comp-linear-progress-indicator-active-indicator-color
+ *   --md-comp-linear-progress-indicator-active-indicator-height
+ *   --md-comp-linear-progress-indicator-active-indicator-shape, --md-comp-linear-progress-indicator-track-color
+ *   --md-comp-linear-progress-indicator-track-height
+ * --md-comp-list- (5):
+ *   --md-comp-list-list-item-container-shape, --md-comp-list-list-item-focus-state-layer-color
+ *   --md-comp-list-list-item-hover-label-text-color, --md-comp-list-list-item-label-text-color
+ *   --md-comp-list-list-item-one-line-container-height
+ * --md-comp-navigation-drawer- (3):
+ *   --md-comp-navigation-drawer-active-indicator-shape, --md-comp-navigation-drawer-container-height
+ *   --md-comp-navigation-drawer-headline-color
+ * --md-comp-outlined-card- (1):
+ *   --md-comp-outlined-card-outline-color
+ * --md-comp-outlined-segmented-button- (1):
+ *   --md-comp-outlined-segmented-button-container-height
+ * --md-comp-primary-navigation-tab- (1):
+ *   --md-comp-primary-navigation-tab-active-indicator-height
+ * --md-comp-radio-button- (2):
+ *   --md-comp-radio-button-icon-size, --md-comp-radio-button-selected-icon-color
+ * --md-comp-secondary-navigation-tab- (2):
+ *   --md-comp-secondary-navigation-tab-label-text-font, --md-comp-secondary-navigation-tab-label-text-size
+ * --md-comp-switch- (9):
+ *   --md-comp-switch-handle-shape, --md-comp-switch-selected-handle-height, --md-comp-switch-selected-handle-width
+ *   --md-comp-switch-track-height, --md-comp-switch-track-outline-width, --md-comp-switch-track-shape
+ *   --md-comp-switch-track-width, --md-comp-switch-unselected-handle-height, --md-comp-switch-unselected-handle-width
+ * --md-sys-color- (11):
+ *   --md-sys-color-error, --md-sys-color-on-secondary-container, --md-sys-color-on-surface
+ *   --md-sys-color-on-surface-variant, --md-sys-color-outline-variant, --md-sys-color-secondary-container
+ *   --md-sys-color-surface, --md-sys-color-surface-container, --md-sys-color-surface-container-high
+ *   --md-sys-color-surface-container-highest, --md-sys-color-surface-container-low
+ * --md-sys-elevation- (1):
+ *   --md-sys-elevation-shadow-1
+ * --md-sys-motion- (6):
+ *   --md-sys-motion-duration-medium1, --md-sys-motion-duration-medium2, --md-sys-motion-duration-short4
+ *   --md-sys-motion-easing-emphasized, --md-sys-motion-easing-emphasized-decelerate, --md-sys-motion-easing-standard
+ * --md-sys-shape- (3):
+ *   --md-sys-shape-corner-extra-small, --md-sys-shape-corner-full, --md-sys-shape-corner-small
+ * --md-sys-space- (7):
+ *   --md-sys-space-100, --md-sys-space-150, --md-sys-space-200, --md-sys-space-400, --md-sys-space-50
+ *   --md-sys-space-700, --md-sys-space-75
+ * --md-sys-typescale- (16):
+ *   --md-sys-typescale-body-medium-line-height, --md-sys-typescale-body-medium-size
+ *   --md-sys-typescale-label-large-font, --md-sys-typescale-label-large-size, --md-sys-typescale-label-large-tracking
+ *   --md-sys-typescale-label-large-weight, --md-sys-typescale-label-small-line-height
+ *   --md-sys-typescale-label-small-size, --md-sys-typescale-label-small-tracking
+ *   --md-sys-typescale-label-small-weight, --md-sys-typescale-title-large-font
+ *   --md-sys-typescale-title-large-line-height, --md-sys-typescale-title-large-size
+ *   --md-sys-typescale-title-large-weight, --md-sys-typescale-title-small-line-height
+ *   --md-sys-typescale-title-small-tracking
+ */
+
+/* ── Checkbox (M3 checkbox) ──────────────────────────────────────────────
+   checkbox.tsx:17 (size-4 rounded-[4px] border-input).
+   M3 set: checkbox → container-size 18px, container-shape 2px,
+   unselected-outline-width 2px, state layer 40px. */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="checkbox"] {
+  width: var(--md-comp-checkbox-container-size);
+  height: var(--md-comp-checkbox-container-size);
+  border-width: var(--md-comp-checkbox-unselected-outline-width);
+}
+
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="checkbox"] {
+  border-radius: var(--md-comp-checkbox-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="checkbox"][data-state="checked"] {
+  background-color: var(--md-comp-checkbox-selected-container-color);
+  border-color: var(--md-comp-checkbox-selected-container-color);
+  color: var(--md-comp-checkbox-selected-icon-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="checkbox"]:not([data-state="checked"]) {
+  background-color: transparent;
+  border-color: var(--md-comp-checkbox-unselected-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="checkbox"][data-state="indeterminate"] {
+  background-color: var(--md-comp-checkbox-selected-container-color);
+  border-color: var(--md-comp-checkbox-selected-container-color);
+  color: var(--md-comp-checkbox-selected-icon-color);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="checkbox"] {
+  --md3-state-layer-color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ── Radio (M3 radio button) ─────────────────────────────────────────────
+   radio-group.tsx:28 (size-4 border-input).
+   M3 set: radio-button → icon-size 20px, state layer 40px. */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="radio-group-item"] {
+  width: var(--md-comp-radio-button-icon-size);
+  height: var(--md-comp-radio-button-icon-size);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="radio-group-item"] {
+  background-color: transparent;
+  border-color: var(--md-sys-color-on-surface-variant);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="radio-group-item"][data-state="checked"] {
+  border-color: var(--md-comp-radio-button-selected-icon-color);
+  color: var(--md-comp-radio-button-selected-icon-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="radio-group-indicator"] svg {
+  fill: var(--md-comp-radio-button-selected-icon-color);
+}
+
+/* ── Slider (M3 slider) ──────────────────────────────────────────────────
+   slider.tsx:42 (track h-1.5 rounded-full bg-muted), :46-48 (range bg-primary),
+   :58 (thumb size-4 border-primary).
+   M3 set: slider → active/inactive track 4px, handle 20px, state layer 40px. */
+
+/* ── Progress (M3 linear progress indicator) ─────────────────────────────
+   progress.tsx:18 (h-2 rounded-full bg-primary/20), :30 (indicator bg-primary).
+   M3 set: linear-progress-indicator → track/active height 4px, corner-none. */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="progress"] {
+  height: var(--md-comp-linear-progress-indicator-track-height);
+  border-radius: var(--md-comp-linear-progress-indicator-active-indicator-shape);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="progress-indicator"] {
+  height: var(--md-comp-linear-progress-indicator-active-indicator-height);
+  border-radius: var(--md-comp-linear-progress-indicator-active-indicator-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="progress"] {
+  background-color: var(--md-comp-linear-progress-indicator-track-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="progress-indicator"] {
+  background-color: var(--md-comp-linear-progress-indicator-active-indicator-color);
+}
+
+/* ── Tabs (M3 secondary navigation tab) ──────────────────────────────────
+   tabs.tsx:38-41 (list), :53-60 (trigger + its `after:` underline),
+   tabs-variants.ts (list variants). `src/index.css:942-1078` drives the whole
+   tabs-style vocabulary with `!important`, so these rules are unlayered +
+   `!important` with one extra attribute selector: deterministic winner.
+   Active container/indicator use the secondary-container roles (app decision;
+   M3's own token for these two points at `primary`). */
+
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="tabs-trigger"] {
+  --md3-state-layer-color: var(--md-sys-color-on-surface-variant);
+}
+
+/* The Radix underline (`after:`) is repurposed as the M3 active indicator,
+   so it is restyled (not doubled). Suppress the `:after:display:none` that
+   `src/index.css:942-947` forces for every non-line tabs-style. */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="tabs-trigger"]::after {
+  display: block !important;
+  /* M3 secondary-tab indicator: a rounded bar inset from both edges of the
+     tab, sitting on the list's bottom rule. */
+  inset-inline: var(--md-sys-space-150) !important;
+  inset-block: auto !important;
+  bottom: 0 !important;
+  width: auto !important;
+  height: var(--md-comp-primary-navigation-tab-active-indicator-height) !important;
+  border-radius: var(--md-sys-shape-corner-full) !important;
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="tabs-trigger"]::after {
+  background-color: var(--md-sys-color-secondary-container) !important;
+  opacity: 1 !important;
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="tabs-content"] {
+  color: var(--md-sys-color-on-surface);
+}
+
+/* ── Toggle + toggle-group (M3 outlined segmented button) ─────────────────
+   toggle-group.tsx:37 (list), :61-71 (items); toggle-variants.ts:6-18.
+   `src/index.css:1429-1524` (`:root[data-choice-control-style=…]`) sets
+   `box-shadow/background/border … !important` on the same slots, so the rules
+   below are unlayered + `!important`.
+
+   ⚠️ 让位的方式是**加门**而不是删声明：`:not([data-choice-control-style])` 让 M3 分段按钮
+   只在「那个皮肤没在场」时生效。第一版这里是整条删掉的（`scripts/md3-yield-to-skins.ts` 的
+   DROP 语义），结果皮肤关掉时也没人给分段控件定形——实测三份配方下 `toggle-group-item` 的
+   border-radius 完全相同（有皮肤 0px / 无皮肤 `4px 0 0 4px`），也就是「高级主题根本不管这个控件」。
+   用户 2026-10-05 的裁定是「组件皮肤 > 高级主题」，不是「皮肤在场与否都让位」。 */
+
+:root[data-app-design="md3"]:not([data-choice-control-style])[data-design-geometry="on"] [data-slot="toggle-group"] {
+  gap: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: var(--md-comp-outlined-segmented-button-shape) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:root[data-app-design="md3"]:not([data-choice-control-style])[data-design-geometry="on"] [data-slot="toggle-group-item"] {
+  height: var(--md-comp-outlined-segmented-button-container-height) !important;
+  min-width: var(--md-sys-space-400);
+  padding-inline: var(--md-sys-space-150) !important;
+  border-block: var(--md-comp-outlined-segmented-button-outline-width) solid
+    var(--md-comp-outlined-segmented-button-outline-color) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+:root[data-app-design="md3"]:not([data-choice-control-style])[data-design-geometry="on"] [data-slot="toggle-group-item"]:first-child {
+  border-start-start-radius: var(--md-comp-outlined-segmented-button-shape) !important;
+  border-end-start-radius: var(--md-comp-outlined-segmented-button-shape) !important;
+  border-inline-start: var(--md-comp-outlined-segmented-button-outline-width) solid
+    var(--md-comp-outlined-segmented-button-outline-color) !important;
+}
+
+:root[data-app-design="md3"]:not([data-choice-control-style])[data-design-geometry="on"] [data-slot="toggle-group-item"]:last-child {
+  border-start-end-radius: var(--md-comp-outlined-segmented-button-shape) !important;
+  border-end-end-radius: var(--md-comp-outlined-segmented-button-shape) !important;
+  border-inline-end: var(--md-comp-outlined-segmented-button-outline-width) solid
+    var(--md-comp-outlined-segmented-button-outline-color) !important;
+}
+
+:root[data-app-design="md3"]:not([data-choice-control-style])[data-design-color="on"] [data-slot="toggle-group-item"] {
+  background: transparent !important;
+  color: var(--md-comp-outlined-segmented-button-unselected-label-text-color) !important;
+  border-color: var(--md-comp-outlined-segmented-button-outline-color) !important;
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="toggle-group-item"] + [data-slot="toggle-group-item"] {
+  border-inline-start: 0 !important;
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="toggle"] {
+  height: var(--md-comp-outlined-segmented-button-container-height);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="toggle"]:not([data-state="on"]) {
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="toggle"][data-state="on"] {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="toggle-group-item"] {
+  --md3-state-layer-color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ── Dropdown menu + command (M3 menu / list) ────────────────────────────
+   dropdown-menu.tsx:43 (content p-1 rounded-md border), :75 (item),
+   :153 (label), :170 (separator); command.tsx:53 (dialog body), :148 (item). */
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="dropdown-menu-content"],
+  [data-slot="context-menu-content"],
+  [data-slot="select-content"]
+) {
+  padding: var(--md-sys-space-75) 0 !important;
+  min-width: var(--md-sys-space-700);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-sub-trigger"],
+  [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"],
+  [data-slot="context-menu-item"]
+) {
+  min-height: var(--md-comp-list-list-item-one-line-container-height);
+  padding-inline: var(--md-sys-space-150);
+  border-radius: 0;
+  gap: var(--md-sys-space-150);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-sub-trigger"],
+  [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"],
+  [data-slot="context-menu-item"]
+) {
+  color: var(--md-comp-list-list-item-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-sub-trigger"],
+  [data-slot="context-menu-item"]
+):is(:focus, [data-highlighted="true"]) {
+  background-color: transparent;
+  color: var(--md-comp-list-list-item-hover-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] :is(
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-sub-trigger"],
+  [data-slot="context-menu-item"]
+) {
+  --md3-state-layer-color: var(--md-comp-list-list-item-focus-state-layer-color);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] :is(
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-sub-trigger"],
+  [data-slot="context-menu-item"]
+):is(:focus, [data-highlighted="true"])::before {
+  background-color: var(--md3-state-layer-hover);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="dropdown-menu-label"],
+  [data-slot="context-menu-label"],
+  [data-slot="dropdown-menu-shortcut"],
+  [data-slot="command-shortcut"]
+) {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="dropdown-menu-item"][data-variant="destructive"] {
+  color: var(--md-sys-color-error);
+  --md3-state-layer-color: var(--md-sys-color-error);
+}
+
+/* Command is a dialog-hosted M3 menu: same list metrics, dialog chrome. */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="command-item"] {
+  min-height: var(--md-comp-list-list-item-one-line-container-height);
+  padding-inline: var(--md-sys-space-150);
+  border-radius: 0;
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="command-item"][data-selected="true"] {
+  background-color: transparent;
+  color: var(--md-comp-list-list-item-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="command-item"] {
+  --md3-state-layer-color: var(--md-comp-list-list-item-focus-state-layer-color);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="command-item"][data-selected="true"]::before {
+  background-color: var(--md3-state-layer-hover);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="command-input-wrapper"] {
+  height: var(--md-comp-list-list-item-one-line-container-height);
+  padding-inline: var(--md-sys-space-150);
+  border-bottom: var(--md-comp-divider-thickness) solid var(--md-comp-divider-color);
+}
+
+/* ── Scroll area ─────────────────────────────────────────────────────────
+   scroll-area.tsx:39-54 (scrollbar + thumb). No M3 set exists for a scrollbar;
+   the thumb is mapped onto the outline roles and the rail is made transparent. */
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="scroll-area-thumb"] {
+  background-color: var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-full);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="scroll-area"] {
+  --scrollbar-size: var(--md-sys-space-75);
+}
+
+/* ── Sidebar (M3 navigation drawer / rail) ───────────────────────────────
+   sidebar.tsx:318/:329 (header/footer p-2), :385 (group label), :437 (menu),
+   :457-474 (menu-button h-8 rounded-md p-2), :496. */
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="sidebar"],
+  [data-slot="sidebar-container"]
+) {
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  border-color: var(--md-comp-divider-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="sidebar-menu-button"] {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="sidebar-menu-button"][data-active="true"] {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="sidebar-menu-button"] {
+  --md3-state-layer-color: var(--md-sys-color-on-surface-variant);
+}
+
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="sidebar-menu-button"] {
+  border-radius: var(--md-comp-navigation-drawer-active-indicator-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="sidebar-group-label"] {
+  color: var(--md-comp-navigation-drawer-headline-color);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="sidebar-header"],
+  [data-slot="sidebar-footer"]
+) {
+  padding: var(--md-sys-space-100);
+  gap: var(--md-sys-space-50);
+}
+
+/* ── Table (M3 data table) ───────────────────────────────────────────────
+   table.tsx:80 (head h-10 px-2), :93 (cell p-2), :67 (row border-b + hover). */
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="table"],
+  [data-slot="table-container"]
+) {
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-comp-data-table-row-item-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="table-head"] {
+  color: var(--md-comp-data-table-header-headline-color);
+  background-color: var(--md-sys-color-surface-container);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="table-row"] {
+  height: var(--md-comp-data-table-row-item-container-height);
+  border-bottom: var(--md-comp-data-table-row-item-outline-width) solid
+    var(--md-comp-data-table-row-item-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="table-head"] {
+  height: var(--md-comp-data-table-header-container-height);
+  padding-inline: var(--md-sys-space-150);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="table-cell"] {
+  padding-inline: var(--md-sys-space-150);
+  padding-block: var(--md-sys-space-100);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="table-row"] {
+  transition: background-color var(--md-sys-motion-duration-short4)
+    var(--md-sys-motion-easing-standard);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="table-row"]:hover,
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="table-row"][data-state="selected"] {
+  background-color: var(--md-sys-color-surface-container-low);
+}
+
+/* ── Skeleton (M3 container colours) ─────────────────────────────────────
+   skeleton.tsx:7 (animate-pulse rounded-md bg-accent). */
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="skeleton"] {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="skeleton"] {
+  border-radius: var(--md-sys-shape-corner-small);
+}
+
+/* ── Item / empty (M3 list) ──────────────────────────────────────────────
+   item.tsx:65-70 (item), :98-105 (media), :122/:135 (title/description);
+   empty.tsx:8/:21/:53/:64/:74. */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="item"] {
+  min-height: var(--md-comp-list-list-item-one-line-container-height);
+  padding: var(--md-sys-space-100) var(--md-sys-space-150);
+  gap: var(--md-sys-space-150);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="item"] {
+  background-color: transparent;
+  border-color: var(--md-comp-outlined-card-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="item"] {
+  border-radius: var(--md-sys-shape-corner-small);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="item-title"],
+  [data-slot="empty-title"]
+) {
+  color: var(--md-sys-color-on-surface);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="item-description"],
+  [data-slot="empty-description"]
+) {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="item-media"][data-variant="icon"] {
+  background-color: var(--md-sys-color-surface-container-highest);
+  border-color: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* ── Kbd ─────────────────────────────────────────────────────────────────
+   kbd.tsx:8 (h-5 min-w-5 rounded-sm bg-muted). M3 has no keycap component;
+   mapped onto the surface-container roles with a hairline outline. */
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="kbd"] {
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="kbd"] {
+  border-radius: var(--md-sys-shape-corner-extra-small);
+}
+
+/* ── Tags input (M3 input chip) ──────────────────────────────────────────
+   tags-input.tsx:40 (list = text field), :73 (tag = input chip, 32dp tall,
+   corner-small, outline). */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="tags-input-item"] {
+  height: var(--md-comp-input-chip-container-height);
+  padding-inline: var(--md-sys-space-150);
+  gap: var(--md-sys-space-50);
+}
+
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="tags-input-item"] {
+  border-radius: var(--md-comp-input-chip-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="tags-input-item"] {
+  background-color: transparent;
+  border-color: var(--md-comp-input-chip-unselected-outline-color);
+  color: var(--md-comp-input-chip-unselected-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="tags-input-item"][data-editing="true"],
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="tags-input-item"]:not([data-editing="true"])[data-highlighted="true"] {
+  background-color: var(--md-comp-input-chip-selected-container-color);
+  border-color: transparent;
+  color: var(--md-comp-input-chip-selected-label-text-color);
+}
+
+/* ── File-tree rows (M3 list) ────────────────────────────────────────────
+   file-tree.tsx has no data-slot on its rows: folder rows are accordion triggers
+   (accordion.tsx:34 `data-slot="accordion-trigger"`, file-tree.tsx:362-371) and
+   file rows are bare buttons inside the tree's ScrollArea (file-tree.tsx:273).
+   Scoping through `[data-slot="scroll-area"]` is the only stable hook. */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="scroll-area"] :is(
+  [data-slot="accordion-trigger"],
+  button
+) {
+  min-height: var(--md-comp-list-list-item-one-line-container-height);
+  padding-inline: var(--md-sys-space-50);
+  gap: var(--md-sys-space-100);
+  border-radius: var(--md-comp-list-list-item-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="scroll-area"] :is(
+  [data-slot="accordion-trigger"],
+  button
+) {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="scroll-area"] [data-slot="accordion-trigger"][data-state="open"],
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="scroll-area"] button[data-state="open"] {
+  color: var(--md-sys-color-on-surface);
+}
+
+/* ── Module panel (workspace composite) ──────────────────────────────────
+   module-panel.tsx:22 (frame rounded-xl bg-card/85), :32 (panel border + px),
+   :44-49 (title chip row), :51 (Badge as title), :59 (content gap).
+   Structure is untouched; only geometry/colour/elevation are re-mapped. */
+:root[data-app-design="md3"][data-design-shape="on"] :is(
+  [data-slot="module-panel"],
+  .module-panel-frame
+) {
+  border-radius: var(--md-comp-elevated-card-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="module-panel"] {
+  background-color: var(--md-comp-elevated-card-container-color);
+  border-color: var(--md-comp-outlined-card-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-elevation="on"] [data-slot="module-panel"] {
+  box-shadow: var(--md-sys-elevation-shadow-1);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="module-panel"] {
+  padding: var(--md-sys-space-100);
+  gap: var(--md-sys-space-100);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="module-panel-content"] {
+  gap: var(--md-sys-space-100);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="module-panel-title"] [data-slot="badge"] {
+  color: var(--md-sys-color-on-surface);
+  border-color: transparent;
+}
+
+/* ── Choice control (workspace composite) ────────────────────────────────
+   choice-control.tsx:16-31 (FieldSet shell), :33-46 (legend). Keeps its
+   fieldset/legend structure; the group inside it is the segmented button above. */
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="choice-control-field"] {
+  border-color: var(--md-comp-outlined-card-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="choice-control-field"] {
+  gap: var(--md-sys-space-50);
+  padding: var(--md-sys-space-50);
+}
+
+/* ── Typography (dimension: typography) ──────────────────────────────────
+   Roles come from the md-sys typescale namespace; the brand face is aliased to
+   `--font-app-sans` at the top of this file (documented deviation 1). */
+:root[data-app-design="md3"][data-design-typography="on"] [data-slot="button"] {
+  font-family: var(--md-comp-filled-button-label-text-font);
+  font-size: var(--md-comp-filled-button-label-text-size);
+  font-weight: var(--md-comp-filled-button-label-text-weight);
+  line-height: var(--md-comp-filled-button-label-text-line-height);
+  letter-spacing: var(--md-comp-filled-button-label-text-tracking);
+}
+
+:root[data-app-design="md3"][data-design-typography="on"] [data-slot="dialog-title"] {
+  font-family: var(--md-comp-dialog-headline-font);
+  font-size: var(--md-comp-dialog-headline-size);
+  font-weight: var(--md-comp-dialog-headline-weight);
+  line-height: var(--md-comp-dialog-headline-line-height);
+}
+
+:root[data-app-design="md3"][data-design-typography="on"] :is(
+  [data-slot="dialog-description"],
+  [data-slot="card-description"]
+) {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: var(--md-sys-typescale-body-medium-line-height);
+}
+
+:root[data-app-design="md3"][data-design-typography="on"] [data-slot="card-title"] {
+  font-family: var(--md-sys-typescale-title-large-font);
+  font-size: var(--md-sys-typescale-title-large-size);
+  line-height: var(--md-sys-typescale-title-large-line-height);
+  font-weight: var(--md-sys-typescale-title-large-weight);
+}
+
+:root[data-app-design="md3"][data-design-typography="on"] :is(
+  [data-slot="field-label"],
+  [data-slot="field-legend"],
+  [data-slot="field-description"],
+  [data-slot="field-error"],
+  [data-slot="select-label"],
+  [data-slot="dropdown-menu-label"]
+) {
+  font-family: var(--md-sys-typescale-label-large-font);
+}
+
+:root[data-app-design="md3"][data-design-typography="on"] :is(
+  [data-slot="tooltip-content"],
+  [data-slot="kbd"],
+  [data-slot="badge"]
+) {
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-small-line-height);
+  letter-spacing: var(--md-sys-typescale-label-small-tracking);
+  font-weight: var(--md-sys-typescale-label-small-weight);
+}
+
+:root[data-app-design="md3"][data-design-typography="on"] :is(
+  [data-slot="tabs-trigger"],
+  [data-slot="toggle-group-item"],
+  [data-slot="toggle"]
+) {
+  font-family: var(--md-comp-secondary-navigation-tab-label-text-font);
+  font-size: var(--md-comp-secondary-navigation-tab-label-text-size);
+  line-height: var(--md-sys-typescale-title-small-line-height);
+  letter-spacing: var(--md-sys-typescale-title-small-tracking);
+}
+
+:root[data-app-design="md3"][data-design-typography="on"] :is(
+  [data-slot="table-head"]
+) {
+  font-size: var(--md-sys-typescale-label-large-size);
+  letter-spacing: var(--md-sys-typescale-label-large-tracking);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+}
+
+/* Deviation (c) — 字段字号**不**由 MD3 层接管。
+   字典里 `outlined-text-field.input-text-size` = body-large 16px / 行高 24px，那是按
+   「独立表单页 + 56dp 字段」的密度发的。实测（真实样式表下的计算值）：下拉触发器正文
+   12→16px、搜索框 14→16px，而同一页的正文与标签是 13px——每个字段都比周围文字大一号。
+   所以这里只留形状/描边/颜色/焦点环（都在 md3-components.css 的 color/shape 块），
+   字号交还给应用自己的字阶。高度不归这条管：触发器 32→40px 来自 geometry 块，
+   而 40dp 正是 `filled-button.container-height`，是有意保留的一档。
+   和 Deviation (a)(b) 同一类判断：M3 的**语言**照规范落地，M3 的**密度**不与宿主面板对打。 */
+
+:root[data-app-design="md3"][data-design-motion="on"] :is(
+  [data-slot="dialog-content"],
+  [data-slot="sheet-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"],
+  [data-slot="tooltip-content"]
+) {
+  animation-duration: var(--md-sys-motion-duration-short4);
+  animation-timing-function: var(--md-sys-motion-easing-emphasized-decelerate);
+}
+
+/* ── Tailwind `!` utility overrides (must live in the same @layer) ─────────
+   The switch, the `selection` toggle variant and the collapsed sidebar button pin
+   their own size/colour with Tailwind's `!` prefix (switch.tsx:18-26,
+   toggle-variants.ts:11-12, sidebar.tsx:457 `group-data-[collapsible=icon]:size-8!`).
+   Those land in `@layer utilities`. An *unlayered* `!important` is treated as the
+   LAST layer, and CSS Cascade reverses layer order for important declarations — so
+   unlayered `!important` LOSES to `!w-8`, which is exactly what a browser probe
+   showed (width stayed 32px). Writing these rules into the `utilities` layer puts
+   the contest on specificity instead, where the attribute-gated selectors below
+   (`:root[data-app-design][data-design-*] [data-slot=…]`, 4 attribute-levels) beat
+   Tailwind's 1-2 class variants deterministically. The whole M3 switch lives here for
+   that reason (switch.tsx:18 `!h-[1.15rem]`/`!w-8`/`!rounded-full`/`!bg-*`, :26
+   `!rounded-full`/`!bg-background`), plus the `selection` toggle variant
+   (toggle-variants.ts:11-12) and the collapsed sidebar button (sidebar.tsx:457). */
+@layer utilities {
+  /* src/components/ui/switch.tsx:14-21 → --md-comp-switch-track-width/-height. */
+  :root[data-app-design="md3"][data-design-geometry="on"] [data-slot="switch"] {
+    width: var(--md-comp-switch-track-width) !important;
+    height: var(--md-comp-switch-track-height) !important;
+    border-radius: var(--md-comp-switch-track-shape) !important;
+    border-width: var(--md-comp-switch-track-outline-width) !important;
+  }
+  :root[data-app-design="md3"][data-design-geometry="on"] [data-slot="switch-thumb"] {
+    width: var(--md-comp-switch-unselected-handle-width) !important;
+    height: var(--md-comp-switch-unselected-handle-height) !important;
+    border-radius: var(--md-comp-switch-handle-shape) !important;
+  }
+  :root[data-app-design="md3"][data-design-geometry="on"] [data-slot="switch"][data-state="checked"] [data-slot="switch-thumb"] {
+    width: var(--md-comp-switch-selected-handle-width) !important;
+    height: var(--md-comp-switch-selected-handle-height) !important;
+  }
+  :root[data-app-design="md3"][data-design-geometry="on"] [data-slot="switch"][data-size="sm"] {
+    width: var(--md-sys-space-400);
+    height: var(--md-sys-space-200);
+  }
+  :root[data-app-design="md3"][data-design-geometry="on"] [data-slot="sidebar-menu-button"] {
+    height: var(--md-comp-navigation-drawer-container-height);
+    padding-inline: var(--md-sys-space-150);
+    gap: var(--md-sys-space-150);
+  }
+  :root[data-app-design="md3"][data-design-motion="on"] [data-slot="switch-thumb"] {
+    transition-duration: var(--md-sys-motion-duration-medium1);
+    transition-timing-function: var(--md-sys-motion-easing-emphasized);
+  }
+}
+
+/* ── Motion (dimension: motion) ────────────────────────────────────────── */
+:root[data-app-design="md3"][data-design-motion="on"] :is(
+  [data-slot="button"],
+  [data-slot="toggle"],
+  [data-slot="toggle-group-item"],
+  [data-slot="tabs-trigger"],
+  [data-slot="select-trigger"],
+  [data-slot="switch"],
+  [data-slot="checkbox"],
+  [data-slot="radio-group-item"],
+  [data-slot="sidebar-menu-button"],
+  [data-slot="input"],
+  [data-slot="textarea"]
+) {
+  transition-duration: var(--md-sys-motion-duration-medium2);
+  transition-timing-function: var(--md-sys-motion-easing-standard);
+}

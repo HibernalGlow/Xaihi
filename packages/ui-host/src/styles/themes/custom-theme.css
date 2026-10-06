@@ -1,0 +1,188 @@
+/*
+  Runtime imported themes are first-class themes.
+  This file is imported last so custom theme tokens can win over any built-in
+  preset's node-specific selectors.
+*/
+
+:root[data-custom-theme="enabled"] {
+  color-scheme: light dark;
+}
+
+:root[data-custom-theme="enabled"] .xiranite-topbar {
+  background: color-mix(in oklch, var(--background) 92%, transparent);
+  color: var(--foreground);
+  border-color: color-mix(in oklch, var(--primary) 22%, var(--border));
+  box-shadow:
+    0 1px 0 color-mix(in oklch, var(--primary) 16%, transparent),
+    0 14px 34px -30px color-mix(in oklch, var(--foreground) 38%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+:root[data-custom-theme="enabled"] .theme-bg-image.theme-bg-cover-topbar > .xiranite-topbar {
+  background: color-mix(in oklch, var(--background) 76%, transparent);
+}
+
+:root[data-custom-theme="enabled"] [data-slot="popover-content"],
+:root[data-custom-theme="enabled"] [data-slot="select-content"] {
+  background: color-mix(in oklch, var(--popover) 96%, var(--background));
+  color: var(--popover-foreground);
+  border-color: color-mix(in oklch, var(--primary) 32%, var(--border));
+  box-shadow:
+    0 18px 42px -30px color-mix(in oklch, var(--foreground) 48%, transparent),
+    0 0 0 1px color-mix(in oklch, var(--primary) 14%, transparent);
+}
+
+:root[data-custom-theme="enabled"] [data-slot="select-item"]:is(:focus, [data-highlighted]) {
+  background-color: color-mix(in oklch, var(--primary) 16%, var(--accent));
+  color: var(--accent-foreground);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-component-surface,
+:root[data-custom-theme="enabled"] .xiranite-component-surface.comp-card--animated {
+  background: color-mix(in oklch, var(--node-surface-bg) 86%, transparent);
+  color: var(--node-surface-fg);
+  border-color: color-mix(in oklch, var(--node-chrome-border) 54%, transparent);
+  outline-color: color-mix(in oklch, var(--node-chrome-border) 70%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--node-chrome-border) 36%, transparent),
+    0 18px 50px -36px color-mix(in oklch, var(--node-chrome-accent) 52%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-component-surface.comp-card--animated::before,
+:root[data-custom-theme="enabled"] .xiranite-component-surface.comp-card--animated::after {
+  display: none;
+}
+
+:root[data-custom-theme="enabled"] .xiranite-component-surface:hover,
+:root[data-custom-theme="enabled"] .xiranite-component-surface.comp-card--animated:hover {
+  background: color-mix(in oklch, var(--node-surface-bg) 92%, transparent);
+  outline-color: var(--node-chrome-border);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--node-chrome-border) 50%, transparent),
+    0 22px 58px -34px color-mix(in oklch, var(--node-chrome-accent) 58%, transparent);
+}
+
+:root[data-custom-theme="enabled"] .comp-card--focused,
+:root[data-custom-theme="enabled"] .comp-card--fullscreen {
+  background: color-mix(in oklch, var(--node-surface-bg) 94%, transparent);
+  outline-color: color-mix(in oklch, var(--node-chrome-accent) 64%, var(--node-chrome-border));
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--node-chrome-accent) 48%, transparent),
+    0 24px 62px -28px var(--ws-accent-glow);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface {
+  background: var(--node-surface-bg);
+  color: var(--node-surface-fg);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface .text-primary,
+:root[data-custom-theme="enabled"] .xiranite-node-surface .hover\:text-primary:hover {
+  color: var(--primary);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface .bg-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface .border-primary {
+  border-color: color-mix(in oklch, var(--primary) 58%, var(--border));
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface > * {
+  border-color: var(--node-panel-border);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface :where(
+  section,
+  article,
+  [data-slot="card"],
+  [data-slot="alert"],
+  figure,
+  [data-slot="table-container"],
+  [class*="rounded-md"][class*="border"],
+  [class*="rounded-lg"][class*="border"]
+):not(button):not([role="button"]):not(input):not(textarea):not(select):not([contenteditable="true"]) {
+  background: var(--node-panel-bg);
+  color: var(--node-panel-fg);
+  border-color: var(--node-panel-border);
+  box-shadow: var(--node-panel-shadow);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface :where(
+  button:not([data-slot="tabs-trigger"]):not([data-slot="switch"]),
+  [role="button"],
+  [data-slot="button"],
+  [data-slot="select-trigger"],
+  input,
+  textarea,
+  select,
+  [contenteditable="true"]
+) {
+  background: var(--node-control-bg);
+  color: var(--node-control-fg);
+  border-color: var(--node-control-border);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface :where(button, [role="button"]):hover {
+  background: var(--node-control-bg-hover);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface :where(
+  [data-slot="badge"],
+  [data-slot="tabs-list"],
+  [data-slot="progress"]
+) {
+  background: color-mix(in oklch, var(--primary) 12%, var(--node-panel-bg));
+  color: var(--primary);
+  border-color: color-mix(in oklch, var(--primary) 42%, var(--node-panel-border));
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface [data-slot="tabs-trigger"][data-state="active"] {
+  background: var(--node-panel-bg);
+  color: var(--node-surface-fg);
+  border-color: color-mix(in oklch, var(--primary) 42%, var(--node-panel-border));
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--primary) 18%, transparent);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface :where([data-slot="badge"]) {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface :where(label, h1, h2, h3, h4, h5, h6, [data-slot="label"]) {
+  color: var(--node-surface-fg);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface :where(.text-muted-foreground) {
+  color: var(--muted-foreground);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-surface :where(pre, code, kbd, samp) {
+  background: var(--node-code-bg);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-chrome-bar,
+:root[data-custom-theme="enabled"] .xiranite-node-chrome-pill {
+  background: var(--node-chrome-bg);
+  color: var(--node-chrome-fg);
+  border-color: var(--node-chrome-border);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--node-chrome-border) 32%, transparent),
+    0 12px 32px -24px var(--ws-accent-glow);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-node-chrome-dot {
+  background: var(--node-chrome-accent);
+  box-shadow: 0 0 12px var(--ws-accent-glow);
+}
+
+:root[data-custom-theme="enabled"] .xiranite-progress-indeterminate,
+:root[data-custom-theme="enabled"] .xiranite-node-progress-active,
+:root[data-custom-theme="enabled"] [data-slot="progress-indicator"] {
+  background: var(--node-chrome-accent);
+}

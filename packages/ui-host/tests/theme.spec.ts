@@ -9,7 +9,7 @@
  */
 
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { MaterialDynamicColors } from '@material/material-color-utilities'
 import { describe, expect, it } from 'vitest'
 import { ALIAS_ACCESSORS, xaihiMd3Layer, type AliasModes } from '../src/client/theme/material-you.ts'
@@ -61,7 +61,8 @@ describe('material you 桥', () => {
   })
 
   it('覆盖率：styles.ts 里用到的每个 --xaihi-* 都必须有值', () => {
-    const css = readFileSync(fileURLToPath(new URL('../src/client/styles.ts', import.meta.url)), 'utf8')
+    // 见 purity.spec.ts：happy-dom 下 import.meta.url 不是 file: 形态，dirname 才是两种环境都对的基准。
+    const css = readFileSync(join(import.meta.dirname, '../src/client/styles.ts'), 'utf8')
     const used = [...new Set([...css.matchAll(/--xaihi-[a-z-]+/g)].map((match) => match[0]))]
       .filter((name) => name !== '--xaihi-')
     expect(used.length).toBeGreaterThan(0)

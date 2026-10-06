@@ -1,0 +1,873 @@
+
+
+/*
+ * Material 3 → shadcn component mapping.
+ *
+ * Nothing here computes a token: the engine (`src/lib/design-theme/md3/*`) writes
+ * the `md-sys` and `md-comp` namespaces onto `documentElement` as inline custom properties
+ * (`src/lib/design-theme/apply.ts:83-87`), and this file only *consumes* them.
+ *
+ * Gating model (contract.ts:35-47, apply.ts:91-93):
+ *   `:root[data-app-design="md3"]` selects the recipe;
+ *   `[data-design-<dimension>="on"]` selects the aspect. Every block below is
+ *   gated by exactly one aspect so that switching one dimension off really
+ *   reverts that aspect and nothing else.
+ *
+ * Cascade note: this sheet is NOT inside any `@layer`, while every Tailwind
+ * utility lives in `@layer utilities`. Per CSS Cascade 4 an unlayered author
+ * declaration outranks a layered one regardless of specificity, so ordinary
+ * declarations here beat `h-9`, `rounded-xl`, `px-4` and friends. Where
+ * `src/index.css` or a component uses `!important`, the picture flips: with the
+ * important flag the layer order REVERSES, so an *unlayered* `!important` is WEAKER
+ * than Tailwind's `!`-prefixed utilities (which live in `@layer utilities`). That was
+ * measured in a browser probe (`!w-8` held 32px against an unlayered `!important`), and
+ * it is why the few rules that must beat a `!` utility sit inside the
+ * `@layer utilities { … }` block at the end of part 2 instead of using bare
+ * `!important`. Against `src/index.css`'s OWN unlayered `!important` blocks
+ * (`:root[data-tabs-style=…]`, `[data-choice-control-style=…]`) specificity is what
+ * wins, so those are matched with more attribute selectors, not with the layer block.
+ *
+ * Deviations, both deliberate:
+ *  1. Typography binds `--md-ref-typeface-brand` to the app's own `--font-app-sans`
+ *     instead of demanding Roboto Flex, which this app does not ship.
+ *  2. M3 ships FAB, navigation rail and top/bottom app bar. There is no carrier
+ *     for those in this app, so they are NOT invented here; the sets are only
+ *     referenced where an existing component actually is that component.
+ */
+
+/*
+ * VAR INVENTORY — every `--md-*` variable this sheet reads, grouped by namespace.
+ * Regenerated from the sheet and cross-checked against the engine by
+ * `bun run audit:design-theme-tokens` (both directions) and against the
+ * --md-comp-badge- (3):
+ *   --md-comp-badge-large-color, --md-comp-badge-large-label-text-color, --md-comp-badge-large-shape
+ * --md-comp-banner- (2):
+ *   --md-comp-banner-container-color, --md-comp-banner-supporting-text-color
+ * --md-comp-dialog- (4):
+ *   --md-comp-dialog-container-color, --md-comp-dialog-container-shape, --md-comp-dialog-headline-color
+ *   --md-comp-dialog-supporting-text-color
+ * --md-comp-divider- (2):
+ *   --md-comp-divider-color, --md-comp-divider-thickness
+ * --md-comp-elevated-card- (2):
+ *   --md-comp-elevated-card-container-color, --md-comp-elevated-card-container-shape
+ * --md-comp-filled-button- (8):
+ *   --md-comp-filled-button-container-color, --md-comp-filled-button-container-height
+ *   --md-comp-filled-button-container-shape, --md-comp-filled-button-disabled-container-color
+ *   --md-comp-filled-button-disabled-container-opacity, --md-comp-filled-button-disabled-label-text-color
+ *   --md-comp-filled-button-disabled-label-text-opacity, --md-comp-filled-button-label-text-color
+ * --md-comp-filled-tonal-button- (2):
+ *   --md-comp-filled-tonal-button-container-color, --md-comp-filled-tonal-button-label-text-color
+ * --md-comp-icon-button- (3):
+ *   --md-comp-icon-button-icon-size, --md-comp-icon-button-state-layer-height
+ *   --md-comp-icon-button-state-layer-width
+ * --md-comp-list- (3):
+ *   --md-comp-list-list-item-focus-state-layer-color, --md-comp-list-list-item-label-text-color
+ *   --md-comp-list-list-item-one-line-container-height
+ * --md-comp-menu- (2):
+ *   --md-comp-menu-container-color, --md-comp-menu-container-shape
+ * --md-comp-outlined-button- (3):
+ *   --md-comp-outlined-button-label-text-color, --md-comp-outlined-button-outline-color
+ *   --md-comp-outlined-button-outline-width
+ * --md-comp-outlined-card- (1):
+ *   --md-comp-outlined-card-outline-color
+ * --md-comp-outlined-select- (5):
+ *   --md-comp-outlined-select-text-field-container-shape, --md-comp-outlined-select-text-field-focus-outline-color
+ *   --md-comp-outlined-select-text-field-label-text-color, --md-comp-outlined-select-text-field-outline-color
+ *   --md-comp-outlined-select-text-field-outline-width
+ * --md-comp-outlined-text-field- (8):
+ *   --md-comp-outlined-text-field-caret-color, --md-comp-outlined-text-field-container-shape
+ *   --md-comp-outlined-text-field-error-focus-outline-color, --md-comp-outlined-text-field-focus-outline-color
+ *   --md-comp-outlined-text-field-input-text-color, --md-comp-outlined-text-field-input-text-placeholder-color
+ *   --md-comp-outlined-text-field-outline-color, --md-comp-outlined-text-field-outline-width
+ * --md-comp-plain-tooltip- (3):
+ *   --md-comp-plain-tooltip-container-color, --md-comp-plain-tooltip-container-shape
+ *   --md-comp-plain-tooltip-supporting-text-color
+ * --md-comp-scrim- (2):
+ *   --md-comp-scrim-container-color, --md-comp-scrim-container-opacity
+ * --md-comp-sheet-side- (3):
+ *   --md-comp-sheet-side-detached-container-shape, --md-comp-sheet-side-docked-headline-color
+ *   --md-comp-sheet-side-docked-modal-container-color
+ * --md-comp-text-button- (1):
+ *   --md-comp-text-button-label-text-color
+ * --md-ref-typeface- (1):
+ *   --md-ref-typeface-brand
+ * --md-sys-color- (14):
+ *   --md-sys-color-error, --md-sys-color-error-container, --md-sys-color-on-error, --md-sys-color-on-error-container
+ *   --md-sys-color-on-primary, --md-sys-color-on-secondary-container, --md-sys-color-on-surface
+ *   --md-sys-color-on-surface-variant, --md-sys-color-outline, --md-sys-color-primary
+ *   --md-sys-color-secondary-container, --md-sys-color-surface, --md-sys-color-surface-container-high
+ *   --md-sys-color-surface-container-low
+ * --md-sys-elevation- (3):
+ *   --md-sys-elevation-shadow-0, --md-sys-elevation-shadow-1, --md-sys-elevation-shadow-3
+ * --md-sys-motion- (2):
+ *   --md-sys-motion-duration-short4, --md-sys-motion-easing-standard
+ * --md-sys-shape- (1):
+ *   --md-sys-shape-corner-small
+ * --md-sys-space- (11):
+ *   --md-sys-space-0, --md-sys-space-100, --md-sys-space-125, --md-sys-space-150, --md-sys-space-200
+ *   --md-sys-space-250, --md-sys-space-300, --md-sys-space-400, --md-sys-space-50, --md-sys-space-500
+ *   --md-sys-space-600
+ * --md-sys-state- (3):
+ *   --md-sys-state-focus-state-layer-opacity, --md-sys-state-hover-state-layer-opacity
+ *   --md-sys-state-pressed-state-layer-opacity
+ */
+
+/* The rest of the MD3 mapping lives in `md3-components-selection.css` (selection
+   controls, navigation, workspace composites, typography, motion). Imported here so
+   one `@import` of this file loads the whole mapping layer; ordering is safe because
+   the generic state-layer rules above/below use `:where()` and never compete with it. */
+@import "./md3-components-selection.css";
+
+/* ── Private aliases ───────────────────────────────────────────────────────
+   Defining an alias has no rendering effect (it only creates a long name), so
+   this block is gated by the recipe alone. Every *consumer* below carries its
+   own dimension gate. `--md3-*` is deliberately outside the `--md-*` namespace
+   so the token gate never mistakes these for engine output. */
+:root[data-app-design="md3"] {
+
+  --md3-surface: var(--md-sys-color-surface);
+  --md3-surface-low: var(--md-sys-color-surface-container-low);
+  --md3-surface-high: var(--md-sys-color-surface-container-high);
+  --md3-on-surface: var(--md-sys-color-on-surface);
+  --md3-outline: var(--md-sys-color-outline);
+  --md3-error: var(--md-sys-color-error);
+
+
+  /* Documented deviation 1 — brand face is the app face. */
+  --md-ref-typeface-brand: var(--font-app-sans);
+}
+
+/* ── State layers (dimension: states) ──────────────────────────────────────
+   One generic overlay for every interactive part. Painted with `z-index:-1`
+   inside an `isolation:isolate` stacking context, which puts it ABOVE the
+   container background and BELOW the label/icon — the M3 paint order — while
+   `overflow:hidden` keeps it inside the padding box so it can never cover a
+   `ring-*` focus indicator (those are box-shadows drawn outside the border box).
+   `--md3-state-layer-color` is overridden per component on the element itself,
+   which is what makes the derived overlays resolve per element. */
+:root[data-app-design="md3"][data-design-states="on"] :where(
+  [data-slot="button"]:not([data-variant="link"]),
+  [data-slot="toggle-group-item"],
+  [data-slot="toggle"],
+  [data-slot="tabs-trigger"],
+  [data-slot="select-trigger"],
+  [data-slot="native-select"],
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-sub-trigger"],
+  [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"],
+  [data-slot="select-item"],
+  [data-slot="command-item"],
+  [data-slot="sidebar-menu-button"],
+  [data-slot="sidebar-menu-sub-button"],
+  [data-slot="item"]:is([data-variant="outline"]),
+  [data-slot="checkbox"],
+  [data-slot="radio-group-item"]
+) {
+  --md3-state-layer-color: var(--md-sys-color-on-surface);
+  --md3-state-layer-hover: color-mix(
+    in oklab,
+    var(--md3-state-layer-color) calc(var(--md-sys-state-hover-state-layer-opacity) * 100%),
+    transparent
+  );
+  --md3-state-layer-focus: color-mix(
+    in oklab,
+    var(--md3-state-layer-color) calc(var(--md-sys-state-focus-state-layer-opacity) * 100%),
+    transparent
+  );
+  --md3-state-layer-pressed: color-mix(
+    in oklab,
+    var(--md3-state-layer-color) calc(var(--md-sys-state-pressed-state-layer-opacity) * 100%),
+    transparent
+  );
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+:root[data-app-design="md3"][data-design-states="on"] :where(
+  [data-slot="button"],
+  [data-slot="toggle-group-item"],
+  [data-slot="toggle"],
+  [data-slot="tabs-trigger"],
+  [data-slot="select-trigger"],
+  [data-slot="native-select"],
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-sub-trigger"],
+  [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"],
+  [data-slot="select-item"],
+  [data-slot="command-item"],
+  [data-slot="sidebar-menu-button"],
+  [data-slot="sidebar-menu-sub-button"],
+  [data-slot="checkbox"],
+  [data-slot="radio-group-item"]
+)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background-color: transparent;
+  transition: background-color var(--md-sys-motion-duration-short4)
+    var(--md-sys-motion-easing-standard);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] :where(
+  [data-slot="button"],
+  [data-slot="toggle-group-item"],
+  [data-slot="toggle"],
+  [data-slot="tabs-trigger"],
+  [data-slot="select-trigger"],
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-sub-trigger"],
+  [data-slot="select-item"],
+  [data-slot="command-item"],
+  [data-slot="sidebar-menu-button"],
+  [data-slot="sidebar-menu-sub-button"]
+):hover::before {
+  background-color: var(--md3-state-layer-hover);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] :where(
+  [data-slot="button"],
+  [data-slot="toggle-group-item"],
+  [data-slot="toggle"],
+  [data-slot="tabs-trigger"],
+  [data-slot="select-trigger"],
+  [data-slot="sidebar-menu-button"]
+):focus-visible::before {
+  background-color: var(--md3-state-layer-focus);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] :where(
+  [data-slot="button"],
+  [data-slot="toggle-group-item"],
+  [data-slot="toggle"],
+  [data-slot="tabs-trigger"],
+  [data-slot="sidebar-menu-button"]
+):active::before,
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="slider-thumb"]:active {
+  background-color: var(--md3-state-layer-pressed);
+}
+
+/* shadcn encodes hover as a background change. With a real state layer that is
+   a second, competing layer, so the hover background is pinned back to the
+   resting container colour instead (restyled, not doubled). */
+:root[data-app-design="md3"][data-design-states="on"] :where(
+  [data-slot="button"][data-variant="default"],
+  [data-slot="button"][data-variant="destructive"],
+  [data-slot="button"][data-variant="secondary"]
+):hover {
+  background-color: var(--md3-button-container);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────
+   button.tsx:22-25 (`data-slot|data-variant|data-size`),
+   button-variants.ts:8-27 (variant + size vocabularies).
+   M3 sets: filled-button (default), filled-tonal-button (secondary),
+   outlined-button (outline), text-button (ghost/link), error-toned (destructive,
+   no M3 set — same metrics as filled-button with the error roles). */
+
+/* geometry — src/components/ui/button-variants.ts:20 (h-9 = 36px) */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="button"] {
+  --md3-button-container: var(--md-sys-color-primary);
+  height: var(--md-comp-filled-button-container-height);
+  min-height: var(--md-comp-filled-button-container-height);
+  padding-inline: var(--md-sys-space-200);
+  gap: var(--md-sys-space-50);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="button"][data-size="sm"] {
+  height: var(--md-sys-space-400);
+  min-height: var(--md-sys-space-400);
+  padding-inline: var(--md-sys-space-150);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="button"][data-size="xs"] {
+  height: var(--md-sys-space-300);
+  min-height: var(--md-sys-space-300);
+  padding-inline: var(--md-sys-space-100);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="button"][data-size="lg"] {
+  height: var(--md-sys-space-500);
+  min-height: var(--md-sys-space-500);
+  padding-inline: var(--md-sys-space-300);
+}
+
+/* icon-only controls — src/components/ui/button-variants.ts:24-27.
+   M3 `icon-button` is a 40dp state layer with a 24dp glyph
+   (--md-comp-icon-button-state-layer-width/-icon-size). */
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="button"][data-size="icon"],
+  [data-slot="button"][data-size="icon-sm"],
+  [data-slot="button"][data-size="icon-xs"],
+  [data-slot="button"][data-size="icon-lg"]
+) {
+  padding-inline: 0;
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="button"][data-size="icon"] {
+  width: var(--md-comp-icon-button-state-layer-width);
+  height: var(--md-comp-icon-button-state-layer-height);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="button"][data-size="icon-lg"] {
+  width: var(--md-sys-space-600);
+  height: var(--md-sys-space-600);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="button"][data-size="icon-sm"] {
+  width: var(--md-sys-space-400);
+  height: var(--md-sys-space-400);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="button"][data-size="icon-xs"] {
+  width: var(--md-sys-space-300);
+  height: var(--md-sys-space-300);
+}
+
+/* 图标尺寸只归「图标按钮」这一族。`icon-button.icon-size` = 24dp 是 M3 给图标按钮本体定的，
+   不是给「任何按钮里的 svg」定的。原来这条写成 `[data-slot="button"] svg`，节点操作栏那些
+   `size="icon-xs"` 的 12px 小图标被整体抬到 24dp（实测 11.5→23），而同一条栏里的拖拽把手是
+   `<span>`（不吃这条）→ 14px 与 24px 并排，就是用户 2026-10-05 指的「图标大小不一致」。
+   `icon-sm` / `icon-xs` 在字典里没有第二档图标尺寸，所以不接管，留应用自己的值。 */
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="button"][data-size="icon"],
+  [data-slot="button"][data-size="icon-lg"]
+) svg {
+  width: var(--md-comp-icon-button-icon-size);
+  height: var(--md-comp-icon-button-icon-size);
+}
+
+/* shape — filled-button-container-shape resolves to corner-full (9999px) */
+:root[data-app-design="md3"][data-design-shape="on"] :is(
+  [data-slot="button"],
+  [data-slot="button"][data-size="xs"],
+  [data-slot="button"][data-size="sm"],
+  [data-slot="button"][data-size="lg"]
+) {
+  border-radius: var(--md-comp-filled-button-container-shape);
+}
+
+/* colour — button-variants.ts:8-17 */
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="button"][data-variant="default"] {
+  --md3-button-container: var(--md-sys-color-primary);
+  background-color: var(--md-comp-filled-button-container-color);
+  color: var(--md-comp-filled-button-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="button"][data-variant="secondary"] {
+  --md3-button-container: var(--md-comp-filled-tonal-button-container-color);
+  background-color: var(--md-comp-filled-tonal-button-container-color);
+  color: var(--md-comp-filled-tonal-button-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="button"][data-variant="destructive"] {
+  --md3-button-container: var(--md-sys-color-error);
+  --md3-state-layer-color: var(--md-sys-color-on-error);
+  background-color: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="button"][data-variant="outline"] {
+  --md3-button-container: transparent;
+  --md3-state-layer-color: var(--md-sys-color-primary);
+  background-color: transparent;
+  color: var(--md-comp-outlined-button-label-text-color);
+  border-color: var(--md-comp-outlined-button-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="button"][data-variant="ghost"],
+  [data-slot="button"][data-variant="link"]
+) {
+  --md3-button-container: transparent;
+  --md3-state-layer-color: var(--md-sys-color-primary);
+  background-color: transparent;
+  color: var(--md-comp-text-button-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="button"][data-variant="default"] {
+  --md3-state-layer-color: var(--md-sys-color-on-primary);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="button"][data-variant="secondary"] {
+  --md3-state-layer-color: var(--md-sys-color-on-secondary-container);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="button"][data-variant="outline"] {
+  border-width: var(--md-comp-outlined-button-outline-width);
+}
+
+/* elevation — filled button is level0, outlined/text have none (dimensions: elevation) */
+:root[data-app-design="md3"][data-design-elevation="on"] [data-slot="button"][data-variant="default"]:enabled,
+:root[data-app-design="md3"][data-design-elevation="on"] [data-slot="button"][data-variant="secondary"]:enabled,
+:root[data-app-design="md3"][data-design-elevation="on"] [data-slot="button"][data-variant="destructive"]:enabled {
+  box-shadow: var(--md-sys-elevation-shadow-0);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="button"][data-variant="default"]:hover:enabled,
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="button"][data-variant="secondary"]:hover:enabled {
+  /* M3 raises the container AND lays state on top; the shadow step is level1. */
+  box-shadow: var(--md-sys-elevation-shadow-1);
+}
+
+/* disabled — filled-button-disabled-container-opacity */
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="button"]:disabled {
+  background-color: color-mix(
+    in oklab,
+    var(--md-comp-filled-button-disabled-container-color)
+      calc(var(--md-comp-filled-button-disabled-container-opacity) * 100%),
+    transparent
+  );
+  color: color-mix(
+    in oklab,
+    var(--md-comp-filled-button-disabled-label-text-color)
+      calc(var(--md-comp-filled-button-disabled-label-text-opacity) * 100%),
+    transparent
+  );
+  opacity: 1;
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────
+   card.tsx:8-16 (rounded-xl + border + shadow-sm), :21-28, :67, :77.
+   M3 set: elevated-card (shape corner-medium = 12px, surface-container-low). */
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="card"] {
+  border-radius: var(--md-comp-elevated-card-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="card"] {
+  background-color: var(--md-comp-elevated-card-container-color);
+  color: var(--md-sys-color-on-surface-variant);
+  border-color: var(--md-comp-outlined-card-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="card-title"]
+) {
+  color: var(--md-sys-color-on-surface);
+}
+
+:root[data-app-design="md3"][data-design-elevation="on"] [data-slot="card"] {
+  box-shadow: var(--md-sys-elevation-shadow-1);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="card-header"],
+  [data-slot="card-content"],
+  [data-slot="card-footer"]
+) {
+  padding-inline: var(--md-sys-space-200);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="card"] {
+  gap: var(--md-sys-space-150);
+  padding-block: var(--md-sys-space-200);
+}
+
+/* ── Dialog ──────────────────────────────────────────────────────────────
+   dialog.tsx:72-80 (rounded-lg + p-6), :101, :118, :141, :154.
+   M3 set: dialog (container-shape corner-extra-large = 28px). */
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="dialog-content"] {
+  border-radius: var(--md-comp-dialog-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="dialog-content"] {
+  background-color: var(--md-comp-dialog-container-color);
+  border-color: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="dialog-title"] {
+  color: var(--md-comp-dialog-headline-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="dialog-description"] {
+  color: var(--md-comp-dialog-supporting-text-color);
+}
+
+:root[data-app-design="md3"][data-design-elevation="on"] [data-slot="dialog-content"] {
+  box-shadow: var(--md-sys-elevation-shadow-3);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="dialog-content"] {
+  padding: var(--md-sys-space-300);
+  gap: var(--md-sys-space-50);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="dialog-header"] {
+  gap: var(--md-sys-space-125);
+  padding-inline: var(--md-sys-space-100);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="dialog-footer"] {
+  gap: var(--md-sys-space-100);
+  padding-inline: var(--md-sys-space-50);
+  margin-block-start: var(--md-sys-space-150);
+}
+
+/* Modal scrim — `scrim` set + the app's own overlay slot (dialog.tsx:40-47). */
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="dialog-overlay"],
+  [data-slot="alert-dialog-overlay"],
+  [data-slot="sheet-overlay"]
+) {
+  background-color: color-mix(
+    in oklab,
+    var(--md-comp-scrim-container-color)
+      calc(var(--md-comp-scrim-container-opacity) * 100%),
+    transparent
+  );
+}
+
+/* ── Sheet (M3 side sheet / bottom sheet) ────────────────────────────────
+   sheet.tsx:59-71, :89, :99, :112, :125.
+   M3 sets: sheet-side (docked), sheet-bottom (docked drag handle). */
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="sheet-content"][data-side="right"] {
+  border-start-start-radius: var(--md-comp-sheet-side-detached-container-shape);
+  border-end-start-radius: var(--md-comp-sheet-side-detached-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="sheet-content"] {
+  background-color: var(--md-comp-sheet-side-docked-modal-container-color);
+  color: var(--md-sys-color-on-surface-variant);
+  border-color: transparent;
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="sheet-title"] {
+  color: var(--md-comp-sheet-side-docked-headline-color);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="sheet-header"],
+  [data-slot="sheet-footer"]
+) {
+  padding: var(--md-sys-space-200);
+}
+
+/* ── Alert (M3 banner) ───────────────────────────────────────────────────
+   alert.tsx:7 (rounded-lg px-4 py-3), :29, :40, :56.
+   M3 set: banner (surface-container-low, corner-none → we keep corner-small
+   because the app renders alerts as floating cards, not full-bleed banners). */
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="alert"] {
+  border-radius: var(--md-sys-shape-corner-small);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="alert"] {
+  background-color: var(--md-comp-banner-container-color);
+  color: var(--md-sys-color-on-surface-variant);
+  border-color: transparent;
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="alert"][data-slot="alert"] {
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="alert-title"] {
+  color: var(--md-sys-color-on-surface);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="alert-description"] {
+  color: var(--md-comp-banner-supporting-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="alert"][data-variant="destructive"] {
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="alert"] {
+  padding: var(--md-sys-space-150) var(--md-sys-space-200);
+  column-gap: var(--md-sys-space-150);
+}
+
+/* ── Badge ───────────────────────────────────────────────────────────────
+   badge.tsx:8 (rounded-full px-2 py-0.5 text-xs) and :40.
+   M3 set: badge (large badge = labelled). Shape is corner-full. */
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="badge"] {
+  border-radius: var(--md-comp-badge-large-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="badge"][data-variant="default"] {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="badge"][data-variant="secondary"] {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="badge"][data-variant="destructive"] {
+  background-color: var(--md-comp-badge-large-color);
+  color: var(--md-comp-badge-large-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="badge"][data-variant="outline"],
+  [data-slot="badge"][data-variant="ghost"]
+) {
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  border-color: var(--md-comp-outlined-card-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="badge"] {
+  min-height: var(--md-sys-space-250);
+  padding: var(--md-sys-space-0) var(--md-sys-space-100);
+}
+
+/* ── Tooltip (M3 plain tooltip) ──────────────────────────────────────────
+   tooltip.tsx:42-51 (rounded-md bg-foreground px-3 py-1.5 text-xs).
+   M3 set: plain-tooltip → corner-extra-small (4px) on inverse-surface. */
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="tooltip-content"] {
+  border-radius: var(--md-comp-plain-tooltip-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="tooltip-content"] {
+  background-color: var(--md-comp-plain-tooltip-container-color);
+  color: var(--md-comp-plain-tooltip-supporting-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="tooltip-content"] svg {
+  color: var(--md-comp-plain-tooltip-supporting-text-color);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="tooltip-content"] {
+  padding: var(--md-sys-space-50) var(--md-sys-space-150);
+  max-width: 24rem;
+}
+
+/* ── Separator (M3 divider) ──────────────────────────────────────────────
+   separator.tsx:14-20 (h-px / w-px from bg-border).
+   M3 set: divider → thickness 1px, color outline-variant. */
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="separator"],
+  [data-slot="dropdown-menu-separator"],
+  [data-slot="context-menu-separator"],
+  [data-slot="select-separator"],
+  [data-slot="field-separator"],
+  [data-slot="sidebar-separator"]
+) {
+  background-color: var(--md-comp-divider-color);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="separator"][data-orientation="horizontal"] {
+  height: var(--md-comp-divider-thickness);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="separator"][data-orientation="vertical"] {
+  width: var(--md-comp-divider-thickness);
+}
+
+/* ── Input / textarea / input-group / field (M3 text fields) ─────────────
+   input.tsx:11 (h-9 rounded-md border-input px-3), textarea.tsx:10,
+   input-group.tsx:15-16, field.tsx:116-152.
+   M3 set: outlined-text-field (the app's fields are outlined: they carry a
+   full border on all four sides, which is the outlined variant, not filled). */
+:root[data-app-design="md3"][data-design-shape="on"] :is(
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="input-group"],
+  [data-slot="select-trigger"],
+  [data-slot="native-select"],
+  [data-slot="tags-input-list"]
+) {
+  border-radius: var(--md-comp-outlined-text-field-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="input-group"],
+  [data-slot="tags-input-list"]
+) {
+  background-color: transparent;
+  border-color: var(--md-comp-outlined-text-field-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="input-group-control"],
+  [data-slot="native-select"]
+) {
+  color: var(--md-comp-outlined-text-field-input-text-color);
+  caret-color: var(--md-comp-outlined-text-field-caret-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="input"],
+  [data-slot="textarea"]
+)::placeholder {
+  color: var(--md-comp-outlined-text-field-input-text-placeholder-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="input-group"],
+  [data-slot="native-select"],
+  [data-slot="tags-input-list"]
+):focus-visible,
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="input-group"]:has(
+  [data-slot="input-group-control"]:focus-visible
+) {
+  border-color: var(--md-comp-outlined-text-field-focus-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="input"][aria-invalid="true"],
+  [data-slot="textarea"][aria-invalid="true"],
+  [data-slot="input-group"]:has([aria-invalid="true"])
+) {
+  border-color: var(--md-comp-outlined-text-field-error-focus-outline-color);
+}
+
+/* stroke — the M3 outlined field goes 1dp → 2dp on focus */
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="input-group"],
+  [data-slot="tags-input-list"]
+) {
+  border-width: var(--md-comp-outlined-text-field-outline-width);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="input"],
+  [data-slot="input-group"],
+  [data-slot="native-select"]
+) {
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="input"],
+  [data-slot="input-group"]
+) {
+  height: var(--md-sys-space-500);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="input-group"][data-size="sm"] {
+  height: var(--md-sys-space-400);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="textarea"] {
+  min-height: var(--md-sys-space-600);
+  padding: var(--md-sys-space-100) var(--md-sys-space-150);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] :is(
+  [data-slot="input"],
+  [data-slot="native-select"]
+) {
+  padding-inline: var(--md-sys-space-150);
+}
+
+/* field label / description / error — field.tsx:116-152, :228 */
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="field-description"] {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="field-error"] {
+  color: var(--md-sys-color-error);
+}
+
+/* ── Select ──────────────────────────────────────────────────────────────
+   select.tsx:35-48 (trigger h-9), :61-66 (content), :108-110 (item), :94 (label).
+   M3 sets: outlined-select (trigger) + menu/list (the opened sheet of items). */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="select-trigger"] {
+  height: var(--md-sys-space-500);
+  padding-inline: var(--md-sys-space-150);
+  border-width: var(--md-comp-outlined-select-text-field-outline-width);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="select-trigger"] {
+  background-color: transparent;
+  border-color: var(--md-comp-outlined-select-text-field-outline-color);
+  color: var(--md-comp-outlined-select-text-field-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="select-trigger"][data-size="sm"] {
+  color: var(--md-sys-color-on-surface);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="select-trigger"][aria-expanded="true"] {
+  border-color: var(--md-comp-outlined-select-text-field-focus-outline-color);
+}
+
+:root[data-app-design="md3"][data-design-shape="on"] [data-slot="select-trigger"] {
+  border-radius: var(--md-comp-outlined-select-text-field-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="select-value"] {
+  color: var(--md-sys-color-on-surface);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="select-trigger"][data-placeholder="true"] [data-slot="select-value"] {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* the open menu — M3 `menu` set: surface-container, corner-extra-small */
+:root[data-app-design="md3"][data-design-shape="on"] :is(
+  [data-slot="select-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="context-menu-content"]
+) {
+  border-radius: var(--md-comp-menu-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] :is(
+  [data-slot="select-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="context-menu-content"]
+) {
+  background-color: var(--md-comp-menu-container-color);
+  color: var(--md-sys-color-on-surface);
+  border-color: transparent;
+}
+
+:root[data-app-design="md3"][data-design-elevation="on"] :is(
+  [data-slot="select-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="context-menu-content"]
+) {
+  box-shadow: var(--md-sys-elevation-shadow-3);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="select-item"] {
+  min-height: var(--md-comp-list-list-item-one-line-container-height);
+  padding-inline: var(--md-sys-space-150) var(--md-sys-space-100);
+  border-radius: var(--md-comp-menu-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="select-item"][data-highlighted="true"],
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="select-item"]:focus {
+  background-color: transparent;
+  color: var(--md-comp-list-list-item-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="select-item-indicator"] {
+  color: var(--md-sys-color-primary);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] [data-slot="select-item"] {
+  --md3-state-layer-color: var(--md-comp-list-list-item-focus-state-layer-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="select-label"] {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* native-select.tsx:20 (h-9 pr-9) + :28 (the chevron) */
+:root[data-app-design="md3"][data-design-geometry="on"] [data-slot="native-select"] {
+  height: var(--md-sys-space-500);
+  border-width: var(--md-comp-outlined-select-text-field-outline-width);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] [data-slot="native-select"] {
+  border-color: var(--md-comp-outlined-select-text-field-outline-color);
+}

@@ -1,6 +1,17 @@
 node_modules/
-lib/
-dist/
+# `lib/` 与 `dist/` 是 tsdown 的产物目录，但**不许写成不限深度**：
+# 搬运进来的 UI 树里就有 `src/lib/**`（设计语言引擎整棵）和 `src/components/niko-table/lib/**`，
+# 不限深度的 `lib/` 会把这 83 个文件从 git 眼前整个藏掉——本地 `vitest` 与
+# `node scripts/port-ui.mjs --check` 全绿，干净检出一少就是一整个引擎。
+# 症状属于"提交了引用者、没提交被引用者"那一类，只有干净检出才看得见，所以在这里钉死。
+# 产物只在包根，因此逐条钉到包根。
+/lib/
+/packages/*/lib/
+/packages/*/dist/
+/plugins/*/lib/
+/plugins/*/dist/
+/examples/*/lib/
+/examples/*/dist/
 *.tsbuildinfo
 *.log
 .DS_Store

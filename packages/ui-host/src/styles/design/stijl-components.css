@@ -1,0 +1,223 @@
+/*
+  风格派（De Stijl / 蒙德里安·新造型主义）组件层 —— 高级主题的第二份配方。
+
+  与 `md3-components.css` 同一套机制：引擎（`src/lib/design-theme/mondrian/*`）把值写成
+  `:root` 上的 `--stijl-*` 变量与 `data-app-design="mondrian"`，本文件只消费；
+  每条块只用维度门 `[data-design-<dim>="on"]` 决定生效范围。
+
+  成文依据（引文与出处逐条落在 `src/lib/design-theme/mondrian/palette.ts` 的来源字段里）：
+   - "art allowed only primary colours and non-colours, only squares and rectangles,
+     only straight and horizontal or vertical lines"（Tate Glossary，经 De Stijl 条目转引）
+     → 圆角恒 0、结构线只水平/垂直、颜色只有红黄蓝 + 黑白灰。
+   - "avoided symmetry and attained aesthetic balance by the use of opposition"（Jaffé 1970）
+     → 交互反馈用「对置」（底色与文字色互换、或换原色面），不用叠加透明层与阴影。
+   - "expression in the abstraction of form and colour, that is to say, in the straight line"
+     （Mondrian 1987）→ 阴影一律 none：靠明度分层与线来分层级。
+
+  ⚠️ 优先级：组件皮肤 > 本层。所以本文件**不碰** tabs / segmented(toggle-group) /
+  slider / scrollbar / field-label 这些皮肤管的槽，也不在它们拥有的 (槽,属性) 上写声明；
+  `src/styles/design/skinPriority.test.ts` 会静态查这条。
+
+  ⚠️ 线宽、间距、字号是本仓的 UI 转译（palette.ts 里 kind:"ui" 的那些），
+  风格派本身没有留下可执行的界面尺度规范。不要把这里任何一个数字说成规范值。
+*/
+
+/* ── 全局：非彩色地面 + 结构线，无圆角无阴影 ─────────────────────────────── */
+/*
+  每条规则都用维度门钉在自己的维度上：`var(--stijl-radius)` 在关掉 shape 时是**未定义**，
+  而未定义变量参与的 `border-radius` 会按「非法值→取初始值 0」结算，不是回到本仓原来的 10px。
+  所以门必须落在规则上（与 `md3-components.css:417` 同一写法），只靠引擎不发变量是不够的。
+  这里不写 `--radius: 0`：`--radius`/`--radius-lg` 那批是本仓 Tailwind 主题的阶梯，
+  而组件皮肤里有 `border-radius: var(--radius-lg) !important` 这类规则在读它
+  （`src/index.css:952` 等）。改这些变量等于绕过静态门禁、用一条级联变量去盖皮肤 ——
+  「组件皮肤 > 高级主题」这条优先级会被从背后破掉。所以逐槽写 `border-radius: var(--stijl-radius)`，
+  皮肤没提到的槽我们才说得上话。
+*/
+
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="card"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="dialog-content"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="sheet-content"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="popover-content"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="dropdown-menu-content"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="alert"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="item"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="table-container"] {
+  border-radius: var(--stijl-radius);
+}
+
+:root[data-app-design="mondrian"][data-design-elevation="on"] [data-slot="card"],
+:root[data-app-design="mondrian"][data-design-elevation="on"] [data-slot="dialog-content"],
+:root[data-app-design="mondrian"][data-design-elevation="on"] [data-slot="popover-content"],
+:root[data-app-design="mondrian"][data-design-elevation="on"] [data-slot="dropdown-menu-content"],
+:root[data-app-design="mondrian"][data-design-elevation="on"] [data-slot="alert"] {
+  box-shadow: var(--stijl-shadow);
+}
+
+/* 结构线：原色面与非彩色面之间必须有一条线把它们分开，而不是靠投影浮起来。 */
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="card"],
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="dialog-content"],
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="popover-content"],
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="dropdown-menu-content"],
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="alert"] {
+  border-width: var(--stijl-line-width);
+  border-style: solid;
+}
+
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="card"],
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="card-content"],
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="card-header"],
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="card-footer"] {
+  padding: var(--stijl-padding);
+  gap: var(--stijl-gap);
+}
+
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="separator"] {
+  background-color: var(--stijl-color-line);
+  height: var(--stijl-line-width);
+}
+
+/* ── 动作面：按钮/实底控件 ───────────────────────────────────────────────── */
+
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="button"]:not([data-variant="outline"]):not([data-variant="ghost"]):not([data-variant="link"]) {
+  background-color: var(--stijl-color-accent);
+  color: var(--stijl-color-on-accent);
+}
+
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="button"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="input"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="textarea"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="select-trigger"] {
+  border-radius: var(--stijl-radius);
+}
+
+/*
+  高度只给「默认尺寸」的控件：`--stijl-control-height` 定成 36px 就是为了等于本仓既有的
+  `h-9`（button-variants default / input / select），不产生 layout shift。
+  - sm/xs/icon 各档本来就比 36 小，min-height 会把它们一起撑大；
+  - textarea 用的是 `min-h-16`（64px）加 `field-sizing-content`，写 min-height 会把它压回一行高。
+*/
+:root[data-app-design="mondrian"][data-design-geometry="on"] :is([data-slot="button"], [data-slot="input"], [data-slot="select-trigger"]):not([data-size="sm"]):not([data-size="xs"]):not([data-size^="icon"]) {
+  min-height: var(--stijl-control-height);
+}
+
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="input"],
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="textarea"],
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="select-trigger"] {
+  border-width: var(--stijl-line-width);
+  border-style: solid;
+}
+
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="card"],
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="dialog-content"],
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="popover-content"],
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="dropdown-menu-content"],
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="alert"],
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="input"],
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="textarea"],
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="select-trigger"],
+[data-slot="badge"] {
+  border-color: var(--stijl-color-line);
+}
+
+/* 对置式反馈：不是叠一层半透明，而是把这一对颜色翻过来。 */
+:root[data-app-design="mondrian"][data-design-states="on"][data-design-color="on"] [data-slot="button"]:not([data-variant="outline"]):not([data-variant="ghost"]):not([data-variant="link"]):hover {
+  background-color: var(--stijl-color-ground);
+  color: var(--stijl-color-accent);
+  outline-width: var(--stijl-line-width);
+  outline-style: solid;
+  outline-color: var(--stijl-color-accent);
+  outline-offset: 0;
+}
+
+:root[data-app-design="mondrian"][data-design-states="on"][data-design-color="on"] [data-slot="button"]:not([data-variant="outline"]):not([data-variant="ghost"]):not([data-variant="link"]):active {
+  background-color: var(--stijl-color-opposition);
+  color: var(--stijl-color-on-accent);
+}
+
+:root[data-app-design="mondrian"][data-design-motion="on"] [data-slot="button"],
+:root[data-app-design="mondrian"][data-design-motion="on"] [data-slot="card"],
+:root[data-app-design="mondrian"][data-design-motion="on"] [data-slot="badge"] {
+  transition-duration: var(--stijl-motion-duration);
+  transition-timing-function: var(--stijl-motion-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-app-design="mondrian"] [data-slot="button"] {
+    transition-duration: 0ms;
+  }
+}
+
+/* 焦点：结构线加粗一档，颜色用动作面；轮廓不圆、不发光。 */
+:root[data-app-design="mondrian"][data-design-states="on"][data-design-color="on"] :is([data-slot="button"], [data-slot="input"], [data-slot="select-trigger"], [data-slot="textarea"], a):focus-visible {
+  outline-width: var(--stijl-line-width);
+  outline-style: solid;
+  outline-offset: 1px;
+  box-shadow: var(--stijl-shadow);
+}
+
+/* ── 排版：结构感靠字重，不靠灰阶染色 ───────────────────────────────────── */
+
+:root[data-app-design="mondrian"][data-design-typography="on"] :is([data-slot="card-title"], [data-slot="dialog-title"], [data-slot="field-title"]) {
+  font-family: var(--stijl-font);
+  font-size: var(--stijl-title-size);
+  line-height: var(--stijl-title-line-height);
+  font-weight: var(--stijl-title-weight);
+}
+
+:root[data-app-design="mondrian"][data-design-typography="on"] :is([data-slot="badge"], [data-slot="table-head"], [data-slot="sidebar-menu-title"]) {
+  font-family: var(--stijl-font);
+  font-size: var(--stijl-label-size);
+  line-height: var(--stijl-label-line-height);
+  font-weight: var(--stijl-label-weight);
+}
+
+:root[data-app-design="mondrian"][data-design-typography="on"] :is([data-slot="card-description"], [data-slot="dialog-description"], [data-slot="field-description"]) {
+  font-size: var(--stijl-body-size);
+  line-height: var(--stijl-body-line-height);
+}
+
+/* ── 侧栏与弹层：非彩色平面 + 一条线，遮罩是实面不是模糊 ─────────────────── */
+
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="sidebar-inner"],
+:root[data-app-design="mondrian"][data-design-shape="on"] [data-slot="sidebar-header"] {
+  border-radius: var(--stijl-radius);
+}
+
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="sidebar"] {
+  background-color: var(--stijl-color-ground-sunken);
+  border-inline-end-width: var(--stijl-line-width);
+  border-inline-end-style: solid;
+}
+
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="dialog-overlay"] {
+  background-color: var(--stijl-color-line);
+  backdrop-filter: none;
+}
+
+:root[data-app-design="mondrian"][data-design-shape="on"] :is([data-slot="badge"], [data-slot="tooltip-content"], [data-slot="avatar"], [data-slot="kbd"]) {
+  border-radius: var(--stijl-radius);
+}
+
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="tooltip-content"] {
+  background-color: var(--stijl-color-line);
+  color: var(--stijl-color-ground);
+  border: 0;
+}
+
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="badge"] {
+  border-width: var(--stijl-line-width-soft);
+  border-style: solid;
+}
+
+/* 进度与骨架：直线段，不圆头。 */
+:root[data-app-design="mondrian"][data-design-shape="on"] :is([data-slot="progress"], [data-slot="progress-indicator"], [data-slot="skeleton"]) {
+  border-radius: var(--stijl-radius);
+}
+
+:root[data-app-design="mondrian"][data-design-geometry="on"] [data-slot="progress"] {
+  height: var(--stijl-line-width);
+}
+
+:root[data-app-design="mondrian"][data-design-color="on"] [data-slot="progress-indicator"] {
+  background-color: var(--stijl-color-accent);
+}

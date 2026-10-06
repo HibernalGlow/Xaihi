@@ -1,0 +1,17 @@
+.node-config-toml .shiki {
+  margin: 0;
+  overflow-x: auto;
+  padding: 1rem;
+}
+
+.node-config-toml .shiki,
+.node-config-toml .shiki span {
+  background-color: var(--shiki-light-bg) !important;
+  color: var(--shiki-light) !important;
+}
+
+.dark .node-config-toml .shiki,
+.dark .node-config-toml .shiki span {
+  background-color: var(--shiki-dark-bg) !important;
+  color: var(--shiki-dark) !important;
+}

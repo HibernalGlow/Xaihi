@@ -1,0 +1,422 @@
+/*
+ * Material 3 → 设置侧栏（`SettingsStageNav` 的 `rail` 变体）。
+ *
+ * 这块把「时间线」隐喻（竖连线 + 编号圆圈 + ✓ + 10px/9px 标签）换成规范的
+ * **navigation drawer**：56dp 单行条目、24dp 前导图标、label-large 标签、
+ * 选中项是 `secondary-container` 的 `corner-full` 指示条。
+ *
+ * 与 `md3-components.css` 同样的三条前提：
+ *  1. 这里不算 token，只消费引擎写到 `documentElement` 上的 `--md-*`
+ *     （`src/lib/design-theme/apply.ts:101-117`）；缺失的变量必须「看得见地坏掉」，
+ *     所以全文没有 `var(--md-*, …)` fallback。
+ *  2. 门 = `:root[data-app-design="md3"]` + **恰好一个** `[data-design-<dim>="on"]`：
+ *     形状归 shape、颜色归 color、height/padding/存在性归 geometry、字号字重归
+ *     typography、过渡归 motion、状态层归 states、条目阴影归 elevation。
+ *     关一个维度就只退那一面，`native` 配方下这一整份文件一个像素都不改现状。
+ *  3. 本表不进任何 `@layer`，普通声明因此压过 `@layer utilities` 里的
+ *     `py-2`/`text-[11px]`/`bg-primary`；但**不压过** `src/index.css` 里那些无层的
+ *     `!important` 皮肤偏好（例如 `index.css:672` 的 `.font-mono`），
+ *     那种地方一律让路并写明，见下面 headline 那条注释。
+ *
+ * 独立成一份文件、不 `@import` 别的层：`--md3-*` 私有别名必须自己定义，
+ * 否则「只有跟别人一起加载才正确」的层迟早变成只有整包才敢动的债。
+ *
+ * 组件几何靠既有属性定位（`data-settings-*`），不动 TSX：
+ *   nav[data-settings-stage-nav][data-settings-nav-variant="rail"]  → drawer container
+ *   > p                                                            → drawer headline
+ *   [data-settings-nav-stage]                                      → drawer list item
+ *   [data-settings-nav-steps] / [data-settings-nav-step]           → 条目下嵌套的单行 list
+ *   span[aria-hidden]（连线 / 步骤圆点）                             → 抽屉里没有的 affordance，抑制
+ *
+ * 有意的偏离，两条都在代码处再写一遍：
+ *  a) `container-width: 360px` 与 `container-shape: corner-large-end` 是 **modal** drawer 的值；
+ *     这条 rail 是嵌在设置面板里的 docked 导航，宽度仍由应用自己的 `w-52`（208px）决定，
+ *     于是指示条的 12px 内缩按 (360−336)/2 的**比例**取，而不是取字面量。
+ *  b) 容器色取 `modal-container-color`（surface-container-low，也就是 `--sidebar` 桥接的那个角色）
+ *     而不是 `standard-container-color`（surface）：docked 导航与内容区之间没有描边，
+ *     M3 靠 tonal 分层区分，取 surface 会和设置面板本体糊成一片。
+ */
+
+/*
+ * VAR INVENTORY — every `--md-*` variable this sheet reads, grouped by namespace.
+ * Regenerated from the sheet and cross-checked against the engine by
+ * `bun run audit:design-theme-tokens` (both directions).
+ * --md-comp-filled-button- (1):
+ *   --md-comp-filled-button-container-height
+ * --md-comp-list- (8):
+ *   --md-comp-list-list-item-container-shape, --md-comp-list-list-item-leading-space
+ *   --md-comp-list-list-item-overline-color, --md-comp-list-list-item-overline-line-height
+ *   --md-comp-list-list-item-overline-size, --md-comp-list-list-item-overline-tracking
+ *   --md-comp-list-list-item-overline-weight, --md-comp-list-list-item-trailing-space
+ * --md-comp-navigation-bar- (7):
+ *   --md-comp-navigation-bar-active-indicator-height, --md-comp-navigation-bar-active-label-text-weight
+ *   --md-comp-navigation-bar-label-text-font, --md-comp-navigation-bar-label-text-line-height
+ *   --md-comp-navigation-bar-label-text-size, --md-comp-navigation-bar-label-text-tracking
+ *   --md-comp-navigation-bar-label-text-weight
+ * --md-comp-navigation-drawer- (21):
+ *   --md-comp-navigation-drawer-active-focus-state-layer-color
+ *   --md-comp-navigation-drawer-active-hover-state-layer-color, --md-comp-navigation-drawer-active-icon-color
+ *   --md-comp-navigation-drawer-active-indicator-color, --md-comp-navigation-drawer-active-indicator-shape
+ *   --md-comp-navigation-drawer-active-label-text-color, --md-comp-navigation-drawer-active-pressed-state-layer-color
+ *   --md-comp-navigation-drawer-headline-color, --md-comp-navigation-drawer-headline-line-height
+ *   --md-comp-navigation-drawer-headline-size, --md-comp-navigation-drawer-headline-tracking
+ *   --md-comp-navigation-drawer-headline-weight, --md-comp-navigation-drawer-icon-size
+ *   --md-comp-navigation-drawer-inactive-focus-state-layer-color
+ *   --md-comp-navigation-drawer-inactive-hover-icon-color
+ *   --md-comp-navigation-drawer-inactive-hover-label-text-color
+ *   --md-comp-navigation-drawer-inactive-hover-state-layer-color, --md-comp-navigation-drawer-inactive-icon-color
+ *   --md-comp-navigation-drawer-inactive-label-text-color
+ *   --md-comp-navigation-drawer-inactive-pressed-state-layer-color, --md-comp-navigation-drawer-modal-container-color
+ * --md-sys-elevation- (1):
+ *   --md-sys-elevation-shadow-0
+ * --md-sys-motion- (2):
+ *   --md-sys-motion-duration-short4, --md-sys-motion-easing-standard
+ * --md-sys-space- (3):
+ *   --md-sys-space-100, --md-sys-space-150, --md-sys-space-50
+ * --md-sys-state- (3):
+ *   --md-sys-state-focus-state-layer-opacity, --md-sys-state-hover-state-layer-opacity
+ *   --md-sys-state-pressed-state-layer-opacity
+ */
+
+/* ── Container (dimension: color) ────────────────────────────────────────
+   surface family, no hairline hack: M3 separates a drawer from content with a
+   tonal surface step, not with an outline. Deviation (b) in the header. */
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-stage-nav][data-settings-nav-variant="rail"] {
+  background-color: var(--md-comp-navigation-drawer-modal-container-color);
+  color: var(--md-comp-navigation-drawer-inactive-label-text-color);
+  border-right-style: none;
+}
+
+/* 标题行（`railTitle`）。抽屉的 headline 是 title-small 的一种、on-surface-variant，
+   取代原先的 `text-[10px] font-mono uppercase tracking-[0.16em]` 手写 overline。
+   `font-family` 这里**故意不写**：那个 `<p>` 带 `.font-mono`，而 `src/index.css:672`
+   用无层 `!important` 把它钉在 app 字体上——皮肤表达的偏好归皮肤，不跟它抢。
+   剩下的 headline-size/-line-height/-weight/-tracking 照字典覆盖，见 typography 块。 */
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-nav-variant="rail"] > p {
+  color: var(--md-comp-navigation-drawer-headline-color);
+}
+
+/* ── Container & item geometry (dimension: geometry) ───────────────────── */
+:root[data-app-design="md3"][data-design-geometry="on"] nav[data-settings-nav-variant="rail"] {
+  /* Deviation (a): `active-indicator-width: 336px` inside `container-width: 360px`
+     means a 12px horizontal gutter; that ratio is what we reproduce, because this
+     embedded rail keeps the app's `w-52` instead of the modal drawer's 360px. */
+  padding: var(--md-sys-space-150);
+}
+
+/* 条目高度：drawer 的 one-line item 是 56dp，但那是给 360dp 宽、条目个位数、
+   带缩略图的模态抽屉定的触控密度。本栏是 208dp 宽、5 个 stage + 每个 3~7 个 step 的
+   密集工具栏，56dp 会把整栏撑成两倍高（实测：29 行 × 56 = 1624dp）。
+   所以按 M3 自己的**紧凑**档取值，两个数字都出自字典、不自己造：
+     stage 行 = `filled-button.container-height` 40dp（M3 控件的标准高度），
+     step 行  = `navigation-bar.active-indicator-height` 32dp（紧凑导航的选中条高度）。 */
+:root[data-app-design="md3"][data-design-geometry="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-stage] {
+  height: var(--md-comp-filled-button-container-height);
+  min-height: var(--md-comp-filled-button-container-height);
+  /* 图标前沿落在 16dp：容器已经给了 12dp 内缩，条目只需要补上余下的 4dp。 */
+  padding-inline-start: calc(var(--md-comp-list-list-item-leading-space) - var(--md-sys-space-150));
+  padding-inline-end: calc(var(--md-comp-list-list-item-trailing-space) - var(--md-sys-space-150));
+  gap: var(--md-sys-space-150);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-stage] > svg {
+  width: var(--md-comp-navigation-drawer-icon-size);
+  height: var(--md-comp-navigation-drawer-icon-size);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-steps] {
+  margin-block-start: 0;
+  /* `pl-4` 让位：嵌套条目的对齐由下面的 padding-inline-start 用 token 算出来，
+     否则 16px 缩进 + 条目内缩会叠成两套互不相干的度量。 */
+  padding-inline-start: 0;
+  padding-block-end: var(--md-sys-space-100);
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-steps] > li {
+  /* M3 list 条目是连续排布的；`space-y-0.5` 的 4px 间隙会让一列指示条看起来在抖。 */
+  margin-block: 0;
+}
+
+:root[data-app-design="md3"][data-design-geometry="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-step] {
+  height: var(--md-comp-navigation-bar-active-indicator-height);
+  min-height: var(--md-comp-navigation-bar-active-indicator-height);
+  /* 4dp（条目内缩）+ 24dp（图标）+ 12dp（图标-文字间距）= 子级标签与父级标签同一条 x。 */
+  padding-inline-start: calc(var(--md-sys-space-50) + var(--md-comp-navigation-drawer-icon-size) + var(--md-sys-space-150));
+  padding-inline-end: calc(var(--md-comp-list-list-item-trailing-space) - var(--md-sys-space-150));
+  gap: var(--md-sys-space-100);
+}
+
+/* ── 抑制时间线 affordance（dimension: geometry）──────────────────────────
+   MD3 drawer 没有「第几步」这种进度构件：编号圆圈、完成态的 ✓、竖连线、子级圆点
+   都不在字典的任何一套 token 里，画出来就是自创规范。这里整体收掉，把前导位
+   交给 24dp 的真图标（上面 `> svg` 那条）。语义损失是明说的：✓ 曾经表达
+   「这个 stage 已配置过」，drawer 里对应的只有 `aria-current`，选中态不受影响。
+   连线 = `nav > ol > li > span[aria-hidden]`（直接子级），
+   圆点 = `ol[data-settings-nav-steps] > li > span[aria-hidden]`；用 `>` 区分两者，
+   不需要 `:has()`，也不需要碰 Tailwind 的 class 字面量。 */
+:root[data-app-design="md3"][data-design-geometry="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-stage] > span:first-child,
+:root[data-app-design="md3"][data-design-geometry="on"] nav[data-settings-nav-variant="rail"] > ol > li > span[aria-hidden],
+:root[data-app-design="md3"][data-design-geometry="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-steps] > li > span[aria-hidden] {
+  display: none;
+}
+
+/* ── Shape (dimension: shape) ────────────────────────────────────────────
+   resting item = list 的 `container-shape`（corner-none，整条铺满），
+   selected = drawer 的 `active-indicator-shape`（corner-full 胶囊）。
+   M3 drawer 的悬停层跟着静止形状走，所以只有选中项是圆的。 */
+:root[data-app-design="md3"][data-design-shape="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+) {
+  border-radius: var(--md-comp-list-list-item-container-shape);
+}
+
+:root[data-app-design="md3"][data-design-shape="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+)[aria-current="true"] {
+  border-radius: var(--md-comp-navigation-drawer-active-indicator-shape);
+}
+
+/* ── Item colours (dimension: color) ─────────────────────────────────────
+   静止/悬停/聚焦的字色与图色都取 drawer 自己那套 token：
+   inactive = on-surface-variant，hover/focus 抬到 on-surface，
+   active 三态一律 on-secondary-container。 */
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+) {
+  background-color: transparent;
+  color: var(--md-comp-navigation-drawer-inactive-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-stage] > svg {
+  color: var(--md-comp-navigation-drawer-inactive-icon-color);
+  /* `opacity-90` 是「用半透明假装次要色」的旧写法；drawer 有真的次要图色 token。 */
+  opacity: 1;
+}
+
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+):is(:hover, :focus-visible) {
+  color: var(--md-comp-navigation-drawer-inactive-hover-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-stage]:is(:hover, :focus-visible) > svg {
+  color: var(--md-comp-navigation-drawer-inactive-hover-icon-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+)[aria-current="true"] {
+  /* active indicator = secondary-container；条目的容器本身就是那条指示条。 */
+  background-color: var(--md-comp-navigation-drawer-active-indicator-color);
+  color: var(--md-comp-navigation-drawer-active-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-stage][aria-current="true"] > svg {
+  color: var(--md-comp-navigation-drawer-active-icon-color);
+}
+
+/* ── 一个目的地只能有一条指示条 ───────────────────────────────────────────
+   M3 抽屉里 secondary-container 标的是「当前目的地」。父级展开、子级被选中时，
+   当前目的地是那个子项，父级只是分组头，不该再画一条同色胶囊——否则主级与子级
+   同底色，层级反而消失（2026-10-05 用户实机指出的就是这个）。
+   字典 v0_192 里**没有** sub-drawer 这一组（只有 navigation-drawer / -bar / -rail / list），
+   所以这里不发任何新 token：只把父级退回 drawer 自己的静止档取值（inactive 字色与图色），
+   容器回到 transparent（= 上面第 182 行那条静止态）。
+   结构判据：`li > button[data-settings-nav-stage]` 与 `li > ol[data-settings-nav-steps]` 是兄弟，
+   所以 `:has()` 挂在 li 上，而不是挂在按钮的后代上。 */
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-nav-variant="rail"] li:has(
+  > [data-settings-nav-steps] [data-settings-nav-step][aria-current="true"]
+) > [data-settings-nav-stage][aria-current="true"] {
+  background-color: transparent;
+  color: var(--md-comp-navigation-drawer-inactive-label-text-color);
+}
+
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-nav-variant="rail"] li:has(
+  > [data-settings-nav-steps] [data-settings-nav-step][aria-current="true"]
+) > [data-settings-nav-stage][aria-current="true"] > svg {
+  color: var(--md-comp-navigation-drawer-inactive-icon-color);
+}
+
+/* 「ADV」角标 = list 的 overline（label-small）。原来靠 8px 字 + opacity-60 撑出层次，
+   两者都不是规范值：字号进 overline token，颜色进 overline 的色 token。 */
+:root[data-app-design="md3"][data-design-color="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-step] > span > span:not(:first-child) {
+  color: var(--md-comp-list-list-item-overline-color);
+  opacity: 1;
+}
+
+/* ── Typography (dimension: typography) ──────────────────────────────────
+   标签 = **navigation-bar / navigation-rail 的 label-text-\*（label-medium 12px）**，
+   不是 drawer 的 label-large：drawer 那一套是给 360dp 宽、条目个位数的模态抽屉的，
+   本栏 208dp 宽、29 行，用 14px 会和旁边 13px 的应用正文脱节。
+   Google 自己对紧凑导航（bar/rail）发的就是 label-medium 12px，取它。
+   父级与子级共用同一套：drawer 只发一种条目字阶，层级靠缩进和选中态表达。 */
+:root[data-app-design="md3"][data-design-typography="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+) {
+  font-family: var(--md-comp-navigation-bar-label-text-font);
+  font-size: var(--md-comp-navigation-bar-label-text-size);
+  line-height: var(--md-comp-navigation-bar-label-text-line-height);
+  letter-spacing: var(--md-comp-navigation-bar-label-text-tracking);
+  font-weight: var(--md-comp-navigation-bar-label-text-weight);
+}
+
+:root[data-app-design="md3"][data-design-typography="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+)[aria-current="true"] {
+  font-weight: var(--md-comp-navigation-bar-active-label-text-weight);
+}
+
+/* headline：`text-transform: none` 撤掉手写大写字母，`letter-spacing` 从
+   `tracking-[0.16em]` 回到 title-small 自己的字距。 */
+:root[data-app-design="md3"][data-design-typography="on"] nav[data-settings-nav-variant="rail"] > p {
+  font-size: var(--md-comp-navigation-drawer-headline-size);
+  line-height: var(--md-comp-navigation-drawer-headline-line-height);
+  letter-spacing: var(--md-comp-navigation-drawer-headline-tracking);
+  font-weight: var(--md-comp-navigation-drawer-headline-weight);
+  text-transform: none;
+}
+
+:root[data-app-design="md3"][data-design-typography="on"] nav[data-settings-nav-variant="rail"] [data-settings-nav-step] > span > span:not(:first-child) {
+  font-size: var(--md-comp-list-list-item-overline-size);
+  line-height: var(--md-comp-list-list-item-overline-line-height);
+  letter-spacing: var(--md-comp-list-list-item-overline-tracking);
+  font-weight: var(--md-comp-list-list-item-overline-weight);
+}
+
+/* ── State layers (dimension: states) ────────────────────────────────────
+   和主层同一套画法：`isolation:isolate` + `z-index:-1` 的 `::before` 落在容器背景
+   之上、标签与图标之下（M3 的涂装顺序），`overflow:hidden` 把它关在 padding box 里。
+   焦点环是元素自己的 outline / box-shadow，画在 border box 之外，**不会**被
+   `overflow:hidden` 裁掉；这一层也从不写 `outline:none`，所以关掉/打开状态层
+   都不会把键盘焦点弄丢。
+   色 = drawer 的 `*-state-layer-color`，不透明度 = `--md-sys-state-*-state-layer-opacity`
+   （实测 hover .08 / focus .12 / pressed .12，不是教程里常见的 10%）。 */
+/* 派生三件覆盖层，色与不透明度都取各自的 token；`--md3-*` 是本层自己的私有别名命名空间，
+   不是引擎词表的一部分（`contract.ts:120-126`）。静止/选中两套各算一遍：
+   drawer 的 inactive 三态色并不相同（hover/focus = on-surface，pressed 在字典里
+   就是 on-secondary-container），而 active 三态统一是 on-secondary-container，
+   所以别名必须逐个绑定，不能合成一条。 */
+:root[data-app-design="md3"][data-design-states="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+) {
+  --md3-settings-nav-state-layer-hover: color-mix(
+    in oklab,
+    var(--md-comp-navigation-drawer-inactive-hover-state-layer-color) calc(var(--md-sys-state-hover-state-layer-opacity) * 100%),
+    transparent
+  );
+  --md3-settings-nav-state-layer-focus: color-mix(
+    in oklab,
+    var(--md-comp-navigation-drawer-inactive-focus-state-layer-color) calc(var(--md-sys-state-focus-state-layer-opacity) * 100%),
+    transparent
+  );
+  --md3-settings-nav-state-layer-pressed: color-mix(
+    in oklab,
+    var(--md-comp-navigation-drawer-inactive-pressed-state-layer-color) calc(var(--md-sys-state-pressed-state-layer-opacity) * 100%),
+    transparent
+  );
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+:root[data-app-design="md3"][data-design-states="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+)[aria-current="true"] {
+  --md3-settings-nav-state-layer-hover: color-mix(
+    in oklab,
+    var(--md-comp-navigation-drawer-active-hover-state-layer-color) calc(var(--md-sys-state-hover-state-layer-opacity) * 100%),
+    transparent
+  );
+  --md3-settings-nav-state-layer-focus: color-mix(
+    in oklab,
+    var(--md-comp-navigation-drawer-active-focus-state-layer-color) calc(var(--md-sys-state-focus-state-layer-opacity) * 100%),
+    transparent
+  );
+  --md3-settings-nav-state-layer-pressed: color-mix(
+    in oklab,
+    var(--md-comp-navigation-drawer-active-pressed-state-layer-color) calc(var(--md-sys-state-pressed-state-layer-opacity) * 100%),
+    transparent
+  );
+}
+
+:root[data-app-design="md3"][data-design-states="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background-color: transparent;
+}
+
+:root[data-app-design="md3"][data-design-states="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+):hover::before {
+  background-color: var(--md3-settings-nav-state-layer-hover);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+):focus-visible::before {
+  background-color: var(--md3-settings-nav-state-layer-focus);
+}
+
+:root[data-app-design="md3"][data-design-states="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+):active::before {
+  background-color: var(--md3-settings-nav-state-layer-pressed);
+}
+
+/* shadcn 把悬停编码成「换一个背景色」。有了真状态层，那就是第二层互相打架的东西，
+   所以把静止态的 `transparent` 钉回去（不是主题色，因此不需要 color 门）。 */
+:root[data-app-design="md3"][data-design-states="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+):not([aria-current="true"]):hover {
+  background-color: transparent;
+}
+
+/* ── Elevation (dimension: elevation) ────────────────────────────────────
+   drawer 的指示条是平的（`standard-container-elevation` 是 level0），
+   所以原先 `shadow-xs` 那层假高度回到 level0 配方本身。 */
+:root[data-app-design="md3"][data-design-elevation="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+) {
+  box-shadow: var(--md-sys-elevation-shadow-0);
+}
+
+/* ── Motion (dimension: motion) ──────────────────────────────────────────
+   单独一块，是因为状态层的存在与否归 states：关掉动效应该让状态层「立刻出现」，
+   而不是让状态层消失。 */
+:root[data-app-design="md3"][data-design-motion="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+)::before {
+  transition-property: background-color;
+  transition-duration: var(--md-sys-motion-duration-short4);
+  transition-timing-function: var(--md-sys-motion-easing-standard);
+}
+
+:root[data-app-design="md3"][data-design-motion="on"] nav[data-settings-nav-variant="rail"] :is(
+  [data-settings-nav-stage],
+  [data-settings-nav-step]
+) {
+  transition-duration: var(--md-sys-motion-duration-short4);
+  transition-timing-function: var(--md-sys-motion-easing-standard);
+}

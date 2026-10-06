@@ -1,0 +1,4079 @@
+{
+  "common": {
+    "appName": "XIRANITE",
+    "version": "v{{version}}",
+    "search": "搜索",
+    "searchPlaceholder": "搜索...",
+    "close": "关闭",
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "cancel": "取消",
+    "confirm": "确认",
+    "save": "保存",
+    "delete": "删除",
+    "copyFailed": "复制失败",
+    "rename": "重命名",
+    "add": "添加",
+    "remove": "移除",
+    "hide": "隐藏",
+    "loading": "加载中...",
+    "empty": "空",
+    "unknown": "未知",
+    "expand": "展开",
+    "collapse": "折叠",
+    "toggleCollapse": "折叠/展开",
+    "duplicate": "复制",
+    "focus": "聚焦",
+    "exitFocus": "退出聚焦",
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏",
+    "openFloatingWindow": "打开浮动窗口",
+    "openedInNewWindow": "已在新窗口打开 {{name}}。",
+    "unableToOpenInNewWindow": "无法在新窗口打开 {{name}}。",
+    "moveToView": "移动到视图",
+    "hideIn": "在{{view}}中隐藏",
+    "live": "运行中",
+    "keepAliveOnViewSwitch": "切换视图时保留状态：{{state}}",
+    "on": "开",
+    "off": "关",
+    "reset": "重置",
+    "copy": "复制",
+    "clear": "清空",
+    "dock": "停靠",
+    "float": "浮动",
+    "compact": "紧凑",
+    "focusState": "聚焦",
+    "full": "全屏",
+    "light": "浅色",
+    "dark": "深色",
+    "system": "跟随系统",
+    "toggleTheme": "切换主题",
+    "closeWindow": "关闭窗口",
+    "resizeLane": "调整泳道宽度",
+    "addLane": "添加泳道",
+    "unfiled": "未归类",
+    "widthRatio": "宽度比例",
+    "moreActions": "更多操作",
+    "dragReorder": "拖动重排",
+    "dragToOtherLane": "拖到其他泳道",
+    "workspaceN": "工作区 {{n}}",
+    "state": {
+      "docked": "已停靠",
+      "floating": "浮动",
+      "focused": "已聚焦",
+      "fullscreen": "全屏",
+      "compact": "紧凑"
+    }
+  },
+  "topbar": {
+    "viewMode": {
+      "dashboard": "仪表盘",
+      "dashboardHint": "使用数据分析",
+      "cards": "卡片",
+      "cardsHint": "卡片布局",
+      "dockview": "DOCKVIEW",
+      "dockviewHint": "Dockview 面板",
+      "flow": "流程",
+      "flowHint": "React Flow 节点",
+      "lane": "泳道",
+      "laneHint": "泳道模式",
+      "bento": "便当",
+      "bentoHint": "可拖拽缩放的便当网格"
+    },
+    "cardLayout": {
+      "grid": "网格",
+      "gridHint": "自动平铺",
+      "stack": "瀑布流",
+      "stackHint": "多列瀑布",
+      "split": "分屏",
+      "splitHint": "两列",
+      "focus": "聚焦",
+      "focusHint": "主卡 + 缩略"
+    },
+    "theme": {
+      "label": "主题",
+      "preset": "主题预设",
+      "colorMode": "颜色模式",
+      "system": "跟随系统",
+      "light": "浅色",
+      "dark": "深色",
+      "openSettings": "打开主题设置",
+      "wuling": "Wuling"
+    },
+    "workspace": {
+      "new": "新建工作区",
+      "select": "选择工作区",
+      "current": "当前工作区",
+      "rename": "重命名",
+      "delete": "删除工作区",
+      "setIcon": "设置图标",
+      "defaults": {
+        "alpha": "工作区 ALPHA",
+        "grid": "分析网格",
+        "kern": "系统内核",
+        "net": "网络节点",
+        "arch": "归档"
+      }
+    },
+    "registry": "模块库",
+    "operations": "节点运行",
+    "history": "运行历史",
+    "deletions": "删除历史",
+    "search": "搜索...",
+    "searchHint": "搜索",
+    "devRuntime": {
+      "vite": "开发端口模式",
+      "packaged": "打包资源模式"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "header": "设置",
+    "headerSubtitle": "按时间线阶段浏览设置：外观 → 工作区 → 视图 → 运行时 → 数据。",
+    "search": {
+      "placeholder": "搜索设置（主题、泳道、WebView2…）",
+      "clear": "清除搜索",
+      "results": "搜索结果",
+      "empty": "未找到匹配的设置项",
+      "stage": "阶段",
+      "stepInStage": "位于「{{stage}}」",
+      "fieldInStep": "{{step}} · {{stage}}"
+    },
+    "sections": {
+      "appearance": "外观",
+      "background": "背景",
+      "workspace": "工作区",
+      "runtime": "运行时",
+      "data": "数据",
+      "view": "视图"
+    },
+    "workspace": {
+      "startupRestore": "启动时恢复节点",
+      "startupRestoreDesc": "应用启动时恢复上次工作区中已保存的节点实例。"
+    },
+    "view": {
+      "swimlane": {
+        "soloOnFocus": "聚焦时独占泳道",
+        "showNavigatorInSolo": "独占模式显示泳道导航栏",
+        "edgeRevealDelay": "边缘泳道展开延迟",
+        "focusOnHover": "悬停时重新聚焦泳道",
+        "focusDelay": "悬停重新聚焦延迟"
+      }
+    },
+    "timeline": {
+      "navLabel": "设置时间线",
+      "railTitle": "设置时间线",
+      "stepsLabel": "子分类",
+      "advanced": "高级",
+      "advShort": "高级",
+      "stageDesc": {
+        "appearance": "主题、配色、字体语言与氛围效果。",
+        "workspace": "画布背景、操作栏与字母索引。",
+        "view": "泳道交互、组件皮肤与卡片点击行为。",
+        "runtime": "本地后端连接、节点内存保护、热刷新与 WebView2 实验项。",
+        "data": "工作区持久化与数据库归属信息。"
+      },
+      "steps": {
+        "theme": "主题",
+        "designLanguage": "设计语言",
+        "color": "颜色模式",
+        "typography": "字体与语言",
+        "atmosphere": "氛围效果",
+        "themeImport": "导入主题 JSON",
+        "background": "背景画布",
+        "chrome": "操作栏",
+        "alphabet": "字母索引",
+        "swimlane": "泳道交互",
+        "components": "组件皮肤",
+        "cardInteraction": "卡片交互",
+        "connection": "运行时连接",
+        "memoryProtection": "节点内存保护",
+        "webview2": "WebView2",
+        "storage": "本地数据"
+      },
+      "stepDesc": {
+        "theme": "选择内置主题预设，查看调色板与来源。",
+        "typography": "全局 UI 字体与界面语言。",
+        "atmosphere": "晕影、颗粒与环境光开关。",
+        "background": "网格 / 圆点 / 图片背景与纹理预览。",
+        "swimlane": "主泳道独占、悬停聚焦与导航栏行为。"
+      },
+      "fieldsTitle": "字段与互斥选项组",
+      "fieldsDesc": "标题样式同步到节点中的 Select、输入框、滑条等标准字段，以及压缩模式、输出位置等互斥组选项；不改变控件的键盘与表单语义。",
+      "controlStyle": "控件样式",
+      "fieldTitleStyle": "全局字段标题",
+      "choice": {
+        "segmented": "分段",
+        "pills": "胶囊",
+        "tabs": "标签",
+        "tiles": "卡片",
+        "none": "不接管"
+      },
+      "fieldTitle": {
+        "stacked": "上置",
+        "legend": "悬浮图例",
+        "inline": "左侧",
+        "hidden": "隐藏",
+        "none": "不接管"
+      },
+      "compressionPreview": "压缩模式",
+      "lossless": "无损",
+      "lossy": "有损",
+      "modulePanelTitle": "模块面板",
+      "modulePanelDesc": "统一节点内分区的标题、面板表面与拖拽手柄；已接入公共组件的节点会立即同步。",
+      "moduleTitleStyle": "标题样式",
+      "modulePanelStyle": "面板样式",
+      "resizableHandle": "拖拽手柄",
+      "moduleTitle": {
+        "legend": "悬浮角标",
+        "inline": "内嵌",
+        "bar": "顶部栏",
+        "minimal": "极简"
+      },
+      "modulePanel": {
+        "soft": "柔和",
+        "solid": "实色",
+        "outline": "描边",
+        "flat": "无框"
+      },
+      "handle": {
+        "grip": "握把",
+        "dots": "点阵",
+        "line": "强调线",
+        "minimal": "极简"
+      },
+      "previewModule": "预览模块",
+      "previewBadge": "12 项",
+      "previewModuleDesc": "标题和面板会使用全局样式；分隔线由公共 ResizableHandle 同步。",
+      "nodeHotReload": "节点后端源码自动刷新",
+      "nodeHotReloadDesc": "保存已使用节点的后端源码后，下一次运行该节点自动加载新代码；不会重启桌面端或其他节点。"
+    },
+    "view": {
+      "cardInteraction": "卡片交互",
+      "cardInteractionDesc": "自定义卡片视图中的单击与双击行为。",
+      "clickAction": "单击行为",
+      "clickActionDesc": "单击卡片时触发的动作。设为「无」则不响应单击。",
+      "doubleClickAction": "双击行为",
+      "doubleClickActionDesc": "双击卡片时触发的动作。设为「无」则不响应双击。",
+      "action": {
+        "none": "无",
+        "focus": "聚焦",
+        "fullscreen": "全屏"
+      },
+      "componentDisplay": {
+        "title": "组件皮肤",
+        "description": "下方每一块只调整一类共享控件的外观，覆盖各节点；不改变交互语义与键盘行为。",
+        "guide": "按编号与组件徽章快速定位。选项在标题下方，实时预览使用与节点相同的共享组件。",
+        "livePreview": "实时预览",
+        "preview": "预览",
+        "history": "历史",
+        "details": "详情",
+        "previewHint": "这里使用的就是节点结果面板所用的共享 Tabs。",
+        "historyHint": "切换显示类型不会改变 Tab 内容或操作。",
+        "detailsHint": "后续组件偏好可在此扩展，不需要重写节点实现。",
+        "styles": {
+          "underline": "下划线",
+          "surface": "表面",
+          "pill": "胶囊",
+          "boxed": "分段",
+          "quiet": "极简",
+          "none": "不接管"
+        },
+        "tabs": {
+          "title": "标签页",
+          "target": "Tabs",
+          "description": "节点结果栏、设置预览，以及所有共享的 Radix Tabs。"
+        },
+        "switches": {
+          "title": "开关",
+          "target": "Switch",
+          "description": "节点卡片、设置行与配置面板中的布尔开关。",
+          "preview": "关闭",
+          "previewOn": "开启",
+          "styles": {
+            "outlined": "描边",
+            "filled": "填充",
+            "minimal": "极简",
+            "none": "不接管"
+          }
+        },
+        "sliders": {
+          "title": "滑条",
+          "target": "Slider",
+          "description": "Magic Card 参数轨、设置密度滑条，以及所有共享的 Radix Slider。",
+          "previewHint": "与 Magic Card 光效参数相同的横向滑条控件。",
+          "previewRadius": "光晕半径",
+          "previewIntensity": "光晕强度",
+          "previewStrength": "主色浓度",
+          "styles": {
+            "solid": "实心",
+            "soft": "柔和",
+            "pill": "粗轨",
+            "line": "细线",
+            "minimal": "极简",
+            "none": "不接管"
+          }
+        },
+        "scrollbars": {
+          "title": "滚动条",
+          "target": "Scrollbar",
+          "description": "纵向滑轨与横向底条；原生 overflow 与 ScrollArea 共用，覆盖各节点面板。",
+          "previewHint": "上方：纵横向同时出现。下方：单独的横向底条，对应宽表滚动。",
+          "previewLine": "共享滚动条示例行 {{n}} — 宽行用于同时预览纵向滑轨与横向底条",
+          "horizontalOnly": "横向底条",
+          "horizontalHint": "拖动这条底轨 — 与节点宽表相同的横向滚动条。",
+          "styles": {
+            "thin": "纤细",
+            "soft": "柔和",
+            "solid": "实心",
+            "rounded": "圆润",
+            "minimal": "极简",
+            "none": "不接管"
+          }
+        },
+        "fields": {
+          "target": "Field / Choice"
+        },
+        "modulePanel": {
+          "target": "ModulePanel"
+        }
+      }
+    },
+    "data": {
+      "title": "本地数据",
+      "description": "工作区持久化与数据库配置归属本地后端服务管理。",
+      "backendEndpoint": "后端",
+      "backendStatus": "状态",
+      "token": "令牌",
+      "databasePath": "数据库",
+      "databasePathManaged": "由 Local Backend 配置管理",
+      "nextTitle": "数据库路径选择器",
+      "nextDescription": "前端已经有独立的数据设置区；等 Elysia 后端暴露当前数据库路径和更新 API 后，再接入真正的路径选择器。"
+    },
+    "activePreset": "当前预设",
+    "selectPreset": "选择主题预设",
+    "designTheme": {
+      "label": "高级主题 · 设计语言",
+      "description": "与颜色主题平级的第二个维度：它换掉的是整套设计语言——颜色角色、形状、层级、排版、动效、状态层与组件几何。所有数值取自 Google 自己生成的 Material 3 token 字典（@material/web，设计系统 v0.192），没有一个数字是我凭记忆写的。",
+      "nativeBadge": "关闭 · 仅颜色主题",
+      "pickTheme": "设计语言",
+      "native": {
+        "label": "Native（Xiranite 原样）",
+        "description": "不套任何设计语言，颜色主题与既有组件样式完全保持现状。"
+      },
+      "md3": {
+        "label": "Material 3",
+        "description": "由源色生成的 Material You 颜色角色，外加 M3 的形状、层级、字阶、动效曲线、状态层与逐组件 metric。"
+      },
+      "mondrian": {
+        "label": "风格派 · 蒙德里安",
+        "description": "新造型主义：只用三原色与黑白灰，只用矩形与水平/垂直直线，圆角恒 0、阴影恒 none，交互反馈用「对置」。颜色取自公版复现图的量化测量，每个 token 自带来源。"
+      },
+      "wuling": {
+        "label": "武陵 · 玉色工业",
+        "description": "把本仓自己的武陵预设升格成一份设计语言：零模糊的硬偏移投影、2/4/8px 角半径阶梯、账本式等宽小标签、一条 180ms 曲线与蓝图纸网格。每个值都是从现存预设量出来的（带行号），所以默认档位下画面与今天的预设一致。"
+      },
+      "swiss": {
+        "label": "瑞士国际主义 · 国际字体排印",
+        "description": "1950 年代苏黎世的国际字体排印风格，数值取自 SBB 公开规范：全界面零圆角，层级由发丝线与底色台阶承担而不用投影，只有一个功能红，字重只有两档，深度靠网格与点阵纹理。数值来自 SBB 设计系统 v5.2.0 与那份 Swiss 组合参考；颜色这一轴刻意不做取色——只有一个红，而它是信号色。"
+      },
+      "lonestar": {
+        "label": "孤星 · Cassette Futurism",
+        "description": "把《明日方舟》孤星的那套视觉落成 Cassette Futurism 皮肤，骨架与瑞士国际主义同源：只有两块地（机器机箱上铺一张带聚酯色偏的纸）、高亮度橙只留给机械交互、角是 45° 切出来的而不是倒出来的、数字走等宽 tabular，而选中态永远是那份 token contract 的青——绝不是那个橙。没人公布过这个活动的十六进制色值，所以这里每个颜色都是对着四条成文属性做的校准，设置面板照实说明这件事。"
+      },
+      "mondrianAccent": "主动作面用哪个原色",
+      "mondrianLine": "结构线粗细",
+      "cornerScale": "角半径阶梯",
+      "ledgerLabels": "账本式标签",
+      "ledgerLabelsDesc": "徽章与表头用等宽、大写、加字距的小字",
+      "noSeedNote": "这里刻意没有取色控件：这套语言只有一个强调色，而它是信号色（SBB 的 brand 与 product 就是同一个红）。放一个按下去什么都不变的色块是在骗人。",
+      "swissRule": "结构线宽度",
+      "rules": {
+        "1": "1px 发丝线（SBB 分隔线）",
+        "2": "2px border-2",
+        "4": "4px border-4"
+      },
+      "upperLabels": "大写标签装置",
+      "upperLabelsDesc": "只在徽标与表头用大写加字距；正文保持原有的大小写",
+      "monoFigures": "等宽数字",
+      "monoFiguresDesc": "数字与标识走应用等宽字并开 tabular，让一列数按数位对齐而不是按字形对齐",
+      "cutNote": "切角由 token contract 钉死：面板 6px、抬起块 12px——一个组件只用一种切角处理，所以这里没有滑块。",
+      "swissProvenanceNote": "字族与字号仍归颜色主题、字体预设与你的缩放：这一份语言只对「当前已生效的字号」乘系数（ADR-0080）。逐条出处见 docs/advanced-design-theme-md3.md §13。",
+      "lonestarProvenanceNote": "这个活动不存在官方色值表。这里的数值是对四条成文属性加那份提取到的 token contract 做的校准，沿用了姊妹项目已经落过一遍的同一批数——见 docs/advanced-design-theme-md3.md §14。",
+      "accents": {
+        "red": "红",
+        "blue": "蓝",
+        "yellow": "黄"
+      },
+      "lines": {
+        "1": "细",
+        "2": "标准",
+        "3": "粗"
+      },
+      "provenanceNote": "标为 UI 转译的数值（线宽、间距、字号）没有风格派的成文规范值可引 —— 见 docs/advanced-design-theme-md3.md。",
+      "variant": "配色方案变体",
+      "variants": {
+        "tonalSpot": "Tonal Spot · Material You 默认",
+        "neutral": "Neutral · 近乎灰阶，最克制",
+        "vibrant": "Vibrant · 饱和度最高",
+        "expressive": "Expressive · 会主动旋转色相",
+        "fidelity": "Fidelity · 尽量忠于源色",
+        "content": "Content · 适合从图像内容取色",
+        "monochrome": "Monochrome · 纯灰阶",
+        "rainbow": "Rainbow · 色相跨度大，偏娱乐",
+        "fruitSalad": "Fruit Salad · 玩味很强的多色"
+      },
+      "seedSource": "源色来源",
+      "sources": {
+        "manual": "手动指定",
+        "activeTheme": "跟随当前主题",
+        "systemAccent": "系统强调色"
+      },
+      "seed": "源色",
+      "seedHex": "源色十六进制",
+      "seedUnavailable": "本机 webview 没有暴露系统强调色，这个来源在当前平台不可用。",
+      "seedFallback": "请求的取色来源解析失败，已回落到你手动设置的源色：{{seed}}",
+      "contrast": "对比度档位",
+      "contrastHint": "Material 3 的对比度档位，由颜色引擎内部解析（−1 / 0 / 0.5 / 1）。",
+      "contrasts": {
+        "reduced": "降低",
+        "standard": "标准",
+        "medium": "中等",
+        "high": "高"
+      },
+      "shapeScale": "形状缩放",
+      "elevationShadows": "层级阴影",
+      "elevationShadowsDesc": "关掉后只保留 M3 的 surface tint 分层——暗色方案本来就是这样读的。",
+      "dimensions": "接管范围",
+      "dims": {
+        "color": {
+          "label": "颜色角色",
+          "description": "用 Material 动态取色覆盖颜色主题的 CSS 变量。"
+        },
+        "shape": {
+          "label": "形状",
+          "description": "圆角取自 M3 形状阶梯。"
+        },
+        "elevation": {
+          "label": "层级",
+          "description": "M3 层级 0–5（阴影配方 + surface tint）。"
+        },
+        "typography": {
+          "label": "排版",
+          "description": "M3 字阶的字号、行高、字重、字距。字体仍归你——本仓不分发 Roboto Flex。"
+        },
+        "motion": {
+          "label": "动效",
+          "description": "在可交互部件上套用 M3 时长与缓动曲线。"
+        },
+        "states": {
+          "label": "状态层",
+          "description": "悬停 / 聚焦 / 按下 / 拖拽的叠加层，用 M3 规定的不透明度。"
+        },
+        "geometry": {
+          "label": "组件几何",
+          "description": "高度、内边距、描边宽度与间距，逐条取自 M3 组件 metric。"
+        }
+      },
+      "previewCaption": "实时",
+      "previewButton": "保存",
+      "previewTonal": "Tonal",
+      "previewOutline": "描边",
+      "previewBadge": "标签"
+    },
+    "themeSource": {
+      "source": "来源",
+      "repo": "仓库",
+      "evidenceCount": "{{count}} 个证据",
+      "kindInternal": "内部",
+      "kindOnePageLove": "One Page Love",
+      "kindAwwwards": "Awwwards",
+      "kindPublicSite": "公开站点",
+      "kindOpenSource": "开源"
+    },
+    "colorMode": {
+      "label": "颜色模式",
+      "description": "切换主题预设会应用它偏好的默认模式。可在此覆盖。",
+      "system": "跟随系统",
+      "systemDesc": "随系统浅色/深色偏好自动切换",
+      "light": "浅色",
+      "lightDesc": "强制浅色方案",
+      "dark": "深色",
+      "darkDesc": "强制深色方案"
+    },
+    "liquidGlass": {
+      "title": "液态玻璃",
+      "description": "用现成库驱动的玻璃材质覆盖节点、面板、菜单和工作区外观。",
+      "opacity": "不透明度",
+      "blur": "模糊度",
+      "displacement": "折射强度"
+    },
+    "language": {
+      "label": "语言",
+      "subtitle": "界面语言",
+      "description": "选择应用程序界面的显示语言。",
+      "en": "English",
+      "zh": "中文（简体）",
+      "restartHint": "更改立即生效。"
+    },
+    "background": {
+      "title": "背景画布",
+      "mode": "背景模式",
+      "modes": {
+        "grid": "网格线",
+        "dot-grid": "圆点网格",
+        "image": "自定义图片",
+        "none": "纯色"
+      },
+      "uploadImage": "上传图片",
+      "chooseFile": "选择文件",
+      "imageUrl": "或输入图片 URL",
+      "inlineImage": "当前为背景内嵌图片（约 {{size}}），输入新地址可替换",
+      "autoCompressHint": "超过 {{limit}} 的图片会自动缩到 {{edge}} 以内并重新编码后再保存",
+      "compressing": "正在压缩图片…",
+      "compressed": "已自动压缩 {{from}} → {{to}}",
+      "keptOriginal": "已保留原图（{{size}}）",
+      "stillTooLarge": "压缩后仍超过 {{limit}}，请换一张更小的图片",
+      "processFailed": "图片处理失败：{{message}}",
+      "opacity": "不透明度",
+      "blur": "模糊度",
+      "coverTopBar": "覆盖到顶栏",
+      "coverTopBarHint": "背景图延伸至整个窗口，顶栏将变为透明"
+    },
+    "atmospheric": {
+      "title": "氛围效果",
+      "vignette": "晕影深度",
+      "vignetteDesc": "控制工作区画布的边缘暗度。",
+      "grain": "颗粒纹理强度",
+      "silkFinish": "丝绸噪点",
+      "enabled": "已启用",
+      "disabled": "已禁用",
+      "ambient": "环境光",
+      "actionGlow": "动作光晕",
+      "actionGlowDesc": "主按钮背后的柔和彩色光晕",
+      "cardElevation": "卡片高亮",
+      "cardElevationDesc": "高亮表面的细微顶部边框光泽"
+    },
+    "wheel": {
+      "actions": "轮盘扇区",
+      "actionsDesc": "拖动排序；移到「已隐藏」的动作不出现在右上角轮盘上",
+      "visibleActions": "在轮盘上",
+      "hiddenActions": "已隐藏",
+      "dragAction": "拖动 {{action}}",
+      "resetActions": "恢复默认",
+      "overflow": "{{count}} 个动作超出扇区上限，未显示",
+      "radius": "半径",
+      "spacing": "每格角度",
+      "radiusValue": "{{value}} px",
+      "spacingValue": "{{value}}°"
+    },
+    "chrome": {
+      "title": "操作栏",
+      "description": "卡片与节点视图共享的悬浮操作栏。可完全隐藏，或调整位置与样式以减少遮挡。",
+      "visible": "显示操作栏",
+      "visibleDesc": "关闭后操作栏将不再显示（仍可用右键菜单操作组件）",
+      "position": "位置",
+      "positionDesc": "操作栏在卡片上的横向位置",
+      "positionLeft": "左侧",
+      "positionIsland": "灵动岛",
+      "positionRight": "右侧",
+      "style": "样式",
+      "styleDesc": "操作栏的视觉样式，与位置相互独立",
+      "styleDefault": "默认",
+      "styleDefaultDesc": "胶囊式按钮，悬停时浮现",
+      "styleTrafficLight": "红绿灯",
+      "styleTrafficLightDesc": "macOS 风格彩色圆点，常驻可见，悬停显示图标",
+      "islandCustom": "灵动岛自定义",
+      "islandCustomDesc": "调整中间操作栏的尺寸、动画和收起标记位置。",
+      "islandScale": "整体尺寸",
+      "islandMotion": "动画速度",
+      "islandDelay": "按钮延迟",
+      "islandIdleOffset": "横条上移",
+      "actions": "按钮",
+      "actionsDesc": "设置所有节点操作栏的按钮顺序，并隐藏不常用的动作。",
+      "visibleActions": "显示",
+      "hiddenActions": "隐藏",
+      "dragAction": "拖动 {{action}}",
+      "resetActions": "恢复默认按钮",
+      "actionLabels": {
+        "node-help": "节点帮助",
+        "collapse": "折叠",
+        "focus": "聚焦",
+        "fullscreen": "全屏",
+        "float": "打开浮动窗口",
+        "moveToView": "移动到视图",
+        "keepAliveOnViewSwitch": "保持 NeoView 在内存中",
+        "hide": "在当前视图隐藏"
+      }
+    },
+    "floatingWindowCaption": {
+      "title": "独立窗口控制",
+      "description": "设置普通节点桌面独立窗口的控制按钮位置与样式；NeoView 保持自己的窗口栏。",
+      "position": "位置",
+      "positionLeft": "左上",
+      "positionCenter": "顶部居中",
+      "positionRight": "右上",
+      "style": "样式",
+      "styleWindows": "Windows",
+      "styleWindowsDesc": "三个独立、透明底的 Windows 窗口按钮。",
+      "styleCapsule": "胶囊",
+      "styleCapsuleDesc": "复用视图工具栏的整体胶囊容器与紧凑窗口按钮。",
+      "styleTrafficLight": "红绿灯",
+      "styleTrafficLightDesc": "彩色窗口圆点，悬停时显示操作图标。",
+      "autoCollapse": "自动收起胶囊",
+      "autoCollapseDesc": "空闲时收为定位短横；关闭后始终显示完整窗口按钮。"
+    },
+    "alphabetIndex": {
+      "title": "字母索引",
+      "description": "位于工作区底部的紧凑节点启动器。悬停字母浏览对应节点，点击节点即可添加。",
+      "visible": "显示字母索引",
+      "visibleDesc": "让启动器常驻在工作区底部。",
+      "style": "样式",
+      "styles": {
+        "glass": "玻璃",
+        "solid": "实色",
+        "minimal": "极简"
+      },
+      "opacity": "不透明度",
+      "wave": "波浪响应"
+    },
+    "texture": {
+      "title": "纹理画布",
+      "basePalette": "基础调色板",
+      "resetDefaults": "恢复默认",
+      "applyChanges": "应用更改",
+      "paletteLabels": {
+        "bg": "背景",
+        "primary": "主色",
+        "border": "边框",
+        "text": "文本",
+        "void": "深邃",
+        "card": "卡片",
+        "green": "绿色",
+        "deep": "深沉",
+        "surface": "表面",
+        "gold": "金色",
+        "jade": "玉绿",
+        "cyan": "青蓝",
+        "signal": "信号",
+        "paper": "纸面",
+        "ink": "墨色",
+        "blue": "蓝色",
+        "yellow": "黄色",
+        "sky": "天蓝",
+        "chrome": "铬白",
+        "mist": "雾色",
+        "canvas": "画布",
+        "violet": "紫色",
+        "tool": "工具",
+        "orange": "橙色",
+        "nebula": "星云",
+        "star": "星光",
+        "panel": "面板",
+        "photo": "照片",
+        "sage": "鼠尾草绿",
+        "amber": "琥珀"
+      }
+    },
+    "themes": {
+      "wuling": {
+        "label": "武陵 Jade Industrial",
+        "subtitle": "明日方舟终末地",
+        "description": "基于终末地武陵方向的玉绿工业工作台：冷灰实验室表面、硬朗技术面板、Hanken Grotesk 文本和 JetBrains Mono 数据标签，并支持浅色与深色模式。"
+      }
+    },
+    "desktopTray": {
+      "title": "系统托盘",
+      "description": "控制桌面壳在 Windows 通知区域中的驻留。节点可以合并操作到这里，也可以声明自己的独立托盘。",
+      "keepRunning": "让 Xiranite 驻留系统托盘",
+      "keepRunningDescription": "关闭主窗口时仅隐藏窗口，可从托盘图标恢复或明确退出。",
+      "unsupported": "当前运行时没有提供系统托盘 adapter。"
+    },
+    "developerRuntime": {
+      "title": "开发运行时",
+      "description": "查看桌面壳当前连接的前端来源与本地后端。回环通道在启动时确定，不支持运行中热切换。",
+      "hostRuntime": "宿主",
+      "frontend": "前端",
+      "backend": "后端",
+      "token": "令牌",
+      "status": "状态",
+      "configured": "已配置",
+      "notConfigured": "未配置",
+      "statusReady": "就绪",
+      "statusChecking": "检查中",
+      "statusMissingConfig": "缺少配置",
+      "statusUnreachable": "无法连接",
+      "frontendSource": {
+        "vite-dev": "VITE DEV",
+        "packaged": "PACKAGED"
+      },
+      "hotSwitchHint": "开发时先运行 bun run dev，再运行 bun run dev:desktop:attach，让桌面壳附着到现有 Vite/Elysia 端口。需要一个命令启动全部时使用 bun run dev:desktop。",
+      "reload": "重载 WebView",
+      "refreshStatus": "刷新状态",
+      "restartBackend": "重启后端",
+      "restartingBackend": "后端重启中",
+      "copyAttach": "复制附着命令",
+      "copyStart": "复制一键命令",
+      "copied": "已复制",
+      "openFrontend": "打开前端"
+    },
+    "memoryProtection": {
+      "title": "节点内存保护",
+      "description": "限制每次节点任务相对启动基线的 RSS 与 JavaScript Heap 增长，并约束后端保留的运行事件。",
+      "applied": "已应用",
+      "unavailable": "本地后端就绪后才能读取和修改节点内存保护。",
+      "loading": "正在读取当前内存保护策略…",
+      "unsupported": "当前后端不支持运行时内存保护设置。",
+      "retry": "重新读取内存保护设置",
+      "invalid": "存在超出允许范围的值，请修正后再应用。",
+      "unsaved": "当前有尚未应用的修改。",
+      "liveHint": "保存后对新启动的任务立即生效；正在运行的任务继续使用其启动时策略。",
+      "restore": "恢复推荐值",
+      "apply": "应用设置",
+      "saving": "应用中",
+      "scopes": {
+        "default": {
+          "title": "通用节点默认值",
+          "description": "所有没有专属覆盖策略的节点使用这些限制。"
+        }
+      },
+      "fields": {
+        "rss": {
+          "label": "RSS 增长上限",
+          "description": "任务相对启动基线允许增长的常驻内存（{{min}}–{{max}} MiB）。"
+        },
+        "heap": {
+          "label": "Heap 增长上限",
+          "description": "任务相对启动基线允许增长的 JavaScript Heap（{{min}}–{{max}} MiB）。"
+        },
+        "events": {
+          "label": "保留事件数",
+          "description": "后端为单个任务保留的最新进度和日志数量（{{min}}–{{max}}）。"
+        },
+        "interval": {
+          "label": "内存采样间隔",
+          "description": "后端检查进程内存的周期（{{min}}–{{max}} ms）。"
+        }
+      },
+      "units": {
+        "mib": "MiB",
+        "events": "条",
+        "ms": "ms"
+      }
+    },
+    "webview2": {
+      "title": "WebView2 实验特性",
+      "description": "通过 xiranite.config.toml 管理 Chromium Feature 与启动 Switch。启动层保持框架无关，桌面壳只负责映射参数。",
+      "features": "FEATURES",
+      "switches": "SWITCHES",
+      "restartTitle": "重启后生效",
+      "restartDescription": "保存只会更新配置文件。请完全退出并重新启动 Xiranite；重载 WebView 或只重启本地后端不会应用这些参数。",
+      "unavailableTitle": "配置服务不可用",
+      "unavailable": "本地后端就绪后才能读取和保存 xiranite.config.toml。",
+      "errorTitle": "WebView2 配置操作失败",
+      "save": "保存配置",
+      "saving": "保存中",
+      "reset": "恢复推荐默认",
+      "openConfig": "打开配置文件",
+      "openingConfig": "正在打开",
+      "openDevTools": "打开开发者工具",
+      "openingDevTools": "正在打开开发者工具",
+      "saved": "配置已保存",
+      "savedDescription": "新的浏览器启动参数将在下次完整启动 Xiranite 时应用。",
+      "tier": {
+        "recommended": "推荐",
+        "optional": "可选",
+        "experimental": "实验"
+      },
+      "flags": {
+        "jxl": {
+          "label": "JPEG XL",
+          "description": "尝试启用 Chromium 的 JPEG XL 图片解码，使 NeoView Reader 的原始 image/jxl 响应保持直通；仅在当前 WebView2 Runtime 编译了 JXL 解码器时生效。"
+        },
+        "codeCache": {
+          "label": "WebView2 Code Cache",
+          "description": "缓存 JavaScript 编译结果，改善 React、Vite 等前端的二次启动速度。"
+        },
+        "nativeEventDispatch": {
+          "label": "Native Event Dispatch",
+          "description": "启用 WebView2 原生事件派发路径，减少宿主与页面交互的额外开销。"
+        },
+        "draggableRegions": {
+          "label": "Draggable Regions",
+          "description": "为无边框窗口启用 WebView2 可拖拽区域支持。"
+        },
+        "canvasOopRasterization": {
+          "label": "Canvas OOP Rasterization",
+          "description": "将 Canvas 光栅化移出渲染进程，适合画布、白板和图片编辑场景。"
+        },
+        "backForwardCache": {
+          "label": "Back/Forward Cache",
+          "description": "缓存路由历史页面，加快前进与后退；桌面单页应用中的收益通常有限。"
+        },
+        "vulkan": {
+          "label": "Vulkan",
+          "description": "实验性 Vulkan 图形后端；Windows 正式环境仍建议使用默认 D3D 路径。"
+        },
+        "skiaGraphite": {
+          "label": "Skia Graphite",
+          "description": "启用 Skia 的实验性新 GPU 后端，可能存在兼容性和渲染问题。"
+        },
+        "gpuRasterization": {
+          "label": "GPU Rasterization",
+          "description": "让更多页面绘制任务使用 GPU，对长列表、SVG 和复杂阴影可能有帮助。"
+        },
+        "zeroCopy": {
+          "label": "Zero Copy",
+          "description": "减少纹理上传过程中的内存复制，图片密集场景可能受益。"
+        },
+        "parallelDownloading": {
+          "label": "Parallel Downloading",
+          "description": "允许大文件使用并行分段下载，普通桌面页面收益有限。"
+        },
+        "accelerated2dCanvas": {
+          "label": "Accelerated 2D Canvas",
+          "description": "尽可能使用 GPU 加速 2D Canvas，适合 Pixi、Konva 与 Fabric 等图形应用。"
+        }
+      }
+    },
+    "backendBanner": {
+      "missingConfig": "Local Backend 未配置，工作区和节点运行已暂停。",
+      "hostReason": "Local Backend 未能启动：{{reason}}",
+      "unreachable": "Local Backend 无法连接：{{url}}。工作区和节点运行已暂停。",
+      "retry": "重试",
+      "copyDiagnostics": "复制诊断信息",
+      "diagnosticsCopied": "诊断信息已复制",
+      "diagnosticsCopyFailed": "复制诊断信息失败",
+      "openRuntime": "运行时设置"
+    }
+  },
+  "registry": {
+    "title": "模块库",
+    "subtitle": "拖入当前视图，或直接部署到工作区。",
+    "searchPlaceholder": "搜索模块...",
+    "filter": "筛选",
+    "all": "全部",
+    "deploy": "部署",
+    "module": "模块",
+    "description": "说明",
+    "dragHint": "拖入工作区",
+    "deployToCurrent": "部署到当前视图",
+    "dropHint": "松手部署到这里",
+    "version": "版本",
+    "category": "分类",
+    "categories": {
+      "UTILITY": "工具",
+      "STATE": "状态",
+      "PROCESS": "流程",
+      "SYSTEM": "系统",
+      "ORGANIZE": "组织",
+      "META": "元数据",
+      "INPUT": "输入",
+      "OUTPUT": "输出",
+      "FILES": "文件",
+      "NETWORK": "网络",
+      "MEDIA": "媒体",
+      "TEXT": "文本",
+      "OTHER": "其他"
+    },
+    "help": {
+      "title": "节点帮助",
+      "description": "前端 UI 和 CLI 共用的使用说明。",
+      "tooltip": "节点帮助",
+      "open": "打开 {{name}} 帮助",
+      "missingTitle": "暂无帮助条目",
+      "missingDescription": "这个模块还没有暴露共享节点帮助。",
+      "errorTitle": "帮助加载失败",
+      "tabs": {
+        "overview": "概览",
+        "workflows": "工作流",
+        "details": "详情"
+      },
+      "sections": {
+        "whenToUse": "适用场景",
+        "workflows": "工作流",
+        "workflowsDescription": "按照顺序查看 UI 或 CLI 的操作路径。",
+        "fields": "字段",
+        "fieldsDescription": "该节点公开的输入项与默认值。",
+        "safety": "安全提示",
+        "safetyDescription": "实际执行节点前检查可能修改数据的操作。",
+        "links": "相关资源"
+      },
+      "labels": {
+        "tip": "建议",
+        "required": "必填",
+        "defaultValue": "默认：{{value}}",
+        "defaultMode": "默认模式",
+        "destructive": "危险操作",
+        "note": "提示"
+      }
+    }
+  },
+  "overlay": {
+    "registry": "模块库",
+    "settings": "设置",
+    "operations": "节点运行",
+    "history": "运行历史",
+    "deletions": "文件删除历史",
+    "floatingMode": "切换为悬浮遮罩",
+    "dockMode": "固定为推开侧栏",
+    "resize": "拖动调整面板大小",
+    "drag": "拖动移动面板"
+  },
+  "view": {
+    "deletions": {
+      "title": "已删除文件",
+      "subtitle": "跨节点删除台账",
+      "nodeFilter": "按节点筛选",
+      "stateFilter": "按恢复状态筛选",
+      "allNodes": "全部节点",
+      "export": "导出",
+      "restore": "撤回删除",
+      "restorePath": "撤回删除 {{path}}",
+      "restoreUnavailable": "此记录已无法撤回",
+      "restoreFailed": "撤回失败",
+      "undoAvailable": "可撤回",
+      "loading": "正在加载删除历史...",
+      "loadingMore": "正在加载更多删除历史",
+      "loadFailed": "无法加载删除历史",
+      "empty": "当前筛选条件下没有删除记录",
+      "filters": {
+        "all": "全部状态",
+        "recoverable": "仅可撤回",
+        "pending": "处理中",
+        "trashed": "回收站中",
+        "restored": "已恢复",
+        "permanent": "永久删除",
+        "delete-failed": "删除失败",
+        "restore-failed": "恢复失败"
+      },
+      "states": {
+        "pending": "处理中",
+        "trashed": "回收站中",
+        "restored": "已恢复",
+        "permanent": "永久删除",
+        "delete-failed": "删除失败",
+        "restore-failed": "恢复失败"
+      },
+      "kinds": {
+        "trash": "移入回收站",
+        "delete": "永久删除"
+      },
+      "pathKinds": {
+        "file": "文件",
+        "directory": "目录",
+        "symbolic-link": "符号链接",
+        "other": "其他"
+      }
+    },
+    "dashboard": {
+      "scope": "使用数据中心",
+      "title": "运行态智能仪表盘",
+      "subtitle": "集中查看操作历史、后端稳定性、节点运行量和当前工作区的节点构成。",
+      "liveSignal": "实时信号",
+      "loading": "历史同步中...",
+      "rangeDays": "最近 {{count}} 天",
+      "backend": {
+        "ready": "就绪",
+        "missing-config": "缺少配置",
+        "unreachable": "不可达",
+        "checking": "检测中",
+        "unknown": "未知"
+      },
+      "metrics": {
+        "operations": "操作记录",
+        "operationsDetail": "{{count}} 条节点运行记录",
+        "successRate": "成功率",
+        "successRateDetail": "{{count}} 条非成功事件",
+        "components": "已部署节点",
+        "componentsDetail": "{{count}} 条活跃泳道",
+        "avgDuration": "平均耗时",
+        "p95Duration": "P95 {{value}}ms"
+      },
+      "tabs": {
+        "overview": "概览",
+        "stability": "稳定性",
+        "history": "历史"
+      },
+      "charts": {
+        "activity": "操作活跃度",
+        "activityDesc": "按天统计运行历史中的成功、失败和信息事件。",
+        "stability": "运行稳定性",
+        "stabilityDesc": "综合后端健康、成功率和活跃错误计算的稳定分。",
+        "status": "状态分布",
+        "statusDesc": "当前时间范围内的终态操作结果。",
+        "nodeUsage": "节点使用量",
+        "nodeUsageDesc": "当前工作区最常运行或部署的节点。",
+        "duration": "执行延迟",
+        "durationDesc": "按天统计节点运行的平均耗时。"
+      },
+      "health": {
+        "backend": "后端",
+        "history": "历史质量",
+        "active": "活跃操作",
+        "rate": "{{value}}% 成功"
+      },
+      "labels": {
+        "count": "数量",
+        "events": "事件"
+      },
+      "live": {
+        "title": "实时操作流",
+        "description": "内存中正在追踪的最近节点阶段和消息。",
+        "empty": "当前没有实时操作。"
+      },
+      "history": {
+        "title": "最近操作历史",
+        "description": "用于审计和调试的最新持久化运行记录。",
+        "empty": "这个时间范围内没有操作历史。",
+        "columns": {
+          "operation": "操作",
+          "status": "状态",
+          "kind": "类型",
+          "duration": "耗时"
+        }
+      },
+      "categories": {
+        "title": "节点分类",
+        "description": "按注册表分类统计当前工作区的节点构成。",
+        "empty": "暂无节点分类数据。"
+      }
+    },
+    "cards": {
+      "empty": "// 画布为空",
+      "emptyHint": "从模块库部署模块以填充此工作区。",
+      "openRegistry": "打开模块库",
+      "exitFullscreen": "ESC · 退出全屏"
+    },
+    "flow": {
+      "empty": "// 流程画布为空",
+      "openRegistry": "打开模块库",
+      "loadCanvas": "打开流程画布",
+      "loadingCanvas": "正在加载流程画布"
+    },
+    "lane": {
+      "empty": "// 暂无泳道 — 创建一个开始",
+      "addLane": "添加泳道",
+      "emptyLane": "// 空泳道",
+      "defaultName": "默认泳道",
+      "laneN": "泳道 {{n}}"
+    },
+    "floating": {
+      "title": "组件",
+      "missingModule": "缺失模块",
+      "loadingState": "加载持久化的组件状态",
+      "missingTarget": "// 缺失浮动组件目标"
+    },
+    "dockview": {
+      "empty": "// dock 为空",
+      "openRegistry": "打开模块库"
+    },
+    "bento": {
+      "empty": "// 便当视图为空",
+      "emptyHint": "拖入模块，组合成可调整大小的工作区。",
+      "openRegistry": "打开模块库"
+    },
+    "operations": {
+      "title": "节点运行",
+      "subtitle": "查看本地后端节点任务、最近结果与流式事件。",
+      "all": "全部",
+      "active": "运行中",
+      "recent": "最近",
+      "finished": "已结束",
+      "clearLocal": "清理已结束",
+      "cleanupBackend": "清理后端",
+      "empty": "本会话还没有节点运行记录。",
+      "cancel": "取消",
+      "progress": "进度",
+      "events": "{{count}} 个事件",
+      "started": "开始 {{time}}",
+      "updated": "更新 {{time}}",
+      "noMessage": "暂无消息",
+      "noEvents": "暂无流式事件",
+      "phase": {
+        "queued": "排队",
+        "running": "运行中",
+        "paused": "已暂停",
+        "completed": "已完成",
+        "error": "错误",
+        "cancelled": "已取消"
+      }
+    },
+    "history": {
+      "title": "运行历史",
+      "subtitle": "保存节点运行与关键运行操作。",
+      "all": "全部",
+      "success": "成功",
+      "error": "错误",
+      "cancelled": "已取消",
+      "clearAll": "全部清空",
+      "clearNode": "清空节点",
+      "delete": "删除",
+      "copyInput": "复制参数 JSON",
+      "restore": "恢复",
+      "viewDetail": "查看详情",
+      "empty": "暂无运行历史。",
+      "emptyHint": "运行任意节点后会自动保存参数快照。",
+      "loadMore": "加载更多",
+      "loading": "加载中...",
+      "duration": "{{ms}} 毫秒",
+      "events": "{{count}} 个事件",
+      "input": "输入参数",
+      "result": "运行结果",
+      "stats": "统计",
+      "outputPath": "输出路径",
+      "copied": "已复制",
+      "operation": "操作",
+      "kindLabel": "类型",
+      "statusLabel": "状态",
+      "nodeId": "节点",
+      "componentId": "组件",
+      "workspaceId": "工作区",
+      "finishedAt": "完成时间",
+      "inputSummary": "参数",
+      "noInputSummary": "已记录输入，但没有可读摘要",
+      "message": "消息",
+      "durationLabel": "耗时",
+      "actions": "操作",
+      "metadata": "元数据",
+      "output": "输出",
+      "filterNode": "筛选节点...",
+      "filterInput": "筛选参数...",
+      "filterMessage": "筛选消息...",
+      "noInput": "未记录输入参数",
+      "noResult": "无结果数据",
+      "recent": "最近运行",
+      "openCenter": "打开历史中心",
+      "restoreParams": "恢复参数",
+      "noHistoryHint": "运行此节点后会自动保存。",
+      "status": {
+        "success": "成功",
+        "error": "错误",
+        "cancelled": "已取消",
+        "info": "信息"
+      },
+      "statusFilter": {
+        "all": "全部",
+        "success": "成功",
+        "error": "错误",
+        "cancelled": "已取消",
+        "info": "信息"
+      },
+      "kind": {
+        "all": "全部",
+        "node": "节点",
+        "workspace": "工作区",
+        "config": "配置",
+        "system": "系统"
+      }
+    }
+  },
+  "contextMenu": {
+    "focus": "聚焦",
+    "exitFocus": "退出聚焦",
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏",
+    "collapse": "折叠",
+    "expand": "展开",
+    "openWindow": "在新窗口打开",
+    "duplicate": "复制组件",
+    "raise": "提到最前",
+    "layout": "布局",
+    "layoutGrid": "网格",
+    "layoutFocus": "聚焦",
+    "copy": "复制",
+    "copyComponentId": "复制组件 ID",
+    "copyModuleId": "复制模块 ID",
+    "copyDataJson": "复制数据 JSON",
+    "reset": "重置",
+    "clearData": "清空数据",
+    "clearDataConfirmTitle": "清空组件数据？",
+    "clearDataConfirmDescription": "这将移除该组件的所有已存数据，无法撤销。",
+    "resetPosition": "重置位置",
+    "delete": "删除",
+    "deleteConfirmTitle": "删除组件？",
+    "deleteConfirmDescription": "这将从工作区移除该组件。",
+    "deleteDuplicates": "删除重复",
+    "deleteDuplicatesConfirmTitle": "删除所有重复卡片？",
+    "deleteDuplicatesConfirmDescription": "这将删除工作区中所有同类型卡片（共 {{count}} 张），包括当前卡片，无法撤销。",
+    "compact": "紧凑",
+    "viewMode": "视图模式",
+    "appearance": "外观",
+    "background": "背景",
+    "workspace": "工作区",
+    "newWorkspace": "新建工作区",
+    "copyWorkspaceId": "复制工作区 ID",
+    "deleteLane": "删除泳道",
+    "deleteLaneConfirmTitle": "删除泳道？",
+    "deleteLaneConfirmDescription": "这将移除该泳道及其中的组件排序，无法撤销。",
+    "copyLaneId": "复制泳道 ID",
+    "revealInCards": "在卡片中显示",
+    "resetFlowSize": "重置流程尺寸",
+    "hideFromFlow": "在流程中隐藏",
+    "resetBentoLayout": "重置便当布局",
+    "hideFromBento": "在便当中隐藏",
+    "multiSelected": "已选 {{count}} 项",
+    "multiDelete": "批量删除",
+    "multiDeleteConfirmTitle": "删除选中的 {{count}} 个组件？",
+    "multiDuplicate": "批量复制",
+    "multiToggleCollapse": "折叠/展开",
+    "multiMoveToView": "移动到视图",
+    "multiClearSelection": "取消选择"
+  },
+  "module": {
+    "unknown": "// 未知模块: {{id}}",
+    "configCenter": {
+      "trigger": "配置中心",
+      "description": "管理此节点的当前配置、变更历史、备份与可移植配置。",
+      "tabs": { "current": "当前配置", "presets": "预设", "history": "变更历史", "transfer": "导入 / 导出", "backup": "备份 / 同步" },
+      "autoRestore": "启动时恢复",
+      "save": "保存为默认配置",
+      "restore": "恢复已保存配置",
+      "reload": "从 TOML 重新读取",
+      "clear": "清除覆盖",
+      "openFile": "打开 TOML 文件",
+      "dirty": "当前参数与已保存配置不同。",
+      "empty": "暂无配置数据。",
+      "source": { "loading": "正在加载 TOML 视图…", "sections": "配置分区", "fields": "字段", "booleans": "启用开关", "items": "集合项目", "colors": "颜色", "title": "TOML 源码", "copy": "复制", "copied": "已复制" },
+      "preset": "预设",
+      "presetPlaceholder": "选择预设",
+      "presetDescription": "应用可复用的节点配置。",
+      "presetNew": "新建",
+      "presetApply": "应用",
+      "presetRename": "重命名",
+      "presetOverwrite": "覆盖",
+      "presetDelete": "删除",
+      "presetName": "预设名称",
+      "presetPreview": "预设数据",
+      "presetImport": "导入预设",
+      "presetExport": "导出预设",
+      "presetDeleteTitle": "删除此预设？",
+      "presetDeleteDescription": "此操作无法撤销。",
+      "presetOverwriteTitle": "覆盖此预设？",
+      "presetOverwriteDescription": "当前配置将替换此预设保存的值。",
+      "presets": { "empty": "此节点未声明预设。" },
+      "history": { "loading": "正在加载历史…", "unavailable": "此节点暂不支持版本历史。", "empty": "尚未记录配置变更。", "detail": "变更详情", "restore": "恢复此版本", "select": "请选择一个版本。", "noTextChanges": "此备份没有文本变更。" },
+      "export": { "title": "导出配置", "description": "仅导出此节点的配置分区，便于迁移和分享。" },
+      "import": { "title": "导入配置", "description": "粘贴 TOML 或 JSON；只会更新此节点的配置分区。", "action": "导入并重新读取" },
+      "backup": { "title": "本地 Git 备份", "description": "快照按增量保存，并与当前使用的 TOML 文件隔离。", "loading": "正在加载仓库…", "create": "创建备份", "unavailable": "此节点暂不支持 Git 备份。" },
+      "sync": { "title": "远端同步", "description": "拉取只更新历史仓库，不会覆盖当前生效的配置。", "remote": "Git 远端地址", "saveRemote": "保存远端", "pull": "拉取历史", "push": "推送历史" }
+    },
+    "scratch": {
+      "name": "SCRATCH",
+      "description": "临时文本缓冲区。用于快速笔记、变量或复制粘贴操作的临时存储。",
+      "placeholder": "// 临时缓冲 — 输入任何内容...",
+      "chars": "{{count}} 字符"
+    },
+    "counter": {
+      "name": "计数器",
+      "description": "增量跟踪节点。带广播能力的有状态整数跟踪。",
+      "defaultLabel": "计数",
+      "step": "步长",
+      "stepValue": "步长: {{step}}"
+    },
+    "acidMixer": {
+      "name": "ACID MIXER",
+      "description": "复合合成器逻辑板。组合不同数据流以生成新输出。",
+      "synthesize": "合成",
+      "operation": "操作",
+      "streamA": "流_A",
+      "streamB": "流_B",
+      "streamN": "流_{{letter}}"
+    },
+    "terminal": {
+      "name": "终端",
+      "description": "命令行界面节点。直接执行核心系统服务。",
+      "motd1": "WULING_CITY_OS v4.0.0 — 终端接口已激活",
+      "motd2": "输入 'help' 查看可用命令。",
+      "notFound": "未找到命令: {{cmd}}",
+      "help": {
+        "available": "可用命令:",
+        "help": "  help          — 显示此消息",
+        "echo": "  echo <文本>   — 打印文本",
+        "clear": "  clear         — 清空终端",
+        "date": "  date          — 显示当前日期/时间",
+        "whoami": "  whoami        — 显示操作员身份",
+        "status": "  status        — 显示系统状态",
+        "ls": "  ls            — 列出工作区模块"
+      },
+      "whoami": "OPERATOR_01 // SYS_VER_4.0_STABLE",
+      "status": [
+        "系统: 在线",
+        "网络: 正常",
+        "数据库: 已同步",
+        "运行时间: 99.9%"
+      ]
+    },
+    "tasks": {
+      "name": "任务",
+      "description": "线性目标跟踪器。用于操作员工作流的顺序列表管理。",
+      "complete": "{{done}}/{{total}} 已完成",
+      "empty": "// 暂无任务 — 在下方添加",
+      "placeholder": "新任务...",
+      "defaults": {
+        "task1": "初始化工作区配置",
+        "task2": "部署核心模块到活动画布",
+        "task3": "审查系统内核诊断"
+      }
+    },
+    "clock": {
+      "name": "时钟",
+      "description": "全球/本地时间参考。与中央服务器时间高精度同步。",
+      "local": "本地",
+      "sync": "同步"
+    },
+    "calculator": {
+      "name": "计算器",
+      "description": "算术处理单元。本地化计算与转换工具。",
+      "error": "错误"
+    },
+    "blocknote": {
+      "name": "BLOCKNOTE",
+      "description": "基于 shadcn 的 BlockNote 富文本编辑器。块级文档编辑、拖拽重排、斜杠菜单，样式自动跟随项目主题。",
+      "loadEditor": "打开编辑器",
+      "loading": "正在加载编辑器"
+    },
+    "settings": {
+      "name": "设置",
+      "description": "通用项目设置：外观、背景、运行时与本地数据配置。"
+    },
+    "module-registry": {
+      "name": "模块库",
+      "description": "浏览、搜索并部署所有可用模块到工作区。"
+    },
+    "node-history": {
+      "name": "运行历史",
+      "description": "节点、工作区、配置与系统事件的运行时历史记录，支持筛选。"
+    },
+    "node-operations": {
+      "name": "节点运行",
+      "description": "本地后端节点任务实时监控：运行中、最近完成与已结束的操作及流式事件。"
+    },
+    "enginev": {
+      "name": "EngineV",
+      "description": "扫描、筛选、重命名、删除并导出 Wallpaper Engine 创意工坊文件夹。",
+      "title": "enginev",
+      "meta": "已扫描 {{scanned}} / 可见 {{visible}} / 已选 {{selected}}",
+      "starting": "启动中",
+      "pasteWorkshopPath": "粘贴工坊路径",
+      "scan": "扫描",
+      "filter": "筛选",
+      "rename": "重命名",
+      "copyResults": "复制结果",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "workshopPath": "工坊路径",
+      "ids": "ID",
+      "titleFilter": "标题筛选",
+      "rating": "评级",
+      "type": "类型",
+      "renameTemplate": "重命名模板",
+      "targetExportPath": "目标/导出路径",
+      "dryRun": "预演",
+      "copyMode": "复制模式",
+      "delete": "删除",
+      "export": "导出",
+      "stats": {
+        "total": "总数",
+        "filtered": "已筛选",
+        "types": "类型",
+        "ok": "成功",
+        "failed": "失败",
+        "visible": "可见",
+        "scanned": "已扫描",
+        "selected": "选中"
+      },
+      "unknown": "未知",
+      "unrated": "未评级",
+      "wallpaperLine": "{{id}} / {{type}} / {{rating}} / {{title}}",
+      "readyToScan": "准备扫描 Wallpaper Engine 创意工坊文件夹。",
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "completed": "完成",
+        "error": "失败"
+      },
+      "statusDesc": {
+        "idle": "选择工坊路径后即可扫描。",
+        "running": "EngineV 正在处理当前任务。",
+        "completed": "上次任务已完成。",
+        "error": "上次任务失败，请查看结果和日志。"
+      },
+      "buttons": {
+        "run": "运行",
+        "dryRun": "预演",
+        "copy": "复制",
+        "copyResults": "复制结果",
+        "clearState": "清空状态",
+        "cancel": "取消",
+        "confirmDelete": "确认删除",
+        "quickAction": "快速{{action}}",
+        "executeAction": "执行{{action}}"
+      },
+      "sections": {
+        "input": "输入",
+        "inputDesc": "工坊路径、执行动作和高频按钮固定在顶部，不被画廊和日志挤出视野。",
+        "filter": "筛选",
+        "writeOptions": "写入选项"
+      },
+      "tabs": {
+        "gallery": "画廊",
+        "results": "结果",
+        "logs": "日志"
+      },
+      "empty": {
+        "results": "运行重命名、删除或导出后，这里会显示计划和错误明细。",
+        "logs": "运行日志会显示在这里。",
+        "gallery": "还没有画廊数据",
+        "galleryHint": "选择 Wallpaper Engine 工坊目录后运行扫描，图片预览会直接使用本地文件 URL 显示。",
+        "waitingRun": "等待运行",
+        "itemCount": "{{count}} 项",
+        "visibleItems": "{{count}} 个可见项目",
+        "truncatedItems": "仅显示前 {{visible}} 项，共 {{total}} 项。"
+      },
+      "dialog": {
+        "confirmDeleteTitle": "确认删除所选项目？",
+        "confirmDeleteDesc": "将处理 {{count}} 个 Wallpaper Engine 工坊项目。默认会走回收站；如果关闭预演并启用永久删除，操作不可恢复。"
+      },
+      "aria": {
+        "exportFormat": "enginev 导出格式",
+        "actionSelect": "enginev 动作",
+        "workshopPath": "Wallpaper Engine 工坊路径",
+        "pastePath": "enginev 粘贴路径",
+        "useDefaultPath": "enginev 使用默认路径",
+        "filterSelect": "筛选和选择",
+        "templateOptions": "enginev 模板和写入选项",
+        "defaults": "enginev 默认配置",
+        "gallerySettings": "enginev 画廊显示设置",
+        "galleryColumns": "enginev 画廊每行数量",
+        "deleteSelected": "删除所选",
+        "selectWallpaper": "选择 {{title}}",
+        "copyWallpaperPath": "复制 {{title}} 路径",
+        "copyPath": "复制路径"
+      },
+      "summary": {
+        "visibleSelected": "{{visible}} 可见 · {{selected}} 选中",
+        "headerLine": "{{visible}} 可见 / {{scanned}} 已扫描 / {{selected}} 选中",
+        "failedItems": "{{count}} 个失败项",
+        "visibleItems": "{{count}} 个可见项目",
+        "selectWorkshop": "选择工坊目录"
+      },
+      "actionStart": "正在{{action}}。",
+      "noNative": "Local Backend 暂不可用，无法运行 enginev。",
+      "pathRequired": "请先选择 Wallpaper Engine 工坊目录，或先完成一次扫描。",
+      "deleteRequiresSelection": "删除前请先在画廊中选择至少一个项目。",
+      "exportRequiresPath": "导出需要目标文件路径。"
+    },
+    "bandia": {
+      "name": "Bandia",
+      "description": "使用 Bandizip 批量提取、压缩、重打包并导出归档路径。",
+      "title": "bandia",
+      "run": "运行",
+      "pasteInput": "粘贴输入",
+      "exportEfu": "导出 EFU",
+      "copyResults": "复制结果",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "extract": "提取",
+      "compress": "压缩",
+      "dryRun": "预演",
+      "live": "实时",
+      "delete": "删除",
+      "trash": "回收站",
+      "parallel": "并行",
+      "deleteSource": "删除源文件",
+      "workers": "工作线程数",
+      "prefix": "前缀",
+      "overwrite": "覆盖",
+      "outputDir": "输出目录",
+      "archivePaths": "归档路径",
+      "sourcePaths": "源路径",
+      "placeholderArchivePaths": "每行一个 .zip/.7z/.rar 路径",
+      "placeholderSourcePaths": "每行一个要压缩的文件夹/文件",
+      "mappings": "映射",
+      "done": "完成",
+      "failed": "失败",
+      "efu": "EFU",
+      "progress": {
+        "start": "{{action}}开始"
+      },
+      "noResult": "无结果",
+      "starting": "启动中",
+      "ok": "成功",
+      "fail": "失败",
+      "meta": "{{mode}} / {{state}} / {{archives}} 个归档 / {{mappings}} 个映射",
+      "modes": {
+        "extract": "提取",
+        "compress": "压缩"
+      },
+      "extractModes": {
+        "auto": "自动",
+        "normal": "普通"
+      },
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "success": "完成",
+        "error": "失败"
+      },
+      "desc": {
+        "idle": "粘贴路径或映射后即可预演。",
+        "running": "Bandia 正在处理当前队列。",
+        "success": "上次任务已完成。",
+        "error": "上次任务失败，请查看结果和日志。"
+      },
+      "actions": {
+        "stop": "停止",
+        "exportEfu": "导出 EFU",
+        "copyResults": "复制结果",
+        "clearState": "清空状态",
+        "confirmExecute": "确认执行",
+        "runLabel": "{{mode}}{{action}}"
+      },
+      "labels": {
+        "task": "任务",
+        "taskHint": "选择解压、压缩或重打包；危险写入默认以预演保护。",
+        "switches": "关键开关",
+        "advanced": "高级选项"
+      },
+      "confirm": {
+        "title": "确认真实执行 Bandia？",
+        "description": "当前关闭了预演，并启用了删除源文件相关选项。请确认路径、映射和回收站策略无误后再继续。"
+      },
+      "summary": {
+        "failed": "{{count}} 个失败",
+        "archives": "{{count}} 个归档 / {{mode}}",
+        "items": "{{count}} 项 / {{mode}}"
+      },
+      "subtitle": {
+        "full": "{{label}} / {{mode}} / {{count}} 项"
+      },
+      "tabs": {
+        "results": "结果",
+        "logs": "日志"
+      },
+      "aria": {
+        "running": "bandia running"
+      },
+      "error": {
+        "noRunEnv": "当前环境没有本地运行能力，请使用桌面模式或 CLI。",
+        "stopRequested": "已请求停止"
+      },
+      "empty": "无结果",
+      "mode": {
+        "dry": "预演",
+        "live": "真实",
+        "execute": "执行",
+        "liveExecute": "真实执行"
+      },
+      "actionLabel": {
+        "extract": "解压",
+        "compress": "压缩",
+        "repack": "重打包",
+        "export_efu": "导出"
+      }
+    },
+    "cleanf": {
+      "name": "Cleanf",
+      "description": "清理空文件夹、备份文件、临时文件夹和垃圾文件。",
+      "title": "cleanf",
+      "run": "运行",
+      "pastePaths": "粘贴路径",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "preview": "预览",
+      "delete": "删除",
+      "paths": "路径",
+      "placeholderPaths": "每行一个文件夹路径",
+      "found": "已找到",
+      "skipped": "已跳过",
+      "excludeKeywords": "排除关键字",
+      "noResult": "无结果",
+      "previewing": "预览中...",
+      "cleaning": "清理中...",
+      "meta": "{{paths}} 个路径 / {{presets}} 个预设 / {{state}}",
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "success": "完成",
+        "error": "失败"
+      },
+      "desc": {
+        "idle": "粘贴目录并选择预设后预演或清理。",
+        "running": "Cleanf 正在扫描并清理。",
+        "success": "上次任务已完成。",
+        "error": "上次任务失败，请查看日志。"
+      },
+      "actions": {
+        "copyResults": "复制结果",
+        "clearState": "清空状态",
+        "dryClean": "预演清理",
+        "liveClean": "真实清理",
+        "confirmExecute": "确认执行",
+        "undoLastCleanup": "撤销上次清理",
+        "pastePaths": "粘贴路径",
+        "clearPaths": "清空路径"
+      },
+      "labels": {
+        "input": "输入",
+        "inputHint": "粘贴目录，选择清理预设，预演确认后再移入系统回收站。",
+        "presets": "清理预设",
+        "switches": "关键开关"
+      },
+      "fields": {
+        "scanPaths": {
+          "label": "扫描路径",
+          "count": "{{count}} 条",
+          "placeholder": "每行一个文件夹路径\nD:/gallery\nD:/archives"
+        },
+        "previewMode": {
+          "label": "预演模式",
+          "description": "开启后只扫描并预览待清理项目，不写入文件系统。关闭后会将匹配项移入系统回收站。"
+        },
+        "excludeKeywords": {
+          "label": "排除关键词",
+          "placeholder": "逗号分隔，如: node_modules, .git"
+        }
+      },
+      "presets": {
+        "emptyFolders": { "label": "空文件夹", "description": "递归删除所有空文件夹。" },
+        "backupFiles": { "label": "备份文件", "description": "删除 .bak 备份文件。" },
+        "tempFolders": { "label": "临时文件夹", "description": "删除 temp_ 开头的文件夹。" },
+        "trashFiles": { "label": "垃圾文件", "description": "删除 .trash 文件和文件夹。" },
+        "hbTxtFiles": { "label": "[#hb] 文本", "description": "删除 [#hb] 开头的 txt 文件。" },
+        "logFiles": { "label": "日志文件", "description": "删除 .log 和轮转日志文件。" },
+        "upscale": { "label": "Upscale 缓存", "description": "删除 .upbak 文件。" }
+      },
+      "advanced": {
+        "title": "高级选项",
+        "description": "排除关键词用于跳过路径中包含这些字符串的项目。"
+      },
+      "defaults": {
+        "title": "默认配置",
+        "description": "保存 Cleanf 的路径、预设和预演开关到明文配置。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "clearOverride": "清除覆盖",
+        "view": "查看配置",
+        "dialogTitle": "Cleanf 配置",
+        "dialogDescription": "当前 nodes.cleanf 默认值和配置文件位置。",
+        "openFile": "打开文件",
+        "noConfig": "nodes.cleanf 暂无默认配置",
+        "configFile": "配置文件",
+        "noConfigService": "未连接本地配置服务"
+      },
+      "results": {
+        "itemCount": "{{count}} 项",
+        "waiting": "等待运行",
+        "total": "总计 {{count}}",
+        "restored": "已恢复 {{count}} 项",
+        "restoredBadge": "恢复 {{count}}",
+        "empty": "运行后会显示待删除项目和分类统计。"
+      },
+      "logs": {
+        "lineCount": "{{count}} 行",
+        "waiting": "等待日志",
+        "empty": "运行日志会显示在这里。"
+      },
+      "confirm": {
+        "title": "确认真实执行 Cleanf？",
+        "description": "当前会将扫描到的文件和文件夹移入系统回收站，启用了 {{presets}} 个预设，共 {{paths}} 条路径。完成后可通过“撤销上次清理”恢复，请确认路径和排除关键词无误。"
+      },
+      "summary": {
+        "removed": "已移入回收站 {{removed}} 项 / 跳过 {{skipped}} 项",
+        "restored": "已恢复 {{restored}} 项 / 失败 {{failed}} 项",
+        "paths": "{{paths}} 条路径 / {{presets}} 预设 / {{mode}}",
+        "empty": "粘贴目录后预演清理结果"
+      },
+      "subtitle": {
+        "full": "{{paths}} 路径 / {{presets}} 预设 / {{mode}}"
+      },
+      "tabs": {
+        "results": "结果",
+        "logs": "日志"
+      },
+      "aria": {
+        "running": "cleanf running",
+        "scanPaths": "cleanf scan paths",
+        "advancedOptions": "cleanf advanced options",
+        "defaults": "cleanf defaults",
+        "description": "{{label}}说明"
+      },
+      "error": {
+        "noScanPath": "请先输入至少一个扫描路径。",
+        "noRunEnv": "当前环境没有本地运行能力，请使用桌面模式或 CLI。"
+      },
+      "empty": "无结果",
+      "mode": {
+        "dry": "预演",
+        "live": "真实",
+        "liveExecute": "真实执行"
+      },
+      "stats": {
+        "total": "总计",
+        "skipped": "跳过",
+        "preview": "预演项",
+        "progress": "进度"
+      },
+      "gate": {
+        "progress": "进度",
+        "presetsCount": "{{count}} 预设",
+        "pathsCount": "{{count}} 路径",
+        "previewHint": "预演模式：仅扫描不删除。",
+        "liveHint": "真实模式：匹配项将移入系统回收站，可撤销恢复。"
+      },
+      "actionLabel": {
+        "preview": "预演",
+        "clean": "清理",
+        "undo": "撤销"
+      },
+      "progress": {
+        "start": "{{action}}开始"
+      }
+    },
+    "classq": {
+      "name": "ClassQ",
+      "description": "通过关键词递归分类文件夹，并把等待项路由到对应目标。",
+      "identity": {
+        "subtitle": "关键词递归分类工具",
+        "description": "通过关键词递归识别目录，并把等待项路由到对应分类目标。"
+      },
+      "command": {
+        "title": "分类配置",
+        "description": "定义扫描根目录、关键词目录和等待目录规则。",
+        "input": "输入目录",
+        "inputDescription": "每行一个需要递归扫描的根目录。",
+        "folders": "分类目录规则",
+        "foldersDescription": "关键词目录负责命中，等待目录接收同级待分类项。"
+      },
+      "config": {
+        "trigger": "配置管理",
+        "title": "配置管理",
+        "description": "保存可复用的分类规则，或恢复已保存的默认配置。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "reload": "重新读取",
+        "view": "查看配置",
+        "previewTitle": "默认配置",
+        "noPath": "尚未连接配置文件",
+        "openFile": "打开配置文件",
+        "dirty": "当前分类规则与已保存默认值不同。"
+      },
+      "fields": {
+        "roots": "根目录，每行一个",
+        "keyword": "关键词目录",
+        "wait": "等待目录"
+      },
+      "action": {
+        "scanLabel": "扫描根目录",
+        "scanShort": "扫描",
+        "classifyLabel": "执行分类",
+        "classifyShort": "分类",
+        "classifyPreview": "预览分类"
+      },
+      "mode": {
+        "scan": {
+          "title": "递归扫描",
+          "description": "递归扫描关键词目录并生成等待项计划。"
+        },
+        "classify": {
+          "previewDescription": "按当前移动或复制规则生成分类结果，不改动文件。",
+          "liveDescription": "按当前规则实际处理就绪项，执行前需要确认。"
+        }
+      },
+      "transfer": {
+        "move": "移动",
+        "copy": "复制"
+      },
+      "risk": {
+        "dryRun": "预览",
+        "dryRunDescription": "不改动文件",
+        "live": "实时",
+        "liveDescription": "会改动文件"
+      },
+      "topology": {
+        "title": "路由拓扑",
+        "description": "显示来源、分类路由和目标目录。"
+      },
+      "explorer": {
+        "tree": "递归文件树",
+        "description": "按根目录和父目录展开真实扫描结果。"
+      },
+      "detail": {
+        "title": "结果详情"
+      },
+      "metrics": {
+        "roots": "根目录",
+        "keyword": "关键词",
+        "wait": "等待",
+        "ready": "就绪",
+        "moved": "已移动",
+        "progress": "进度"
+      },
+      "tabs": {
+        "plan": "计划",
+        "issues": "问题",
+        "log": "日志"
+      },
+      "table": {
+        "source": "源节点",
+        "target": "等待目录目标",
+        "type": "类型",
+        "status": "状态"
+      },
+      "type": {
+        "folder": "目录",
+        "file": "文件"
+      },
+      "empty": {
+        "addRoots": "添加根目录以预览分类计划。",
+        "runScan": "运行扫描后，这里会显示递归文件树和分类计划。",
+        "treeTitle": "等待递归文件树",
+        "topologyTitle": "等待路由拓扑",
+        "detailTitle": "等待分类结果",
+        "issues": "暂无问题",
+        "logs": "运行日志会显示在这里。",
+        "table": "此目录没有等待项。"
+      },
+      "plan": {
+        "itemCount": "{{count}} 项",
+        "waiting": "等待扫描"
+      },
+      "text": {
+        "lineCount": "{{count}} 行"
+      },
+      "actions": {
+        "copy": "复制",
+        "copyPlan": "复制计划",
+        "copyLogs": "复制日志"
+      },
+      "confirm": {
+        "title": "确认实时执行 ClassQ 分类？",
+        "description": "ClassQ 将移动或复制就绪的同级项目到等待目录；已存在的目标会作为冲突跳过。",
+        "cancel": "取消",
+        "classify": "确认分类"
+      },
+      "status": {
+        "ready": "就绪",
+        "readyDescription": "扫描根目录中的关键词目录和等待项。",
+        "running": "运行中",
+        "runningDescription": "正在扫描关键词目录或处理等待项。",
+        "done": "完成",
+        "doneDescription": "上次 ClassQ 任务已完成。",
+        "failed": "失败",
+        "failedDescription": "上次任务失败，请查看问题和日志。",
+        "started": "{{action}}已开始",
+        "item": {
+          "found": "已找到",
+          "ready": "就绪",
+          "skipped": "已跳过",
+          "moved": "已移动",
+          "copied": "已复制",
+          "conflict": "冲突",
+          "error": "错误"
+        }
+      },
+      "summary": {
+        "result": "关键词 {{keyword}} / 等待 {{wait}} / 就绪 {{ready}}",
+        "roots": "{{count}} 个根目录 / {{action}}",
+        "idle": "通过关键词递归分类文件夹"
+      }
+    },
+    "crashu": {
+      "name": "Crashu",
+      "description": "匹配相似文件夹名并可选地移动匹配的文件夹。",
+      "title": "crashu",
+      "scan": "扫描",
+      "plan": "计划",
+      "move": "移动",
+      "copyResults": "复制结果",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "sources": "源",
+      "targets": "目标",
+      "placeholderSources": "每行一个源文件夹",
+      "placeholderTargets": "手动目标名，每行一个",
+      "targetFolder": "目标文件夹",
+      "pasteTargetFolder": "粘贴目标文件夹",
+      "destination": "目标路径",
+      "pasteDestination": "粘贴目标路径",
+      "threshold": "阈值",
+      "autoMove": "自动移动",
+      "toTarget": "移至目标",
+      "toSource": "移至源",
+      "skip": "跳过",
+      "rename": "重命名",
+      "overwrite": "覆盖",
+      "matches": "匹配数",
+      "moved": "已移动",
+      "skipped": "已跳过",
+      "errors": "错误",
+      "noMatches": "暂无匹配",
+      "meta": "{{phase}} / {{matches}} 个匹配",
+      "phases": {
+        "idle": "空闲",
+        "scan": "扫描",
+        "plan": "计划",
+        "move": "移动",
+        "moving": "移动中",
+        "completed": "已完成",
+        "error": "错误"
+      },
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "success": "完成",
+        "error": "失败"
+      },
+      "desc": {
+        "idle": "粘贴源目录和目标名称后开始匹配。",
+        "running": "Crashu 正在匹配或移动文件夹。",
+        "success": "上次任务已完成。",
+        "error": "上次任务失败，请查看结果和日志。"
+      },
+      "actions": {
+        "scanMatch": "扫描匹配",
+        "plan": "生成计划",
+        "copyResults": "复制结果",
+        "copy": "复制",
+        "clearState": "清空状态",
+        "dryMove": "预演移动",
+        "liveMove": "真实移动",
+        "confirmExecute": "确认执行"
+      },
+      "labels": {
+        "input": "输入",
+        "inputHint": "源目录与目标名称用于相似度匹配；目标目录可自动读取子文件夹。",
+        "switches": "关键开关",
+        "advanced": "高级选项",
+        "moveDirection": "移动方向",
+        "conflictPolicy": "冲突策略"
+      },
+      "input": {
+        "sourceFolders": "源目录",
+        "targetNames": "目标名称",
+        "sourcePlaceholder": "每行一个源根目录\nD:/source/gallery",
+        "targetPlaceholder": "每行一个目标文件夹名，或填写目标目录自动读取",
+        "pasteSources": "粘贴源目录",
+        "clearSources": "清空源目录",
+        "lineCount": "{{count}} 条"
+      },
+      "fields": {
+        "preview": "预演",
+        "previewDescription": "开启后只扫描和生成计划，不真实移动文件夹。关闭后会执行真实移动。",
+        "autoMove": "自动移动",
+        "autoMoveDescription": "扫描后直接执行移动，无需单独触发。需要填写目标目录。",
+        "similarityThreshold": "相似度阈值",
+        "targetFolder": "目标目录",
+        "targetFolderPlaceholder": "填写目录可自动读取子文件夹作为目标名",
+        "destinationRoot": "移动目标根目录",
+        "destinationRootPlaceholder": "移动操作的最终根目录"
+      },
+      "advanced": {
+        "title": "高级选项",
+        "description": "相似度阈值、目标目录和冲突策略集中在这里。"
+      },
+      "execution": {
+        "previewState": "预演：不移动文件夹",
+        "liveState": "真实：将移动文件夹",
+        "previewDescription": "生成匹配与移动计划，不会写入文件系统。",
+        "liveDescription": "执行前仍会要求确认真实移动。"
+      },
+      "moveDirection": {
+        "toTarget": "源→目标",
+        "toSource": "目标→源"
+      },
+      "conflictPolicy": {
+        "skip": "跳过",
+        "rename": "改名",
+        "overwrite": "覆盖"
+      },
+      "defaults": {
+        "title": "默认配置",
+        "description": "保存 Crashu 的源目录、目标和移动策略到明文配置。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "clear": "清除覆盖",
+        "view": "查看配置",
+        "openFile": "打开文件",
+        "dialogTitle": "Crashu 配置",
+        "dialogDescription": "当前 nodes.crashu 默认值和配置文件位置。",
+        "none": "# nodes.crashu 暂无默认配置\n",
+        "configFile": "配置文件",
+        "noConfigService": "未连接本地配置服务"
+      },
+      "boards": {
+        "itemCount": "{{count}} 项",
+        "lineCount": "{{count}} 行",
+        "matches": "匹配 {{count}}",
+        "waitingRun": "等待运行",
+        "waitingLogs": "等待日志",
+        "matchListEmpty": "运行后会显示匹配和移动计划。",
+        "matchBoardEmpty": "运行后显示匹配通道、相似度和移动计划。",
+        "logsEmpty": "运行日志会显示在这里。",
+        "unspecified": "未指定"
+      },
+      "planStatus": {
+        "success": "完成",
+        "error": "错误",
+        "skipped": "跳过",
+        "pending": "待执行"
+      },
+      "confirm": {
+        "title": "确认真实执行 Crashu？",
+        "description": "当前将真实移动匹配的文件夹到 {{destination}}，共 {{sources}} 个源目录，相似度阈值 {{threshold}}%。移动后无法撤销，请确认目标和冲突策略。"
+      },
+      "summary": {
+        "matches": "匹配 {{matched}} / 移动 {{moved}}",
+        "sources": "{{sources}} 源 / {{targets}} 目标 / {{mode}}",
+        "empty": "粘贴源目录后开始匹配"
+      },
+      "subtitle": {
+        "full": "{{sources}} 源 / {{targets}} 目标 / {{mode}}"
+      },
+      "tabs": {
+        "results": "结果",
+        "logs": "日志"
+      },
+      "aria": {
+        "running": "crashu running",
+        "sourcePaths": "crashu source paths",
+        "targetNames": "crashu target names",
+        "moveDirection": "crashu move direction",
+        "conflictPolicy": "crashu conflict policy",
+        "advancedOptions": "crashu advanced options",
+        "defaults": "crashu defaults",
+        "description": "{{label}}说明",
+        "previewSwitch": "crashu 预演切换"
+      },
+      "error": {
+        "noSource": "请先输入至少一个源目录。",
+        "noRunEnv": "当前环境没有本地运行能力，请使用桌面模式或 CLI。"
+      },
+      "empty": "暂无匹配",
+      "mode": {
+        "dry": "预演",
+        "live": "真实",
+        "liveExecute": "真实执行"
+      },
+      "stats": {
+        "sources": "源",
+        "targets": "目标",
+        "matches": "匹配",
+        "moved": "移动",
+        "skipped": "跳过",
+        "progress": "进度",
+        "error": "错误"
+      },
+      "actionLabel": {
+        "scan": "扫描",
+        "plan": "计划",
+        "move": "移动"
+      },
+      "progress": {
+        "start": "{{action}}开始"
+      }
+    },
+    "dissolvef": {
+      "name": "DissolveF",
+      "description": "拆解嵌套、单媒体、单归档或直接文件夹，支持撤销历史。",
+      "title": "dissolvef",
+      "plan": "计划",
+      "run": "运行",
+      "history": "历史",
+      "undo": "撤销",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "folder": "文件夹",
+      "pasteFolder": "粘贴文件夹",
+      "historyPath": "历史",
+      "bundle": "打包",
+      "direct": "直接",
+      "nested": "嵌套",
+      "media": "媒体",
+      "archive": "归档",
+      "preview": "预览",
+      "protect": "保护",
+      "similarity": "相似度",
+      "exclude": "排除",
+      "threshold": "阈值",
+      "fileConflict": "文件冲突",
+      "dirConflict": "目录冲突",
+      "skipped": "已跳过",
+      "errors": "错误",
+      "operations": "个操作",
+      "undone": "已撤销",
+      "none": "无",
+      "noResult": "无结果",
+      "meta": "{{phase}} / {{mode}}",
+      "phases": {
+        "idle": "空闲",
+        "running": "运行中",
+        "completed": "已完成",
+        "error": "错误"
+      },
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "success": "完成",
+        "error": "失败"
+      },
+      "desc": {
+        "idle": "粘贴文件夹后预演或溶解。",
+        "running": "Dissolvef 正在生成计划或执行溶解。",
+        "success": "上次任务已完成。",
+        "error": "上次任务失败，请查看计划和日志。"
+      },
+      "actions": {
+        "history": "读取历史",
+        "undoRecent": "撤销最近",
+        "clearState": "清空状态",
+        "dryDissolve": "预演溶解",
+        "liveDissolve": "真实溶解",
+        "confirmExecute": "确认执行",
+        "pasteFolder": "粘贴文件夹",
+        "clearPath": "清空路径",
+        "copy": "复制",
+        "preview": "预演",
+        "execute": "执行",
+        "undoItem": "撤销 {{id}}"
+      },
+      "labels": {
+        "input": "输入",
+        "inputHint": "选择捆绑或直提模式，预演确认后再执行真实溶解。",
+        "switches": "关键开关",
+        "advanced": "高级选项",
+        "defaults": "默认配置",
+        "targetFolder": "目标文件夹",
+        "similarityThreshold": "相似度阈值",
+        "excludeKeywords": "排除关键词",
+        "historyPath": "历史路径",
+        "fileConflict": "文件冲突",
+        "dirConflict": "目录冲突",
+        "modePipeline": "溶解流水线"
+      },
+      "switches": {
+        "preview": "预演",
+        "protectFirstLevel": "保护一级",
+        "enableSimilarity": "相似度校验",
+        "previewDescription": "开启后只生成计划，不移动或删除文件。关闭后会真实执行。",
+        "protectFirstLevelDescription": "开启后跳过第一层子文件夹，避免误伤顶层归档结构。",
+        "enableSimilarityDescription": "开启后比对父文件夹与子项名称相似度，低于阈值时跳过。"
+      },
+      "confirm": {
+        "title": "确认真实执行 Dissolvef？",
+        "description": "当前将真实移动和删除文件夹，模式为 {{mode}}，目标 {{path}}。操作会记录到历史，可撤销但无法还原删除。"
+      },
+      "summary": {
+        "total": "{{total}} 项 / {{success}} 成功",
+        "mode": "{{mode}} / {{preview}}",
+        "empty": "粘贴文件夹后开始溶解"
+      },
+      "subtitle": {
+        "full": "{{mode}} / {{preview}}"
+      },
+      "tabs": {
+        "plan": "计划",
+        "history": "历史",
+        "logs": "日志"
+      },
+      "aria": {
+        "running": "dissolvef running",
+        "targetFolder": "dissolvef target folder",
+        "advancedOptions": "dissolvef advanced options",
+        "defaults": "dissolvef defaults",
+        "bundleMode": "捆绑模式",
+        "directMode": "直提模式",
+        "modeStrategy": "dissolvef 模式策略",
+        "bundleModes": "dissolvef 捆绑模式",
+        "previewSwitch": "dissolvef 预演切换",
+        "description": "{{label}}说明"
+      },
+      "error": {
+        "noPath": "请先输入目标文件夹。",
+        "noRunEnv": "当前环境没有本地运行能力，请使用桌面模式或 CLI。"
+      },
+      "empty": "无结果",
+      "mode": {
+        "bundle": "捆绑",
+        "direct": "直提",
+        "dry": "预演",
+        "live": "真实",
+        "liveExecute": "真实执行"
+      },
+      "stats": {
+        "total": "总计",
+        "nested": "嵌套",
+        "media": "媒体",
+        "archive": "归档",
+        "skipped": "跳过",
+        "progress": "进度",
+        "failed": "失败",
+        "error": "错误"
+      },
+      "actionLabel": {
+        "plan": "预演",
+        "dissolve": "溶解",
+        "history": "历史",
+        "undo": "撤销"
+      },
+      "progress": {
+        "start": "{{action}}开始"
+      },
+      "input": {
+        "pathPlaceholder": "要溶解的文件夹路径\nD:/library/outer"
+      },
+      "bundleModes": {
+        "nested": {
+          "label": "嵌套溶解",
+          "shortLabel": "嵌套",
+          "description": "把单层嵌套子文件夹的内容上提到父级，并删除空壳。"
+        },
+        "media": {
+          "label": "单媒体溶解",
+          "shortLabel": "媒体",
+          "description": "把文件夹中的单个媒体文件上提，并删除空壳。"
+        },
+        "archive": {
+          "label": "单归档溶解",
+          "shortLabel": "归档",
+          "description": "把文件夹中的单个归档文件上提，并删除空壳。"
+        }
+      },
+      "advanced": {
+        "title": "高级选项",
+        "description": "相似度阈值、排除关键词、冲突策略和历史路径集中在这里。",
+        "excludePlaceholder": "逗号或换行分隔，如：CG, pixiv",
+        "historyPlaceholder": "留空则使用默认历史文件"
+      },
+      "conflictModes": {
+        "auto": { "label": "自动" },
+        "skip": { "label": "跳过" },
+        "overwrite": { "label": "覆盖" },
+        "rename": { "label": "改名" }
+      },
+      "boards": {
+        "itemCount": "{{count}} 项",
+        "lineCount": "{{count}} 行",
+        "total": "总计 {{count}}",
+        "waitingRun": "等待运行",
+        "waitingLogs": "等待日志",
+        "planListEmpty": "运行后会显示移动和删除空壳的计划。",
+        "planBoardEmpty": "运行后显示上提、删除空壳和冲突跳过项。",
+        "historyCount": "{{count}} 条",
+        "noHistory": "无历史",
+        "historyMeta": "{{mode}} / {{count}} 项{{undone}}",
+        "undoneSuffix": " / 已撤销",
+        "historyEmpty": "执行操作后会记录历史，可用于撤销。",
+        "logsEmpty": "运行日志会显示在这里。",
+        "unspecified": "未指定"
+      },
+      "planStatus": {
+        "success": "完成",
+        "error": "错误",
+        "skipped": "跳过",
+        "pending": "待执行"
+      },
+      "execution": {
+        "title": "执行闸门",
+        "previewState": "预演：不移动或删除",
+        "liveState": "真实：将移动并删除空壳",
+        "previewDescription": "只生成溶解计划；文件夹保持不变。",
+        "liveDescription": "会移动内容并删除空文件夹；执行前仍需确认。"
+      },
+      "defaults": {
+        "title": "默认配置",
+        "description": "保存 DissolveF 的路径、模式和冲突策略到本地默认配置。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "clear": "清除覆盖",
+        "view": "查看配置",
+        "openFile": "打开文件",
+        "dialogTitle": "DissolveF 配置",
+        "dialogDescription": "当前 nodes.dissolvef 默认值和配置文件位置。",
+        "none": "# nodes.dissolvef 暂无默认配置\n",
+        "configFile": "配置文件",
+        "noConfigService": "未连接本地配置服务"
+      },
+      "pipeline": {
+        "directHint": "把全部内容上提到父级文件夹。",
+        "switchBundle": "切换到捆绑模式",
+        "switchDirect": "切换到直提模式"
+      }
+    },
+    "diny": {
+      "name": "Diny",
+      "description": "AI 驱动的 git commit 消息生成器，封装 diny 二进制。",
+      "title": "diny",
+      "generate": "生成消息",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "copy": "复制",
+      "stop": "停止",
+      "saveDefaults": "保存为默认配置",
+      "meta": "{{staged}} 个暂存 / {{branch}} / {{state}}",
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "success": "完成",
+        "error": "失败"
+      },
+      "desc": {
+        "idle": "生成 AI commit 消息或手动输入后提交。",
+        "running": "Diny 正在执行操作。",
+        "success": "上次操作已完成。",
+        "error": "上次操作失败，请查看日志。"
+      },
+      "actions": {
+        "generate": "生成消息",
+        "commit": "提交",
+        "dryCommit": "预演提交",
+        "push": "推送",
+        "copy": "复制",
+        "stop": "停止",
+        "reset": "重置",
+        "saveDefaults": "保存为默认配置"
+      },
+      "labels": {
+        "commitMessage": "Commit 消息",
+        "stagedFiles": "暂存文件",
+        "diffPreview": "Diff 预览",
+        "logs": "日志"
+      },
+      "stats": {
+        "staged": "暂存文件",
+        "branch": "分支",
+        "insertions": "新增行",
+        "deletions": "删除行"
+      },
+      "switches": {
+        "dryRunOn": "预演",
+        "dryRunOff": "实模式",
+        "noVerifyOn": "跳过钩子",
+        "noVerifyOff": "钩子"
+      },
+      "fields": {
+        "repoPath": {
+          "label": "仓库路径",
+          "placeholder": "留空使用当前目录"
+        },
+        "dinyPath": {
+          "label": "diny 路径",
+          "placeholder": "留空从 PATH 查找"
+        },
+        "manualMessage": {
+          "label": "手动消息"
+        }
+      },
+      "empty": {
+        "staged": "无暂存文件",
+        "message": "尚未生成消息"
+      },
+      "placeholder": {
+        "manualMessage": "手动输入 commit 消息，或留空使用 diny AI 生成..."
+      },
+      "progress": {
+        "start": "开始执行..."
+      },
+      "error": {
+        "noRunEnv": "当前环境没有本地运行能力，请使用桌面模式或 CLI。"
+      }
+    },
+    "encodeb": {
+      "name": "Encodeb",
+      "description": "通过重新解码路径组件来预览和恢复乱码文件名。",
+      "title": "encodeb",
+      "find": "查找",
+      "preview": "预览",
+      "recover": "恢复",
+      "pastePaths": "粘贴路径",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "paths": "路径",
+      "placeholderPaths": "每行一个文件或文件夹路径",
+      "src": "源",
+      "dst": "目标",
+      "matches": "匹配数",
+      "noPreviewRows": "无预览行",
+      "running": "运行中...",
+      "meta": "{{paths}} 个路径 / {{src}} -> {{dst}} / {{strategy}}",
+      "presets": {
+        "cn": "cn",
+        "jp": "jp",
+        "kr": "kr",
+        "custom": "自定义"
+      },
+      "strategies": {
+        "replace": "替换",
+        "copy": "复制"
+      },
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "completed": "完成",
+        "error": "失败"
+      },
+      "statusDesc": {
+        "running": "Encodeb 正在处理文件名。",
+        "completed": "上次任务已完成。",
+        "error": "上次任务失败，请查看日志。",
+        "idle": "粘贴路径后扫描乱码或预览转码。"
+      },
+      "buttons": {
+        "scanGarbled": "扫描乱码",
+        "previewConvert": "预览转换",
+        "copyResults": "复制结果",
+        "clearState": "清空状态",
+        "running": "运行中",
+        "execute": "执行修复",
+        "cancel": "取消",
+        "confirmExecute": "确认执行",
+        "copy": "复制"
+      },
+      "sections": {
+        "input": "输入",
+        "inputDesc": "粘贴包含乱码文件名的目录，选择编码预设后预览或修复。",
+        "encoding": "编码与策略"
+      },
+      "tabs": {
+        "results": "结果",
+        "logs": "日志"
+      },
+      "stats": {
+        "preview": "预览",
+        "garbled": "乱码",
+        "progress": "进度"
+      },
+      "empty": {
+        "results": "扫描或预览后会显示乱码匹配和转码映射。",
+        "logs": "运行日志会显示在这里。",
+        "waitingRun": "等待运行",
+        "itemCount": "{{count}} 项"
+      },
+      "dialog": {
+        "confirmTitle": "确认执行 Encodeb 修复？",
+        "confirmDesc": "当前将对 {{count}} 个路径执行真实文件名修复，策略为 {{strategy}}，编码 {{src}} -> {{dst}}。该操作不可撤销，请确认路径无误。"
+      },
+      "aria": {
+        "running": "encodeb running"
+      },
+      "summary": {
+        "mappings": "{{count}} 个转码映射",
+        "matches": "{{count}} 个乱码",
+        "pathWaiting": "{{count}} 条路径等待扫描",
+        "pasteHint": "粘贴路径后扫描乱码文件名"
+      },
+      "strategyCopy": "复制副本",
+      "strategyReplace": "原地重命名",
+      "actionStart": "{{action}}开始",
+      "noNative": "当前环境没有本地运行能力，请使用桌面模式或 CLI。",
+      "pathRequired": "请先输入至少一个源路径。"
+    },
+    "findz": {
+      "name": "Findz",
+      "description": "使用类 SQL 过滤条件搜索文件与归档成员。",
+      "title": "findz",
+      "meta": "{{action}} / {{count}} 个路径 / {{where}}",
+      "actionSearch": "搜索",
+      "actionArchives": "归档",
+      "actionNested": "嵌套",
+      "noArchive": "无归档",
+      "links": "符号链接",
+      "imageMeta": "图像元数据",
+      "pastePaths": "粘贴路径",
+      "run": "运行",
+      "filterHelp": "过滤帮助",
+      "copyResults": "复制结果",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "fieldMax": "上限",
+      "fieldReturn": "返回数",
+      "fieldGroup": "分组",
+      "fieldRefine": "精筛",
+      "pathsLabel": "路径",
+      "pathsPlaceholder": "每行一个文件夹或文件",
+      "whereLabel": "条件",
+      "statTotal": "总数",
+      "statFiles": "文件",
+      "statDirs": "目录",
+      "statArchive": "归档",
+      "statErrors": "错误",
+      "statProgress": "进度",
+      "noResult": "尚未搜索",
+      "starting": "启动中",
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "completed": "完成",
+        "error": "失败"
+      },
+      "statusDesc": {
+        "idle": "粘贴路径并编写 SQL 过滤器后开始搜索。",
+        "running": "Findz 正在扫描并过滤。",
+        "completed": "上次搜索已完成。",
+        "error": "上次搜索失败，请查看日志。"
+      },
+      "buttons": {
+        "run": "运行{{action}}",
+        "running": "运行中",
+        "filterHelp": "过滤器帮助",
+        "copyResults": "复制结果",
+        "copyLogs": "复制日志",
+        "clearState": "清空状态",
+        "copy": "复制"
+      },
+      "sections": {
+        "task": "任务",
+        "taskDesc": "选择搜索动作，粘贴路径，写 SQL 过滤器。",
+        "switches": "关键开关"
+      },
+      "tabs": {
+        "files": "文件",
+        "groups": "分组",
+        "logs": "日志",
+        "help": "帮助"
+      },
+      "stats": {
+        "total": "总计",
+        "files": "文件",
+        "dirs": "目录",
+        "archive": "归档成员",
+        "nested": "嵌套",
+        "errors": "错误",
+        "scanned": "扫描",
+        "progress": "进度"
+      },
+      "empty": {
+        "help": "帮助文本会显示在这里。",
+        "files": "运行后会显示匹配的文件和归档成员。",
+        "groups": "设置分组字段后会显示分组汇总。",
+        "logs": "运行日志会显示在这里。",
+        "waitingRun": "等待运行",
+        "itemCount": "{{count}} 项"
+      },
+      "summary": {
+        "result": "{{total}} 项 / {{archive}} 归档成员",
+        "pathWaiting": "{{count}} 条路径等待搜索",
+        "pasteHint": "粘贴路径后开始搜索"
+      },
+      "actionStart": "{{action}}开始",
+      "noNative": "当前环境没有本地运行能力，请使用桌面模式或 CLI。",
+      "pathRequired": "请先输入至少一个搜索路径。",
+      "actions": {
+        "search": "搜索",
+        "archives_only": "压缩包列举",
+        "nested": "嵌套归档",
+        "help": "帮助"
+      },
+      "aria": {
+        "searchPaths": "findz 搜索路径",
+        "whereFilter": "findz SQL 过滤器",
+        "advancedOptions": "findz 高级选项",
+        "defaults": "findz 默认配置"
+      },
+      "workspace": {
+        "title": "Findz",
+        "searchLabel": "搜索 Findz 索引",
+        "searchPlaceholder": "搜索归档和成员路径",
+        "areaMetricLabel": "矩阵图面积指标",
+        "filters": "过滤器",
+        "advancedFilters": "高级过滤器",
+        "exportJson": "导出过滤后的归档 JSON",
+        "exportCsv": "导出过滤后的归档 CSV",
+        "library": "库",
+        "archiveResults": "Findz 归档结果",
+        "lanes": {
+          "source": "来源",
+          "results": "结果",
+          "analysis": "分析",
+          "query": "查询与筛选",
+          "scope": "索引范围",
+          "hierarchy": "归档层级"
+        },
+        "laneActions": {
+          "restoreSource": "恢复来源泳道",
+          "collapseSource": "折叠来源泳道",
+          "resizeSource": "调整来源泳道宽度",
+          "restoreResults": "恢复结果泳道",
+          "collapseResults": "折叠结果泳道",
+          "resizeResults": "调整结果泳道宽度",
+          "restoreAnalysis": "恢复分析泳道",
+          "collapseAnalysis": "折叠分析泳道",
+          "resizeAnalysis": "调整分析泳道宽度",
+          "enterSolo": "聚焦当前泳道",
+          "exitSolo": "显示全部泳道"
+        },
+        "header": {
+          "rootLabel": "Findz 库根目录",
+          "rootPlaceholder": "本地 ZIP / CBZ 库根目录",
+          "openLibrary": "打开库",
+          "scanLibrary": "扫描库",
+          "scanTooltip": "扫描 ZIP 中央目录",
+          "analyzeHeaders": "分析图像头信息",
+          "analyzeTooltip": "按需分析图像头信息",
+          "watching": "监视中",
+          "watcherDegraded": "监视器已降级",
+          "noLibrary": "未打开库",
+          "librarySummary": "{{archives}} 个归档 · {{members}} 个成员",
+          "openLibraryHint": "打开本地库以创建独立的 Findz 索引。",
+          "resumeTask": "继续任务",
+          "pauseTask": "暂停任务",
+          "cancelTask": "取消任务"
+        },
+        "taskKinds": { "scan": "扫描", "analysis": "分析" },
+        "taskStatus": { "running": "运行中", "paused": "已暂停", "completed": "完成", "completed_with_warnings": "完成但有警告", "cancelled": "已取消", "failed": "失败" },
+        "table": {
+          "indexedSummary": "{{visible}} / {{total}} 个已索引归档",
+          "previousPage": "上一页归档",
+          "nextPage": "下一页归档",
+          "expandArchive": "展开归档",
+          "columns": { "archive": "归档", "size": "大小", "images": "图像", "analyzed": "已分析", "density": "密度", "anomalies": "异常", "savings": "节省" },
+          "empty": "打开库后运行 ZIP 扫描以填充索引。",
+          "folderArchiveCount": "{{count}} 个归档",
+          "loadingMembers": "正在加载归档成员……",
+          "noMembers": "此归档没有已索引的成员。",
+          "pending": "待处理",
+          "deepRetry": "使用更深读取重试元数据",
+          "deepRetryTooltip": "以更大的读取预算重试",
+          "metadataStatuses": {
+            "complete": "完成",
+            "budgetExceeded": "超出读取预算",
+            "unsupportedFormat": "不支持的格式",
+            "parserFailure": "解析失败",
+            "encrypted": "已加密"
+          },
+          "anomalyKinds": {
+            "highBytesPerMegapixel": "每 MP 字节偏高",
+            "largeMember": "成员大小偏高"
+          },
+          "ascending": "升序",
+          "descending": "降序",
+          "scanStates": { "corrupt": "归档损坏", "unsupported": "不支持的归档", "rejected": "已拒绝的归档" }
+        },
+        "treemap": "矩形图",
+        "treemapPanel": {
+          "area": "面积",
+          "empty": "当前视图没有已索引的归档面积。",
+          "openArchive": "打开归档 {{name}}",
+          "drillInto": "进入 {{name}}"
+        }
+      },
+      "metrics": {
+        "archiveSize": "归档大小",
+        "totalImageSize": "图像总大小",
+        "averageImageSize": "平均图像大小",
+        "averageBytesPerMegapixel": "平均字节 / MP",
+        "medianBytesPerMegapixel": "中位数字节 / MP",
+        "anomalyCount": "异常数量",
+        "estimatedSavings": "预计节省"
+      },
+      "sort": {
+        "path": "路径",
+        "archiveSize": "归档大小",
+        "imageCount": "图像候选",
+        "analysisCoverage": "分析覆盖率",
+        "totalImageSize": "图像总大小",
+        "averageImageSize": "平均图像大小",
+        "averageBytesPerMegapixel": "平均字节 / MP",
+        "anomalyCount": "异常",
+        "estimatedSavings": "预计节省"
+      },
+      "rules": {
+        "select": "选择",
+        "true": "是",
+        "false": "否",
+        "addCondition": "+ 条件",
+        "addConditionTitle": "添加条件",
+        "addGroup": "+ 分组",
+        "addGroupTitle": "添加条件组",
+        "removeCondition": "移除条件",
+        "removeGroup": "移除条件组",
+        "cloneCondition": "克隆条件",
+        "cloneGroup": "克隆条件组",
+        "drag": "拖动以重新排序",
+        "not": "非",
+        "notTitle": "反转此分组",
+        "all": "全部满足",
+        "any": "任一满足",
+        "operators": { "equal": "是", "notEqual": "不是", "contains": "包含", "doesNotContain": "不包含", "startsWith": "以……开头", "endsWith": "以……结尾", "in": "属于其中之一", "notIn": "不属于其中之一", "lessThan": "小于", "lessThanInclusive": "不大于", "greaterThan": "大于", "greaterThanInclusive": "不小于", "isEmpty": "为空", "isNotEmpty": "不为空" },
+        "fields": {
+          "relativePath": "归档路径", "scanState": "索引状态", "archiveSize": "归档大小", "memberCount": "成员数", "imageCount": "图像候选", "memberPath": "成员路径", "memberSize": "成员大小", "extension": "成员扩展名", "actualFormat": "实际格式", "width": "图像宽度", "height": "图像高度", "pixels": "像素数", "bytesPerMegapixel": "字节 / MP", "analysisStatus": "分析状态", "anomalyKind": "异常类型", "anomalyScore": "异常分数", "memberEstimatedSavings": "成员预计节省", "analysisCoverage": "已分析图像", "totalImageSize": "图像总大小", "averageBytesPerMegapixel": "平均字节 / MP", "anomalyCount": "异常数", "estimatedSavings": "预计节省"
+        },
+        "options": { "indexed": "已索引", "corrupt": "损坏", "unsupported": "不支持", "rejected": "已拒绝", "complete": "完成", "budgetExceeded": "超出预算", "unsupportedFormat": "不支持的格式", "parserFailure": "解析器失败", "encrypted": "已加密", "highBytesPerMegapixel": "高字节 / MP", "largeMember": "成员过大" }
+      },
+      "errors": {
+        "libraryMissing": "Findz 未返回库信息。",
+        "taskMissing": "Findz 未创建任务。"
+      }
+    },
+    "formatv": {
+      "name": "FormatV",
+      "description": "扫描视频文件夹，添加/移除 .nov 后缀，并检查带前缀的重复项。",
+      "title": "formatv",
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "error": "失败",
+        "completed": "完成"
+      },
+      "statusDesc": {
+        "idle": "粘贴视频目录后扫描或查重。",
+        "running": "FormatV 正在处理视频文件。",
+        "error": "上次任务失败，请查看结果和日志。",
+        "completed": "上次任务已完成。"
+      },
+      "buttons": {
+        "scan": "扫描视频",
+        "addNov": "添加 .nov",
+        "removeNov": "移除 .nov",
+        "checkDuplicates": "查重",
+        "reset": "清空状态",
+        "cancel": "取消",
+        "confirmExecute": "确认执行",
+        "copy": "复制",
+        "pastePath": "粘贴路径",
+        "clearPath": "清空路径",
+        "saveDefault": "保存为默认",
+        "restoreDefault": "恢复默认",
+        "clearOverride": "清除覆盖",
+        "viewConfig": "查看配置",
+        "openFile": "打开文件"
+      },
+      "sections": {
+        "input": "输入",
+        "inputDesc": "粘贴视频目录，扫描后可加/移除 .nov 或查重。",
+        "keySwitches": "关键开关"
+      },
+      "tabs": {
+        "results": "结果",
+        "logs": "日志"
+      },
+      "stats": {
+        "normal": "普通",
+        "nov": ".nov",
+        "success": "成功",
+        "duplicates": "查重",
+        "progress": "进度"
+      },
+      "empty": {
+        "results": "扫描、加/移除 .nov 或查重后会显示文件列表和操作结果。",
+        "logs": "运行日志会显示在这里。",
+        "itemCount": "{{count}} 项",
+        "waitingRun": "等待运行"
+      },
+      "dialog": {
+        "confirmRealTitle": "确认真实执行 {{action}}？",
+        "confirmRealDesc": "当前已关闭预演，将对 {{count}} 个路径执行真实文件重命名。该操作不可撤销，请确认路径和前缀无误。"
+      },
+      "aria": {
+        "running": "formatv running"
+      },
+      "summary": {
+        "duplicates": "{{count}} 个重复",
+        "errors": "{{count}} 个失败",
+        "videos": "{{count}} 个视频",
+        "pathWaiting": "{{count}} 条路径等待扫描",
+        "pasteHint": "粘贴视频目录后扫描"
+      },
+      "actionStart": "{{action}}开始",
+      "pathRequired": "请先输入至少一个视频路径。",
+      "noNative": "当前环境没有本地运行能力，请使用桌面模式或 CLI。",
+      "headerSubtitle": "{{count}} 路径 / {{mode}} / 前缀 {{prefix}}",
+      "modeDryRun": "预演",
+      "modeWrite": "真实执行",
+      "pathsLabel": "视频目录",
+      "pathsCount": "{{count}} 条",
+      "switches": {
+        "recursive": "递归",
+        "recursiveDesc": "递归扫描子目录内的视频文件。",
+        "dryRun": "预演",
+        "dryRunDesc": "开启后只生成重命名计划，不写入文件系统。关闭后执行真实重命名。"
+      },
+      "options": {
+        "title": "任务选项",
+        "description": "前缀名称和递归、预演开关集中在这里。"
+      },
+      "defaults": {
+        "title": "默认配置",
+        "description": "保存 FormatV 的路径、前缀和开关到明文配置。",
+        "noConfig": "# nodes.formatv 暂无默认配置",
+        "notConnected": "未连接本地配置服务",
+        "configFile": "配置文件",
+        "configTitle": "FormatV 配置",
+        "configDesc": "当前 nodes.formatv 默认值和配置文件位置。"
+      },
+      "prefix": {
+        "label": "前缀名称"
+      }
+    },
+    "lata": {
+      "name": "Lata",
+      "description": "列出、规划并执行 Taskfile 任务。",
+      "title": "lata",
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "error": "失败",
+        "completed": "完成"
+      },
+      "statusDesc": {
+        "idle": "指定 Taskfile 路径后加载任务。",
+        "running": "Lata 正在加载或执行任务。",
+        "error": "上次任务失败，请查看日志。",
+        "completed": "上次任务已完成。"
+      },
+      "buttons": {
+        "list": "加载任务",
+        "plan": "预览命令",
+        "execute": "执行任务",
+        "copyLogs": "复制日志",
+        "reset": "清空状态",
+        "cancel": "取消",
+        "confirmExecute": "确认执行",
+        "pasteTaskfile": "粘贴 Taskfile 路径",
+        "saveDefault": "保存为默认",
+        "restoreDefault": "恢复默认",
+        "clearOverride": "清除覆盖",
+        "viewConfig": "查看配置",
+        "openFile": "打开文件",
+        "copy": "复制"
+      },
+      "sections": {
+        "taskfile": "Taskfile 配置",
+        "taskfileDesc": "指定 Taskfile 路径与任务参数，加载后可选择任务。",
+        "tasks": "任务列表",
+        "tasksDesc": "点击任务名选中，再预览或执行。"
+      },
+      "tabs": {
+        "tasks": "任务",
+        "commands": "命令",
+        "logs": "日志"
+      },
+      "stats": {
+        "tasks": "任务",
+        "commands": "命令",
+        "exitCode": "退出码"
+      },
+      "empty": {
+        "tasks": "加载 Taskfile 后任务会显示在这里。",
+        "commands": "预览或执行任务后命令会显示在这里。",
+        "logs": "运行日志会显示在这里。",
+        "logCount": "{{count}} 条",
+        "waitingRun": "等待运行"
+      },
+      "dialog": {
+        "confirmTitle": "确认执行 Lata 任务？",
+        "confirmDesc": "将真实执行 Taskfile 中「{{task}}」任务的命令。请确认命令内容无误后再继续。"
+      },
+      "aria": {
+        "running": "lata running"
+      },
+      "summary": {
+        "completed": "任务已完成",
+        "taskCount": "{{task}} / {{count}} 个任务"
+      },
+      "actionStart": "{{action}}开始",
+      "noNative": "当前环境没有本地运行能力，请使用桌面模式或 CLI。",
+      "noTaskSelected": "未选择",
+      "fields": {
+        "taskfile": "Taskfile 路径",
+        "args": "任务参数",
+        "noTasks": "尚无任务"
+      },
+      "defaults": {
+        "title": "默认配置",
+        "description": "保存 Lata 的 Taskfile 路径、任务名和参数到明文配置。",
+        "noConfig": "# nodes.lata 暂无默认配置",
+        "notConnected": "未连接本地配置服务",
+        "configFile": "配置文件",
+        "configTitle": "Lata 配置",
+        "configDesc": "当前 nodes.lata 默认值和配置文件位置。"
+      }
+    },
+    "linedup": {
+      "name": "Linedup",
+      "description": "通过移除包含过滤词的行来筛选源文本。",
+      "title": "linedup",
+      "meta": "{{source}} 源 / {{filters}} 过滤词",
+      "pasteSource": "粘贴源文本",
+      "pasteFilters": "粘贴过滤词",
+      "filter": "筛选",
+      "reset": "重置",
+      "sourceLabel": "源",
+      "sourcePlaceholder": "每行一条",
+      "filtersLabel": "过滤词",
+      "filtersPlaceholder": "移除包含这些词的源行",
+      "statKept": "保留",
+      "statRemoved": "移除",
+      "kept": "保留",
+      "removed": "移除",
+      "save": "保存",
+      "runToPreview": "运行筛选以预览被移除的行。",
+      "config": {
+        "trigger": "配置管理",
+        "title": "配置管理",
+        "description": "保存可复用默认值，或恢复本节点的已保存配置。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "reload": "重新读取",
+        "view": "查看配置",
+        "previewTitle": "默认配置",
+        "noPath": "尚未连接配置文件",
+        "openFile": "打开配置文件",
+        "dirty": "当前参数与已保存默认值不同。"
+      }
+    },
+    "linku": {
+      "name": "Linku",
+      "description": "创建、移动、列出和恢复符号链接记录。",
+      "title": "linku",
+      "meta": "{{phase}} / {{count}} 条记录",
+      "info": "信息",
+      "create": "创建",
+      "move": "移动",
+      "list": "列表",
+      "recover": "恢复",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "pasteField": "粘贴 {{field}}",
+      "sourceLabel": "源",
+      "targetLinkLabel": "目标/链接",
+      "configLabel": "配置",
+      "createdLabel": "已创建",
+      "recoveredLabel": "已恢复",
+      "failedLabel": "失败",
+      "noResult": "无结果",
+      "existsLabel": "存在",
+      "symlinkLabel": "symlink"
+    },
+    "marku": {
+      "name": "Marku",
+      "description": "运行 Markdown 清理和转换模块，带预览差异。",
+      "title": "marku",
+      "meta": "{{phase}} / {{module}} / {{mode}}",
+      "run": "运行",
+      "history": "历史",
+      "undo": "撤销",
+      "copyOutput": "复制输出",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "textInputLabel": "文本输入",
+      "textInputPlaceholder": "粘贴 Markdown 文本，或留空以使用路径",
+      "pathsConfigLabel": "路径 / 配置",
+      "pathsConfigPlaceholder": "每行一个文件或文件夹",
+      "configJsonLabel": "配置 JSON",
+      "pasteText": "粘贴文本",
+      "pastePath": "粘贴路径",
+      "recursive": "递归",
+      "dryRun": "试运行",
+      "writeMode": "写入",
+      "undoToggle": "撤销",
+      "processedLabel": "已处理",
+      "changed": "已更改",
+      "same": "未变",
+      "diffsLabel": "差异",
+      "errorsLabel": "错误",
+      "historyItem": "{{id}} {{module}} {{count}} 个文件",
+      "undoneLabel": "/ 已撤销",
+      "noResult": "无结果"
+    },
+    "migratef": {
+      "name": "MigrateF",
+      "description": "移动或复制文件，支持保留、扁平、直接模式及撤销历史。",
+      "title": "migratef",
+      "meta": "{{phase}} / {{mode}}",
+      "plan": "计划",
+      "move": "移动",
+      "copy": "复制",
+      "history": "历史",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "targetLabel": "目标",
+      "historyLabel": "历史",
+      "pasteTarget": "粘贴目标",
+      "pasteHistory": "粘贴历史",
+      "preserveMode": "保留",
+      "flatMode": "扁平",
+      "directMode": "直接",
+      "sourcesLabel": "源",
+      "migratedLabel": "已迁移",
+      "skippedLabel": "已跳过",
+      "errorsLabel": "错误",
+      "batchLabel": "批次",
+      "historyItem": "{{id}} / {{action}} / {{count}} 项",
+      "undoneLabel": "/ 已撤销",
+      "noResult": "无结果"
+    },
+    "mvz": {
+      "name": "MVZ",
+      "description": "从 findz 输出中删除、提取、移动或重命名归档内的文件。",
+      "title": "mvz",
+      "meta": "{{action}} / {{mode}} / {{files}} 个文件 / {{archives}} 个归档",
+      "run": "运行",
+      "extract": "提取",
+      "move": "移动",
+      "delete": "删除",
+      "rename": "重命名",
+      "dryRun": "试运行",
+      "live": "实时",
+      "near": "就近",
+      "autoDir": "自动目录",
+      "flatten": "扁平化",
+      "pasteFindzEntries": "粘贴 findz 条目",
+      "copyResults": "复制结果",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "outputLabel": "输出",
+      "separatorLabel": "分隔符",
+      "patternLabel": "模式",
+      "replacementLabel": "替换",
+      "archiveEntriesLabel": "归档条目",
+      "archiveEntriesPlaceholder": "C:/packs/book.zip//chapter/page.jpg",
+      "successLabel": "成功",
+      "failedLabel": "失败",
+      "archivesLabel": "归档",
+      "filesLabel": "文件",
+      "progressLabel": "进度",
+      "planLabel": "计划",
+      "okLabel": "成功",
+      "failLabel": "失败",
+      "noOperation": "暂无操作"
+    },
+    "rawfilter": {
+      "name": "Rawfilter",
+      "description": "将相似归档分组，并将重复/原始版本移至回收站或 multi。",
+      "title": "rawfilter",
+      "meta": "{{phase}} / {{count}} 个归档",
+      "plan": "规划",
+      "run": "运行",
+      "copyPlan": "复制规划",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "folder": "文件夹",
+      "pasteFolder": "粘贴文件夹",
+      "similarity": "相似度",
+      "nameOnly": "仅按名称",
+      "shortcuts": "快捷方式",
+      "trashOnly": "仅回收站",
+      "groups": "分组",
+      "trash": "回收",
+      "multi": "multi",
+      "links": "链接",
+      "errors": "错误",
+      "noPlanYet": "暂无规划"
+    },
+    "recycleu": {
+      "name": "Recycleu",
+      "description": "立即清空 Windows 回收站，或按有限/无限周期定时清空。",
+      "title": "recycleu",
+      "meta": "{{phase}} / {{interval}}秒 间隔",
+      "start": "启动",
+      "clean": "清理",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "intervalSeconds": "间隔秒数",
+      "cycles": "轮数",
+      "driveLetter": "盘符",
+      "runs": "{{count}} 次",
+      "phase": "阶段",
+      "last": "上次",
+      "progress": "进度",
+      "waiting": "等待中",
+      "starting": "启动中...",
+      "common": {
+        "unlimited": "无限",
+        "none": "暂无"
+      },
+      "actions": {
+        "cancel": "取消",
+        "checkStatus": "检查状态",
+        "cleanNow": "立即清理",
+        "cleanTitle": "立即清空回收站？",
+        "command": "操作和参数",
+        "confirmClean": "确认清理",
+        "confirmStart": "确认启动",
+        "copy": "复制",
+        "reset": "重置",
+        "settings": "清理参数",
+        "start": "启动",
+        "startTitle": "启动自动清理？",
+        "stop": "停止自动清理",
+        "stopping": "正在停止",
+        "status": "状态",
+        "statusShort": "状态"
+      },
+      "command": {
+        "title": "Recycleu 操作",
+        "description": "折叠状态保留完整参数与清理动作。"
+      },
+      "confirm": {
+        "clean": "将立即清空 {{target}} 的回收站内容。此操作不可撤销。",
+        "startLimited": "将每 {{interval}} 秒清理 {{target}}，最多执行 {{cycles}} 次。",
+        "startUnlimited": "将每 {{interval}} 秒清理 {{target}}，无限循环，直到任务被停止或取消。"
+      },
+      "controls": {
+        "title": "清理控制",
+        "description": "设置目标盘符、清理间隔与循环上限。"
+      },
+      "config": {
+        "trigger": "配置管理",
+        "title": "配置管理",
+        "description": "保存可复用默认值，或恢复本节点的已保存配置。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "reload": "重新读取",
+        "view": "查看配置",
+        "previewTitle": "默认配置",
+        "noPath": "尚未连接配置文件",
+        "openFile": "打开配置文件",
+        "dirty": "当前参数与已保存默认值不同。"
+      },
+      "dial": {
+        "aria": "清理周期进度",
+        "cleaned": "已清理 {{count}} 次",
+        "cycleLimit": "上限 {{count}} 次",
+        "unlimited": "无限循环"
+      },
+      "errors": {
+        "backendUnavailable": "Local Backend 暂不可用，无法执行 recycleu。",
+        "cancelUnavailable": "当前宿主不支持从节点取消任务。",
+        "noActiveRun": "没有可取消的 Recycleu 任务。"
+      },
+      "fields": {
+        "allDrives": "全部",
+        "cycles": "循环次数",
+        "cyclesAria": "最大循环次数",
+        "cyclesDescription": "设为 0 可无限循环",
+        "cyclesUnlimitedDescription": "持续运行，直到任务被取消",
+        "drive": "目标盘符",
+        "driveAria": "盘符",
+        "driveDescription": "留空表示所有回收站",
+        "driveSelected": "仅清理 {{drive}} 盘",
+        "interval": "清理间隔",
+        "intervalAria": "清理间隔秒数",
+        "intervalDescription": "最短 5 秒"
+      },
+      "history": {
+        "description": "倒计时、清理结果与错误按运行顺序记录。",
+        "emptyDescription": "启动后会显示倒计时、清理结果和错误。",
+        "emptyTitle": "暂无日志",
+        "sequence": "记录 #{{count}}",
+        "title": "运行日志"
+      },
+      "metrics": {
+        "cycles": "循环上限",
+        "interval": "执行间隔",
+        "last": "上次清理",
+        "seconds": "{{count}} 秒",
+        "target": "清理范围",
+        "times": "{{count}} 次"
+      },
+      "monitor": {
+        "title": "清理监控"
+      },
+      "presets": {
+        "aria": "清理间隔预设",
+        "label": "快速间隔",
+        "minute": "1 分钟",
+        "seconds": "{{count}} 秒"
+      },
+      "settings": {
+        "description": "调整目标盘符、间隔和循环上限；0 次表示无限循环。",
+        "title": "清理参数"
+      },
+      "status": {
+        "cancelled": "已取消",
+        "cancelledDescription": "自动清理已停止。",
+        "checking": "正在读取状态。",
+        "cleaning": "正在清空回收站。",
+        "completed": "完成",
+        "completedDescription": "最近一次操作已完成。",
+        "failed": "失败",
+        "failedDescription": "最近一次操作失败。",
+        "progressAria": "当前周期进度",
+        "ready": "就绪",
+        "readyDescription": "等待启动清理任务。",
+        "running": "运行中",
+        "runningDescription": "正在等待下一次清理。",
+        "starting": "自动清理已启动。",
+        "startingUnlimited": "无限清理已启动，直到取消。",
+        "stopping": "正在停止自动清理…"
+      },
+      "summary": {
+        "last": "已清理 {{count}} 次 · 上次 {{time}}",
+        "ready": "周期清空回收站",
+        "readyUnlimited": "周期清空回收站 · 无限模式",
+        "running": "下次清理 {{seconds}} 秒 · 已完成 {{count}} 次",
+        "runningUnlimited": "无限循环 · 下次清理 {{seconds}} 秒",
+        "settings": "{{drive}} · {{interval}} 秒 · {{cycles}}"
+      },
+      "units": {
+        "secondsShort": "秒"
+      }
+    },
+    "repacku": {
+      "name": "Repacku",
+      "description": "分析文件夹结构，并将匹配的文件夹重新打包为 zip 归档。",
+      "title": "repacku",
+      "meta": "{{types}} / 最少 {{minCount}} / {{mode}}",
+      "pastePath": "粘贴路径",
+      "analyze": "分析",
+      "full": "完整",
+      "compress": "压缩",
+      "copyResults": "复制结果",
+      "copyLogs": "复制日志",
+      "reset": "重置",
+      "folderPath": "文件夹路径",
+      "configJson": "配置 JSON",
+      "types": "类型",
+      "minFiles": "最少文件数",
+      "dryRun": "试运行",
+      "deleteAfter": "完成后删除",
+      "single": "单个",
+      "gallery": "图库",
+      "folders": "文件夹",
+      "entire": "整体",
+      "selective": "选择式",
+      "ops": "操作",
+      "failed": "失败",
+      "readyToAnalyze": "准备分析或重新打包文件夹。",
+      "starting": "启动中",
+      "pathRequired": "需要文件夹路径。",
+      "configOrPathRequired": "需要配置 JSON 或文件夹路径。",
+      "nativeUnavailable": "当前宿主没有提供原生节点执行能力。",
+      "allFiles": "所有文件",
+      "write": "写入",
+      "dryRunMode": "试运行"
+    },
+    "sleept": {
+      "name": "Sleept",
+      "description": "系统定时器，支持倒计时、定时、网络与 CPU 触发。",
+      "title": "sleept",
+      "meta": "{{timerMode}} / {{powerMode}} / {{mode}}",
+      "starting": "启动中",
+      "start": "开始",
+      "stats": "状态",
+      "reset": "重置",
+      "timerCountdown": "倒计时",
+      "timerAt": "定时",
+      "timerNet": "网络",
+      "timerCpu": "CPU",
+      "powerSleep": "睡眠",
+      "powerOff": "关机",
+      "powerReboot": "重启",
+      "powerDisplaySleep": "显示器休眠",
+      "powerScreensaver": "进入屏保",
+      "dry": "预演",
+      "dryRun": "预演",
+      "live": "运行",
+      "statDuration": "时长",
+      "statCpu": "CPU",
+      "statUp": "上传",
+      "statDown": "下载",
+      "waiting": "等待中",
+      "targetDatetime": "目标时间",
+      "upload": "上传",
+      "download": "下载",
+      "minutes": "分钟",
+      "thresholdPct": "阈值 %",
+      "hours": "小时",
+      "seconds": "秒",
+      "phaseIdle": "空闲",
+      "phaseRunning": "运行中",
+      "phaseCompleted": "已完成",
+      "phaseError": "错误",
+      "phaseCancelled": "已取消"
+    },
+    "trename": {
+      "name": "Trename",
+      "description": "将文件夹扫描为重命名 JSON，校验翻译目标，执行重命名与撤销。",
+      "title": "trename",
+      "meta": "{{total}} 总计 / {{ready}} 就绪 / {{conflicts}} 冲突",
+      "starting": "启动中",
+      "pastePath": "粘贴路径",
+      "scan": "扫描",
+      "json": "JSON",
+      "validate": "校验",
+      "rename": "重命名",
+      "copyJson": "复制 JSON",
+      "reset": "重置",
+      "copyLogs": "复制日志",
+      "scanPaths": "扫描路径",
+      "basePath": "基础路径",
+      "batchId": "批次 ID",
+      "excludeExt": "排除扩展名",
+      "excludePattern": "排除模式",
+      "splitLines": "拆分行数",
+      "root": "根目录",
+      "hidden": "隐藏文件",
+      "compact": "紧凑",
+      "dryRun": "预演",
+      "count": "统计",
+      "undo": "撤销",
+      "statTotal": "总计",
+      "statPending": "待处理",
+      "statReady": "就绪",
+      "statOk": "成功",
+      "statConflicts": "冲突",
+      "renameJson": "重命名 JSON",
+      "progressLine": "[{{progress}}%] {{text}}",
+      "readyToScan": "准备将文件夹扫描为重命名 JSON。",
+      "status": {
+        "idle": "就绪",
+        "running": "运行中",
+        "success": "完成",
+        "error": "失败",
+        "warning": "有冲突",
+        "pending": "待校验"
+      },
+      "desc": {
+        "idle": "粘贴目录并扫描成 rename JSON。",
+        "running": "Trename 正在处理当前任务。",
+        "success": "上次任务已完成。",
+        "error": "上次任务失败，请查看冲突和日志。",
+        "warning": "{{count}} 个冲突需要处理。",
+        "pending": "{{total}} 项，{{ready}} 项已准备重命名。"
+      },
+      "actions": {
+        "scanPaths": "扫描路径",
+        "validate": "校验冲突",
+        "history": "读取历史",
+        "clearState": "清空状态",
+        "dryRename": "预演重命名",
+        "liveRename": "真实重命名",
+        "confirmExecute": "确认执行"
+      },
+      "labels": {
+        "input": "输入",
+        "inputHint": "粘贴目录，扫描成 rename JSON；大 JSON 在弹窗里编辑。",
+        "switches": "关键开关"
+      },
+      "confirm": {
+        "title": "确认真实执行 Trename？",
+        "description": "当前将执行真实文件重命名。计划 {{plan}} 项，冲突 {{conflicts}} 项，base path 为 {{basePath}}。"
+      },
+      "summary": {
+        "conflicts": "{{count}} 个冲突",
+        "tree": "{{total}} 项 / {{ready}} 就绪 / {{mode}}",
+        "waiting": "{{count}} 条路径等待扫描",
+        "empty": "选择目录后扫描 rename JSON"
+      },
+      "subtitle": {
+        "full": "{{paths}} 路径 / {{ready}} 就绪 / {{mode}}"
+      },
+      "tabs": {
+        "results": "结果",
+        "logs": "日志"
+      },
+      "aria": {
+        "running": "trename running",
+        "scanMode": "trename scan mode",
+        "scanPaths": "trename scan paths",
+        "advancedOptions": "trename advanced options",
+        "defaults": "trename defaults",
+        "jsonText": "trename json text",
+        "jsonEditor": "open trename json editor"
+      },
+      "error": {
+        "noScanPath": "请先输入至少一个扫描路径。",
+        "noJson": "请先扫描或导入 rename JSON。",
+        "noRunEnv": "当前环境没有本地运行能力，请使用桌面模式或 CLI。"
+      },
+      "empty": "尚未扫描路径",
+      "mode": {
+        "dry": "预演",
+        "live": "真实",
+        "liveExecute": "真实执行"
+      },
+      "stats": {
+        "progress": "进度"
+      },
+      "actionLabel": {
+        "scan": "扫描",
+        "import": "导入",
+        "validate": "校验",
+        "rename": "重命名",
+        "undo": "撤销",
+        "history": "读取历史"
+      },
+      "progress": {
+        "start": "{{action}}开始"
+      }
+    },
+    "classf": {
+      "name": "ClassF",
+      "description": "编排 SameA、CrashU 和 MigrateF 分类管道。",
+      "sections": {
+        "scanSources": "扫描来源",
+        "classificationMatrix": "分类矩阵",
+        "executionGate": "执行门"
+      },
+      "modes": {
+        "dryRun": "预演",
+        "live": "实际执行"
+      },
+      "execution": {
+        "planReadiness": "计划就绪度",
+        "ready": "可执行",
+        "pending": "待确认",
+        "reviewed": "计划已确认",
+        "stale": "需要生成计划"
+      },
+      "actions": {
+        "plan": "计划",
+        "classify": "执行",
+        "planRun": "生成计划",
+        "classifyRun": "执行分类",
+        "prepareClassify": "先生成执行计划",
+        "copy": "复制",
+        "paste": "粘贴路径",
+        "clear": "清空状态",
+        "clearPaths": "清空路径"
+      },
+      "classifyModes": { "auto": "自动分类", "only": "仅 already", "del": "仅 Del", "off": "指定目标" },
+      "queues": { "title": "分类队列", "already": "already", "wait": "wait", "del": "del", "enable": "启用 {{stage}}", "group": "{{stage}} 画师分组" },
+      "transferModes": { "move": "移动", "copy": "复制" },
+      "fields": { "sameaRoots": "SameA 归档来源", "target": "目标目录", "dryRun": "预演模式", "blacklistKeywords": "黑名单作者" },
+      "blacklist": {
+        "extractSamea": "提取 SameA 标签",
+        "stripOuterBrackets": "去除最外层括号",
+        "splitArtistCircle": "拆分社团与作者",
+        "importDeletionHistory": "导入删除历史",
+        "importingDeletionHistory": "正在导入",
+        "deletionHistoryTitle": "删除历史分析",
+        "deletionHistoryDescription": "只统计已回收或永久删除记录；候选必须达到设定次数。",
+        "pickDeletionHistory": "选择删除历史 CSV",
+        "minimumDeletions": "最少删除次数",
+        "importedDeletionRecords": "已导入 {{count}} 条记录",
+        "successfulDeletions": "成功删除 {{count}}",
+        "artistDeletions": "匹配作者 {{count}}",
+        "candidateCount": "{{count}} 个候选",
+        "addCandidates": "加入 {{count}} 个候选",
+        "noCandidates": "没有达到当前次数的作者候选。",
+        "historyImportUnsupported": "当前宿主不支持选择本地 CSV 文件。",
+        "historyReadFailed": "无法读取 {{path}}：HTTP {{status}}"
+      },
+      "placeholders": {
+        "sameaRoots": "例如 D:/set/reviewed.zip",
+        "crashuSources": "CrashU 来源目录，每行一个；留空使用默认库",
+        "targetRequired": "目标模式下必须填写",
+        "targetOptional": "可选；默认使用 already",
+        "blacklistKeywords": "每行一个 SameA 作者标签，例如 [画师] 或 [社团 (画师)]"
+      },
+      "tabs": { "plan": "计划", "matrix": "分类矩阵", "tree": "文件树", "issues": "问题", "logs": "日志" },
+      "tree": { "empty": "等待分类计划", "emptyDescription": "生成计划后，这里会按目标目录预演具体分类结构。", "targetRoot": "目标目录", "source": "来源", "toggle": "展开/收起" },
+      "table": { "source": "来源", "status": "状态", "target": "执行后位置", "queue": "分类队列", "mapping": "来源 → 执行后位置" },
+      "stages": { "samea": "来源整理", "crashu": "目录匹配", "del": "del 队列", "already": "already 队列", "wait": "wait 队列" },
+      "itemStatus": { "running": "执行中", "moved": "已移动", "copied": "已复制", "ready": "待执行", "conflict": "冲突", "error": "错误", "skipped": "已跳过" },
+      "stats": { "selected": "已选择", "ready": "待执行", "del": "黑名单", "wait": "待处理", "completed": "已完成", "conflicts": "冲突", "progress": "进度" },
+      "status": {
+        "running": "正在运行", "failed": "失败", "done": "完成", "ready": "就绪", "stale": "计划已失效",
+        "runningDescription": "正在生成或执行分类计划。", "failedDescription": "上次运行失败，请检查问题列表。",
+        "doneDescription": "上次 ClassF 运行已完成。", "readyDescription": "添加来源并先预览 already / wait 的目标结果。"
+      },
+      "empty": {
+        "ready": "生成计划后，这里会在执行前列出每个来源及其目标位置。", "noSources": "添加来源路径，即可预览完整分类结果。",
+        "noIssues": "暂无问题。", "logs": "运行日志会显示在这里。", "waitingPlan": "等待生成计划"
+      },
+      "summary": { "items": "{{count}} 项", "result": "{{count}} 项 / 待执行 {{ready}} / del {{del}} / wait {{wait}}", "selected": "已选择 {{count}} 项" },
+      "progress": {
+        "buildingPlan": "正在生成完整分类计划…", "executing": "正在执行已确认的分类计划…",
+        "planReady": "计划已生成：{{count}} 项可执行。", "completed": "执行完成：{{count}} 项已处理。",
+        "planVisible": "完整计划已生成，请在矩阵中确认执行结果。", "itemRunning": "正在处理：{{name}}", "itemCompleted": "已更新：{{name}}",
+        "stage": { "samea": "正在分析并整理来源…", "crashu": "正在匹配分类目录…", "del": "正在生成 del 队列…", "already": "正在生成 already 队列…", "wait": "正在生成 wait 队列…" }
+      },
+      "confirm": { "title": "确认执行已预览的分类计划？", "description": "ClassF 将按中央矩阵中已确认的目标移动或复制文件；黑名单项目会进入 del，冲突项会跳过。", "action": "确认执行" },
+      "common": { "cancel": "取消", "done": "完成" },
+      "config": {
+        "trigger": "配置管理",
+        "title": "配置管理",
+        "description": "保存可复用默认值，或恢复本节点的已保存配置。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "reload": "重新读取",
+        "view": "查看配置",
+        "previewTitle": "默认配置",
+        "noPath": "尚未连接配置文件",
+        "openFile": "打开配置文件",
+        "dirty": "当前参数与已保存默认值不同。",
+        "preset": "预设",
+        "presetPlaceholder": "选择预设",
+        "presetDescription": "切换后保存为默认，即写入 TOML 配置。"
+      }
+    },
+    "nameu": {
+      "name": "NameU",
+      "description": "预览并应用艺术家文件夹的归档文件名清理。",
+      "config": {
+        "trigger": "配置管理",
+        "title": "配置管理",
+        "description": "保存可复用默认值，或恢复本节点的已保存配置。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "reload": "重新读取",
+        "view": "查看配置",
+        "previewTitle": "默认配置",
+        "noPath": "尚未连接配置文件",
+        "openFile": "打开配置文件",
+        "dirty": "当前参数与已保存默认值不同。",
+        "preset": "预设",
+        "presetPlaceholder": "选择预设",
+        "presetDescription": "切换后保存为默认，即写入 TOML 配置。"
+      }
+    },
+    "bitv": {
+      "name": "BitV",
+      "description": "分析视频码率并输出分类报告，作为视频整理前的检查节点。",
+      "config": {
+        "trigger": "配置管理",
+        "title": "配置管理",
+        "description": "保存可复用默认值，或恢复本节点的已保存配置。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "reload": "重新读取",
+        "view": "查看配置",
+        "previewTitle": "默认配置",
+        "noPath": "尚未连接配置文件",
+        "openFile": "打开配置文件",
+        "dirty": "当前参数与已保存默认值不同。",
+        "preset": "预设",
+        "presetPlaceholder": "选择预设",
+        "presetDescription": "切换后保存为默认，即写入 TOML 配置。"
+      }
+    },
+    "simiu": {
+      "name": "Simiu",
+      "description": "扫描相似图片，按大小和签名生成分组与文件操作计划。",
+      "actions": {
+        "clear": "清空状态",
+        "running": "运行中",
+        "runApply": "运行应用",
+        "runScan": "运行扫描",
+        "runPlan": "运行计划",
+        "paste": "粘贴目录",
+        "copy": "复制",
+        "saveDefault": "保存为默认",
+        "restoreDefault": "恢复默认",
+        "clearOverride": "清除覆盖",
+        "viewConfig": "查看配置",
+        "openFile": "打开文件",
+        "scan": {
+          "label": "扫描图片",
+          "shortLabel": "扫描",
+          "description": "扫描图片根目录和批次，不生成移动计划。"
+        },
+        "plan": {
+          "label": "生成分组",
+          "shortLabel": "计划",
+          "description": "按大小和签名生成分组及文件操作计划。"
+        },
+        "apply": {
+          "label": "应用分组",
+          "shortLabel": "应用",
+          "description": "执行移动、复制或链接操作，修改文件系统。"
+        }
+      },
+      "status": {
+        "running": "运行中",
+        "runningDescription": "Simiu 正在扫描或规划相似图片分组。",
+        "completed": "完成",
+        "completedDescription": "上次任务已完成。",
+        "error": "失败",
+        "errorDescription": "上次任务失败，请查看日志。",
+        "idle": "就绪",
+        "idleDescription": "输入图片根目录后即可扫描或生成计划。"
+      },
+      "error": {
+        "noRoots": "请先输入至少一个图片根目录。",
+        "noRunEnv": "当前环境没有本地运行能力，请使用桌面模式或 CLI。"
+      },
+      "progress": {
+        "start": "{{action}}开始"
+      },
+      "confirm": {
+        "applyTitle": "确认真实应用分组？",
+        "applyDescription": "当前已关闭预演，会按选择的应用方式移动、复制或链接图片文件。请确认根目录和分组规则无误。",
+        "cancel": "取消",
+        "apply": "确认应用"
+      },
+      "labels": {
+        "input": "输入",
+        "inputDescription": "图片根目录固定在左侧，扫描、计划和应用共用同一批输入。",
+        "grouping": "分组",
+        "runtime": "运行",
+        "scanningParameters": "扫描参数",
+        "scanningParametersDescription": "源路径、分组规则和运行模式。",
+        "clusterHub": "分组中心",
+        "confirmed": "已确认 {{count}} 个",
+        "clusterHubDescription": "从当前图片批次推导的大小与签名分组。",
+        "cluster": "分组 {{index}}: {{name}}",
+        "items": "{{count}} 项",
+        "planned": "计划 → {{name}}",
+        "selectedItems": "已选项目：{{count}}",
+        "fileCount": "{{count}} 个文件",
+        "groupOptions": "分组选项",
+        "groupOptionsDescription": "应用方式、扫描顺序和预演开关集中在这里。",
+        "defaults": "默认配置",
+        "defaultsDescription": "保存 Simiu 的目录、分组和运行选项。",
+        "configTitle": "Simiu 配置",
+        "configDescription": "当前 nodes.simiu 默认值和配置文件位置。",
+        "noDefaults": "# nodes.simiu 暂无默认配置\n",
+        "configFile": "配置文件",
+        "noConfigService": "未连接本地配置服务"
+      },
+      "fields": {
+        "roots": "图片根目录",
+        "rootsHint": "jpg / png / webp",
+        "applyMode": "应用方式",
+        "scanOrder": "扫描顺序",
+        "dryRun": "预演",
+        "dryRunDescription": "只生成操作计划，不移动、复制或链接文件。",
+        "recordRun": "记录运行",
+        "recordRunDescription": "把扫描或应用结果写入 JSONL。"
+      },
+      "placeholder": {
+        "roots": "每行一个图片目录",
+        "namePrefix": "分组前缀，默认 simiu_set",
+        "minGroupSize": "最小组大小，默认 2",
+        "sizeTolerance": "尺寸容差 bytes",
+        "configPath": "simiu.toml，可选",
+        "databasePath": ".xiranite/simiu-runs.jsonl"
+      },
+      "aria": {
+        "action": "simiu 操作",
+        "running": "simiu 运行中",
+        "roots": "simiu 图片根目录",
+        "applyMode": "simiu 应用模式",
+        "applyModeItem": "应用方式 {{label}}",
+        "scanOrder": "simiu 扫描顺序",
+        "scanOrderItem": "扫描顺序 {{label}}",
+        "namePrefix": "simiu 分组前缀",
+        "minGroupSize": "simiu 最小组大小",
+        "sizeTolerance": "simiu 尺寸容差",
+        "configPath": "simiu 配置 TOML",
+        "databasePath": "simiu 运行记录 JSONL",
+        "groupOptions": "simiu 分组选项",
+        "defaults": "simiu 默认配置",
+        "hint": "{{label}}说明"
+      },
+      "tabs": {
+        "groups": "分组",
+        "operations": "操作",
+        "logs": "日志"
+      },
+      "stats": {
+        "images": "图片",
+        "groups": "分组",
+        "operations": "操作",
+        "errors": "错误"
+      },
+      "empty": {
+        "logsText": "运行日志会显示在这里。",
+        "groupsTitle": "等待分组",
+        "groupsDescription": "生成计划后会显示相似图片分组。",
+        "operationsTitle": "等待操作",
+        "operationsDescription": "生成计划或应用分组后会显示文件操作。",
+        "logsTitle": "等待日志"
+      },
+      "panel": {
+        "count": "{{count}} 项{{label}}",
+        "waiting": "等待{{label}}"
+      },
+      "summary": {
+        "result": "{{images}} 图片 / {{groups}} 分组 / {{operations}} 操作",
+        "waiting": "{{count}} 个根目录等待{{action}}",
+        "clusters": "{{groups}} 个分组 / {{images}} 张图片"
+      },
+      "applyMode": {
+        "move": "移动",
+        "copy": "复制",
+        "link": "链接"
+      },
+      "scanOrder": {
+        "path": "路径",
+        "smallest-first": "小批次优先",
+        "deepest-first": "深层优先"
+      },
+      "config": {
+        "trigger": "配置管理",
+        "title": "配置管理",
+        "description": "保存可复用默认值，或恢复本节点的已保存配置。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "reload": "重新读取",
+        "view": "查看配置",
+        "previewTitle": "默认配置",
+        "noPath": "尚未连接配置文件",
+        "openFile": "打开配置文件",
+        "dirty": "当前参数与已保存默认值不同。",
+        "preset": "预设",
+        "presetPlaceholder": "选择预设",
+        "presetDescription": "切换后保存为默认，即写入 TOML 配置。"
+      }
+    },
+    "smartzip": {
+      "name": "SmartZip",
+      "description": "SmartZip 智能归档工作流逻辑的 TypeScript 移植，统一使用自动检测的 7-Zip 后端。",
+      "actions": {
+        "clear": "清空状态",
+        "cancel": "取消",
+        "confirm": "确认执行",
+        "pastePaths": "粘贴路径",
+        "copy": "复制",
+        "status": {
+          "label": "查看状态",
+          "shortLabel": "状态",
+          "description": "加载 SmartZip 配置，列出归档扩展名和密码。"
+        },
+        "inspectCodepage": {
+          "label": "预检文件名编码",
+          "shortLabel": "预检编码",
+          "description": "读取 ZIP 原始文件名字节，展示候选代码页、置信度和对应预览。"
+        },
+        "extract": {
+          "label": "解压归档",
+          "shortLabel": "解压",
+          "description": "智能解压归档，支持密码尝试、分卷、内容扁平化和解压后处理。"
+        },
+        "extractCodepage": {
+          "label": "代码页解压",
+          "shortLabel": "代码页",
+          "description": "用指定代码页解压归档，处理非 ASCII 文件名。"
+        },
+        "open": {
+          "label": "打开归档",
+          "shortLabel": "打开",
+          "description": "用自动检测的 7-Zip 文件管理器打开归档；非归档输入会进入压缩流程。"
+        },
+        "archive": {
+          "label": "创建归档",
+          "shortLabel": "打包",
+          "description": "把选中路径打包成归档文件。"
+        }
+      },
+      "fields": {
+        "workbench": "归档工作台",
+        "paths": "路径",
+        "codePage": "旧 ZIP 文件名编码",
+        "executables": "运行配置 · 自动检测 7-Zip",
+        "run": "运行",
+        "archivesOrDirs": "归档或目录"
+      },
+      "placeholders": {
+        "iniPath": "SmartZip.ini 配置文件",
+        "databasePath": ".xiranite/smartzip-runs.jsonl"
+      },
+      "labels": {
+        "operationChamber": "Operation chamber",
+        "commandPlan": "; TYPESCRIPT WORKFLOW PLAN",
+        "queuedArchives": "; QUEUED ARCHIVES",
+        "runCommandHint": "执行动作后会显示 TypeScript SmartZip 工作流计划。",
+        "hintSuffix": "{{label}}说明"
+      },
+      "badges": {
+        "planned": "planned",
+        "idle": "idle"
+      },
+      "status": {
+        "running": "运行中",
+        "runningDesc": "SmartZip 正在加载配置或执行命令。",
+        "completed": "完成",
+        "completedDesc": "上次任务已完成。",
+        "error": "失败",
+        "errorDesc": "上次任务失败，请查看日志。",
+        "idle": "就绪",
+        "idleDesc": "选择动作后查看状态、智能解压、打包或打开。"
+      },
+      "tabs": {
+        "command": "命令",
+        "encoding": "编码预检",
+        "tree": "文件树",
+        "config": "配置",
+        "logs": "日志"
+      },
+      "stats": {
+        "selected": "选中",
+        "archives": "归档",
+        "extensions": "扩展名",
+        "errors": "错误"
+      },
+      "options": {
+        "title": "运行选项",
+        "description": "这里保留 SmartZip INI 兼容和运行开关；7-Zip 自动检测。"
+      },
+      "defaults": {
+        "title": "默认配置",
+        "description": "保存 SmartZip INI、运行记录和执行默认值。",
+        "save": "保存为默认",
+        "restore": "恢复默认",
+        "clear": "清除覆盖",
+        "view": "查看配置",
+        "previewTitle": "SmartZip 配置",
+        "previewDescription": "当前 nodes.smartzip 默认值和配置文件位置。",
+        "openFile": "打开文件",
+        "noConfig": "# nodes.smartzip 暂无默认配置\n",
+        "configFile": "配置文件",
+        "notConnected": "未连接本地配置服务"
+      },
+      "switches": {
+        "dryRun": "预演",
+        "dryRunDesc": "只生成工作流计划，不修改归档或文件。",
+        "recordRun": "记录运行",
+        "recordRunDesc": "把每次运行的命令和结果写入 JSONL。"
+      },
+      "empty": {
+        "waitingCommand": "等待命令",
+        "waitingCommandDesc": "选择动作并运行后会显示 TypeScript 工作流计划。",
+        "waitingConfig": "等待配置",
+        "waitingConfigDesc": "运行状态查看后会显示 SmartZip 配置。",
+        "waitingLogs": "等待日志",
+        "logsHint": "运行日志会显示在这里。"
+      },
+      "configRows": {
+        "sevenZipDir": "7-Zip 目录",
+        "passwords": "密码数",
+        "archiveExtensions": "归档扩展名",
+        "default": "(默认)",
+        "contextMenu": "右键菜单",
+        "sendTo": "发送到",
+        "enabled": "启用",
+        "disabled": "禁用"
+      },
+      "panelHeader": {
+        "items": "{{count}} 项{{label}}",
+        "waiting": "等待{{label}}"
+      },
+      "progress": {
+        "start": "{{action}}开始"
+      },
+      "error": {
+        "noPaths": "请先输入至少一个归档或目录路径。",
+        "noRunEnv": "当前环境没有本地运行能力，请使用桌面模式或 CLI。"
+      },
+      "confirm": {
+        "title": "确认{{action}}？",
+        "description": "当前已关闭预演，TypeScript SmartZip 工作流会通过自动检测的 7-Zip 执行{{action}}，可能修改磁盘文件。"
+      },
+      "summary": {
+        "stats": "{{paths}} 路径 / {{archives}} 归档 / {{errors}} 错误"
+      },
+      "hints": {
+        "directActions": "输入路径后直接选择动作，不需要先切换模式。",
+        "codePage": "自动模式会预检原始文件名字节并推荐代码页；也可以根据候选预览手动覆盖。",
+        "pathsHelp": "归档或目录，每行一条。状态查看不需要路径。",
+        "pathsDescription": "每行一条路径，支持 .zip .7z .rar .tar 等。"
+      },
+      "encoding": {
+        "recommended": "推荐",
+        "empty": "等待编码预检",
+        "emptyDescription": "点击“预检文件名编码”后，这里会显示各代码页对应的文件名预览。"
+      },
+      "tree": {
+        "expand": "展开",
+        "empty": "等待文件树",
+        "emptyDescription": "运行编码预检后会读取归档成员并显示目录结构。"
+      },
+      "passwords": {
+        "title": "密码列表",
+        "show": "显示密码",
+        "hide": "隐藏密码",
+        "add": "添加密码",
+        "item": "归档密码 {{index}}",
+        "remove": "删除密码 {{index}}",
+        "moveUp": "上移密码 {{index}}",
+        "moveDown": "下移密码 {{index}}",
+        "empty": "暂无额外密码；仍会读取 SmartZip.ini 的 [password]。",
+        "hint": "按顺序尝试。新增、修改、删除和排序会自动保存；密码不会写入日志或结果。"
+      }
+    },
+    "timeu": {
+      "name": "TimeU",
+      "description": "扫描、备份和恢复文件时间戳，支持 JSON 记录与预览模式。",
+      "sections": {
+        "pathQueue": "路径队列",
+        "timeRecords": "时间记录",
+        "execution": "执行"
+      },
+      "actions": {
+        "saveDefault": "保存默认",
+        "restoreDefault": "恢复默认",
+        "clearState": "清空状态",
+        "pastePath": "粘贴路径",
+        "clearPath": "清空路径",
+        "copy": "复制",
+        "cancel": "取消",
+        "confirmExecute": "确认执行"
+      },
+      "fields": {
+        "paths": "文件或目录",
+        "record": "记录文件"
+      },
+      "placeholder": {
+        "paths": "每行一个文件或目录\nD:/archive",
+        "record": "留空则在首个路径旁生成 timeu-timestamps.json"
+      },
+      "switches": {
+        "dryRun": "预览",
+        "recursive": "递归",
+        "includeDirectories": "含目录"
+      },
+      "badges": {
+        "preview": "预览",
+        "write": "写入"
+      },
+      "status": {
+        "running": "运行中",
+        "error": "失败",
+        "completed": "完成",
+        "ready": "就绪"
+      },
+      "desc": {
+        "running": "TimeU 正在扫描或写入时间戳。",
+        "error": "上次任务失败，请查看问题列表。",
+        "completed": "上次时间戳任务已完成。",
+        "idle": "输入文件或目录后扫描时间戳。"
+      },
+      "itemStatus": {
+        "success": "完成",
+        "error": "错误",
+        "skipped": "跳过",
+        "pending": "待执行"
+      },
+      "tabs": {
+        "records": "记录",
+        "errors": "问题",
+        "logs": "日志"
+      },
+      "empty": {
+        "timestampRows": "运行后显示当前时间、记录时间和恢复计划。",
+        "noIssues": "暂无问题",
+        "logsHere": "运行日志会显示在这里。",
+        "waitingRun": "等待运行"
+      },
+      "stats": {
+        "paths": "路径",
+        "scanned": "扫描",
+        "backup": "备份",
+        "restored": "恢复",
+        "skipped": "跳过",
+        "progress": "进度"
+      },
+      "timestamps": {
+        "atime": "访问时间",
+        "mtime": "修改时间",
+        "drifted": "有差异",
+        "missing": "缺失",
+        "notWritten": "未写入",
+        "current": "现",
+        "stored": "档"
+      },
+      "dialog": {
+        "confirmBackupTitle": "确认备份时间戳？",
+        "confirmRestoreTitle": "确认恢复时间戳？",
+        "confirmDescription": "当前会写入记录文件或修改文件 atime/mtime。请确认路径和记录文件无误。"
+      },
+      "error": {
+        "noPaths": "请先输入至少一个文件或目录路径。",
+        "noRunEnv": "当前环境没有本地运行能力，请使用桌面模式或 CLI。"
+      },
+      "progress": {
+        "start": "{{action}}开始"
+      },
+      "summary": {
+        "result": "{{count}} 项 / 记录 {{records}}",
+        "paths": "{{count}} 条路径 / {{action}}"
+      },
+      "actionLabel": {
+        "scan": "扫描时间",
+        "backup": "备份时间",
+        "restore": "恢复时间"
+      },
+      "actionShortLabel": {
+        "scan": "扫描",
+        "backup": "备份",
+        "restore": "恢复"
+      },
+      "actionDescription": {
+        "scan": "读取当前时间戳并生成记录预览。",
+        "backup": "写入 JSON 时间戳记录，供后续恢复。",
+        "restore": "按记录恢复访问时间和修改时间。"
+      },
+      "units": {
+        "items": "{{count}} 项",
+        "lines": "{{count}} 行"
+      }
+    },
+    "samea": {
+      "name": "SameA",
+      "description": "归档提取器协议，按画师命名模式分析并分类整理压缩包。",
+      "errors": {
+        "noPaths": "扫描前请至少添加一个归档根目录。",
+        "noRunEnv": "当前环境没有本地运行能力。"
+      },
+      "progress": {
+        "init": "正在初始化 SameA 提取器。"
+      },
+      "header": {
+        "title": "SameA：提取器协议",
+        "sessionLabel": "工作区会话：",
+        "targetLabel": "目标：归档分诊"
+      },
+      "collapsed": {
+        "archiveCandidates": "{{count}} 个归档候选"
+      },
+      "sections": {
+        "sourceControl": "来源控制",
+        "operationGate": "操作门",
+        "analysisChamber": "分析舱",
+        "filterProtocols": "过滤协议"
+      },
+      "source": {
+        "ingestionLabel": "摄入路径（按行分隔）",
+        "placeholder": "D:/Archives/Unsorted\nE:/Staging/New",
+        "pastePaths": "粘贴路径",
+        "ignorePathBlacklist": "忽略路径黑名单"
+      },
+      "operation": {
+        "minOccurrences": "最小出现次数",
+        "centralizeLabel": "集中输出",
+        "centralizeDesc": "移动到 [00画师分类]",
+        "dryRunLabel": "预演模式",
+        "dryRunDesc": "模拟而不移动"
+      },
+      "analysis": {
+        "scanned": "已扫描",
+        "ready": "准备好扫描归档命名模式。",
+        "entityColumn": "检测到的实体",
+        "countColumn": "数量",
+        "actionColumn": "操作",
+        "empty": "运行预演扫描以填充画师矩阵。"
+      },
+      "filters": {
+        "artists": "画师",
+        "paths": "路径",
+        "regex": "正则",
+        "addExclusion": "添加排除项…"
+      },
+      "compact": {
+        "input": "输入",
+        "analysis": "分析",
+        "filters": "过滤"
+      },
+      "logs": {
+        "title": "系统日志 // 标准输出",
+        "clear": "清空",
+        "copy": "复制",
+        "idle": "[空闲] SameA 已就绪。默认启用预演模式。"
+      },
+      "actions": {
+        "running": "运行中",
+        "executeScan": "执行扫描",
+        "planScan": "规划扫描",
+        "classifyTitle": "实时分类归档？",
+        "classifyDesc": "SameA 将把就绪的归档移动到检测到的画师文件夹。",
+        "cancel": "取消",
+        "confirm": "确认"
+      }
+    }
+  }
+}

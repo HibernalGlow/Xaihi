@@ -1,0 +1,54 @@
+
+未解析的 @/ 边（搬运没覆盖到的子树，或指向未迁节点）: 9 类 / 9 条边
+     1  @/assets/tldraw-zh-cn.json?url ← packages/ui-host/src/components/workspace/FlowCanvasView.tsx
+     1  @/nodes/melodeck/config ← packages/ui-host/src/components/workspace/WorkspaceMelodeck.tsx
+     1  @/nodes/melodeck/floatingPanelGeometry ← packages/ui-host/src/components/workspace/WorkspaceMelodeck.tsx
+     1  @/nodes/melodeck/foliaHost ← packages/ui-host/src/components/workspace/WorkspaceMelodeck.tsx
+     1  @/nodes/melodeck/foliaTheme ← packages/ui-host/src/components/workspace/WorkspaceMelodeck.tsx
+     1  @/nodes/melodeck/libraryMigration ← packages/ui-host/src/components/workspace/WorkspaceMelodeck.tsx
+     1  @/nodes/melodeck/MelodeckFloatingResizeHandle ← packages/ui-host/src/components/workspace/WorkspaceMelodeck.tsx
+     1  @/nodes/melodeck/MelodeckFoliaBridge ← packages/ui-host/src/components/workspace/WorkspaceMelodeck.tsx
+     1  @/nodes/melodeck/useMelodeckThemeMode ← packages/ui-host/src/components/workspace/WorkspaceMelodeck.tsx
+
+@xiranite/* 边（要换成本仓包名或构建期内联）: 9 类 / 43 条边
+    14  @xiranite/contract
+    11  @xiranite/shared
+    10  @xiranite/api
+     3  @xiranite/node-sleept
+     1  @xiranite/logging
+     1  @xiranite/node-dissolvef
+     1  @xiranite/node-findz
+     1  @xiranite/node-linedup
+     1  @xiranite/node-melodeck
+
+第三方裸依赖（要逐条声明，别靠提升）: 77 类 / 740 条边
+   255  react
+   132  lucide-react
+    57  react-i18next
+    50  @testing-library/react
+    45  ldrs
+    19  motion
+    18  @testing-library/user-event
+    14  class-variance-authority
+    10  @tanstack/react-table
+     9  zustand
+     8  @tanstack/react-query
+     7  @material/material-color-utilities
+     7  @radix-ui/react-slot
+     7  react-dom
+     6  @dnd-kit/core
+     6  @dnd-kit/sortable
+     5  @hibernalglow/ocean-dataview
+     5  nuqs
+     4  @dnd-kit/utilities
+     3  @dnd-kit/modifiers
+     3  i18next
+     2  @blocknote/shadcn
+     2  @hibernalglow/folia-player
+     2  @module-federation/runtime
+     2  @radix-ui/react-accordion
+  …还有 52 类
+
+非测试文件里的 node: 导入（浏览器半边跑不了）: 0 类 / 0 条边
+
+非测试文件里 value-import harness 包（purity 纪律）: 0 类 / 0 条边

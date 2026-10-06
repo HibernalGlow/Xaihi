@@ -1,0 +1,328 @@
+/*
+  Theme design axes.
+  These are not a visual theme by themselves; they expose the active theme's
+  strategy profile as reusable CSS variables for components and layouts.
+*/
+
+:root {
+  --theme-density-scale: 1;
+  --theme-control-min-height: 2.25rem;
+  --theme-node-gap: 0.75rem;
+  --theme-node-padding: 1rem;
+  --theme-axis-radius: var(--radius);
+  --theme-axis-border-width: 1px;
+  --theme-axis-motion-duration: 200ms;
+  --theme-axis-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --theme-axis-surface-opacity: 1;
+  --theme-axis-depth-shadow: none;
+  --node-surface-bg: var(--card);
+  --node-surface-fg: var(--card-foreground);
+  --node-panel-bg: color-mix(in oklch, var(--card) 92%, var(--background));
+  --node-panel-fg: var(--card-foreground);
+  --node-panel-border: var(--border);
+  --node-panel-shadow: none;
+  --node-control-bg: color-mix(in oklch, var(--background) 78%, var(--card));
+  --node-control-bg-hover: color-mix(in oklch, var(--accent) 72%, var(--card));
+  --node-control-fg: var(--foreground);
+  --node-control-border: var(--input);
+  --node-input-bg: color-mix(in oklch, var(--background) 84%, var(--card));
+  --node-code-bg: color-mix(in oklch, var(--muted) 84%, var(--background));
+  --node-divider: color-mix(in oklch, var(--border) 76%, transparent);
+  --node-media-frame-bg: color-mix(in oklch, var(--card) 88%, var(--background));
+  --node-media-frame-border: var(--border);
+  --node-media-caption-fg: var(--muted-foreground);
+  --node-focus-ring: var(--ring);
+  --node-title-font: var(--font-app-sans);
+  --node-label-font: var(--font-app-mono);
+  --node-caption-font: var(--font-app-sans);
+  --node-label-transform: none;
+  --node-label-letter-spacing: 0;
+  --node-caption-letter-spacing: 0;
+}
+
+:root[data-theme-density="compact"] {
+  --theme-density-scale: 0.875;
+  --theme-control-min-height: 2rem;
+  --theme-node-gap: 0.5rem;
+  --theme-node-padding: 0.75rem;
+}
+
+:root[data-theme-density="comfortable"] {
+  --theme-density-scale: 1.075;
+  --theme-control-min-height: 2.5rem;
+  --theme-node-gap: 0.875rem;
+  --theme-node-padding: 1.125rem;
+}
+
+:root[data-theme-radius="hard"] {
+  --theme-axis-radius: 0.25rem;
+}
+
+:root[data-theme-radius="technical"] {
+  --theme-axis-radius: 0.5rem;
+}
+
+:root[data-theme-border="outlined"] {
+  --theme-axis-border-width: 1px;
+}
+
+:root[data-theme-border="brutalist"] {
+  --theme-axis-border-width: 2px;
+}
+
+:root[data-theme-motion="soft"] {
+  --theme-axis-motion-duration: 220ms;
+  --theme-axis-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root[data-theme-motion="mechanical"] {
+  --theme-axis-motion-duration: 150ms;
+  --theme-axis-motion-ease: cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+:root[data-theme-motion="cinematic"] {
+  --theme-axis-motion-duration: 280ms;
+  --theme-axis-motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme-surface="glass"] {
+  --theme-axis-surface-opacity: 0.78;
+}
+
+:root[data-theme-depth="shadow"] {
+  --theme-axis-depth-shadow: 0 12px 32px oklch(0 0 0 / 0.14);
+}
+
+:root[data-theme-depth="glow"] {
+  --theme-axis-depth-shadow: 0 0 28px color-mix(in oklch, var(--primary) 20%, transparent);
+}
+
+:root[data-theme-depth="layered"] {
+  --theme-axis-depth-shadow: 0 18px 48px oklch(0 0 0 / 0.16);
+}
+
+:where(:root[data-theme-node-interior="dense-controls"]) .xiranite-node-surface {
+  --node-control-min-height: var(--theme-control-min-height);
+  --node-control-gap: var(--theme-node-gap);
+  --node-panel-padding: var(--theme-node-padding);
+}
+
+:where(:root[data-theme-node-interior="ledger-panels"]) .xiranite-node-surface {
+  --node-control-min-height: 2rem;
+  --node-control-gap: 0.5rem;
+  --node-panel-padding: 0.75rem;
+}
+
+:where(:root[data-theme-node-interior="agent-workbench"]) .xiranite-node-surface {
+  --node-control-min-height: 2rem;
+  --node-control-gap: 0.5rem;
+  --node-panel-padding: 0.75rem;
+  --node-label-transform: uppercase;
+  --node-label-letter-spacing: 0.02em;
+}
+
+:where(:root[data-theme-node-interior="gallery-archive"]) .xiranite-node-surface {
+  --node-control-min-height: 2.25rem;
+  --node-control-gap: 0.75rem;
+  --node-panel-padding: 1rem;
+  --node-label-transform: uppercase;
+  --node-label-letter-spacing: 0.06em;
+  --node-caption-letter-spacing: 0.03em;
+}
+
+:where(:root[data-theme-node-interior]) .xiranite-node-surface {
+  --node-surface-radius: var(--theme-axis-radius);
+  --node-surface-border-width: var(--theme-axis-border-width);
+  --node-surface-shadow: var(--theme-axis-depth-shadow);
+  background-color: var(--node-surface-bg);
+  color: var(--node-surface-fg);
+}
+
+:where(:root[data-theme-node-interior]) .xiranite-node-surface :where(
+  h1,
+  h2,
+  h3,
+  h4,
+  [data-slot="card-title"]
+) {
+  font-family: var(--node-title-font);
+}
+
+:where(:root[data-theme-node-interior]) .xiranite-node-surface :where(
+  label,
+  [data-slot="badge"],
+  [data-slot="table-head"],
+  figcaption,
+  th,
+  kbd
+) {
+  font-family: var(--node-label-font);
+  letter-spacing: var(--node-label-letter-spacing);
+  text-transform: var(--node-label-transform);
+}
+
+:where(:root[data-theme-node-interior]) .xiranite-node-surface :where(
+  section,
+  article,
+  [data-slot="card"],
+  [data-slot="alert"],
+  figure,
+  [data-slot="table-container"],
+  [class*="rounded-md"][class*="border"],
+  [class*="rounded-lg"][class*="border"]
+):not(button):not([role="button"]):not(input):not(textarea):not(select):not([contenteditable="true"]) {
+  background-color: var(--node-panel-bg);
+  color: var(--node-panel-fg);
+  border-color: var(--node-panel-border);
+  border-width: var(--node-surface-border-width);
+  border-radius: var(--node-surface-radius);
+  box-shadow: var(--node-panel-shadow), var(--node-surface-shadow);
+}
+
+:where(:root[data-theme-surface="glass"]) .xiranite-node-surface :where(
+  section,
+  article,
+  [data-slot="card"],
+  [data-slot="alert"],
+  figure,
+  [class*="rounded-md"][class*="border"],
+  [class*="rounded-lg"][class*="border"]
+):not(button):not([role="button"]):not(input):not(textarea):not(select):not([contenteditable="true"]) {
+  background-color: color-mix(in oklch, var(--card) calc(var(--theme-axis-surface-opacity) * 100%), transparent);
+  backdrop-filter: blur(16px);
+}
+
+:where(:root[data-theme-surface="flat"]) .xiranite-node-surface :where(
+  section,
+  article,
+  [data-slot="card"],
+  [data-slot="alert"],
+  figure,
+  [class*="rounded-md"][class*="border"],
+  [class*="rounded-lg"][class*="border"]
+):not(button):not([role="button"]):not(input):not(textarea):not(select):not([contenteditable="true"]) {
+  box-shadow: none;
+}
+
+:where(:root[data-theme-node-interior]) .xiranite-node-surface :where(
+  button:not([data-slot="switch"]),
+  [role="button"],
+  input,
+  textarea,
+  select,
+  [contenteditable="true"]
+) {
+  background-color: var(--node-control-bg);
+  color: var(--node-control-fg);
+  border-color: var(--node-control-border);
+  min-height: var(--node-control-min-height);
+  border-width: var(--node-surface-border-width);
+  border-radius: var(--node-surface-radius);
+}
+
+:where(:root[data-theme-node-interior]) .xiranite-node-surface :where(
+  button:not([data-slot="switch"]),
+  [role="button"]
+):hover {
+  background-color: var(--node-control-bg-hover);
+}
+
+:where(:root[data-theme-node-interior]) .xiranite-node-surface :where(
+  input,
+  textarea,
+  select,
+  [contenteditable="true"]
+) {
+  background-color: var(--node-input-bg);
+}
+
+:where(:root[data-theme-node-interior]) .xiranite-node-surface :where(pre, code, kbd, samp) {
+  background-color: var(--node-code-bg);
+}
+
+:where(:root[data-theme-node-interior="dense-controls"]) .xiranite-node-surface :where(
+  button:not([data-slot="switch"]),
+  [role="button"],
+  input,
+  select
+) {
+  padding-inline: calc(0.625rem * var(--theme-density-scale));
+}
+
+:where(:root[data-theme-node-interior="ledger-panels"]) .xiranite-node-surface :where(
+  table,
+  [data-slot="table-container"]
+) {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+:where(:root[data-theme-node-interior="ledger-panels"]) .xiranite-node-surface :where(th, td) {
+  border-bottom: var(--node-surface-border-width) solid color-mix(in oklch, var(--border) 78%, transparent);
+}
+
+:where(:root[data-theme-node-interior="agent-workbench"]) .xiranite-node-surface :where(
+  section,
+  article,
+  [data-slot="card"],
+  [data-slot="table-container"]
+) {
+  border-color: var(--node-divider);
+}
+
+:where(:root[data-theme-node-interior="agent-workbench"]) .xiranite-node-surface :where(table) {
+  border-collapse: collapse;
+}
+
+:where(:root[data-theme-node-interior="agent-workbench"]) .xiranite-node-surface :where(th, td) {
+  border-bottom: var(--node-surface-border-width) solid var(--node-divider);
+}
+
+:where(:root[data-theme-node-interior="gallery-archive"]) .xiranite-node-surface :where(
+  figure,
+  [data-slot="chart-container"],
+  [data-slot="table-container"]
+) {
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--node-media-frame-bg) 92%, transparent), var(--node-panel-bg));
+  border-color: var(--node-media-frame-border);
+  box-shadow: var(--node-panel-shadow), var(--node-surface-shadow);
+}
+
+:where(:root[data-theme-node-interior="gallery-archive"]) .xiranite-node-surface :where(
+  img,
+  video,
+  canvas
+) {
+  border: var(--node-surface-border-width) solid var(--node-media-frame-border);
+  border-radius: calc(var(--node-surface-radius) * 0.75);
+  background-color: var(--node-media-frame-bg);
+  filter: saturate(0.86) contrast(1.08);
+}
+
+:where(:root[data-theme-node-interior="gallery-archive"]) .xiranite-node-surface :where(figcaption, small) {
+  color: var(--node-media-caption-fg);
+  font-family: var(--node-caption-font);
+  letter-spacing: var(--node-caption-letter-spacing);
+}
+
+:where(:root[data-theme-node-interior="gallery-archive"]) .xiranite-node-surface :where(
+  button,
+  [role="button"],
+  input,
+  textarea,
+  select,
+  [contenteditable="true"]
+):focus-visible {
+  outline: 2px solid var(--node-focus-ring);
+  outline-offset: 2px;
+}
+
+:where(:root[data-theme-motion]) .xiranite-node-surface button,
+:where(:root[data-theme-motion]) .xiranite-node-surface [role="button"],
+:where(:root[data-theme-motion]) .xiranite-node-surface input,
+:where(:root[data-theme-motion]) .xiranite-node-surface textarea,
+:where(:root[data-theme-motion]) .xiranite-node-surface select {
+  transition-duration: var(--theme-axis-motion-duration);
+  transition-timing-function: var(--theme-axis-motion-ease);
+}

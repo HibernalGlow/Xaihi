@@ -1,0 +1,252 @@
+/*
+  孤星（Arknights「孤星」/ Cassette Futurism）配方的组件层。
+
+  与另外三份配方同命的两条纪律，加一条这一份特有的：
+   1. **每条规则都被维度门住** —— `:root[data-app-design="lonestar"][data-design-<dim>="on"]`。
+      只靠引擎不发变量是不够的：未定义的 `var()` 会让声明落到属性初始值。
+   2. **一个维度一条长写属性，不混简写** —— 线宽归 geometry，线色归 states。
+   3. **切角不是圆角**。`--ls-cut-*` 是 clip-path 多边形的量，所以它与 `outline` 天然冲突：
+      被裁掉的面板上，描边会在两个斜口处断开。处置不是把 clip-path 关掉，而是**分工**：
+      抬起面与卡片吃切角（shape），可聚焦的小控件吃直角＋发丝线＋辉光（states/elevation），
+      一个组件只有一种角处理——这条正好是那份 token contract 自己的规则。
+
+  值全部来自 `src/lib/design-theme/lonestar/spec.ts`（逐条带出处，反查在 `lonestar/spec.test.ts`），
+  这个文件里不许出现新的魔法数：能看到的数都是 `var(--ls-*)`。
+  唯二的字面量是 `border-style: solid`（线宽要生效必须有 style）与 clip-path 多边形里那些
+  `0%` / `100%` 锚点——它们是几何式子而不是值。
+
+  组件皮肤优先级高于本层：撞车的选择器由 `scripts/md3-yield-to-skins.ts` 补
+  `:not([data-…-style])` 门，门禁是 `bun run audit:design-skin-priority`。
+*/
+
+/* ── shape：角是切出来的，不是倒出来的 ─────────────────────────────────── */
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="card"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="dialog-content"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="popover-content"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="select-content"] {
+  /* 四个口都是 45°：等价于 Kisaki 那边 BeveledRectangleBorder(borderRadius: cut) 的形状。 */
+  clip-path: polygon(
+    var(--ls-cut-panel) 0,
+    calc(100% - var(--ls-cut-panel)) 0,
+    100% var(--ls-cut-panel),
+    100% calc(100% - var(--ls-cut-panel)),
+    calc(100% - var(--ls-cut-panel)) 100%,
+    var(--ls-cut-panel) 100%,
+    0 calc(100% - var(--ls-cut-panel)),
+    0 var(--ls-cut-panel)
+  );
+}
+
+/* 抬起块吃 `cut-md` 那一档：同一份 contract 说「一个组件只用一种切角处理」，所以是换档不是乘系数。 */
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="dialog-content"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="popover-content"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="select-content"] {
+  clip-path: polygon(
+    var(--ls-cut-block) 0,
+    calc(100% - var(--ls-cut-block)) 0,
+    100% var(--ls-cut-block),
+    100% calc(100% - var(--ls-cut-block)),
+    calc(100% - var(--ls-cut-block)) 100%,
+    var(--ls-cut-block) 100%,
+    0 calc(100% - var(--ls-cut-block)),
+    0 var(--ls-cut-block)
+  );
+}
+
+/* 切过的面也不留圆角：`clip-path` 与 `border-radius` 是两件事，只裁不归零会留下
+   「12px 圆角被裁成八角」那种既不是切也不是圆的形状（探针里 `border-top-left-radius`
+   读到 12px 就是这一条漏了）。 */
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="card"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="dialog-content"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="popover-content"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="select-content"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="badge"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="button"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="input"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="select-trigger"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="progress"],
+:root[data-app-design="lonestar"][data-design-shape="on"] [data-slot="progress-indicator"] {
+  border-radius: var(--ls-radius-none);
+}
+
+/* ── geometry：发丝线分区、动作条、8px 网格、等宽数字 ───────────────────── */
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="card"],
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="badge"],
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="button"],
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="input"],
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="select-trigger"],
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="table-container"] {
+  border-style: solid;
+  border-width: var(--ls-hairline);
+}
+
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="dialog-content"],
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="popover-content"],
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="select-content"] {
+  border-style: solid;
+  border-width: var(--ls-rule-emphasized);
+}
+
+:root[data-app-design="lonestar"][data-design-geometry="on"] .xiranite-node-surface th,
+:root[data-app-design="lonestar"][data-design-geometry="on"] .xiranite-node-surface td {
+  padding-inline: var(--ls-gap-pad);
+}
+
+/* 数字与标识走等宽 + tabular：这一条与 `--ls-figure-font` 的开关一起生效
+   （关掉时那两个 token 发的是 inherit / normal，而不是不发）。 */
+:root[data-app-design="lonestar"][data-design-geometry="on"] .xiranite-node-surface td,
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="badge"] {
+  font-family: var(--ls-figure-font);
+  font-variant-numeric: var(--ls-figure-variant);
+}
+
+/* 当前步的那根条：结构条而不是下划线（32×4）。 */
+:root[data-app-design="lonestar"][data-design-geometry="on"] [data-slot="card-title"]::before {
+  block-size: var(--ls-step-rule-thickness);
+  content: "";
+  display: block;
+  inline-size: var(--ls-step-rule-width);
+  margin-block-end: var(--ls-gap-cluster);
+  background-color: var(--primary);
+}
+
+/* 面板底纹：只有发丝级点阵，没有渐变——契约明写不许用渐变做填充。 */
+:root[data-app-design="lonestar"][data-design-geometry="on"] .xiranite-node-surface {
+  background-image: radial-gradient(color-mix(in oklab, var(--foreground) 5%, transparent) 1px, transparent 1px);
+  background-size: var(--ls-gap-gutter) var(--ls-gap-gutter);
+}
+
+:root[data-app-design="lonestar"][data-design-geometry="on"] .ws-canvas-bg {
+  background-size: var(--ls-gap-section) var(--ls-gap-section);
+}
+
+/* ── elevation：什么都不许浮；辉光只许是反馈 ─────────────────────────────── */
+:root[data-app-design="lonestar"][data-design-elevation="on"] [data-slot="card"],
+:root[data-app-design="lonestar"][data-design-elevation="on"] [data-slot="dialog-content"],
+:root[data-app-design="lonestar"][data-design-elevation="on"] [data-slot="popover-content"],
+:root[data-app-design="lonestar"][data-design-elevation="on"] [data-slot="select-content"] {
+  box-shadow: var(--ls-shadow-flat);
+}
+
+/* 物理控件的那点厚度只能是内嵌发丝斜面，不许是投影（catfu §1）。 */
+:root[data-app-design="lonestar"][data-design-elevation="on"] [data-slot="input"],
+:root[data-app-design="lonestar"][data-design-elevation="on"] [data-slot="select-trigger"] {
+  box-shadow: var(--ls-bevel-inset);
+}
+
+/* 律：辉光是反馈，永远不是常设背景。所以下面这两条**只允许**出现在 :hover 与 :focus-within 上，
+   `--ls-glow` 在全文件里的出现次数由本配方的浏览器测逐条数着（不是 2 次即红）。 */
+:root[data-app-design="lonestar"][data-design-elevation="on"] [data-slot="button"]:hover {
+  box-shadow: var(--ls-glow);
+}
+
+:root[data-app-design="lonestar"][data-design-elevation="on"] [data-slot="button"]:focus-within {
+  box-shadow: var(--ls-glow);
+}
+
+/* ── typography：两档字重、大写标签、收紧的成组数字 ─────────────────────── */
+:root[data-app-design="lonestar"][data-design-typography="on"] .xiranite-node-surface {
+  line-height: var(--ls-line-height-body);
+}
+
+:root[data-app-design="lonestar"][data-design-typography="on"] [data-slot="badge"] {
+  font-weight: var(--ls-weight-emphasis);
+  letter-spacing: var(--ls-tracking-label);
+  line-height: var(--ls-line-height-label);
+  text-transform: var(--ls-label-transform);
+}
+
+:root[data-app-design="lonestar"][data-design-typography="on"] .xiranite-node-surface th {
+  font-weight: var(--ls-weight-emphasis);
+  letter-spacing: var(--ls-tracking-step);
+  text-transform: var(--ls-label-transform);
+}
+
+:root[data-app-design="lonestar"][data-design-typography="on"] .xiranite-node-surface td {
+  font-weight: var(--ls-weight-text);
+  letter-spacing: var(--ls-tracking-figure);
+}
+
+/* ── motion：机械、无曲线、按下有行程；指示灯用 step-end 闪 ─────────────── */
+:root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="button"],
+:root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="badge"],
+:root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="card"],
+:root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="input"] {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: var(--ls-motion-duration);
+  transition-timing-function: var(--ls-motion-ease);
+}
+
+:root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="button"]:active {
+  transform: translateY(var(--ls-press-travel));
+}
+
+/* 「闪烁才是主动画」：进度条在跑的时候当作面板上那颗灯，用 step-end 而不是淡入淡出。 */
+:root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="progress-indicator"] {
+  animation: lonestar-lamp var(--ls-blink-duration) var(--ls-blink-ease) infinite;
+}
+
+@keyframes lonestar-lamp {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.12;
+  }
+}
+
+/* ── states：台阶而不是色相；选中的永远是青，不是那个橙 ────────────────── */
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="card"],
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="input"],
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="select-trigger"],
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="table-container"] {
+  border-color: var(--border);
+}
+
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="card"]:hover,
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="card"]:focus-within {
+  border-color: var(--ls-rule-strong);
+}
+
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="button"]:hover {
+  border-color: var(--ls-rule-strong);
+  background-color: var(--ls-hover-ground);
+}
+
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="button"]:active {
+  background-color: var(--ls-pressed-ground);
+}
+
+:root[data-app-design="lonestar"][data-design-states="on"] .xiranite-node-surface tbody tr:hover {
+  background-color: var(--ls-hover-ground);
+}
+
+/* 选中：色之外还必须有几何——那条律说换色永远不单独承载状态。 */
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="button"][data-state="on"],
+:root[data-app-design="lonestar"][data-design-states="on"] [role="tab"][aria-selected="true"] {
+  border-color: var(--ls-selection-ink);
+  background-color: var(--ls-selection-ground);
+  color: var(--ls-selection-ink);
+}
+
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="button"]:focus-visible,
+:root[data-app-design="lonestar"][data-design-states="on"] [data-slot="input"]:focus-visible {
+  outline-color: var(--ring);
+  outline-offset: var(--ls-focus-ring-offset);
+  outline-style: solid;
+  outline-width: var(--ls-hairline);
+}
+
+/* 减少动效时不留半套：闪烁的灯必须真的停，而不是只去掉曲线。 */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="progress-indicator"] {
+    animation: none;
+  }
+
+  :root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="button"],
+  :root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="badge"],
+  :root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="card"],
+  :root[data-app-design="lonestar"][data-design-motion="on"] [data-slot="input"] {
+    transition-duration: 0ms;
+  }
+}

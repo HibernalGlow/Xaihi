@@ -164,3 +164,65 @@ React 那条不变：只有网页面受 DSH 的 **React 18.3.1** 约束，CLI/TU
 TUI 也不需要 DSH 提供 tui 宿主（本机 `dsh --profile tui --dump-config` 报 `profile "tui" does not exist`，
 与本路无关）。上游对"三面共享核心"这件事自己也记过账：
 `<Xiranite>/docs/adr/0069-keep-node-cli-tui-gui-triad-with-clap-ratatui-react.md`。
+
+## 修正（移植第二轮，2026-10-06）：UI 半边只认一个基线 = 移植时点的 Xiranite 工作树
+
+第一轮把 L1/L2/L3/L4 按 tag `noxide` 搬、把设计语言按工作树搬（`noxide` 里根本没有
+`src/lib/design-theme/`，实测 `ENOENT`），结果**上游自己那条尺把混基线判红了**：
+`design-theme/registry.test.ts` 要求「每一份被注册的配方，中英两份 i18n 里都要有 label 与 description」，
+而 `swiss` / `lonestar` 的标签既不在 noxide（连配方都没有）也不在 Xiranite 的
+HEAD `2694975`（`node -e` 逐键探：`designTheme.swiss.label` 与 `designTheme.lonestar.label` 两份 JSON 全 `MISS`，
+native/md3/mondrian/wuling 都在），**只活在用户的工作树里**（`git status --porcelain src/i18n` 三条 `MM`）。
+
+⇒ 事实：使用者点名的那套界面（"swiss-lonestar 那种设计语言"）**比任何一条已提交历史都新**。
+"master 在重构、别取实现"这句对**宿主半边**成立（Rust/Tauri/extism 那一坨），
+对 **UI 半边**不成立——被不满意的是执行侧，不是他写好的 React 面。
+
+### 决定
+
+- **UI 半边**（L1 外壳 / L2 原子 / L3 `nodes/shared` / L4 `nodes/<id>` / `lib/design-theme` / `styles` /
+  `index.css` / `backend` 接缝）真源 = **移植时点的 Xiranite 工作树快照**。
+- **宿主半边**（节点的 `core.ts` / 算法 / 平台判定）真源仍是 tag `noxide`（D13 不变）。
+- 快照必须**可 diff、可复核**，所以搬运是脚本而不是手抄：`scripts/port-ui.mjs` 把 572 个文件按
+  同一张表原样复制（不改别名、不改格式、不删注释），并把每个来源的 `sha256` 记进
+  `docs/port/xiranite-ui.json`。`node scripts/port-ui.mjs --check` 是尺：
+  目标与快照逐字节不同即红（实测 `check: 572 tracked file(s), 0 copied, 0 out of sync, 0 missing`）。
+- 上游那批 `*.test.ts` 跟着搬，并且**就是这一层的保真判据**——不另写"我想象中的期望值"。
+  统一基线后 `pnpm exec vitest run` 在 `packages/ui-host` 是 **155/155 绿（17 个文件）**，
+  其中 **135 条是上游原样的尺**、20 条是本仓自己的（`tests/*.spec.ts` 四个文件）。
+  `*.browser.test.tsx` 仍不带：那类夹具要 Playwright/真 DOM 接线，形状还没定（清单见 `docs/port/`）。
+
+### 这一轮顺手钉住的两个坑
+
+1. **终端面包一进 workspace 就把全仓 pnpm 弄瘫**：`packages/{api,cli,cli-runtime,contract,logging,shared}`
+   的依赖里写着 `@xiranite/*` + `workspace:*`，本仓没有那些包名，pnpm 连依赖树都解不出来——
+   症状不是"那个包坏了"而是**每一条 `pnpm` 命令**（含所有门禁）报
+   `Failed to resolve dependency tree: In …/packages/api: "@xiranite/file-operations@workspace:*" …`。
+   与 ADR-0002 那条是同一类失败（`workspace:*` 解析不了），只是这次发生在仓内。
+   落点：`pnpm-workspace.yaml` 里逐条 `!packages/<name>` 负模式，**放行条件写在文件注释里**
+   （依赖图换成真实存在的包名，或改成构建期内联）。不是把包删了，也不是把规则放宽。
+2. **`environment` 也是基线的一部分**：上游测试默认环境逐字是 `environment: "happy-dom"`，
+   把它退回 node 会让 `domColor.ts`（canvas 解析 CSS 颜色）与 `resolve.test.ts`（getComputedStyle）
+   红成一片，症状写着 "document is not defined" 而原因在配置里。换环境的连带后果也记下来了：
+   happy-dom 下 `import.meta.url` 不再是 `file:` 形态，`fileURLToPath` 直接抛
+   "The URL must be of scheme file"，所以本仓自己的 spec 改成以 `import.meta.dirname` 为基准。
+
+### 品牌这条尺在这一批之后是红的（不藏，也不加白名单）
+
+`node scripts/check-brand.mjs` ⇒ **rc=1，1003 处**，其中 **740 处落在本轮搬进来的
+`packages/ui-host/src/`**，另 263 处来自终端面那几棵同样按原样搬的包。
+
+- 为什么留着：`@xiranite/*` 与 `@/…` 这两种 import 边是**可 diff 性**的载体（ADR-0007 事实 1：
+  2219 条）。搬运与改名分两批，症状才可归因——一起动，红的时候没人知道是搬错了还是改错了。
+  台账已按类计数：`@xiranite/*` 的 **value 边只有 43 条**（另有 86 条是 type-only，产物里不存在），
+  所以那 740 处里绝大多数是标识符与文案，不是依赖边。
+- 为什么不改门禁：ADR-0010 自己写了"不许加白名单、不许靠 skip 变绿"，所以这里**不加例外**；
+  `check-brand` 目前也**没有**接进根 `test` 链（实测 `package.json#scripts.test` 只有
+  `check:pins`、`check:skills`、`check:installable` + build/typecheck/test:unit），
+  红的是这条尺自己的读数，不是流水线。
+- 改名的批次边界：`packages/ui-host/**` 与 `packages/{api,cli,…}/**` 一旦能构建，
+  就按 ADR-0010 "与消费者同批"把包名/类名前缀/`data-*`/错误文案换成 Xaihi。
+  **唯一要先问使用者的**是那 9 处跨语言判别符与落盘路径（`/_xiranite/backend/…`、
+  `x-xiranite-token`、`XiraniteApp`）——那些改名等于数据迁移。
+
+
