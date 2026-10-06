@@ -34,7 +34,7 @@
     }
   },
   "scripts": {
-    "build": "node scripts/build-css.mjs && tsdown",
+    "build": "node scripts/build-css.mjs && tsdown && node scripts/check-client-bundle.mjs",
     "build:document": "rspack build -c rspack.document.mjs",
     "typecheck": "node ../../scripts/check-types.mjs",
     "typecheck:strict": "node ../../scripts/check-types.mjs --fail-on-all",
