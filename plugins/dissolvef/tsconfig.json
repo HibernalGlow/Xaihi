@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // 从 Xiranite `noxide` 基线逐字搬来的 `src/core.ts` / `src/platform.ts` 是在
+    // **没有** `noUncheckedIndexedAccess` 的编译器下写的。要在我们这边通过，就得给
+    // 900 行数组下标逐个加断言或改控制流——那正是移植里最不该发生的"顺手改行为"。
+    // 所以只关这两面旗（strict 保留），并把范围限在本包。等内核被我们主动重写时
+    // 连同旗号一起收回。这不是白 given：本包的 `src/index.ts` 是新写的，
+    // 它照样被 strict 家族管着——`record.createdAt` 那个字段名就是我写错的，
+    // 是类型检查当场抓出来的。
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false
+  },
+  "include": ["src", "frontend", "rspack.config.mjs"]
+}

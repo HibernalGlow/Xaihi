@@ -1,0 +1,519 @@
+{
+  "name": "@hibernalglow/xaihi-dissolvef",
+  "version": "0.0.0",
+  "description": "Xaihi node Dissolve folders: backend actions plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-dissolvef",
+    "title": {
+      "zh": "\u6587\u4ef6\u5f52\u5e76\u6574\u7406",
+      "en": "Dissolve folders"
+    },
+    "ui": {
+      "remote": "dissolvef",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.dissolvef",
+        "title": {
+          "zh": "\u6587\u4ef6\u5f52\u5e76\u9762\u677f",
+          "en": "Dissolve panel"
+        },
+        "area": "workspace",
+        "remote": "dissolvef",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "dissolvef",
+      "title": {
+        "zh": "\u6587\u4ef6\u5f52\u5e76\u6574\u7406",
+        "en": "Dissolve folders"
+      },
+      "description": {
+        "zh": "\u628a\u4e00\u4e2a\u76ee\u5f55\u91cc\u7684\u5b50\u6587\u4ef6\u5939\u6309\"\u5d4c\u5957 / \u5a92\u4f53 / \u538b\u7f29\u5305 / \u76f4\u63a5\u6587\u4ef6\"\u56db\u79cd\u7b56\u7565\u5f52\u5e76\u5230\u4e0a\u5c42\uff0c\u5148\u51fa\u8ba1\u5212\u518d\u843d\u5730\uff0c\u5e76\u7559\u4e0b\u53ef\u64a4\u9500\u7684 undo journal\u3002",
+        "en": "Dissolve subfolders of a directory up one level using nested / media / archive / direct strategies. Plan first, then apply, with an undo journal."
+      },
+      "actions": [
+        {
+          "id": "plan",
+          "label": {
+            "zh": "\u51fa\u8ba1\u5212",
+            "en": "Plan"
+          },
+          "description": {
+            "zh": "\u53ea\u8bfb\uff1a\u5217\u51fa\u6253\u7b97\u600e\u4e48\u5f52\u5e76\uff0c\u4e0d\u52a8\u4efb\u4f55\u6587\u4ef6\u3002",
+            "en": "Read-only: show the plan without touching files."
+          }
+        },
+        {
+          "id": "dissolve",
+          "label": {
+            "zh": "\u6267\u884c\u5f52\u5e76",
+            "en": "Dissolve"
+          },
+          "description": {
+            "zh": "\u6309\u8ba1\u5212\u79fb\u52a8\u6587\u4ef6\u5e76\u5199\u64a4\u9500\u8d26\u672c\u3002\u4f1a\u6539\u52a8\u78c1\u76d8\uff0c\u9700\u8981\u6279\u51c6\u3002",
+            "en": "Apply the plan and record an undo journal. Mutates disk, so it needs approval."
+          }
+        },
+        {
+          "id": "undo",
+          "label": {
+            "zh": "\u64a4\u9500",
+            "en": "Undo"
+          },
+          "description": {
+            "zh": "\u6309 undoId \u628a\u4e00\u6b21\u5f52\u5e76\u8fd8\u539f\u3002",
+            "en": "Restore one dissolve by undoId."
+          }
+        },
+        {
+          "id": "history",
+          "label": {
+            "zh": "\u770b\u5386\u53f2",
+            "en": "History"
+          },
+          "description": {
+            "zh": "\u5217\u51fa\u64a4\u9500\u8d26\u672c\u91cc\u8bb0\u8fc7\u7684\u64cd\u4f5c\u3002",
+            "en": "List operations recorded in the undo journal."
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "kind": "select",
+          "isActionSelector": true,
+          "label": {
+            "zh": "\u52a8\u4f5c",
+            "en": "Action"
+          },
+          "options": [
+            {
+              "value": "plan",
+              "label": {
+                "zh": "\u51fa\u8ba1\u5212",
+                "en": "Plan"
+              }
+            },
+            {
+              "value": "dissolve",
+              "label": {
+                "zh": "\u6267\u884c\u5f52\u5e76",
+                "en": "Dissolve"
+              }
+            },
+            {
+              "value": "undo",
+              "label": {
+                "zh": "\u64a4\u9500",
+                "en": "Undo"
+              }
+            },
+            {
+              "value": "history",
+              "label": {
+                "zh": "\u770b\u5386\u53f2",
+                "en": "History"
+              }
+            }
+          ]
+        },
+        {
+          "id": "path",
+          "kind": "text",
+          "label": {
+            "zh": "\u76ee\u5f55",
+            "en": "Directory"
+          },
+          "rules": [
+            {
+              "type": "nonBlank"
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "mode",
+          "kind": "select",
+          "label": {
+            "zh": "\u5f52\u5e76\u7b56\u7565",
+            "en": "Strategy"
+          },
+          "default": "nested",
+          "options": [
+            {
+              "value": "nested",
+              "label": {
+                "zh": "\u5d4c\u5957\u76ee\u5f55",
+                "en": "Nested folders"
+              }
+            },
+            {
+              "value": "media",
+              "label": {
+                "zh": "\u89c6\u9891\u76ee\u5f55",
+                "en": "Media folders"
+              }
+            },
+            {
+              "value": "archive",
+              "label": {
+                "zh": "\u538b\u7f29\u5305\u76ee\u5f55",
+                "en": "Archive folders"
+              }
+            },
+            {
+              "value": "direct",
+              "label": {
+                "zh": "\u76f4\u63a5\u6563\u6587\u4ef6",
+                "en": "Loose files"
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "exclude",
+          "kind": "text",
+          "label": {
+            "zh": "\u6392\u9664\u540d\u5355\uff08\u9017\u53f7\u6216\u6362\u884c\u5206\u9694\uff09",
+            "en": "Exclude list (comma or newline separated)"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "fileConflict",
+          "kind": "select",
+          "label": {
+            "zh": "\u6587\u4ef6\u51b2\u7a81",
+            "en": "File conflict"
+          },
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": {
+                "zh": "\u81ea\u52a8",
+                "en": "Auto"
+              }
+            },
+            {
+              "value": "skip",
+              "label": {
+                "zh": "\u8df3\u8fc7",
+                "en": "Skip"
+              }
+            },
+            {
+              "value": "overwrite",
+              "label": {
+                "zh": "\u8986\u76d6",
+                "en": "Overwrite"
+              }
+            },
+            {
+              "value": "rename",
+              "label": {
+                "zh": "\u6539\u540d",
+                "en": "Rename"
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "dirConflict",
+          "kind": "select",
+          "label": {
+            "zh": "\u76ee\u5f55\u51b2\u7a81",
+            "en": "Folder conflict"
+          },
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": {
+                "zh": "\u81ea\u52a8",
+                "en": "Auto"
+              }
+            },
+            {
+              "value": "skip",
+              "label": {
+                "zh": "\u8df3\u8fc7",
+                "en": "Skip"
+              }
+            },
+            {
+              "value": "overwrite",
+              "label": {
+                "zh": "\u8986\u76d6",
+                "en": "Overwrite"
+              }
+            },
+            {
+              "value": "rename",
+              "label": {
+                "zh": "\u6539\u540d",
+                "en": "Rename"
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "undoId",
+          "kind": "text",
+          "label": {
+            "zh": "\u64a4\u9500\u54ea\u4e00\u6b21\uff08\u7559\u7a7a=\u6700\u8fd1\u4e00\u6b21\uff09",
+            "en": "Undo id (blank = most recent)"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "undo"
+                ]
+              },
+              "negated": false
+            }
+          }
+        }
+      ],
+      "groups": [
+        {
+          "id": "main",
+          "label": {
+            "zh": "\u5f52\u5e76",
+            "en": "Dissolve"
+          },
+          "fieldIds": [
+            "action",
+            "path",
+            "mode",
+            "exclude",
+            "fileConflict",
+            "dirConflict",
+            "undoId"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "path",
+          "slot": "path",
+          "transform": "trim",
+          "when": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "fieldId": "mode",
+          "slot": "mode",
+          "transform": "identity",
+          "when": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "fieldId": "exclude",
+          "slot": "exclude",
+          "transform": "delimited",
+          "when": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "fieldId": "fileConflict",
+          "slot": "fileConflict",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "dirConflict",
+          "slot": "dirConflict",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "undoId",
+          "slot": "undoId",
+          "transform": "trimOrOmit"
+        }
+      ],
+      "danger": {
+        "type": "actionIn",
+        "actionField": "action",
+        "dangerous": [
+          "dissolve",
+          "undo"
+        ]
+      },
+      "resultExport": "result_view",
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "\u4e00\u5806\u5b50\u6587\u4ef6\u5939\u8981\u62cd\u5230\u4e0a\u4e00\u5c42\uff08\u6f2b\u753b\u753b\u96c6\u3001\u89c6\u9891\u5305\u3001\u538b\u7f29\u5305\u76ee\u5f55\uff09\uff0c\u5e76\u4e14\u8981\u80fd\u53cd\u6094\u7684\u65f6\u5019\u7528\u3002\u5148 plan \u518d dissolve\u3002",
+          "en": "Use when a pile of subfolders should be lifted one level (art collections, video packs, archive folders) and the result must be reversible. Plan first, then dissolve."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}

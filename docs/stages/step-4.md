@@ -407,6 +407,56 @@ token 分层全归 `ctx.theme`，我们只是它的一个 override 来源（它�
 （依赖已迁的 subprocess 通路，排在后面）、M3 组件观感的 UI Kit（下一批）、
 以及把 `--xaihi-*` 再映射回 `--dsw-*` 的"整体换皮"选项。
 
+## 14 批次 C：dissolvef 内核移植（checkpoint 第一次有真内容）
+
+### 改了什么
+
+- `plugins/dissolvef`：脚手架生成后填充。`src/core.ts`（915 行）与 `src/platform.ts`
+  从 tag `noxide`（提交 `ccf465fe`）**逐字搬**，只改两处：`@xiranite/contract` 的类型
+  换成自带的 `src/contract.ts`（形状抄自基线 `packages/shared` 的 zod schema），
+  以及"默认历史路径"的来源（见 `docs/adr/0003-migrated-node-file-state.md`）。
+- 上游自带的 7 组测试一起搬来当**保真门禁**（`tests/core.spec.ts`），不是重写。
+- `src/index.ts`：四个动作 `plan` / `dissolve` / `undo` / `history`；
+  `danger.actionIn dangerous:['dissolve','undo']` → 由 DSH 审批；
+  内核的 `progress` / `log` 事件桥到运行账本的 `run.progress()` / `run.preview()`。
+- 契约与账本第一次连起来：`OperationRun` 新增 `checkpoint(payload)`
+  （事件种类多一个 `checkpoint`），core 在运行时留最后一条、结算时写进耐久账目
+  的 `checkpoint` 字段——那个字段之前恒为 `''`。
+- `run-feed.tsx` 的事件种类改成从契约取（`OPERATION_EVENT_KINDS`），
+  不再手抄一份清单——加了 kind 忘了订阅是静默错误。
+- `plugins/dissolvef/tsconfig.json`：只关 `noUncheckedIndexedAccess` 与
+  `exactOptionalPropertyTypes` 两面旗（`strict` 保留），理由写在文件里。
+
+### 为什么这样设计
+
+- **移植不许顺手改行为**：915 行里给每个数组下标加断言，是一次没人能复核的行为改动面。
+  所以选择"让移植件吃它原来的编译器"，把放宽**限制在一个包**并写明收回条件。
+  这条不是空话——本包新写的 `src/index.ts` 同样吃 strict，
+  我把历史字段写成 `record.createdAt`（其实是 `timestamp`）就是被类型检查当场抓出来的。
+- **文件操作不改写成 `ctx.fs`**：那条缝是给模型面工具调用做策略的，节点内核的进程内
+  IO 不是它的用例（ADR-0003 里有原文引用与备选比较）。权限边界改由**动作分级**承担：
+  危险动作只能经宿主的 `ask` 执行。
+- **撤销账本必须显式配置**：没配就拒绝动手，不"先搬完文件再乱写账本"。
+  界面上还没有填它的地方，这条写在 ADR 的"待还"里，不当已完成。
+
+### 证据
+
+1. 上游那 7 组测试在移植件上全绿（含真临时目录里的 nested dissolve + undo、
+   以及读旧 Python 单记录 journal 再 undo 那条）——保真度由原作者的断言守，不由我重述。
+2. 门禁 `pnpm test` rc=0：6 个测试包、128 条用例（dissolvef 7 条新增）。
+3. 装载：`plugin:add file:$PWD/plugins/dissolvef` rc=0；`debug.json` →
+   `registered: [hello, linedup, sleept, dissolvef]`、`problems: []`、
+   `locate errors: []`（子路径行仍单独归类）。
+4. 基线可核对：`git worktree add --detach … noxide` 后 HEAD 是 `ccf465fe`，
+   与 `packages/nodes/dissolvef/src/core.ts` 的行数（915）与导出面一致。
+
+### 没做
+
+`dissolvef` 的 `mediaTypes` / `enableSimilarity` / `protectFirstLevel` / `skipBlacklist`
+等参数**内核里都在**、也仍是默认值生效，只是没进工具参数表（表单先窄，逻辑不缩）；
+面板 UI（四个按钮之外）、以及把 `historyPath` 做成有读回的设置面，排在后面。
+
+
 
 
 
