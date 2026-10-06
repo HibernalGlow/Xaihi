@@ -33,6 +33,20 @@
   - `remote.hostFacts` 只有 `{isLoopback:true}`；`remote.namespaces` 读到空集合；
   - URL 不带会话（SPA，`location.href` 就是 `http://127.0.0.1:3199/`）。
 
+- 运行时方法表（补测，读自同一台宿主的 observatory `__XAIHI__.remote`）：生成的代理**自身
+  arity 全是 0**（`list` 与 `execute` 都是 rest 包装），所以 arity 不能当契约用；真正说话的
+  是网关 —— `commands/list()` 回
+  `client api: commands/list expected 1 argument(s), got 0`，**连读路径也要 `agentId`**。
+  `remote.commands` 上 `has` arity 2、`install` arity 3、`invokeRemote` arity 4。
+- `remote` 一侧的调用入口：`invoke` / `invokeSelected` / `prepareInvocation` 都是 arity 6，
+  `invokeMethod` / `openRemoteStream` arity 4，`enqueue` arity 1。按
+  `invokeSelected('commands', 'list', [])` 试一次（纯读）的结果是
+  `TypeError: Cannot read properties of undefined (reading 'invoke')` —— 它实际读的第四个
+  实参没有任何文档说明，Xaihi 不去猜：猜出来的调用等价于自建 RPC。
+- "当前会话"能否从别的服务拿到：把 `agent`、`agentId`、`session`、`sessionId`、`sessions`、
+  `activeSession`、`scope`、`store`、`chat`、`conversation` 十个名字逐个 `ctx.get()`，
+  **全部 `absent`**。这条测量常驻在 `__XAIHI__.remote.identity`，不必再手工复现。
+
 **为什么这是缺口**：命令通道的语义本来就是"给某个确切接收方"，主机侧的
 `CommandRuntime.list(agent)/find(agent,name)/execute(agent,line,signal)` 全部自带 agent，
 唯独客户端这侧要调用方自己填，而"当前是哪个"只有 UI 装配知道。结果是：

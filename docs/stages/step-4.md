@@ -514,3 +514,283 @@ private；`dsh-client-ui-session` 只有按会话键控的 observable，没有"�
 
 现在的行为保持"如实失败"，并把缺的参数名写进错误文案，指向 P1。没有为了绿灯去自建
 `/xaihi` 执行路由。
+
+## 17 批次 D：findz（ADR-0004 的进程外内核第一次落地）
+
+批次顺序（`.dsh/skills/xaihi-migration/SKILL.md`）里 D 是最后一个：
+A `linedup` → B `sleept` → C `dissolvef` → **D `findz`**。前三个都是"纯 JS 内核搬到
+本仓"，findz 不是 —— 它的内核是 4468 行 Go，所以先有 `docs/adr/0004-non-js-core-delivery.md`
+（**批次 D 的前置门禁**），才动节点代码。
+
+### 改了什么
+
+- `native/findz-go/`（新）：从 tag `noxide`（提交 `ccf465fe`）**逐字搬** 12 个内核
+  `.go` + 4 个 `*_test.go` + `go.sum`。改动只有三处，而且都可以 `diff` 复核：
+  `go.mod` 的 module 路径；`ffi.go` 加 `//go:build cshared` 并把单例移出去；
+  新增 `singleton.go`（无 build tag，两种形态共用一份声明）与 `host.go`
+  （`!cshared`，NDJSON 帧协议的可执行入口）。
+- `native/findz-go/probe/`（新）：`probe-host.py`（17 项）与 `probe-bench.py`，
+  对**真内核、真目录**说话，不进 `pnpm test`（要 Go 工具链）。
+- `plugins/findz`（新）：`src/core.ts` / `worker-protocol.ts` / `watcher-service.ts`
+  逐字移植（只改 import 边界，并删掉那个硬绑 in-process `Worker` 的 `runFindz` 包装，
+  换成 `runFindzWithGateway(input, gateway, onEvent)` 这条注入缝）。
+  `src/gateway.ts` **替代**基线那三件（`findz-worker.ts` + `worker-client.ts` +
+  `findz-native`）：起进程、握手、按行收发、死讯。
+  `src/index.ts` 接线（handler 表从定义推导），`src/command.ts` 是 `/findz` 命令面，
+  `frontend/Panel.tsx` 是面板。
+- 定义：13 动作 / 14 字段，`danger: {type:'none'}` —— 与上游一致，v2 内核不解压成员、
+  不写使用者的文件（`docs/findz-v2-design.md`："No member is extracted to disk"）。
+- `plugins/findz/tsconfig.json`：与 §14 同一个理由，只关 `noUncheckedIndexedAccess`
+  与 `exactOptionalPropertyTypes` 两面旗（`strict` 保留、范围限本包）。
+
+### 为什么这样设计
+
+- **为什么不 FFI**：ADR-0004 决定 1 的原话是 `-buildmode=c-shared` 的 Go panic 在 cgo
+  边界不可恢复，陪葬的是使用者的宿主与整条会话。所以走子进程；协议"复用那 4 个既有符号
+  的语义"就是一行一个 JSON 信封；分发按 `<platform>-<arch>` 一个可选依赖包。
+  Extism/WASM 与 TS 重写也在同一份 ADR 里被否掉了，理由是原话，不在这里重述。
+- **`api.info` 必须由 `gateway.ts` 回答，不能写成请求帧**。这是移植里最不显眼的一处：
+  基线 `findz-worker.ts` 的 `case "api.info"` 走的是 FFI 的**自由符号** `findz_api_info`
+  （`packages/findz-native`），不是 `findz_call` —— 所以它从来不经过方法表。
+  换成帧协议以后，那个自由符号就是第一帧问候（`host.go` 的 `success("", currentAPIInfo())`），
+  名字也不在 `service.go` 的方法表里。**漏掉这条的症状是 `api_info` 动作报
+  `unsupported_method: api.info`**，看起来像内核不支持，其实是移植漏了一层。
+  这一条是 `tests/kernel.integration.spec.ts` 的真内核判据抓出来的，不是读代码看出来的。
+- **`hostBinary` 与 `indexDir` 都没有默认值，而且拒绝猜**。内核自己的默认索引路径是
+  `$LOCALAPPDATA/Xiranite/findz/indexes/`（非 Windows 退到 `os.UserCacheDir()`）——
+  索引库是使用者的数据，不写进一个以别的产品命名的目录。同一条理由在 ADR-0003 里
+  已经用在 dissolvef 的 `historyPath` 上。`hostBinary` 留空则按平台可选依赖包解析，
+  解析不到就在**装载期**抛（ADR-0004 决定 3 的原话："节点在装载期就报"），
+  而不是等第一次搜索给出"空结果"。
+- **终态名照声明抄**。`FindzTask.status` 的终态是 `completed` /
+  `completed_with_warnings`，不是 `succeeded`。集成判据里我按 `succeeded` 写，
+  症状是轮询一直等到超时 —— 这类错误的表象离原因很远，所以判据里的终态集合
+  现在直接取自 `contract.ts` 的联合类型，不另抄一份。
+- **死讯必须带上内核自己打到 stderr 的那段**。原先 stdout 一关就报
+  `closed its stdout`，而内核的 `diagnose()` 把 panic / 启动失败的原因写在 stderr
+  （`host.go`）—— 也就是说最坏的那条路上，唯一有用的信息被吞掉了。现在 stdout 结束
+  只触发"等死讯"（有界兜底），死讯由 `handle.done` 统一给（只有它带得上退出码，
+  而且 `close` 在 stdio 全关之后才发，所以那时 stderr 一定收完了）。
+- **`text` 字段必须显式收窄可见性**。最初它没有 `visible`，于是 `api_info` / `scan` /
+  `close_library` / `task` 这些根本不读它的动作也把这个槽位摆给了模型 —— 模型填了、
+  内核丢掉、两边都不报错，这是最坏的一种静默。现在只在 `core.ts` 真正消费它的四个
+  动作上可见（`query_archives` / `query_members` / `export_rows` / `treemap`）。
+- **命令面比动作清单窄是有意的**。面板按 `xaihi-node-ui` 技能只能走 DSH 的命令入口
+  （不许自建 RPC），而 `/findz` 装不下全部分页/前缀/排序组合。所以命令面覆盖 13 个
+  动作的常用形状，剩下的明说只有 agent 的工具路径能到，而不是摆一个"看起来能翻页"
+  但按不动的控件。合法值（`areaBy` / `scopeKind`）从定义里读，`tests/command.spec.ts`
+  断言这张表恰好等于清单 —— 加了动作而没想它在命令面长什么样，判据当场红。
+
+### 证据
+
+1. **移植可核对**：`diff -q` 逐文件比 12 个内核 `.go`、4 个 `*_test.go` 与 `go.sum`
+   对 `noxide`（`ccf465fe`）逐字相同（rc=0）；差异面只有上面列的三处。
+2. **内核自测**：`go test -count=1 ./...` rc=0（上游那 4 个测试文件全绿，30 个顶层用例）。
+3. **两种构建形态同源**：`go build -o dist/findz-host .` 得 14,864,034 B 的可执行文件；
+   `go build -buildmode=c-shared -tags cshared` 得 9,778,898 B 的库，生成的
+   `.h` 里导出符号恰好四个：`findz_abi_version` / `findz_api_info` / `findz_call` /
+   `findz_free` —— 即"那 4 个符号的语义"这句 ADR 话的可核对版本。
+4. **帧协议实机 17/17**：`probe-host.py` 对真内核读回握手（ABI 1、requestVersions 含 1、
+   15 项必需能力齐）、真 ZIP/CBZ 的中央目录、真 PNG 的 IHDR 宽高（120×80 / 64×64 / 300×40）、
+   以及三条结构化拒绝（未知方法 / 不认识的 requestVersion / 超长 requestId）。
+5. **ADR-0004「后果 2」要的那笔账**（`probe-bench.py`，本机 darwin-arm64）：
+   起进程→问候 36.8 ms；冷扫 24 归档 / 768 成员 / 96 MiB **20.9 ms**；
+   二次扫（未变）6.7 ms；查询往返中位数 1.28 ms；
+   全量图像头分析 768 成员 76.6 ms，768 done / **0 failed**。
+6. **走节点这条路再量一次**（`tests/kernel.integration.spec.ts`，真内核 + 真 `gateway.ts`
+   + 真 `core.ts` 翻译层）：冷扫 28 ms、二次扫 25 ms、查询往返中位数 **0.173 ms**
+   —— 本层帧收发的开销在同一量级，没有把内核的优点吃掉。
+7. **本包门禁**：`pnpm --filter @hibernalglow/xaihi-findz run test:unit` rc=0，
+   6 个文件 66 条（gateway 真进程假宿主 13 条、真内核 8 条、定义/命令 37 条、移植件 8 条）。
+8. **仓库门禁**：`pnpm check:pins` rc=0、`pnpm check:skills` rc=0；
+   `pnpm -r run build` / `run typecheck` / `run test:unit` 对**除 `@hibernalglow/xaihi-ui`
+   以外**的全部包 rc=0（`xaihi-ui` 当时正被同仓并发的另一个写入方改着，
+   见下面"并列写入"一条，与批次 D 无关）。
+9. **装载与命令**：`pnpm plugin:add file:$PWD/plugins/findz` rc=0；真宿主
+   （独立 `DSH_HOME`、3199 被别的会话占着所以另起 3299）读回 `debug.json`：
+   `registrations` 5 个（hello / linedup / sleept / dissolvef / **findz**）、
+   `commands.names` 里**有 `findz`**（与 `sleept` 并列）、`located` 5 条 `hasXaihi: true`。
+
+### 并列写入
+
+做批次 D 期间，同一个工作区有另一个会话在改 `packages/ui-host/src/client/index.ts`、
+`packages/create-xaihi-plugin`、`plugins/sleept`，并新加了 `packages/ui-kit`
+（材料化组件库）。第 8 条门禁之所以要按包排除，就是因为跑门禁的那一刻
+`ui-host` 里有一个"声明了但还没接上"的函数（`probeCommandMethods`，TS6133）。
+批次 D 的改动面**不包含**那些文件，所以这里按包分别报 rc，而不是报一个笼统的"绿"。
+
+### 没做
+
+- **跨进程 watcher 语义**。ADR-0004「后果 3」的原话就是"这部分尚未设计"，所以它没有
+  被顺手发明出来：`watcher-service.ts` 是移植过来、有保真判据的纯逻辑，
+  `watcher.set_health` / `watcher.apply_changes` / `scan.reconcile` 也都在帧协议上够得着，
+  但**没有人驱动它们** —— `library.open` 之后不会自动跟踪文件变化。基线那部分逻辑在
+  `findz-worker.ts` 里（`startLibraryWatch` 那一套），它正是被 `gateway.ts` 替代掉的文件，
+  所以这件事必须显式设计，不能靠搬。
+- **平台可选依赖包没有发布**（`@hibernalglow/xaihi-findz-<platform>-<arch>`）。
+  ADR-0004 的"后果"第一条"发布流程未定"仍然生效；装机路径目前只有开发期的显式
+  `hostBinary`。也就是说这个节点现在**还不能作为一个包直接装给使用者**。
+- **面板与命令面不覆盖的组合**：分页游标 / 每页条数 / 路径前缀 / 矩形图文本过滤 /
+  排序字段 —— 只有 agent 的工具路径能到（见上"命令面比动作清单窄"）。
+- **面板按钮的"按下去真的派发"没证到**。findz 的面板走的是与 sleept 同一条被许可的缝
+  （`host.runCommand('/findz …')`，不自建 RPC），因此**继承 §12 / §16 量到的那个 DSH 缺口**
+  （0.2.0-rc.2 里第三方插件客户端拿不到 agentId，见 `docs/upstream-proposals.md` 的 P1）。
+  已验证的是**注册**：真宿主 `debug.json` 的 `commands.names` 里有 `findz`。
+  没验证的是**点击派发** —— 现在的行为是如实失败并指向 P1，不是静默什么都不发生。
+- **与上游 Windows 数字的对比**：本机是 macOS，没有同机对比数据，所以第 5 条的
+  数字不能直接拿去和 `docs/findz-v2-benchmarks.md` 里的 Windows 数字并列。
+
+## 18 UI Kit：面板唯一的上色出口
+
+### 改了什么
+
+新包 `packages/ui-kit`（`@hibernalglow/xaihi-ui-kit`，纯浏览器侧）：
+
+- `src/tokens.ts`（45 行）：`ALIAS` 九个语义槽、`SHAPE`、`SPACE`、`STYLE_TAG_ID`、`KIT_CSS`。
+  每个 `ALIAS` 值都是 `var(--xaihi-*, var(--dsw-alias-*，兜底))` 的三层链。
+- `src/components.tsx`（75 行）：`XButton`（filled / tonal / text）、`XField`、`XPanel`、
+  `registerKitStyles()`。
+- `tests/`：`tokens.spec.ts` 3 条 + `components.spec.tsx` 3 条 = 6 条，`KIT_TEST_RC=0`。
+- `plugins/sleept/frontend/Panel.tsx` 改写成 kit 组件（67 行），脚手架生成的面板同样改写并
+  在 `devDependencies` 里带上 kit。
+
+`package.json` 的 `exports` 里**删掉了 `./styles.css`**：tsdown 不产 CSS 文件，`KIT_CSS` 是
+注入用的字符串，留着那条就是声明一个不存在的产物。
+
+### 证据
+
+1. `pnpm -F @hibernalglow/xaihi-ui-kit run build` rc=0 ⇒ `lib/index.js` 4695 B、
+   `lib/index.d.ts` 3322 B；`run typecheck` rc=0；`run test:unit` rc=0（2 files / 6 tests）。
+2. `pnpm -F @hibernalglow/xaihi-sleept run build` rc=0（tsdown + rspack）⇒
+   `dist/__federation_expose_Panel.js` 6830 B，内含 `xaihi-card` ×2（kit 被打进 remote 的
+   expose chunk）；同目录 `remoteEntry.js` 里 module `1144` 的条目是
+   `{shareScope:"default",shareKey:"react",import:null,requiredVersion:"^18.3.1",singleton:true}`
+   —— **React 没被内联**，是共享消费方。
+3. 装机：`dsh plugin --profile xaihi add file:…/plugins/sleept` rc=0，安装副本的
+   `dist/__federation_expose_Panel.js` 也是 6830 B（装的是新产物，不是旧快照）。
+4. Core 路由：workspace `rev=8e3f007a73d0`、sleept `rev=bdf63b0897b9`；响应头
+   `Cache-Control: public, max-age=31536000, immutable`；把 rev 换成假值 ⇒ 404
+   `rev mismatch (current bdf63b0897b9)`；`../` 与 `..%2f` 两种穿越形式都 404。
+   （第一次的"假 rev 负控"我自己写错了：替换的串是旧 rev，等于没换。上面这条是重做的。）
+5. 浏览器实机（`http://127.0.0.1:3199/`，独立 `DSH_HOME`）：`<style id="xaihi-ui-kit">`
+   1666 字符、只有一份；别名落点在 **`body` 的 inline style**（`--xaihi-surface:#141218`、
+   `--xaihi-on-surface:#e6e0e9`、`--xaihi-outline:#948e9c`），不是 `:root`。计算样式：
+   卡片 `rgb(20,18,24)` / `rgb(230,224,233)` / 边框 `rgb(148,142,156)` / 圆角 12px / padding 12px；
+   filled 按钮 `rgb(207,188,255)` 底 + `rgb(56,30,114)` 字，tonal `rgb(77,68,101)` + `rgb(191,178,218)`，
+   text 变体底 `rgba(0,0,0,0)` 字色取 primary；面板 `reactVersion 18.3.1` 且
+   `sameReactAsHost: true`。数字与 MCU `DynamicScheme(FIDELITY, dark, seed 0x6750a4)` 一致。
+6. 门禁的减法跑测（证明这把尺看得见违规）：往生成模板里泄漏一行
+   `const LEAK = '--dsw-alias-text-primary'` ⇒ `scaffold.spec.ts` 立刻 rc=1（断言原文
+   `expected … not to contain '--dsw-'`）；撤回后 `shasum` 与探针前一致
+   （`93d438e6701cb68eeaaf94aba74c078c7498966c`），重跑 rc=0。
+
+### 为什么这样设计
+
+- **颜色只有一个出口**：主题归 `ctx.theme`，Material You 只叠 `--xaihi-*` 一层。组件里若出现
+  字面量 hex 或直接引用 `--dsw-*`，宿主换 seed / 换明暗时就会分成两套，所以 hex 只允许出现在
+  `ALIAS` 的兜底位，并由 `tokens.spec.ts` 守住（strip 掉 `var(...)` 之后不许剩颜色，且带
+  "strip 之前一定有 hex"的阳性对照）。
+- **kit 内联进每个 remote**：这是 ADR-0002「一个包就是一个 bundle」的直接后果。不做共享
+  组件包，就不引入"版本对齐"这一层；重复的只是几 KB 规则，`STYLE_TAG_ID` 保证多次挂载也只
+  注入一份。
+- **不用 dockkit**：D4 已定 v1 自建布局层，kit 只提供 M3 观感的部件，不提供停靠/分割。
+
+### 与 DSH API 的关系
+
+- 别名层由 `packages/ui-host/src/client/index.ts:345` 的
+  `ctx.theme.overrideTokens('xaihi.md3', xaihiMd3Layer())` 叠上；`--dsw-alias-*` 这套命名来自
+  ui-theme（`ui-theme/src/client/index.ts:78-330`）。实测落点是 `body`，写 DOM 的仍是宿主
+  的 ui-layout presenter，Xaihi 没有直接改 `:root`。
+- MF2 侧 `shared: { react: { singleton: true, import: false } }`：拿不到宿主 React 就硬失败，
+  所以第 2 条里"React 未内联"是构建配置的必然后果，不是巧合。
+- 面板渲染仍只有 `renderSlot` 这一种形式（`packages/client/web-react/README.md:19`），没有
+  Suspense 集成，因此加载态与错误边界留在 shell 内部（§2 已记）。
+
+### 后续扩展方式
+
+新组件只进 `components.tsx` 并把类名加进 `KIT_CSS`；新增语义槽必须同时改 `ALIAS` 与
+`tokens.spec.ts` 的前缀尺（只许 `--xaihi-` / `--dsw-`）；OS 壁纸动态取色仍然是后续项，
+它依赖已迁的 subprocess 通路，不在这次范围内。
+
+### 没做
+
+- M3 的 state layer / ripple / focus ring 没有做（现在只有 `disabled` 的透明度）。
+- 没有对比度门禁（WCAG）——色值是 MCU 算出来的，但没有一条尺断言"文字对底色 ≥ 4.5:1"。
+- 表单控件只到 `XField` 的形状，没有 checkbox / switch / slider。
+
+## 19 面板→宿主的控制通路：把运行时账记全，并给 RPC 加上界
+
+### 改了什么
+
+`packages/ui-host/src/client/index.ts`：
+
+- `probeIdentity()`（`:87`）、`resolveAgent()`（`:119`）、`probeCommandMethods()`（`:170`）、
+  `probeRemoteInvokers()`（`:212`）—— observatory 现在把"这台宿主让不让面板走命令通道、
+  给了什么身份、方法实际几个参"记成常驻可读回的 `__XAIHI__.remote`。
+- `makeRunCommand()`（`:300`）给 `commands/execute` 加了 `COMMAND_TIMEOUT_MS = 8000`（`:285`）
+  的上界，并透传**真的** `AbortSignal`（第四个实参，符合量出来的契约）。
+- `plugins/sleept/frontend/Panel.tsx`：`busy` 的清理进 `finally`、接住 rejection、
+  `statusTone` 改由 `outcome.ok` 决定（原来靠 `startsWith('ERROR')`，而文本第一行是命令行，
+  所以永远判成 info）。脚手架生成的面板补了 `.catch`。
+
+### 一处更正
+
+§16 之后面板"按钮永久变灰"的**成因不是宿主挂起**：是 `(ctx as any).agent` 这个属性读被代理
+拒成 `cannot get property "agent" without inject`，在 async 函数里变成 rejected promise，而
+面板当时只有 `.then`。症状与挂起一模一样，成因不同。现在两条路都被接住：属性读换成非严格的
+`ctx.get(name)`，且调用有上界。
+
+### 证据
+
+1. 身份：`agent` / `agentId` / `session` / `sessionId` / `sessions` / `activeSession` /
+   `scope` / `store` / `chat` / `conversation` 十个名字逐个 `ctx.get()`，**全部 `absent`**；
+   属性读仍抛 `cannot get property "agent" without inject`。
+2. 方法表：`remote.commands` 的 `list` 与 `execute` 自身 arity 都是 **0**（rest 包装），所以
+   arity 不能当契约；网关才是权威 —— `commands/list()` 回
+   `client api: commands/list expected 1 argument(s), got 0`（**读路径也要 agentId**）。
+   `has` arity 2、`install` arity 3、`invokeRemote` arity 4。
+3. `remote` 侧入口：`invoke` / `invokeSelected` / `prepareInvocation` arity 6，
+   `invokeMethod` / `openRemoteStream` arity 4，`enqueue` arity 1。按
+   `invokeSelected('commands','list',[])` 只读试一次 ⇒
+   `TypeError: Cannot read properties of undefined (reading 'invoke')`，即它读的第四个实参
+   无文档；**没有继续猜**——猜出来的调用形状与自建 RPC 无异。
+4. 实机点击（同一宿主，profile `xaihi`）：状态行 `data-tone="error"`，文本为
+   `/sleept status` + `ERROR: no Agent identity reachable (…) (see docs/stages/step-4.md §12)`，
+   六个按钮**全部 enabled**（不再有 `busy` 卡死）。这条同时是"错误语气"的读回证据。
+5. 门禁：`pnpm -F @hibernalglow/xaihi-ui run typecheck|build|test:unit` 全 rc=0
+   （4 files / 19 tests）；`pnpm -F @hibernalglow/create-xaihi-plugin run test:unit` rc=0
+   （6 tests，含 §18 的 kit 尺与语法门禁）。
+
+### 为什么这样设计
+
+- **不把 `'agent'` 写进 `inject`**：DSH 的 `inject` 是硬依赖，装配里没有这个服务时
+  `@hibernalglow/xaihi-ui` 整个不挂载。为了"按钮能不能按"押上"外壳在不在"不划算，
+  所以用非严格取用 + 常驻 observatory，把事实记下来而不是把赌注写进依赖表。
+- **上界是给外部边界准备的**：`commands/execute` 是一次真 RPC。没有上界时，任何一次不返回
+  都会把整排控件变灰且没有解释；有了上界，最坏情况是"看得见的一句超时失败"。上界不隐藏
+  失败，只是让失败可读。
+- **语气由结果决定**：状态行的红/灰属于回读路径，不该由字符串前缀猜。
+
+### 与 DSH API 的关系
+
+- `docs/api-gateway.md:11`：名为 `agent` 的宿主参数在 wire 上变成 `agentId` 字段，网关按
+  `TypertLookupMap` 把它解析成宿主对象；`:70` 的客户端示例直接以 `declare const agentId: SessionId`
+  起手。也就是说**这个值天生是调用方给的**，而 0.2.0-rc.2 的第三方插件客户端没有任何公开
+  途径拿到它 —— 这正是 `docs/upstream-proposals.md` 的 P1，本次把 arity 表与 identity 全
+  `absent` 这两组数字补进了 P1 的"现状实测"。
+
+### 后续扩展方式
+
+P1 一旦落地，要改的只有 `resolveAgent()` 里"从哪儿取值"这一处；`makeRunCommand` 的三参形状、
+上界与面板侧都不动。若上游给了 `@Remote` 自挂命名空间的能力（P1 的第三种改法），Xaihi 才
+会考虑把自己的事件面收进那条合法缝。
+
+### 没做
+
+- 没有自建 `/xaihi/run` 执行路由，没有伪造 agentId，没有读用户凭据来"让按钮动起来"。
+- 真 agent 工具调用仍未在本机跑通：隔离 home 里没有 `DEEPSEEK_API_KEY`，聊天里敲
+  `/sleept status` 会回 `MISSING_CREDENTIAL`（实测文本见本次浏览器读回）。所以 §10 欠的
+  "写入-重启-读回"仍然欠着：刚刚重读的账本是
+  `{"schema":"xaihi.ledger/1","durable":true,"reason":null,"records":[]}` —— **`durable:true`
+  只证明缝开得住，`records:[]` 就是一条真运行都还没落过盘**。这一点与"面板按钮按不动"是
+  两个独立缺口：前者缺触发入口（模型凭据或宿主侧命令派发），后者缺客户端身份。
