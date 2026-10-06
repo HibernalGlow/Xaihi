@@ -10,8 +10,13 @@
  * 1. **每条跨界的方法都可能抛** `BridgeError`。上游同 realm 时这些方法不会失败，
  *    所以那边的组件里普遍没有 catch——这不是组件的错，是移植带来的新失败面。
  *    界面要显示退化（ADR-0011 决定 4），靠的就是这些抛出可读回的 `reason`。
- * 2. `state` 与 `workspace` 是**文档本地**的，不过桥：上游那两套 store 本来就在 UI 侧，
- *    把它们过桥等于把同一份状态放两个 realm，而 hooks 绑定具体那一份 React（ADR-0009 实测）。
+ * 2. `workspace` 是**文档本地**的，不过桥：上游那套工作台几何本来就在 UI 侧，把它过桥等于
+ *    把同一份状态放两个 realm，而 hooks 绑定具体那一份 React（ADR-0009 实测）。
+ *    `state` 这一组被拆成两半：**同步的那一份永远在文档里**（`getData()` 直接返回值、
+ *    `patchData()` 立即生效，所以搬来的组件一行不用改），过桥的只有它的**持久快照**——
+ *    启动时 `hydrate()` 预取一次，之后每次写往后刷（见 `createPersistedState`）。
+ *    落点是外壳那侧 `xaihi-core` 的一个 volatile 字段（实测 DSH 的 remote 设置面只认
+ *    schema 里声明过的 volatile 路径，任意 JSON 一律被拒）。
  * 3. `contract.name` 是 `xaihi.node-host`，不是上游那个名字。品牌这条尺（ADR-0010）
  *    要求会随代码活下去的标识都换成本仓自称；这一条是"改名与消费者同批"的那类，
  *    所以任何按名字匹配的老数据都不该指望这里。
@@ -210,5 +215,100 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
         await call('config.openFile')
       },
     },
+  }
+}
+
+/** 持久化后的状态面：同步那三条照上游，另外三条是这一层自己的记账口子。 */
+export interface PersistedState<TData extends object = Record<string, unknown>> extends LocalState<TData> {
+  /**
+   * 从外壳预取本节点的快照。必须在挂载 `createRoot(...)` **之前** await 完，
+   * 因为同步的 `getData()` 没有"值晚点到"这一说——晚到的那份读不到。
+   * @returns 有没有取到内容（没有节点 id、或外壳那格还没存过东西时是 false）。
+   */
+  hydrate: () => Promise<boolean>
+  /** 把攒下的写推出去（卸载前与测试用）；不 flush 时写会在下一次同步调用后被排干。 */
+  flush: () => Promise<void>
+  /** 最近一次往后刷的失败原因（成功时是 null）。同步 API 抛不了异步错，所以失败只能这样读回来。 */
+  syncError: () => string | null
+}
+
+/**
+ * 建一个"同步在文档、持久在壳"的节点状态面。
+ *
+ * 为什么写要往后刷而不是每条都 await：上游的 `patchData()` 是同步返回的，
+ * 搬来的组件里到处都是 `host.state.patchData({ x: 1 })`，把它改成异步等于改遍所有调用点。
+ * 于是这里同步改本地、把序列化后的整份 JSON 排进一条 Promise 链，冲突与失败走 `syncError()`。
+ * @param deps - 桥与这份界面属于哪个节点。
+ * @returns 给 `createDocumentHost({ state })` 的那一面。
+ */
+export function createPersistedState<TData extends object = Record<string, unknown>>(deps: {
+  bridge: DocumentBridge
+  node: string
+}): PersistedState<TData> {
+  const { bridge, node } = deps
+  let data: TData | undefined
+  let revision: number | undefined
+  /** 本地比外壳新：只有它为真时往后刷，避免把刚写出去的那份再写一遍。 */
+  let dirty = false
+  let lastError: string | null = null
+  let chain: Promise<void> = Promise.resolve()
+
+  const describeFailure = (error: unknown): string => {
+    const err = error as { reason?: unknown; detail?: unknown }
+    const reason = typeof err?.reason === 'string' ? err.reason : 'failed'
+    const detail = typeof err?.detail === 'string' ? err.detail : ''
+    return detail === '' ? reason : `${reason} · ${detail}`
+  }
+
+  const push = async (): Promise<void> => {
+    if (node === '') {
+      lastError = '这份界面没有节点 id（工作台自己），节点状态没处可写'
+      return
+    }
+    if (!dirty || data === undefined) return
+    dirty = false
+    try {
+      const value = await bridge.call('state.patchData', node, JSON.stringify(data), revision) as { revision?: unknown }
+      if (typeof value?.revision === 'number') revision = value.revision
+      lastError = null
+    } catch (error) {
+      lastError = describeFailure(error)
+      // 冲突后只补一次"重读版本号"，本地那份不动：下一写因此带着外壳现在的 revision 出去，
+      // 而不是反复撞同一堵墙（无界重试在别的仓里撞到过一章 136 次）。
+      try {
+        const again = await bridge.call('state.getData', node) as { revision?: unknown }
+        if (typeof again?.revision === 'number') revision = again.revision
+      } catch {
+        // 连版本号都读不到：原因已经留在 syncError() 里，不再往里加噪声。
+      }
+    }
+  }
+
+  const schedule = (): void => {
+    dirty = true
+    chain = chain.then(push)
+  }
+
+  return {
+    getData: () => data,
+    patchData: (patch) => {
+      data = { ...(data ?? {}), ...(patch as Partial<TData>) } as TData
+      schedule()
+    },
+    replaceData: (next) => {
+      data = next
+      schedule()
+    },
+    hydrate: async () => {
+      if (node === '') return false
+      const value = await bridge.call('state.getData', node) as { json?: string; revision?: number }
+      if (typeof value?.revision === 'number') revision = value.revision
+      if (typeof value?.json !== 'string') return false
+      data = JSON.parse(value.json) as TData
+      dirty = false
+      return true
+    },
+    flush: () => chain.then(push),
+    syncError: () => lastError,
   }
 }

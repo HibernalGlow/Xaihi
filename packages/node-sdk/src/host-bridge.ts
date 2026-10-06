@@ -133,6 +133,9 @@ export const SHELL_SERVED_METHODS = [
   'config.getUi',
   'config.saveUi',
   'config.openFile',
+  'state.getData',
+  'state.patchData',
+  'state.replaceData',
 ] as const satisfies readonly BridgeMethod[]
 
 /** 在动词表里、但外壳今天给不了的：握手时这些必须以退化形式露出来，不许静默。 */
@@ -147,10 +150,23 @@ export const SHELL_UNSERVED_METHODS = BRIDGE_METHODS.filter(
 export type BridgeProvider = 'document' | 'shell' | 'unprovided'
 
 /**
- * 按组登记的归属。`state` 与 `workspace` 归文档，是因为上游那两套 store 本来就在 UI 侧；
- * 把它们过桥等于把同一份状态放两个 realm，而 hooks 绑定具体那一份 React（ADR-0009 的实测）。
+ * 按组登记的归属。`workspace` 与 `env`/`contract` 归文档：上游那套工作台几何本来就在 UI 侧，
+ * 过桥等于把同一份状态放两个 realm，而 hooks 绑定具体那一份 React（ADR-0009 的实测）。
+ *
+ * `state` **不在这里**——它被拆成了两半，这也是节点 UI 仍能一行不改的原因：
+ * 同步的那一份（`getData()` 返回值、`patchData()` 立即生效）永远留在文档里，
+ * 过桥的只是它那份**持久快照**（预取来 hydrate、写后刷出去）。
+ * 落点是本包声明的一个 volatile 字段（见 `STATE_SETTINGS_NS` / `STATE_SETTINGS_FIELD`）：
+ * 实测 DSH 的 remote 设置面只收 schema 里声明过的 volatile 路径，
+ * 任意 JSON 一律 `Config field "…" is not volatile`，所以值的形状是"节点 id → JSON 文本"。
  */
-export const DOCUMENT_OWNED_GROUPS = ['state', 'workspace', 'env', 'contract'] as const satisfies readonly NodeCapabilityId[]
+export const DOCUMENT_OWNED_GROUPS = ['workspace', 'env', 'contract'] as const satisfies readonly NodeCapabilityId[]
+
+/** `state.*` 持久快照所在的设置命名空间（= 宿主侧那行 loader 的 id）。 */
+export const STATE_SETTINGS_NS = 'xaihi-core' as const
+
+/** 那个 volatile 字段的字段名，形状是 `Record<nodeId, JSON 文本>`。 */
+export const STATE_SETTINGS_FIELD = 'nodeState' as const
 
 /** 这条动词今天由谁提供。 */
 export function providerOf(method: BridgeMethod): BridgeProvider {

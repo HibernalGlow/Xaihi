@@ -11,6 +11,7 @@ import {
   BRIDGE_CONTRACT_VERSION,
   BRIDGE_METHODS,
   BRIDGE_SCHEMA,
+  DOCUMENT_OWNED_GROUPS,
   NODE_CAPABILITY_IDS,
   REQUIRED_CAPABILITIES,
   SHELL_SERVED_METHODS,
@@ -173,10 +174,15 @@ describe('动词的归属（谁能兑现它）', () => {
     expect(counts.document + counts.shell + counts.unprovided).toBe(BRIDGE_METHODS.length)
   })
 
-  it('state 与 workspace 归文档：把同一份状态放两个 realm 就是 ADR-0009 实测崩掉的那种形状', () => {
-    expect(providerOf('state.getData')).toBe('document')
+  it('state 的持久那一份归外壳、workspace 归文档：同步 store 留在文档，过桥的只是快照', () => {
+    // 2026-10-06 实测：把节点状态写进本包声明的那个 volatile 字段是 DSH 唯一收下的持久出口
+    // （任意非声明字段一律 `Config field "…" is not volatile`）。上游的 `getData()` 是同步的，
+    // 所以"同步形状"由文档那一侧的 createPersistedState 保持，桥上走的是序列化后的整份快照。
+    expect(providerOf('state.getData')).toBe('shell')
+    expect(providerOf('state.patchData')).toBe('shell')
     expect(providerOf('workspace.listComponents')).toBe('document')
     expect(providerOf('runner.run')).not.toBe('document')
+    expect(DOCUMENT_OWNED_GROUPS).not.toContain('state')
   })
 
   // 阳性对照：这条把"没提供者"钉成一个数，谁偷偷给 config 历史接了个假实现就会变红。
@@ -185,7 +191,16 @@ describe('动词的归属（谁能兑现它）', () => {
     expect(unservedConfig).toHaveLength(13)
     expect(unservedConfig).toContain('config.getVersions')
     expect(unservedConfig).toContain('config.syncHistory')
-    expect(SHELL_SERVED_METHODS).toEqual(['config.get', 'config.save', 'config.getUi', 'config.saveUi', 'config.openFile'])
+    expect(SHELL_SERVED_METHODS).toEqual([
+      'config.get',
+      'config.save',
+      'config.getUi',
+      'config.saveUi',
+      'config.openFile',
+      'state.getData',
+      'state.patchData',
+      'state.replaceData',
+    ])
   })
 })
 

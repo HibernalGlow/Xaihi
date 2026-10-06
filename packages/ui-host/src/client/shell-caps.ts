@@ -23,13 +23,13 @@
  * @module xaihi-ui/shell-caps
  */
 
-import type { BridgeEnv, NodeCapabilityId, ShellCapabilities } from '@hibernalglow/xaihi-sdk/bridge'
+import type { BridgeEnv, NodeCapabilityId, SettingsPathOp, ShellCapabilities } from '@hibernalglow/xaihi-sdk/bridge'
 
 /** 装配侧要的那份远程面的形状（导出给 index.ts 断言用）。 */
 export type RemoteSettingsFace = RemoteLike
 
 /** 只用到 `RemoteResult` 的两支，形状自己声明以免把整个 typert 类型拉进来。 */
-type RemoteLike = { describe(): Promise<unknown>, update(ns: string, patch: Record<string, unknown>, revision: number | undefined): Promise<unknown>, openSettingsDocument?(signal?: AbortSignal): Promise<unknown> }
+type RemoteLike = { describe(): Promise<unknown>, update(ns: string, patch: Record<string, unknown>, revision: number | undefined): Promise<unknown>, mutate?(ns: string, ops: readonly SettingsPathOp[], revision: number | undefined): Promise<unknown>, openSettingsDocument?(signal?: AbortSignal): Promise<unknown> }
 
 /** 拆 `RemoteResult`：失败必须抛出带 reason 的错误，让桥原样转给文档，而不是静默返回 undefined。 */
 async function unwrap<T>(call: Promise<unknown>): Promise<T> {
@@ -88,13 +88,27 @@ export function shellCapsFrom(input: ShellCapsInput): ShellCapabilities {
     ...input.reasons,
   }
   if (input.settings === undefined) {
-    return { ...(env ? { env } : {}), reasons: { config: '远程设置面没读到（ctx.remote.settings 不在）', ...reasons } }
+    return {
+      ...(env ? { env } : {}),
+      reasons: {
+        ...reasons,
+        config: '远程设置面没读到（ctx.remote.settings 不在）',
+        // 状态的持久那一份也在这条面上，所以面不在时两组都要各说各的原因，
+        // 而不是让文档那边只读到一句笼统的"没提供"。
+        state: '远程设置面没读到，节点状态今天没有落点（上游提案 P7 的第 3 条）',
+        ...input.reasons,
+      },
+    }
   }
   const remote = input.settings
   return {
     settings: {
       describe: () => unwrap<unknown>(remote.describe()),
       update: async (ns, patch, revision) => unwrap<unknown>(remote.update(ns, patch as Record<string, unknown>, revision)),
+      // 路径级那条是节点状态的首选写法：各节点各写自己那一段，不会互相盖。
+      ...(remote.mutate === undefined ? {} : {
+        mutate: async (ns, ops, revision) => unwrap<unknown>(remote.mutate?.(ns, ops, revision) ?? Promise.resolve(undefined)),
+      }),
       ...(remote.openSettingsDocument === undefined ? {} : {
         openDocument: (signal) => unwrap<unknown>(remote.openSettingsDocument?.(signal) ?? Promise.resolve(undefined)),
       }),

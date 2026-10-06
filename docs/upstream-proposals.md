@@ -190,9 +190,20 @@ DSH 0.2.0-rc.2 的设置标准面只有五个动词（实测
 | 写一个**没声明的 ns**（`xaihi`、`no-such-ns`） | 拒：`settings/rejected: No configurable plugin entry "…"` | 名字表就是这道闸；我们的 ns 只能从 bundle 的 config schema 长出来 |
 | 在**已声明的 ns 里写一个没声明的字段**（`__xaihi_probe_unknown__`） | 拒：`settings/rejected: Config field "…" is not volatile` | **这条定住了"节点数据能不能借设置面存"**：字段必须事先在 schema 里声明成 volatile，任意 JSON 塞不进去。要拿设置面当 `state.getData/patchData/replaceData` 的落点，就得先在本仓的 config schema 里声明一个装得下节点数据的 volatile 字段（形状是"每个节点一份 JSON"），而那件事属于 ADR-0013 的边界决定，不是桥这边可以顺手做的 |
 
-推论（写在这里是为了下一轮不用重测）：桥的 `state` 那一组今天**必须由外壳提供**（上游那九个接口里
-`state.*` 是宿主持久的节点数据），而它现在在握手里的读数是 `refused=[state]` + `必给却没兑现：state`。
-可选的两条路只有这两条：① 按上表第三行声明一个 volatile 的节点数据字段，把 `state.*` 映射到
-`update`/`replace`/`mutate`；② 走第 3 条建议里那句"明说历史与节点数据属于业务包 + 给规定的存储面"。
-两条都要人拍，因为②改的是 ADR-0013 那句话有没有明文。
+推论与**当天就把出路①跑通的那一步**（同一次实测之后）：本包 `Config` 里加了一个
+`nodeState: Schema.dict(Schema.string()).default({}).volatile()`（键=节点 id，值=那份状态的 JSON 文本），
+然后在端口 3399 那台宿主上从文档里穿桥写了一遍，读数：
+
+- 写**成功**，值按节点 id 分格落进 `profiles/xaihi-realm/cordis.patch.yml` 的用户层
+  （`nodeState: { xaihi-probe-node: '{"hello":1,"n":42}', xaihi-state-node: '{"marked":"across-restart"}' }`）；
+- **重启宿主之后仍读得回来**（`state.getData('xaihi-probe-node')` 回的是上一个进程写的那一份）⇒ 这是真持久，不是缓存；
+- 两格同时在场 ⇒ 路径级 `mutate` 各写自己那一段，第二个节点窗口的写不会盖掉第一个；
+- 握手随之从 `refused=[state]` 变成 `granted=[contract, state, config, env]`，界面上那句
+  `必给却没兑现：state` 消失（这条读数是这把尺的判据，它先红后绿）。
+
+所以这条提案剩下的部分不是"能不能存"，而是**存得对不对**：节点状态今天寄存在配置文档里，
+它因此会跟着配置一起被备份/导入/导出，也会被 `SETTINGS_CONFLICT` 那套版本号管着——
+这对"每个节点一小份 JSON"是够的，但对大的、二进制的、要历史回溯的状态不合适。
+第 1、2 条建议（命名空间历史 / 有名字的子文档）要的还是那两件事，请不要因为上面这段跑通了就撤掉。
+
 

@@ -51,11 +51,31 @@ export interface Config {
    * 这条原因说出来，而不是装出一个空壳（ADR-0009 的边界这一侧）。
    */
   uiBundleDir: string
+  /**
+   * 节点状态的持久落点：键 = 节点 id，值 = 那份状态的 JSON 文本。
+   *
+   * 为什么形状是"字符串字典"而不是任意 JSON：DSH 的 remote 设置面按 schema 投影，
+   * 注释原话是 "the Remote boundary admits no unconstrained data"，而实测写一个没声明的
+   * 字段直接被拒（`Config field "…" is not volatile`）。声明成 **volatile** 是今天
+   * 唯一开着的写入口（`@deepseek-ai/dsh-settings` 的 `isVolatilePath`：命中带 volatile 的
+   * 节点即放行整条子路径），JSON 的编解码归我们这层，宿主只管存一串文本。
+   *
+   * 本包**不**读它：读写都在桥上（`state.getData` / `patchData` / `replaceData`），
+   * 这里声明只是为了让那道门在使用者的设置文档里存在。
+   */
+  nodeState: Volatile<Record<string, string>>
 }
+
+const nodeStateSchema: Schema<Record<string, string>> = Schema.dict(Schema.string()).default({})
 
 export const Config = Schema.object({
   verbose: Schema.boolean().default(false).volatile(),
   uiBundleDir: Schema.string().default(''),
+  // 走一条本包内标注过的常量：`Schema.dict` 的返回类型引用 cosmokit 的 `Dict`，
+  // 而 core 没（也不该）把 cosmokit 声明成依赖——不标注的话 tsc 报 TS2883
+  // "inferred type cannot be named without a reference to …cosmokit"，
+  // 而标注成 `Schema<Config>` 会撞上 exactOptionalPropertyTypes（TS2375）。
+  nodeState: nodeStateSchema.volatile(),
 })
 
 /** loader 行的最小结构面（cordis-plugin-loader 的 Entry.options 子集）。 */

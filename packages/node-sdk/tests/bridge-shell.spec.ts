@@ -1,8 +1,11 @@
 /**
  * 外壳那一半桥的证伪测试。
  *
- * 全部用注入的假面，不碰 DSH：这里要钉的是"授权顺序"和"没提供者就明说"，
- * 而不是某个真远程接口的行为（后者还没在实机上读回来，见模块注释里那条）。
+ * 全部用注入的假面，不碰 DSH：这里要钉的是"授权顺序"和"没提供者就明说"。
+ * 真远程面的行为已经在实机上读回来过一遍（2026-10-06，端口 3399 的隔离宿主：
+ * `config.get` / `config.save` 与 `state` 那一条 volatile 字段的读写都走通了），
+ * 所以这里的假面是按**读回来的形状**写的（`namespaces[]` 带 `ns` / `value` / `revision`），
+ * 不是随手编的。
  * @module xaihi-ui/tests/bridge-shell
  */
 
@@ -116,12 +119,117 @@ describe('请求求值', () => {
   })
 
   it('归文档的动词过桥就是错的形状，要拒而不是代做', async () => {
-    const { sent, bridge } = harness({ extra: ['state'] })
+    const { sent, bridge } = harness({ extra: ['workspace'] })
     await bridge.receive(hello(), ORIGIN)
-    await bridge.receive(request('state.getData'), ORIGIN)
+    await bridge.receive(request('workspace.listComponents'), ORIGIN)
     const reply = sent.filter((m) => m.kind === 'response').at(-1)
     if (reply?.kind !== 'response') throw new Error('unreachable')
     expect(reply.error?.reason).toBe('document-owned')
+  })
+
+  describe('state 的持久快照', () => {
+    /** 设置文档里我们那一格的真实形状（2026-10-06 在端口 3399 的宿主上读回来的字段名）。 */
+    const stateFace = (calls: string[], rows: unknown[], withMutate = true): SettingsFace => ({
+      describe: () => {
+        calls.push('describe')
+        return { namespaces: rows }
+      },
+      update: async (ns, patch, revision) => {
+        calls.push(`update:${ns}:${JSON.stringify(patch)}:${revision ?? ''}`)
+        return { revision: 9 }
+      },
+      ...(withMutate ? {
+        mutate: async (ns: string, ops: readonly unknown[], revision?: number) => {
+          calls.push(`mutate:${ns}:${JSON.stringify(ops)}:${revision ?? ''}`)
+          return { revision: 7 }
+        },
+      } : {}),
+    })
+
+    const rowsWith = (node: string, json: string) => ([{
+      ns: 'xaihi-core',
+      revision: 4,
+      value: { verbose: false, nodeState: { [node]: json, 'other-node': '{"keep":1}' } },
+    }])
+
+    it('只把问的那个节点那一条发回去，别的节点的数据不过桥', async () => {
+      const calls: string[] = []
+      const { sent, bridge } = harness({ settings: stateFace(calls, rowsWith('sleept', '{"a":1}')) })
+      await bridge.receive(hello(), ORIGIN)
+      await bridge.receive(request('state.getData', ['sleept']), ORIGIN)
+      const reply = sent.filter((m) => m.kind === 'response').at(-1)
+      if (reply?.kind !== 'response' || reply.ok !== true) throw new Error('期望一条成功应答')
+      expect(reply.value).toEqual({ json: '{"a":1}', revision: 4 })
+      expect(JSON.stringify(reply.value)).not.toContain('other-node')
+    })
+
+    it('写优先走路径级 mutate：各节点各写自己那一段', async () => {
+      const calls: string[] = []
+      const { sent, bridge } = harness({ settings: stateFace(calls, rowsWith('sleept', '{"a":1}')) })
+      await bridge.receive(hello(), ORIGIN)
+      await bridge.receive(request('state.patchData', ['sleept', '{"a":2}', 4]), ORIGIN)
+      const write = calls.find((c) => c.startsWith('mutate:')) ?? ''
+      expect(write).not.toBe('')
+      expect(write).toContain('"path":["nodeState","sleept"]')
+      expect(write).toContain(':4')
+      const reply = sent.filter((m) => m.kind === 'response').at(-1)
+      if (reply?.kind !== 'response' || reply.ok !== true) throw new Error('期望一条成功应答')
+      expect(reply.value).toEqual({ revision: 7 })
+    })
+
+    it('面没给 mutate 时才整段回写，并且保住别的节点那几格', async () => {
+      const calls: string[] = []
+      const patches: Record<string, unknown>[] = []
+      const face: SettingsFace = {
+        describe: () => {
+          calls.push('describe')
+          return { namespaces: rowsWith('sleept', '{"a":1}') }
+        },
+        update: async (ns, patch, revision) => {
+          calls.push(`update:${ns}:${revision ?? ''}`)
+          patches.push(patch)
+          return { revision: 9 }
+        },
+      }
+      const { bridge } = harness({ settings: face })
+      await bridge.receive(hello(), ORIGIN)
+      await bridge.receive(request('state.replaceData', ['sleept', '{"a":3}', 4]), ORIGIN)
+      expect(calls).toEqual(['describe', 'update:xaihi-core:4'])
+      expect(patches[0]).toEqual({ nodeState: { 'sleept': '{"a":3}', 'other-node': '{"keep":1}' } })
+    })
+
+    it('节点 id 三道闸：空、过长、原型键都得拒，而且 reason 是人话', async () => {
+      const calls: string[] = []
+      const { sent, bridge } = harness({ settings: stateFace(calls, rowsWith('sleept', '{"a":1}')) })
+      await bridge.receive(hello(), ORIGIN)
+      for (const bad of ['', 'x'.repeat(65), '__proto__']) {
+        await bridge.receive(request('state.getData', [bad], `r-${bad.length}`), ORIGIN)
+      }
+      const denials = sent.filter((m) => m.kind === 'response' && m.ok === false)
+      expect(denials).toHaveLength(3)
+      for (const denial of denials) {
+        if (denial.kind !== 'response') continue
+        expect(denial.error?.reason).toBe('bad-args')
+        expect((denial.error?.detail ?? '').length).toBeGreaterThan(0)
+      }
+    })
+
+    it('设置里没声明那一格时报 state-namespace-missing，而不是回一个 undefined 装作读到了', async () => {
+      const calls: string[] = []
+      const { sent, bridge } = harness({ settings: stateFace(calls, [{ ns: 'xaihi-core', revision: 1, value: { verbose: false } }]) })
+      await bridge.receive(hello(), ORIGIN)
+      await bridge.receive(request('state.getData', ['sleept']), ORIGIN)
+      const reply = sent.filter((m) => m.kind === 'response').at(-1)
+      if (reply?.kind !== 'response' || reply.ok === true) throw new Error('期望一条失败应答')
+      expect(reply.error?.reason).toBe('state-namespace-missing')
+    })
+
+    it('没给设置面时 state 整组以退化露出（持久出口和 config 走同一条面）', async () => {
+      const { bridge } = harness({})
+      await bridge.receive(hello(), ORIGIN)
+      expect(bridge.ready()?.refused).toEqual(expect.arrayContaining(['state']))
+      expect(bridge.ready()?.degraded.some((row) => row.capability === 'state')).toBe(true)
+    })
   })
 
   it('runner.run 的第三段（回调）不可能过桥：只认 (nodeId, input)', async () => {

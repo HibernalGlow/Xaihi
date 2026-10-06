@@ -6,12 +6,11 @@
  * （同 origin 的 iframe 会自动带上 `dsh-auth-*` 会话 Cookie，`SameSite=Strict` 不挡同源嵌套，
  * 见 ADR-0009 后果 3b）。所以"有资格以操作者身份说话"的只有这一半。
  *
- * 这一半**不直接引 `ctx.remote.settings`**：那五个动词在 `SettingsController` 上是确认过的
- * （`@deepseek-ai/dsh-api-settings-controller` 的 `lib/types/index.d.ts:49-85`：
- * `describe` / `update` / `replace` / `mutate` / `openSettingsDocument`），但客户端那一侧的
- * typert 包装名还没在实机上读回来（本仓现有代码只用到 `ctx.remote.commands.execute` 与
- * `ctx.remote.invokeSelected`）。因此这里收一个注入的面，装配侧把真面递进来；
- * 名字读不准就当没给，而不是猜一个签名然后假装能跑（AGENTS.md：不许伪造它没给的数据）。
+ * 这一半**不直接引 `ctx.remote.settings`**：装配侧把真面递进来，这里只收注入的面。
+ * 客户端那侧的名字已经实机读回来了（2026-10-06，真 DSH 父页 + 端口 3399）：
+ * `describe` 与 `update` 走通了整条往返（`config.get` 拿回设置文档、`config.save` 写进去且
+ * revision 递增），`mutate` / `replace` 在 `typert.remote-client.d.ts:28-32` 里与它们并列。
+ * 仍然按"没给就当没有"处理：名字读准不等于每台宿主都给，缺面时要读到退化而不是抛在桥中间。
  *
  * @module xaihi-ui/bridge-shell
  */
@@ -22,6 +21,8 @@ import {
   negotiateBridge,
   parseBridgeMessage,
   providerOf,
+  STATE_SETTINGS_FIELD,
+  STATE_SETTINGS_NS,
   type BridgeHello,
   type BridgeMessage,
   type BridgeMethod,
@@ -36,7 +37,21 @@ export interface SettingsFace {
   /** 允许异步（远程面都返回 Promise）；求值处 await，绝不把 Promise 丢进 postMessage。 */
   describe(): unknown | Promise<unknown>
   update(ns: string, patch: Record<string, unknown>, expectedRevision?: number): Promise<unknown>
+  /**
+   * 路径级写入（实测自 `dsh-api-settings-controller`：`settings/mutate` 收
+   * `{op:'set'|'unset', path: string[], value}`）。节点状态**优先走这一条**：
+   * 两个节点窗口各写自己那一段，就不会互相覆盖整个 `nodeState`；只有面没有这条时
+   * 才退回整段 `update`（那种写法会被并发窗口盖掉，所以退回来时要带一条可见的说明）。
+   */
+  mutate?(ns: string, ops: readonly SettingsPathOp[], expectedRevision?: number): Promise<unknown>
   openDocument?(signal: AbortSignal): Promise<unknown>
+}
+
+/** 一条路径级编辑，形状取自 DSH 的 `SettingsPathOpView`（只用到 set）。 */
+export interface SettingsPathOp {
+  op: 'set' | 'unset'
+  path: readonly string[]
+  value?: unknown
 }
 
 /** 注入的运行面：节点动作的执行通路（装配侧经 `ctx.remote.commands` 或工具分发接上）。 */
@@ -58,6 +73,52 @@ export interface ShellCapabilities {
    * 文档侧读到 undefined 时要把这一格显示成退化，而不是按默认值画一遍。
    */
   env?: BridgeEnv
+}
+
+/** 节点 id 的闸：非空、够短、并且不许是原型链上的键（那会写进 `__proto__`）。 */
+function checkNodeKey(node: unknown): string | null {
+  if (typeof node !== 'string' || node === '') return 'state 的第一段要是节点 id（非空字符串）'
+  if (node.length > 64) return `节点 id 太长了（${String(node.length)} 个字符，上界 64）`
+  if (node === '__proto__' || node === 'constructor' || node === 'prototype') return `节点 id ${node} 不能当设置里的键`
+  return null
+}
+
+/** 设置文档里我们那一段的形状。 */
+interface NodeSnapshot {
+  /** 这个节点此刻存的 JSON 文本；没存过是 undefined。 */
+  json?: string
+  /** 整个节点段（只在外壳内部用来做整段回写，绝不过桥——过桥等于把别人的节点也发过去）。 */
+  all: Record<string, unknown>
+  /** 这一段的修订号，写回去时当 `expectedRevision` 用。 */
+  revision?: number
+}
+
+/**
+ * 从 `describe()` 的返回里读我们那一格。
+ * @param settings - 注入的设置面。
+ * @param node - 要哪个节点；空串 = 只要整段（整段回写前读一次现状用）。
+ * @returns 读到的一段；设置里根本没有这一格时是 null。
+ */
+async function readNodeSnapshot(settings: SettingsFace, node: string): Promise<NodeSnapshot | null> {
+  const described = await settings.describe()
+  const rows = (described as { namespaces?: unknown }).namespaces
+  if (!Array.isArray(rows)) return null
+  const row = rows.find((entry) => (entry as { ns?: unknown }).ns === STATE_SETTINGS_NS) as
+    | { value?: unknown; revision?: unknown }
+    | undefined
+  if (row === undefined) return null
+  const section = (row.value as { nodeState?: unknown } | undefined)?.[STATE_SETTINGS_FIELD]
+  if (section === null || typeof section !== 'object') return null
+  const all: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(section as Record<string, unknown>)) {
+    if (typeof value === 'string') all[key] = value
+  }
+  const found = node === '' ? undefined : all[node]
+  return {
+    ...(typeof found === 'string' ? { json: found } : {}),
+    all,
+    ...(typeof row.revision === 'number' ? { revision: row.revision } : {}),
+  }
 }
 
 /** 一条请求的求值结果。 */
@@ -89,6 +150,46 @@ async function evaluate(method: BridgeMethod, args: readonly unknown[], caps: Sh
   if (method === 'config.openFile') {
     if (caps.settings?.openDocument === undefined) return unavailable(method)
     return { ok: true, value: await caps.settings.openDocument(new AbortController().signal) }
+  }
+  if (method === 'state.getData') {
+    const node = args[0]
+    const checked = checkNodeKey(node)
+    if (checked !== null) return { ok: false, reason: 'bad-args', detail: checked }
+    if (caps.settings === undefined) return unavailable(method)
+    const snapshot = await readNodeSnapshot(caps.settings, node as string)
+    if (snapshot === null) return { ok: false, reason: 'state-namespace-missing', detail: `设置里没有 ${STATE_SETTINGS_NS}.${STATE_SETTINGS_FIELD} 这一段（本包的 config schema 声明了它才有）` }
+    // 只把这个节点那一条发过去：整段发等于旁听别的节点的数据，也白占 256 KiB 的消息上界。
+    return { ok: true, value: { ...(snapshot.json === undefined ? {} : { json: snapshot.json }), ...(snapshot.revision === undefined ? {} : { revision: snapshot.revision }) } }
+  }
+  if (method === 'state.patchData' || method === 'state.replaceData') {
+    const [node, json, revision] = args as [unknown, unknown, number | undefined]
+    const checked = checkNodeKey(node)
+    if (checked !== null) return { ok: false, reason: 'bad-args', detail: checked }
+    if (typeof json !== 'string') {
+      return { ok: false, reason: 'bad-args', detail: 'state 的两条写都收 (节点 id, 已序列化的 JSON 文本, expectedRevision?)——序列化在文档那一侧' }
+    }
+    if (caps.settings === undefined) return unavailable(method)
+    // 优先路径级写：每个节点各写自己那一段，两个节点窗口不会互相盖掉整个字段。
+    if (caps.settings.mutate !== undefined) {
+      return {
+        ok: true,
+        value: await caps.settings.mutate(
+          STATE_SETTINGS_NS,
+          [{ op: 'set', path: [STATE_SETTINGS_FIELD, node as string], value: json }],
+          revision,
+        ),
+      }
+    }
+    // 面没给 mutate 时才整段回写——这条路会连别人的段落一起覆盖，所以说明里点明代价。
+    const current = await readNodeSnapshot(caps.settings, '')
+    if (current === null) return { ok: false, reason: 'state-namespace-missing', detail: `设置里没有 ${STATE_SETTINGS_NS}.${STATE_SETTINGS_FIELD} 这一段（本包的 config schema 声明了它才有）` }
+    const merged: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(current.all)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue
+      merged[key] = value
+    }
+    merged[node as string] = json
+    return { ok: true, value: await caps.settings.update(STATE_SETTINGS_NS, { [STATE_SETTINGS_FIELD]: merged }, revision) }
   }
   if (method === 'runner.run') {
     if (caps.runner === undefined) return unavailable(method)
@@ -128,7 +229,13 @@ export function createShellBridge(
 ) {
   let ready: BridgeReady | undefined
   const offered = new Set<NodeCapabilityId>()
-  if (caps.settings !== undefined) offered.add('config')
+  if (caps.settings !== undefined) {
+    offered.add('config')
+    // 同一面也提供 state 的**持久那一份**：文档里同步的 store 不动，过桥的只是快照读写，
+    // 落点是 `xaihi-core` 那个 volatile 字段（2026-10-06 实测：写成功、revision 递增、
+    // 值按节点 id 分格落在 profile 的设置层里）。
+    offered.add('state')
+  }
   if (caps.runner !== undefined) offered.add('runner')
   for (const extra of caps.extra ?? []) offered.add(extra)
   // 这两组是桥自己就能答的：版本与协商本身，以及界面环境（主题/平台）由外壳这一侧转发。

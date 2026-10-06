@@ -138,7 +138,8 @@ bundle/profile 那套取代（ADR-0002），**不该搬**；`theme-provider.tsx`
 | 桥的契约 | `packages/node-sdk/src/host-bridge.ts`：`xaihi.bridge/1`、九组与 41 条方法名逐字搬上游、版本不匹配整桥拒绝、256KB / 30s 上界 | 已落 + 已测（node-sdk 50 passed） |
 | 谁能兑现哪条动词 | `SHELL_SERVED_METHODS` + `providerOf` 那张表；DSH 的 settings 面实测只有五个动词 ⇒ 18 条 `config.*` 里 **13 条今天没人能提供** | 已落 + 钉成测试（关守卫即红）；缺的那批走提案 **P7** |
 | 两半桥 | `bridge-shell.ts`（在 DSH realm 那一侧）与 `bridge-document.ts`（文档那一侧），加 13 条两半互发的往返测 | 已落 + 已测（36 passed） |
-| 节点 UI 一行不改的关键 | `document-host.ts`：给得出上游那九组形状的 `host`；`state`/`workspace`/`downloads`/`localFiles.getUrl` 留在文档本地不过桥 | 已落 + 已测（12 passed） |
+| 节点 UI 一行不改的关键 | `document-host.ts`：给得出上游那九组形状的 `host`；`workspace`/`downloads`/`localFiles.getUrl` 留在文档本地不过桥 | 已落 + 已测（12 passed） |
+| `state` 的两半（**2026-10-06 补的一刀**） | 同步那一份永远在文档里（上游 `NodeStateCapability` 的 `getData()` 是**同步返回**的，改成异步等于改遍所有组件调用点）；过桥的只有它的持久快照：`createPersistedState` 在挂载前 `hydrate()` 预取、之后每次写往后刷，落点是 `xaihi-core` 那个 volatile 的 `nodeState` 字段（`Record<节点 id, JSON 文本>`），写优先走路径级 `mutate` | **已落 + 已测 + 已实机**：node-sdk 80 passed、ui-host 244 passed（新 `tests/persisted-state.spec.ts` 7 条，含"冲突只补读一次版本号"那条有界判据）；3399 那台宿主上握手从 `refused=[state]` 变 `granted=[contract, state, config, env]`，**重启进程后仍读回上一个进程写的值**，两格并存证明不会互相盖。剩下的一刀不是这一层：`?node=` 那份界面要等 `dist-ui` 建出来、把搬进来的 `hostApi` 换成这座桥时才接得上消费者 |
 | 文档的构建目标 | `packages/ui-host/rspack.document.mjs`（第三份产物 `dist-ui/main.js` + `main.css`，`react` **别名到本包的 `react-19`**，无 MF、无共享表）+ 入口 `src/document/main.tsx` + `build:document` 脚本 | 入口这一侧**已经干净**（`main.tsx` 零错）；整包 `rspack build` rc=1、**34 条错**（从 110 降下来，全部分类在下表，剩下的都在搬运树里，不在这份配置里） |
 | 装配那一刀（slot 里放什么） | `src/client/surface.tsx` 的 `MainSurface` 接管 `main` 槽：按清单事实选文档面或退化面；`index.ts` 那侧换成 `createElement(MainSurface, { …, caps })`，**不再把 `WorkspaceRoot` 交给壳**，产物缺席时显示同文件里的 `NoDocumentFace`（纯 DOM、不 import 移植树） | **已落 + 已测**（6 条组件测）。这一刀的由来见下面两行：壳那一格改成"只显示原因"之后，移植树在壳里的渲染路径整条消失 |
 | 壳那一格不许渲染移植树（2026-10-06 真宿主实测） | 症状：DSH 客户端控制台 `slot entry crashed in 'main': Minified React error #300`，#300 原文 = "Rendered fewer hooks than expected"（取自 React 官方 `scripts/error-codes/codes.json`） | **成因不是 React 版本**：`MainSurface` 当时用 `{inRealm(root)}` **当函数调** `WorkspaceRoot`，于是被调组件的 3 个 hooks 记在调用方身上；清单从 pending 变 document 的那次重渲染不再调它 ⇒ 父组件少一整层 hook ⇒ 槽入口崩 ⇒ **整格连同那座桥一起消失**。回归测试 `tests/surface.spec.tsx`「外壳那一面自己带 hooks 时…」在改法之前实测红（vitest 里读到的就是那句 "Rendered fewer hooks than expected"，栈顶 `updateFunctionComponent` 落在 `MainSurface`），改法（`const InRealm = inRealm` + `<InRealm … />`）之后绿。旧测没抓到的原因写进了那条测的注释：假件 `fallback` 不带 hooks，只有真组件上屏才暴露 |
@@ -251,3 +252,20 @@ React 19 才有的 `use()`。⇒ 这条路径一旦被渲染就是本 ADR 背景
    ⇒ 结论：(a) 与 ADR-0008 **可以共存**，我先前写的"正面冲突、L2 只能每文档一份"是按
    "每个节点一个文档"算的，那个形状更贵也更散，已经换成"整个 Xaihi 一份文档"。
    真冲突的只剩一处：**ADR-0001 第 5 条的 React 单例硬断言**（后果 1），那条必须改写而不是并存。
+
+6. **与 ADR-0014 有一处硬冲突，撞在这一份的实测上（2026-10-06 记下，谁接那一刀谁处理）。**
+   ADR-0014 的"后果"里写"一方界面第一次真的进 `lib/client.js`"，并把"字面命中"当上屏判据；
+   而 `lib/client.js` 是**装在 DSH 槽里、由宿主的 React 18 解释**的那一份。今天在同一台宿主上
+   实测到的两种崩法正好横在这条路上：
+   - 19 写的元素穿过槽契约 ⇒ `Minified React error #31`（本 ADR 的 V1）；
+   - 把带 hooks 的界面**当函数调**进槽里（哪怕版本凑巧）⇒ 宿主报
+     `slot entry crashed in 「main」` = React **#300**，而且崩的是槽入口，
+     **整格连同里面那座桥一起消失**（今天的回归测就是照这条读数写的）。
+   ADR-0014 的"决定"部分（一方节点界面走现 realm 注册表）与这份并不矛盾——矛盾只在"注册表住在哪一份产物里"。
+   按今天的数据，注册表该住在**文档那份产物**（`dist-ui/main.js`，React 19 闭合图）而不是 `client.js`：
+   注册表要的"异步装载、每条独立错误边界、过期在飞的装载不许盖新选择"这三件事，
+   在文档这一侧做与在壳这一侧做是同一份代码，只有渲染归属不同。
+   真要按 ADR-0014 那句字面实现，验收判据得先加一条："这份 `client.js` 在真 DSH 宿主里挂载后
+   控制台没有 #31/#300"——那条今天已经能复现失败，不是假想。
+   （我在 `src/client/index.ts` 与 `surface.tsx` 的注释里把这条写死在代码旁边了。）
+
