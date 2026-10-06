@@ -20,7 +20,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:tsc": "tsc -p tsconfig.json",
-    "test": "vitest run src/index.test.ts src/workspace-tui-model.test.ts && bun test src/Tui.bun.test.tsx"
+    "test": "vitest run src"
   },
   "dependencies": {
     "@opentui/core": "0.4.5",
@@ -60,6 +60,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.12.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   }
 }

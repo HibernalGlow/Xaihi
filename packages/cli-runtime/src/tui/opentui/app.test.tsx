@@ -1,6 +1,6 @@
 /* @jsxImportSource @opentui/react */
 import { testRender } from "@opentui/react/test-utils"
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "vitest"
 import { act, useState } from "react"
 
 import type { TerminalInteractionDefinition } from "../../interaction.js"

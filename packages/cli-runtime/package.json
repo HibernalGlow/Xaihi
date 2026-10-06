@@ -38,7 +38,7 @@
     "build": "tsc -p tsconfig.json",
     "build:tsc": "tsc -p tsconfig.json",
     "sync:termcn": "node scripts/sync-termcn-opentui-registry.mjs",
-    "test": "vitest run src/index.test.ts src/browser-boundary.test.ts src/tui/interaction-cli.test.ts && bun test src/tui/opentui/app.bun.test.tsx src/tui/opentui/image-preview.bun.test.ts src/tui/opentui/path-diff.bun.test.ts src/tui/opentui/slider.bun.test.tsx"
+    "test": "vitest run src"
   },
   "dependencies": {
     "@clack/prompts": "^1.7.0",
@@ -61,6 +61,7 @@
   "devDependencies": {
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   }
 }

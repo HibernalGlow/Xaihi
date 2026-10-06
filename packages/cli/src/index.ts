@@ -2,7 +2,7 @@
 import { pathToFileURL } from "node:url"
 import { createCliHost, normalizeNodeCliName, renderRichPanel, rich, terminalColumns, writeError, writeLine } from "@xiranite/cli-runtime"
 import type { CliCommand, CliHost } from "@xiranite/cli-runtime"
-import { createTerminalTaskQueueController, isBunRuntime, reexecTerminalUiWithBun } from "@xiranite/cli-runtime/terminal"
+import { createTerminalTaskQueueController, probeTerminalRuntime, terminalRuntimeHint } from "@xiranite/cli-runtime/terminal"
 import { createXiraniteWorkspaceClient } from "@xiranite/api/client"
 import { localizeNodeHelp } from "@xiranite/contract"
 import type { NodeHelp } from "@xiranite/contract"
@@ -119,8 +119,12 @@ export async function runProgram(args = process.argv.slice(2), host: CliHost = c
 }
 
 async function runWorkspaceUi(host: CliHost): Promise<void> {
-  if (!isBunRuntime()) {
-    await reexecTerminalUiWithBun(host, { entrypoint: process.argv[1]!, args: ["ui"] })
+  // 以前这里 spawn 一个裸 `bun` 把自己重跑一遍；实测 @opentui/core 有 node 入口，
+  // 所以换成"探测 → 起不来就可见退化"，不再启动第二个运行时。
+  const capability = await probeTerminalRuntime()
+  if (!capability.ok) {
+    writeError(host, terminalRuntimeHint(capability))
+    process.exitCode = 3
     return
   }
 

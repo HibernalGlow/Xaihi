@@ -63,12 +63,7 @@
    `node-cli-registry.generated.ts` 实测 **46 条**登记，46 个 `x<id>` 命令全断——
    缺的是**两个**子路径（`./cli` 与 `./help`），不是一个。
    `list` / `--help` / `ui` 不需要任何 node 包，因此这三条是搬完立刻能验的面。
-4. **`xiranite ui`（TUI）要 Bun**：`packages/cli/src/index.ts:123` 调
-   `reexecTerminalUiWithBun(...)`，`cli-runtime/src/tui/bun-runtime.ts` 里是
-   `spawn` 裸 `bun` 并用 `process.versions.bun` 自证。
-   这与"全局 `npm i -g` 装 CLI/TUI"那条分发裁定直接冲突——Node 装了 bun 不在场，
-   TUI 那一面就起不来。要么承认"TUI 需要 bun 在 PATH"，要么把 re-exec 换成可选面。
-   **这一条留给使用者拍**，我没有替他改。
+4. ~~`xiranite ui`（TUI）要 Bun~~ **已经改掉**，见下面第八节。
 
 映射表（实测，不是推断）：101 条 `@xiranite/*` 边里，9 条非 node 的有 7 条由本次搬进来的包满足、
 2 条无对应物（且是 type-only，堵的是 `packages/api` 的 typecheck）；
@@ -96,6 +91,45 @@ Xaihi 全线是 `typescript@^6` + `@types/node@^22` + `engines: ^22.19 || >=24`�
 `scripts/sync-termcn-opentui-registry.mjs:13` 会去 fetch termcn.dev；
 `shared/src/http-url.test.ts:7,12` 与 `api/src/client.test.ts:59,63` 里是过时的 Wails URL 夹具
 （测试夹具，不是运行时假设）。全仓终端面**没有** Tauri/Electron/Wails 的运行时调用。
+
+## 八、TUI 不再 spawn 裸 `bun`（2026-10-06 使用者指令："会 spawn 裸 bun 的地方都改掉"）
+
+**上游那条硬要求本身就是过时的。** 实测（同一台机、同一份 `node_modules`）：
+
+- `@opentui/core@0.4.5` 的 `exports` 里同时有 `"bun": "./index.bun.js"` 与
+  `"node"/"import": "./index.node.js"`；平台包 `@opentui/core-darwin-arm64` 也同时给了
+  `index.bun.js` 和 Node 用的 `index.js`（后者导出的就是 `libopentui.dylib` 的路径）。
+- 在 **Node 26.10** 上直接 `await import('@opentui/core')` ⇒ 257 个导出、rc=0，
+  只带一条 `ExperimentalWarning: FFI is an experimental feature`。
+  ⇒ "TUI 必须 bun" 是在解决一个不存在的问题，代价是把
+  "`npm i -g` 一个包就装好 CLI/TUI"（ADR-0006 分发形状）变成"还得另装 bun"。
+
+改了什么（生产代码里已经没有任何 bun 引用，实测 `grep` 终端面 6 个包 = 0 命中）：
+
+| 原来 | 现在 |
+|---|---|
+| `cli-runtime/src/tui/bun-runtime.ts`：`spawn` 裸 `bun`/`bun.exe` 重跑自己，找不到就抛 `Unable to start Bun for OpenTUI` | **删掉**。换成 `cli-runtime/src/tui/runtime-capability.ts`：`probeTerminalRuntime()` 真加载一次渲染器（只 import，不进渲染、不改终端状态），返回 `{ok, runtime, version, exports, detail}` |
+| `runTerminalUi` 开头 `if (!isBunRuntime()) reexec()` | 探测不过 ⇒ `writeError(terminalRuntimeHint(...))` + `process.exitCode = 3` 并**如实退化**（gd 引导式与 pipe 面不受影响）；不偷偷换运行时再跑 |
+| `cli/src/index.ts:121-125` 的 `ui` 子命令重定向 | 同一个探测 + 同一句退化文案（口径只有一份） |
+| 6 个 `*.bun.test.tsx?`（`import … from "bun:test"`、一处 `Bun.sleep`） | 全部转成 vitest 并**去掉文件名里的 `.bun.`**（那标记已经没有意义）；`Bun.sleep` 换成本地 `sleepMs` |
+| `packages/{api,shared}/package.json` 的 `"test": "bun run build"`、`cli`/`cli-runtime`/`logging` 的 `&& bun test …` 与 `test:tui` | 一律换成 `vitest run …`；顺手给 `cli`/`cli-runtime`/`api` 补上缺的 `vitest` devDependency（上游只在 `logging` 里声明过） |
+
+证据（仓库外的一次性驱动，把改过的 `runtime-capability.ts` 原样拷进一个能解析到 `@opentui` 的目录再跑）：
+
+```
+$ node .scratch/probe-term/run.mjs
+capability: {"ok":true,"runtime":"node","version":"26.10.0","exports":257,
+             "detail":"@opentui/core 在 node 26.10.0 上加载成功（257 个导出）"}
+PROBE_OK exports=257 runtime=node 26.10.0        rc=0
+(node:91681) ExperimentalWarning: FFI is an experimental feature and might change at any time
+```
+
+**这条测量的适用条件一起记**：Node 侧能加载靠的是 builtin FFI（实验特性）。
+本仓 `engines` 的下沿是 `^22.19.0 || >=24`，而 22.x 没有 builtin FFI ⇒
+那种运行时下会走退化分支并打印第六节那六行文案（驱动里用假造的
+`{ok:false, runtime:'node', version:'22.19.0'}` 验过文案含"退化"与版本号，
+也验过 `ok:true` 时文案必须是空串）。
+**没有验过**的：真在 TTY 里渲染一屏（`packages/cli` 还不入 workspace，跑不起来，见第四节）。
 
 ## 七、下一步（已经派出去的部分）
 

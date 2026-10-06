@@ -1,4 +1,6 @@
-import { expect, test } from "bun:test";
+const sleepMs = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
+import { expect, test } from "vitest";
 import sharp from "sharp";
 import {
   decodeTerminalImageFrames,
@@ -188,7 +190,7 @@ test("[terminal.image.decode.cancellation] removes an aborted terminal decode be
     secondStarted = true;
     return [decodedFrame(4, 4)];
   }, abort.signal);
-  await Bun.sleep(0);
+  await sleepMs(0);
   expect(service.snapshot()).toMatchObject({ running: 1, queued: 1 });
   abort.abort(new DOMException("not visible", "AbortError"));
   await expect(second).rejects.toBeTruthy();

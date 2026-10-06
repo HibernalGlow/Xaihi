@@ -1,7 +1,7 @@
 import { runGuidedInteraction, writeError, type CliHost } from "../index.js"
 import { requireInteractiveMode, resolveCliInvocation, resolveTerminalUiFlags, type CliInteractionPreferences, type TerminalInteractionDefinition, type TerminalRenderer } from "../interaction.js"
 import { resolveTerminalLanguage, type TerminalLanguage } from "./i18n.js"
-import { isBunRuntime, reexecTerminalUiWithBun } from "./bun-runtime.js"
+import { probeTerminalRuntime, terminalRuntimeHint } from "./runtime-capability.js"
 import { listTerminalThemes } from "./theme.js"
 import type { ReactNode } from "react"
 import type { NodeHelp } from "@xiranite/contract"
@@ -25,7 +25,6 @@ export interface RunTerminalUiOptions<Input = unknown, Result = unknown> {
   language?: TerminalLanguage | string
   theme?: string
   host: CliHost
-  reexec?: { entrypoint: string; args: readonly string[] }
   preferences?: TerminalPreferenceController
   screen?: TerminalUiScreen<Input, Result>
   loadScreen?: () => Promise<TerminalUiScreen<Input, Result>>
@@ -72,8 +71,11 @@ export async function runTerminalUi<Input, Result>(
   options: RunTerminalUiOptions<Input, Result>,
 ): Promise<void> {
   const language = resolveTerminalLanguage(options.language, options.host.env)
-  if (!isBunRuntime()) {
-    await reexecTerminalUiWithBun(options.host, options.reexec)
+  // 探测而不是换运行时：起不来就明说并退回引导式/管道面（ADR-0011 决定 4 的降级铁律）。
+  const capability = await probeTerminalRuntime()
+  if (!capability.ok) {
+    writeError(options.host, terminalRuntimeHint(capability))
+    process.exitCode = 3
     return
   }
   const { runOpenTuiTerminalUi } = await import("./opentui/runner.js")
@@ -164,6 +166,6 @@ export {
   type TerminalMessageKey,
 } from "./i18n.js"
 export { listTerminalThemes, registerTerminalTheme, resolveTerminalTheme, type TerminalTheme } from "./theme.js"
-export { isBunRuntime, reexecTerminalUiWithBun } from "./bun-runtime.js"
+export { probeTerminalRuntime, terminalRuntimeHint, type TerminalRuntimeCapability, type TerminalRuntimeName } from "./runtime-capability.js"
 export { formatTerminalNodeHelp, writeTerminalNodeHelp } from "../help.js"
 export { bindDefinitionToTaskQueue, createTerminalTaskQueueController, type TerminalTaskQueueController, type TerminalTaskQueueItem } from "./task-queue.js"

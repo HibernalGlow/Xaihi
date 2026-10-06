@@ -1585,5 +1585,13 @@
     "totalCopiedLines": 16429,
     "thirdPartySpecifiersDirectlyImported": 20,
     "bunTestFiles": 6
-  }
+  },
+  "amendments": [
+    {
+      "at": "2026-10-06T23:14:00+08:00",
+      "supersedes": "reachability.tuiHardRequirement",
+      "finding": "裸 bun 重定向已删除：@opentui/core@0.4.5 有 node 条件导出，Node 26.10 实测 import 成功（257 个导出）。改成探测 + 可见退化，见 docs/stages/step-4-terminal-port.md 第八节。",
+      "evidence": "node .scratch/probe-term/run.mjs rc=0"
+    }
+  ]
 }

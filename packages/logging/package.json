@@ -32,8 +32,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:tsc": "tsc -p tsconfig.json",
-    "test": "vitest run src --exclude src/Tui.bun.test.tsx --maxWorkers=1",
-    "test:tui": "bun test src/Tui.bun.test.tsx"
+    "test": "vitest run src --maxWorkers=1"
   },
   "dependencies": {
     "@opentui/core": "0.4.5",

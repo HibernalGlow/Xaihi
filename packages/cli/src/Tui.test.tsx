@@ -1,6 +1,6 @@
 /* @jsxImportSource @opentui/react */
 import { testRender } from "@opentui/react/test-utils"
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "vitest"
 import { act } from "react"
 import type { WorkspaceSnapshotDTO } from "@xiranite/shared"
 import { XiraniteTui } from "./Tui.js"

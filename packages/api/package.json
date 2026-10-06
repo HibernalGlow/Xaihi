@@ -3,13 +3,9 @@
   "version": "0.1.0",
   "type": "module",
   "private": false,
-  "description": "Typed HTTP/RPC API surface for the Xiranite local backend.",
+  "description": "Typed HTTP client for the local backend API surface.",
   "license": "UNLICENSED",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
     "./client": {
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
@@ -21,16 +17,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:tsc": "tsc -p tsconfig.json",
-    "test": "bun run build"
+    "test": "vitest run src"
   },
   "dependencies": {
     "@xiranite/file-operations": "workspace:*",
     "@xiranite/services": "workspace:*",
-    "@xiranite/shared": "workspace:*",
-    "@elysiajs/eden": "^1.4.9",
-    "elysia": "^1.4.29"
+    "@xiranite/shared": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   }
 }
