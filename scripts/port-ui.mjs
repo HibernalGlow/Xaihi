@@ -104,6 +104,11 @@ const INCLUDE_DIRS = [
   'nodes/sleept',
   'nodes/dissolvef',
   'nodes/findz',
+  // 批次 E：宿主半边正在并行迁移的四个节点，界面按同一张表一起搬（L4）。
+  'nodes/logx',
+  'nodes/recycleu',
+  'nodes/timeu',
+  'nodes/samea',
   'lib',
   'hooks',
   'store',

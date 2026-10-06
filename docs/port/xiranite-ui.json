@@ -141,7 +141,9 @@
       "sha256": "44043a9281bcb14a69ba84794b7168e292d1596bf63f3557dfccba0ea66e965a",
       "bytes": 2982,
       "dest": "packages/ui-host/src/backend/localBackendControl.ts",
-      "state": "modified"
+      "state": "modified",
+      "localDelta": "ADR-0013：上游那条「配置住在后端 toml + HTTP/RPC 读写 + 版本历史」的通路整块不接；这几个文件是它的组成部分，并发 lane 于 2026-10-06 裁掉，这里登记为「有意不要」而不是漏搬。",
+      "removed": true
     },
     "backend/localBackendDiagnostics.ts": {
       "sha256": "e84b9c1e783cd351d401ae22651314470b0bf3aba6401d1761eacca0d4f6a828",
@@ -1671,7 +1673,9 @@
       "sha256": "672a17274b0dd383762f65407e456c1460d745f3b0a6e2e9257e15d45edafffb",
       "bytes": 9936,
       "dest": "packages/ui-host/src/components/views/Webview2ExperimentsPanel.tsx",
-      "state": "modified"
+      "state": "modified",
+      "localDelta": "ADR-0013：上游那条「配置住在后端 toml + HTTP/RPC 读写 + 版本历史」的通路整块不接；这几个文件是它的组成部分，并发 lane 于 2026-10-06 裁掉，这里登记为「有意不要」而不是漏搬。",
+      "removed": true
     },
     "components/views/settings/.cache/md3-page-off.png": {
       "sha256": "5348bc3c33938a8e332ba3d36c9cd892caef2c3ac594a5e50da9352099520e5a",
@@ -1719,7 +1723,9 @@
       "sha256": "075ae226f67d6d41a28a384a940536b1f5fbcfddbeb694689a12c45f2d875e48",
       "bytes": 11109,
       "dest": "packages/ui-host/src/components/views/settings/NodeMemoryProtectionSettings.tsx",
-      "state": "head"
+      "state": "head",
+      "localDelta": "ADR-0013：上游那条「配置住在后端 toml + HTTP/RPC 读写 + 版本历史」的通路整块不接；这几个文件是它的组成部分，并发 lane 于 2026-10-06 裁掉，这里登记为「有意不要」而不是漏搬。",
+      "removed": true
     },
     "components/views/settings/RuntimeSection.tsx": {
       "sha256": "a4546ac7b2d28cd045532e434316602946bcb97631b6d61ac0e5a29e2bbdc2ee",
@@ -2265,7 +2271,9 @@
       "sha256": "6fdf6ab6c55072c2ad21e5d4a3c8328d7d95f7fb912fa6d8be62bdc381e3a4ab",
       "bytes": 1373,
       "dest": "packages/ui-host/src/config/webview2.ts",
-      "state": "head"
+      "state": "head",
+      "localDelta": "ADR-0013：上游那条「配置住在后端 toml + HTTP/RPC 读写 + 版本历史」的通路整块不接；这几个文件是它的组成部分，并发 lane 于 2026-10-06 裁掉，这里登记为「有意不要」而不是漏搬。",
+      "removed": true
     },
     "desktop/tray/DesktopTrayBridge.tsx": {
       "sha256": "eebbfd6c320b68826e90e3d3032b68a7507952655c397437944794414c2701f2",
@@ -2993,6 +3001,96 @@
       "dest": "packages/ui-host/src/nodes/linedup/types.ts",
       "state": "head"
     },
+    "nodes/logx/Component.test.tsx": {
+      "sha256": "85e038b521948b3fdfb1263ff8c02ea2f99bf78a89c52b02f0d17b6784b509f7",
+      "bytes": 4141,
+      "dest": "packages/ui-host/src/nodes/logx/Component.test.tsx",
+      "state": "head"
+    },
+    "nodes/logx/Component.tsx": {
+      "sha256": "9857ed852e5555f6835a76590524fc69ff8504a4bac255a0c3481b70b599fc12",
+      "bytes": 30653,
+      "dest": "packages/ui-host/src/nodes/logx/Component.tsx",
+      "state": "head"
+    },
+    "nodes/logx/browser-boundary.test.ts": {
+      "sha256": "6befae1d7d046880ef5b0e6911e2edba326f771f2670b8b1800aeccca9d9fd8d",
+      "bytes": 528,
+      "dest": "packages/ui-host/src/nodes/logx/browser-boundary.test.ts",
+      "state": "head"
+    },
+    "nodes/logx/entry.ts": {
+      "sha256": "6be4d59bf078215eac1fa963f0c2e80f6358f306327cc9dbf4271d0f94869d11",
+      "bytes": 1004,
+      "dest": "packages/ui-host/src/nodes/logx/entry.ts",
+      "state": "head"
+    },
+    "nodes/logx/types.ts": {
+      "sha256": "ff1a911435e54506d1b6eb33247b5c5e45e5a752cfcc4ea67b12aa9aff72ce40",
+      "bytes": 578,
+      "dest": "packages/ui-host/src/nodes/logx/types.ts",
+      "state": "head"
+    },
+    "nodes/recycleu/Component.test.tsx": {
+      "sha256": "4dc271c29b0c0c3a4386562ef0d5fc8c33558015699604b38d23c6c8b7b91dcd",
+      "bytes": 17102,
+      "dest": "packages/ui-host/src/nodes/recycleu/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/recycleu/Component.tsx": {
+      "sha256": "8601bc239c1918ea41392c6beb8706de630b164755fc6b04c0019466a6668a54",
+      "bytes": 27873,
+      "dest": "packages/ui-host/src/nodes/recycleu/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/recycleu/constants.ts": {
+      "sha256": "b9b637a33ba1823d2e9c5a6253754f5cf72e36ee77c16884ce357490f5eb3ca7",
+      "bytes": 1586,
+      "dest": "packages/ui-host/src/nodes/recycleu/constants.ts",
+      "state": "head"
+    },
+    "nodes/recycleu/controls.tsx": {
+      "sha256": "8b6d0241d2c424790a56ffb49b005998fa4c9f255500d81bfe099e7229c5344d",
+      "bytes": 14234,
+      "dest": "packages/ui-host/src/nodes/recycleu/controls.tsx",
+      "state": "modified"
+    },
+    "nodes/recycleu/entry.ts": {
+      "sha256": "82e2deaee9f1bffe520acab3d6871c20589656418eddb40dead86660d61aff6f",
+      "bytes": 1020,
+      "dest": "packages/ui-host/src/nodes/recycleu/entry.ts",
+      "state": "head"
+    },
+    "nodes/recycleu/types.ts": {
+      "sha256": "3bc1d5c34ed9559426bee00656d9c3889b86086461fb9945ddd18ffeda4e5196",
+      "bytes": 647,
+      "dest": "packages/ui-host/src/nodes/recycleu/types.ts",
+      "state": "head"
+    },
+    "nodes/samea/Component.test.tsx": {
+      "sha256": "6987c30e09d761db90cda46c067b24e89cb8995662bfbe09ec5eb630354096e5",
+      "bytes": 2789,
+      "dest": "packages/ui-host/src/nodes/samea/Component.test.tsx",
+      "state": "head"
+    },
+    "nodes/samea/Component.tsx": {
+      "sha256": "25241f8236fe5b08c8abd1bf42962e4056bf1bd4c380f632eea53471a72c9794",
+      "bytes": 20767,
+      "dest": "packages/ui-host/src/nodes/samea/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/samea/entry.ts": {
+      "sha256": "1f0f3531a95008707975009a3704eb9c7263e8d03f6109ce72acbd4220d94da2",
+      "bytes": 1189,
+      "dest": "packages/ui-host/src/nodes/samea/entry.ts",
+      "state": "head"
+    },
+    "nodes/samea/types.ts": {
+      "sha256": "dde9457fffce606dafc0c6f424219dfaa6daf073e28929c6a86d9ce2e5508de6",
+      "bytes": 574,
+      "dest": "packages/ui-host/src/nodes/samea/types.ts",
+      "state": "head"
+    },
     "nodes/shared/ExecuteButton.tsx": {
       "sha256": "10978ded0588a5c9acd8282a21a49b75e1ed424449aa6e1a47c70a2d435d6cb7",
       "bytes": 4497,
@@ -3261,6 +3359,36 @@
       "sha256": "e696b9e77c6dd1dd983412866ab5f62bf4c9d64a2e904442f5b607e90fd107b4",
       "bytes": 1376,
       "dest": "packages/ui-host/src/nodes/sleept/types.ts",
+      "state": "head"
+    },
+    "nodes/timeu/Component.test.tsx": {
+      "sha256": "239615d70020700a29bb949b069e64460c3ebd3dc7e335dcfceca2064f7dd846",
+      "bytes": 8499,
+      "dest": "packages/ui-host/src/nodes/timeu/Component.test.tsx",
+      "state": "modified"
+    },
+    "nodes/timeu/Component.tsx": {
+      "sha256": "57b30f5ddc4cf825280d00e825474e4b74b9070668e31c500cd39efb80f62d05",
+      "bytes": 32759,
+      "dest": "packages/ui-host/src/nodes/timeu/Component.tsx",
+      "state": "modified"
+    },
+    "nodes/timeu/constants.ts": {
+      "sha256": "da1d9558052bf7fac6af359ffcc950fe3623347e467f7f20694c1ff80e01ac80",
+      "bytes": 890,
+      "dest": "packages/ui-host/src/nodes/timeu/constants.ts",
+      "state": "head"
+    },
+    "nodes/timeu/entry.ts": {
+      "sha256": "590d932aceda3167803f8fc7b6a07f369a297152703a66c0d5f0b3537079ac1a",
+      "bytes": 1197,
+      "dest": "packages/ui-host/src/nodes/timeu/entry.ts",
+      "state": "head"
+    },
+    "nodes/timeu/types.ts": {
+      "sha256": "3af13a3d45ce3eda455c0331ca09dca2d09d9ce5b4d84d560bdd744f0fb77286",
+      "bytes": 803,
+      "dest": "packages/ui-host/src/nodes/timeu/types.ts",
       "state": "head"
     },
     "plugins/__fixtures__/esm-remote-entry-b.js": {
