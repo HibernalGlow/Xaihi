@@ -16,23 +16,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import type { UiBundleFace } from '@hibernalglow/xaihi-sdk/bridge'
-import { createShellBridge, type ShellCapabilities } from '@hibernalglow/xaihi-sdk/bridge'
-
-/** 桥消息要发给的那个 frame 窗口的最小面（jsdom 与真浏览器都能满足）。 */
-export interface FrameWindowLike {
-  postMessage(message: unknown, targetOrigin: string): void
-}
-
-export interface FrameLike {
-  contentWindow?: FrameWindowLike | null
-}
-
-/** 浏览器 `MessageEvent` 里这条桥真正用到的三片。 */
-export interface IncomingMessage {
-  data: unknown
-  origin: string
-  source: unknown
-}
+import { wireShellToFrame, type ShellCapabilities } from '@hibernalglow/xaihi-sdk/bridge'
 
 /** 这一格此刻该显示哪一面。 */
 export interface SurfacePlan {
@@ -59,30 +43,6 @@ export function planSurface(ui: UiBundleFace | undefined): SurfacePlan {
     return { kind: 'in-realm', documentUrl: '', reason: ui.problems.join('；') }
   }
   return { kind: 'document', documentUrl: ui.documentUrl, reason: 'Xaihi 文档已就绪' }
-}
-
-/**
- * 把一座外壳侧的桥接到某个 frame 上。
- * @param caps - 外壳真能兑现的东西。
- * @param selfOrigin - 文档那一侧的来源（同源是这条桥唯一的信任边界）。
- * @param frame - iframe 元素自己。
- * @returns 交给 `message` 监听器的处理器，与一个"这条消息是不是从这座桥的对岸来的"判据。
- */
-export function wireShellToFrame(caps: ShellCapabilities, selfOrigin: string, frame: () => FrameLike | null) {
-  const bridge = createShellBridge(caps, (message) => {
-    frame()?.contentWindow?.postMessage(message, selfOrigin)
-  }, selfOrigin)
-  return {
-    bridge,
-    /** 只有真正发给自己这个 frame 的消息才交给桥；别的 frame/窗口的一律不理。 */
-    fromThisFrame(event: IncomingMessage): boolean {
-      // 没挂上的 frame 什么都不能匹配。写成 `event.source === (… ?? null)` 时
-      // `source: null` 的外来消息会被当成自己人（这条测试真抓到了，改的是这里不是测试）。
-      const target = frame()?.contentWindow
-      if (target === undefined || target === null) return false
-      return event.source === target
-    },
-  }
 }
 
 /** 清单里那条 `ui` 面的读取结果：字段缺失与读不到是两件事，分开报。 */

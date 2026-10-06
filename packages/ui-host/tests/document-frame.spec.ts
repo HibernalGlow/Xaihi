@@ -8,7 +8,10 @@
 
 import { describe, expect, it } from 'vitest'
 import { BRIDGE_CONTRACT_VERSION, BRIDGE_SCHEMA, NODE_CAPABILITY_IDS, type BridgeMessage } from '@hibernalglow/xaihi-sdk/bridge'
-import { fetchSurface, planSurface, wireShellToFrame, type FrameLike } from '../src/client/document-frame.tsx'
+import { fetchSurface, planSurface } from '../src/client/document-frame.tsx'
+// `wireShellToFrame` 与它的 frame 形状住在 SDK（桥的契约，不是 React 层），
+// 因为同一份实现还要被真浏览器的两帧取证脚本打在身上。
+import { wireShellToFrame, type FrameLike } from '@hibernalglow/xaihi-sdk/bridge'
 
 const ORIGIN = 'http://127.0.0.1:3199'
 

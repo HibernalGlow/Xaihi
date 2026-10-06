@@ -317,3 +317,48 @@ export function createShellBridge(
     },
   }
 }
+
+/** 某个 frame 窗口的最小面（真浏览器与 jsdom 都满足）。 */
+export interface FrameWindowLike {
+  postMessage(message: unknown, targetOrigin: string): void
+}
+
+/** 桥要投给它的那个 frame 的最小面。 */
+export interface FrameLike {
+  contentWindow?: FrameWindowLike | null
+}
+
+/** 浏览器 `MessageEvent` 里这条桥真正用到的三片。 */
+export interface IncomingMessage {
+  data: unknown
+  origin: string
+  source: unknown
+}
+
+/**
+ * 把一座外壳侧的桥接到某个 frame 上。
+ *
+ * 住在 SDK 而不是界面层的原因：这条闸是**桥的契约**的一部分（一屏多框时谁的话归谁接），
+ * 而取证脚本要在真浏览器里打在它身上（`scripts/frame-isolation-live.mjs`）——
+ * 判据必须落在生产实现上，不能在脚本里另写一份同款的。
+ * @param caps - 外壳真能兑现的东西。
+ * @param selfOrigin - 文档那一侧的来源（同源是这条桥唯一的信任边界）。
+ * @param frame - 取 frame 元素自己的口子（挂载前后都可能拿到 null，所以要成函数）。
+ * @returns 交给 `message` 监听器的桥，与一条"这话是不是从我这个框来的"的判据。
+ */
+export function wireShellToFrame(caps: ShellCapabilities, selfOrigin: string, frame: () => FrameLike | null) {
+  const bridge = createShellBridge(caps, (message) => {
+    frame()?.contentWindow?.postMessage(message, selfOrigin)
+  }, selfOrigin)
+  return {
+    bridge,
+    /** 只有真正发给自己这个 frame 的消息才交给桥；别的 frame/窗口的一律不理。 */
+    fromThisFrame(event: IncomingMessage): boolean {
+      // 没挂上的 frame 什么都不能匹配。写成 `event.source === (… ?? null)` 时
+      // `source: null` 的外来消息会被当成自己人（这条测试真抓到了，改的是这里不是测试）。
+      const target = frame()?.contentWindow
+      if (target === undefined || target === null) return false
+      return event.source === target
+    },
+  }
+}
