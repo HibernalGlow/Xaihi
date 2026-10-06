@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
+import { assertAliasTargets, BROWSER_GRAPH_ALIASES } from './build-aliases.mjs'
 
 /**
  * Xaihi 文档那一侧（React 19）的浏览器产物。
@@ -47,6 +48,22 @@ function aliasesFromTsconfig() {
   return out
 }
 
+/**
+ * 只在这份浏览器产物里生效的收窄边（判据与实测都写在 `build-aliases.mjs` 的
+ * `BROWSER_GRAPH_ALIASES` 注释里，这里不重述理由，只做接线）。
+ *
+ * 键加 `$` 做**整名匹配**：`@hibernalglow/xaihi-sdk/bridge` 与 `/operations` 那两条子路径
+ * 必须照包自己的 `exports` 走（它们本来就是浏览器安全的入口），不能被裸名那条规则吃掉；
+ * 反过来若裸名那条边没被切，`rspack build` 就剩三条
+ * `Reading from "node:fs" / "node:os" / "node:module" is not handled by plugins`。
+ */
+function browserGraphAliases() {
+  assertAliasTargets()
+  return Object.fromEntries(
+    Object.entries(BROWSER_GRAPH_ALIASES).map(([key, target]) => [`${key}$`, target]),
+  )
+}
+
 /** 两份文档产物共用的解析与规则；只有 entry 与输出目录不同。 */
 export const documentBase = {
   mode: 'production',
@@ -87,6 +104,7 @@ export const documentBase = {
       'react-dom/client': require.resolve('react-dom-19/client'),
       'react-dom/server': require.resolve('react-dom-19/server'),
       ...aliasesFromTsconfig(),
+      ...browserGraphAliases(),
     },
   },
   module: {

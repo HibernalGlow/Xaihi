@@ -451,3 +451,31 @@ rspack 只能报 "was not found in '@xiranite/contract' (possible exports: NODE_
 
 `dist-ui/` 仍然是空的：构建不绿就不出产物，所以"节点界面在屏上"这条**仍未兑现**，
 只是从 43 条错走到 8 条。
+
+## 14. 三条 `node:*` 边切掉了：真凶不是搬运树，是我们自己的 SDK barrel（2026-10-07 01:05，文档构建 8 → 5）
+
+我先前给的两个嫌疑（`packages/logging/src/node.ts`、`packages/shared/src/efu-stream.ts`）**是错的**，
+代理没有采信，而是用 `rspack build --json` 读 `modules[].issuerPath` 定位：
+`packageModules.generated.ts:9` 以**裸名**引 `@hibernalglow/xaihi-sdk` ⇒ 落到 `node-sdk` 的 barrel
+⇒ `src/define-node.ts:18` 的 `@deepseek-ai/dsh-tools` ⇒ dsh-tools 把 `dsh-sandbox`（`node:fs`/`node:os`）
+与 `dsh-llm`（`node:module`）拉进浏览器图。同一份 stats 里那两个"嫌疑文件"命中 **0**。
+
+修法是切边不是掩盖：浏览器图里那个裸名唯一的 value-import 只要 `nodeHelpFromManifest`，
+所以给文档构建单独一条 `BROWSER_GRAPH_ALIASES`（`@hibernalglow/xaihi-sdk` → `packages/node-sdk/src/help.ts`，
+`help.ts` 自身零 import），键加 `$` 做整名匹配，`./bridge`、`./operations` 子路径仍走包自己的导出。
+**故意不并进 `XIRANITE_ALIASES`**：那张表同时喂 tsconfig `paths`，类型检查那边需要整只 barrel
+（`PanelContribution` 等只在 `src/index.ts` 出）。修好后图上 `dsh-tools|dsh-sandbox|dsh-llm` 模块数
+1/1/2 → **0/0/0**，而 `node-sdk/src/help.ts` 以 9,257 字节真身 + `providedExports: ['nodeHelpFromManifest']` 在图里。
+阳性对照：在 /tmp 里删掉那一个别名键重跑 ⇒ 回到 8 条错、三条 `node:*` 全在。
+
+主 agent 复跑（真实 rc）：`build:document` rc=1 但 **5 errors、`^ERROR in node:` 计数 0**；
+`vitest run` 26 文件 **247 条绿**；`pnpm run build`（客户端半边）rc=0 且 `check-client-bundle` OK；
+`node packages/ui-host/build-aliases.mjs` rc=0（43 条 + 1 条只给浏览器产物，tsconfig 同步 OK）。
+
+剩下 5 条全部有归属，不是未知的坑：`settings/RuntimeSection.tsx:182/187/193` 三条指向
+`@/backend/localBackendControl`、`@/components/views/Webview2ExperimentsPanel`、`./NodeMemoryProtectionSettings`
+（`find packages plugins -iname` 全仓 0 命中，属并发 lane 那一刀没接完）；
+`nodes/sleept/Component.tsx:221/222` 两条正是 `UNRESOLVED_BY_DESIGN` 该响的定时器内核。
+
+留一条后续（别人一行）：给 `packages/node-sdk/package.json` 补 `./help` 导出、
+让 `scripts/gen-node-registry.mjs` 按子路径取，然后删掉这条临时别名。

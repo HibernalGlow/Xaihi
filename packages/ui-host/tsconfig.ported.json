@@ -43,25 +43,49 @@
       "@xiranite/contract": [
         "../contract/src/index.ts"
       ],
+      "@hibernalglow/xaihi-contract": [
+        "../contract/src/index.ts"
+      ],
       "@xiranite/shared": [
+        "../shared/src/index.ts"
+      ],
+      "@hibernalglow/xaihi-shared": [
         "../shared/src/index.ts"
       ],
       "@xiranite/shared/rules": [
         "../shared/src/rules.ts"
       ],
+      "@hibernalglow/xaihi-shared/rules": [
+        "../shared/src/rules.ts"
+      ],
       "@xiranite/shared/swimlane": [
+        "../shared/src/swimlane.ts"
+      ],
+      "@hibernalglow/xaihi-shared/swimlane": [
         "../shared/src/swimlane.ts"
       ],
       "@xiranite/api/client": [
         "../api/src/client.ts"
       ],
+      "@hibernalglow/xaihi-api/client": [
+        "../api/src/client.ts"
+      ],
       "@xiranite/logging": [
+        "../logging/src/index.ts"
+      ],
+      "@hibernalglow/xaihi-logging": [
         "../logging/src/index.ts"
       ],
       "@xiranite/cli-runtime": [
         "../cli-runtime/src/index.ts"
       ],
+      "@hibernalglow/xaihi-cli-runtime": [
+        "../cli-runtime/src/index.ts"
+      ],
       "@xiranite/cli-runtime/terminal": [
+        "../cli-runtime/src/tui/index.ts"
+      ],
+      "@hibernalglow/xaihi-cli-runtime/terminal": [
         "../cli-runtime/src/tui/index.ts"
       ],
       "@xiranite/node-bandia/core": [
