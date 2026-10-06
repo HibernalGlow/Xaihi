@@ -32,6 +32,7 @@ import { DEFAULT_DESIGN_THEME } from '../lib/design-theme/contract.ts'
 import { designHostLayer } from './theme/design-language.ts'
 import { WorkspaceRoot } from './workspace.tsx'
 import { MainSurface } from './surface.tsx'
+import { shellCapsFrom, type RemoteSettingsFace } from './shell-caps.ts'
 
 /** Xaihi 声明的插槽，`children` 与 props 类型共用这一份。 */
 const CHILDREN = {
@@ -56,7 +57,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
  * inject 里同时声明 `remote` 与 `remote.<namespace>`）。命令命名空间是客户端装配
  * 现成挂着的（`dsh-api-remotes` 生成物里带 `commands/lib/typert.remote-client.js`）。
  */
-export const inject = ['slots', 'locale', 'theme', 'layout', 'remote', 'remote.commands']
+export const inject = ['slots', 'locale', 'theme', 'layout', 'remote', 'remote.commands', 'remote.settings']
 
 /** 插槽框架交给面板组件的属性（框架真源，只取用到的两片）。 */
 type ReceivedProps = PropsLocale<'xaihi.ui'> & PropsRenderSlots<XaihiSlot>
@@ -357,6 +358,13 @@ export function apply(ctx: Context): void {
   // 本插件只贡献标记与行标题，所以这里既不碰路由也不碰布局。
   registerPanelEntry(ctx, ctx.locale.bind(LOCALE_NAMESPACE) as Translate)
 
+  // 设置面能不能给，取决于这次装配有没有把 ctx.remote.settings 挂上来；
+  // 读不到就不塞占位实现，让文档那侧把 config 读成一条带原因的退化（ADR-0011 决定 4）。
+  // env 暂时也没接：ctx.theme 上"当前是暗还是亮"的读法我还没量准，
+  // 而把 preference 直接当 theme 交出去会在 system 偏好时撒一次谎，不如先不接。
+  const settingsRemote = (ctx.remote as { settings?: RemoteSettingsFace }).settings
+  const caps = shellCapsFrom(settingsRemote === undefined ? {} : { settings: settingsRemote })
+
   const runCommand = makeRunCommand(ctx)
   // 这一格显示哪一面由宿主清单里 ui.documentUrl 这条**事实**决定（ADR-0009 那一刀）：
   // 有 Xaihi 自己的文档产物就交给那个 iframe，没有就继续显示外壳现 realm 的那一面，
@@ -374,6 +382,7 @@ export function apply(ctx: Context): void {
     renderSlot: (key) => props.renderSlot(key, {}),
     runCommand,
     inRealm: WorkspaceRoot,
+    caps,
   })))
 
   // 占位失败绝不许把整个入口带走：入口一 throw，宿主只报 "entry did not activate"，

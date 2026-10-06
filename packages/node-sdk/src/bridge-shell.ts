@@ -33,7 +33,8 @@ import {
 
 /** 注入的设置面：只列 DSH 那侧确认存在的动词。 */
 export interface SettingsFace {
-  describe(): unknown
+  /** 允许异步（远程面都返回 Promise）；求值处 await，绝不把 Promise 丢进 postMessage。 */
+  describe(): unknown | Promise<unknown>
   update(ns: string, patch: Record<string, unknown>, expectedRevision?: number): Promise<unknown>
   openDocument?(signal: AbortSignal): Promise<unknown>
 }
@@ -71,7 +72,12 @@ const unavailable = (method: BridgeMethod): Outcome => ({
 /** 把一条已授权的请求打到注入的面上。 */
 async function evaluate(method: BridgeMethod, args: readonly unknown[], caps: ShellCapabilities): Promise<Outcome> {
   if (providerOf(method) === 'document') return { ok: false, reason: 'document-owned', detail: `${method} 归文档自己实现，不该过桥` }
-  if (method === 'config.get') return caps.settings === undefined ? unavailable(method) : { ok: true, value: caps.settings.describe() }
+  if (method === 'config.get') {
+    if (caps.settings === undefined) return unavailable(method)
+    // await 是必须的：远程面返回的是 RemoteResult 的 Promise，
+    // 直接把 Promise 交给 postMessage 会在那侧炸成"结构化克隆失败"。
+    return { ok: true, value: await caps.settings.describe() }
+  }
   if (method === 'config.save' || method === 'config.saveUi') {
     if (caps.settings === undefined) return unavailable(method)
     const [ns, patch, revision] = args as [string, Record<string, unknown>, number | undefined]
@@ -157,10 +163,23 @@ export function createShellBridge(
           if (!exceedsMessageBudget(denied)) send(denied)
           return true
         }
-        const outcome = await evaluate(message.method, message.args, caps)
+        let outcome: Outcome
+        try {
+          outcome = await evaluate(message.method, message.args, caps)
+        } catch (error) {
+          // 注入的面**就是会抛**（DSH 的远程面把失败装在 RemoteResult 里，拆开就抛）。
+          // 不接住的话这条请求没有任何应答，文档那一侧只能等到 timeout，
+          // 症状从"设置冲突"变成"面板转圈"，原因离现场很远。
+          const thrown = error as { reason?: unknown, message?: unknown }
+          outcome = {
+            ok: false,
+            reason: typeof thrown.reason === 'string' ? thrown.reason : 'threw',
+            detail: typeof thrown.message === 'string' ? thrown.message : String(error),
+          }
+        }
         const reply = respond(message.id, outcome)
         if (exceedsMessageBudget(reply)) {
-          send(respond(message.id, { ok: false, reason: 'too-large', detail: `应答超过桥上界` }))
+          send(respond(message.id, { ok: false, reason: 'too-large', detail: '应答超过桥上界' }))
         } else send(reply)
         return true
       }

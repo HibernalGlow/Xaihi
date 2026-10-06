@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import type { ShellCapabilities } from '@hibernalglow/xaihi-sdk'
 import type { ReactElement } from 'react'
 import { fetchSurface, planSurface, DocumentFrame, type SurfacePlan } from './document-frame.tsx'
 import type { RootProps } from './workspace.tsx'
@@ -25,6 +26,8 @@ export interface SurfaceProps extends RootProps {
   inRealm: (props: RootProps) => ReactElement
   /** 注入的 fetch，测试给假的那份；缺省用全局的。 */
   fetcher?: typeof fetch
+  /** 外壳真能兑现的能力面；空对象 = 什么都给不了，文档那侧会读到成串的退化原因。 */
+  caps?: ShellCapabilities
 }
 
 /**
@@ -33,7 +36,7 @@ export interface SurfaceProps extends RootProps {
  * @returns 选出来的那一面，带一条读得回的原因。
  */
 export function MainSurface(props: SurfaceProps): ReactElement {
-  const { inRealm, fetcher, ...root } = props
+  const { inRealm, fetcher, caps, ...root } = props
   const [plan, setPlan] = useState<SurfacePlan>(pending)
 
   // 不设 cancelled 旗子：减法跑测证过它无可观察后果（React 18 对已卸载组件的 setState
@@ -54,7 +57,7 @@ export function MainSurface(props: SurfaceProps): ReactElement {
   if (plan.kind === 'document') {
     // 能力面此刻是空的：设置面与运行面还没接进桥（那需要把 ctx.remote 的真名读准）。
     // 空着不是遗漏而是**可见退化**——文档那侧会读到 refused 并显示出来，不会拿到假的实现。
-    return <DocumentFrame documentUrl={plan.documentUrl} caps={{}} />
+    return <DocumentFrame documentUrl={plan.documentUrl} caps={caps ?? {}} />
   }
   return (
     <div className="xaihi-surface-in-realm" data-xaihi-surface="in-realm" data-xaihi-reason={plan.reason}>
