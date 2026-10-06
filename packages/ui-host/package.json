@@ -17,6 +17,7 @@
   },
   "files": [
     "lib/**",
+    "dist-ui/**",
     "locale/*.json",
     "cordis.patch.yml",
     "package.json"
@@ -34,6 +35,7 @@
   },
   "scripts": {
     "build": "node scripts/build-css.mjs && tsdown",
+    "build:document": "rspack build -c rspack.document.mjs",
     "typecheck": "node ../../scripts/check-types.mjs",
     "typecheck:strict": "node ../../scripts/check-types.mjs --fail-on-all",
     "test:unit": "vitest run",
@@ -101,6 +103,9 @@
     "@types/node": "^22.20.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.7",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react-19": "npm:@types/react@19.2.10",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
@@ -121,6 +126,8 @@
     "react-day-picker": "10.0.1",
     "react-diff-view": "3.3.3",
     "react-dom": "^18.3.1",
+    "react-19": "npm:react@19.2.4",
+    "react-dom-19": "npm:react-dom@19.2.4",
     "react-i18next": "17.0.8",
     "react-resizable-panels": "4.7.6",
     "react-rnd": "10.5.3",
