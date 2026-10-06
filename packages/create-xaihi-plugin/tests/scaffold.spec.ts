@@ -8,9 +8,9 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { assertName, binNameOf, filesOf, parseArgs, scaffold, vendoredCliSupportOf } from '../src/index.ts'
+import { assertName, binNameOf, filesOf, parseArgs, scaffold, STANDALONE_TSCONFIG_BASE, vendoredCliSupportOf } from '../src/index.ts'
 
-const input = { name: 'demo-node', nodeId: 'demonode', titleZh: '演示', titleEn: 'Demo', sdkVersion: 'workspace:*' }
+const input = { name: 'demo-node', nodeId: 'demonode', titleZh: '演示', titleEn: 'Demo', sdkVersion: 'workspace:*', standalone: false }
 const repoRoot = resolve(import.meta.dirname, '..', '..', '..')
 
 /** 终端面的键表：少任何一个，发出去的都是一个没有 bin 的包。 */
@@ -124,6 +124,64 @@ describe('scaffold', () => {
     expect(parsed.sdkVersion).toBe('0.1.0-alpha.1')
     expect(parsed.targetDir).toBe('/tmp/x')
     expect(parsed.nodeId).toBe('demonode')
+  })
+
+  it('CLI 参数：不带值的 --standalone 不许吃掉后面那个位置参数', () => {
+    // 原来那条解析循环一律吞掉后一个 token，`--standalone demo-node` 会把名字当值吞了，
+    // 症状是"kebab-case 名字不合法"——报的是名字，缺的是这个开关。
+    const parsed = parseArgs(['--standalone', 'demo-node', '/tmp/x'])
+    expect(parsed.standalone).toBe(true)
+    expect(parsed.name).toBe('demo-node')
+    expect(parsed.targetDir).toBe('/tmp/x')
+  })
+
+  it('默认档 extends 仓根那份基线，且不多写文件', () => {
+    const files = filesOf(input)
+    expect(files['tsconfig.json']).toContain('"../../tsconfig.base.json"')
+    expect(files['tsconfig.base.json']).toBeUndefined()
+  })
+
+  it('--standalone 的包落在仓库外也自足：extends 指得到真实存在的文件', async () => {
+    // 这条不是在测字符串，是在测"落地之后那个路径存不存在"：
+    // 实测过默认档在仓外目录里 `pnpm run build` 直接死在 get-tsconfig 的 readTsconfig，
+    // 因为 "../../tsconfig.base.json" 出了工作树就不成立（typecheck rc=2、test:unit rc=1 同源）。
+    const dir = await mkdtemp(resolve(tmpdir(), 'xaihi-standalone-'))
+    try {
+      const written = scaffold({ ...input, standalone: true }, dir)
+      const tsconfig = JSON.parse(await readFile(resolve(dir, 'tsconfig.json'), 'utf8')) as { extends: string }
+      expect(tsconfig.extends).toBe('./tsconfig.base.json')
+      // 解析出来的那个目标必须读得到——这条就是"看不见违规的尺不许算过"的那一侧。
+      expect(() => readFileSync(resolve(dir, tsconfig.extends.replace('./', '')), 'utf8')).not.toThrow()
+      expect(written).toContain('tsconfig.base.json')
+      for (const file of ['tsconfig.json', 'vitest.config.ts', 'tsdown.config.ts', 'rspack.config.mjs', 'package.json']) {
+        expect(await readFile(resolve(dir, file), 'utf8')).not.toContain('../../tsconfig.base.json')
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('快照与仓根那份编译器约定不许漂（漂了在这里红，而不是在使用者机器上缺文件）', () => {
+    const ours = JSON.parse(STANDALONE_TSCONFIG_BASE) as { compilerOptions: Record<string, unknown> }
+    const root = JSON.parse(readFileSync(resolve(repoRoot, 'tsconfig.base.json'), 'utf8')) as { compilerOptions: Record<string, unknown> }
+    expect(ours.compilerOptions).toStrictEqual(root.compilerOptions)
+  })
+
+  it('tsconfig 里点名的每个类型库都必须被这个包自己声明（仓内会靠提升蒙过去）', () => {
+    // 实测到的第二类仓外缺陷：生成的 tsconfig 写 `"types": ["node"]`，而 devDependencies 里
+    // 没有 `@types/node` —— 仓内因为 workspace 提升照样绿，仓库外 `tsc --noEmit` 直接
+    // `error TS2688: Cannot find type definition file for 'node'`（rc=2）。
+    // 所以这条不是给 @types/node 开一个洞，是把"types 名单 ⊆ 本包声明的 @types/*"整条规则钉住。
+    for (const standalone of [false, true]) {
+      const files = filesOf({ ...input, standalone })
+      const tsconfig = JSON.parse(files['tsconfig.json'] ?? '{}') as { compilerOptions?: { types?: string[] } }
+      const pkg = JSON.parse(files['package.json'] ?? '{}') as { devDependencies?: Record<string, string> }
+      const declared = pkg.devDependencies ?? {}
+      for (const type of tsconfig.compilerOptions?.types ?? []) {
+        const specifier = type.startsWith('@types/') ? type : `@types/${type}`
+        expect(declared[specifier], `standalone=${standalone} 用了 types:["${type}"] 却没声明 ${specifier}`).toBeTruthy()
+      }
+    }
   })
 
 })

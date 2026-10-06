@@ -36,7 +36,49 @@ export interface ScaffoldInput {
   titleEn: string
   /** SDK 依赖写法：仓内 workspace 协议或发布期版本。 */
   sdkVersion: string
+  /**
+   * 生成**独立仓**那一档：插件包按 D7 的口径将来要能单独成仓，而默认那份
+   * `tsconfig.json` 的 `extends: "../../tsconfig.base.json"` 只在 Xaihi 工作树里成立。
+   * 在仓库外的目录里实测过（`.scratch/xaihi-scaffold-e2e/demo`，2026-10-07）：
+   * 不改一行 `pnpm run build` 就死在 `get-tsconfig` 的 `readTsconfig` 里
+   * （tsdown 的 dts 插件读它），`typecheck` rc=2、`test:unit` rc=1——三件都是同一个缺文件的下游。
+   * 打开这一档时额外写一份 `tsconfig.base.json` 快照，并把 extends 改成 `./tsconfig.base.json`。
+   */
+  standalone: boolean
 }
+
+/**
+ * `--standalone` 落进生成物里的那份基线快照。
+ *
+ * 为什么是快照而不是"运行时去读仓根那份"：脚手架要能在发布形态（`pnpm dlx`）下跑，
+ * 那时仓根不存在；而"两份编译器约定会漂"这件事不该靠生成时读文件来防，
+ * 应该由**本仓的测试**钉住（`tests/scaffold.spec.ts` 里那条 deepStrictEqual），
+ * 漂了在 CI 里红，而不是在使用者的机器上以"extends 指向一个不存在的文件"出现。
+ */
+export const STANDALONE_TSCONFIG_BASE = `{
+  "compilerOptions": {
+    "target": "es2024",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  }
+}
+`
 
 /** 校验一个可用的短名。 */
 export function assertName(name: string): void {
@@ -158,6 +200,7 @@ export function packageJsonOf(input: ScaffoldInput): string {
       '@module-federation/enhanced': '2.9.2',
       '@rspack/cli': '2.2.8',
       '@rspack/core': '2.2.8',
+      '@types/node': '^22.20.0',
       '@types/react': '^18.3.0',
       '@types/react-dom': '^18.3.7',
       react: '^18.3.1',
@@ -602,7 +645,10 @@ export function filesOf(input: ScaffoldInput): Record<string, string> {
     'cordis.patch.yml': `# 节点自带一行：插件即 bundle（无 patch 的依赖会被 profile 与 Plugins 页拒绝）。\n# 行的 id 必须等于 package.json#xaihi.id。\n- insert:\n    - id: xaihi-${input.name}\n      name: '@hibernalglow/xaihi-${input.name}'\n`,
     'tsdown.config.ts': `import { defineConfig } from 'tsdown'\n\n/**\n * 宿主半边 + 终端半边三入口：\`src/index.ts\` 给 cordis 装载，\`src/cli.ts\` 是 \`bin\` 指的\n * 那份，\`src/help.ts\` 给聚合 CLI 按 \`{包名}/help\` 动态装载。少一条入口的症状是\n * "\`exports\` 里那条 subpath 指向一个不存在的 \`lib/cli.js\`"，所以要与 \`package.json\`\n * 的 exports 同批改。SDK 与 dsh-tools 的关系见 node-sdk 的说明。\n */\nexport default defineConfig({\n  entry: ['src/index.ts', 'src/cli.ts', 'src/help.ts'],\n  outDir: 'lib',\n  format: ['esm'],\n  platform: 'node',\n  target: 'es2024',\n  dts: true,\n  clean: true,\n  fixedExtension: false,\n  noExternal: ['@hibernalglow/xaihi-sdk'],\n  external: ['@deepseek-ai/dsh-tools'],\n})\n`,
     'rspack.config.mjs': `import { ModuleFederationPlugin } from '@module-federation/enhanced/rspack'\n\n// shared.import:false ⇒ 拿不到宿主 React 就硬失败，绝不允许自带第二份。\n// name 必须等于 package.json#xaihi.ui.remote。\nconst reactShared = { singleton: true, requiredVersion: '^18.3.1', import: false }\n\nexport default {\n  mode: 'production',\n  // rspack 要求一个入口；契约在 exposes 里，这个文件不会被运行时消费。\n  entry: './frontend/container-entry.ts',\n  output: { path: new URL('dist/', import.meta.url).pathname, clean: true, publicPath: 'auto' },\n  resolve: { extensions: ['.tsx', '.ts', '.js'] },\n  module: {\n    rules: [\n      {\n        test: /\\.tsx?$/,\n        use: [{ loader: 'builtin:swc-loader', options: { jsc: { parser: { syntax: 'typescript', tsx: true }, transform: { react: { runtime: 'automatic' } } } } }],\n        type: 'javascript/auto',\n      },\n    ],\n  },\n  plugins: [\n    new ModuleFederationPlugin({\n      name: '${remote}',\n      filename: 'remoteEntry.js',\n      exposes: { './Panel': './frontend/Panel.tsx' },\n      shared: { react: reactShared, 'react-dom': reactShared },\n      dts: false,\n    }),\n  ],\n}\n`,
-    'tsconfig.json': `{\n  "extends": "../../tsconfig.base.json",\n  "compilerOptions": {\n    "types": ["node"]\n  },\n  "include": ["src", "frontend", "tests", "rspack.config.mjs"]\n}\n`,
+    'tsconfig.json': input.standalone
+      ? `{\n  "extends": "./tsconfig.base.json",\n  "compilerOptions": {\n    "types": ["node"]\n  },\n  "include": ["src", "frontend", "tests", "rspack.config.mjs"]\n}\n`
+      : `{\n  "extends": "../../tsconfig.base.json",\n  "compilerOptions": {\n    "types": ["node"]\n  },\n  "include": ["src", "frontend", "tests", "rspack.config.mjs"]\n}\n`,
+    ...(input.standalone ? { 'tsconfig.base.json': STANDALONE_TSCONFIG_BASE } : {}),
     'vitest.config.ts': vitestConfigOf(),
     'src/cli-support.ts': vendoredCliSupportOf(input.name),
     'src/cli.ts': cliTsOf(input),
@@ -637,10 +683,18 @@ export function scaffold(input: ScaffoldInput, targetDir: string): string[] {
 export function parseArgs(argv: readonly string[]): ScaffoldInput & { targetDir: string } {
   const positional: string[] = []
   const flags: Record<string, string> = {}
+  // 不带值的开关必须先认出来：原来那条循环一律吃掉后一个 token，
+  // 于是 `--standalone demo /tmp/x` 会把 `demo` 当成开关的值，报 "name must be kebab-case"。
+  const valueless = new Set(['standalone'])
   for (let index = 0; index < argv.length; index += 1) {
     const item = argv[index] ?? ''
     if (item.startsWith('--')) {
-      flags[item.slice(2)] = argv[index + 1] ?? ''
+      const key = item.slice(2)
+      if (valueless.has(key)) {
+        flags[key] = 'true'
+        continue
+      }
+      flags[key] = argv[index + 1] ?? ''
       index += 1
       continue
     }
@@ -654,6 +708,7 @@ export function parseArgs(argv: readonly string[]): ScaffoldInput & { targetDir:
     titleZh: flags['title-zh'] ?? name,
     titleEn: flags['title-en'] ?? name,
     sdkVersion: flags['sdk-version'] ?? 'workspace:*',
+    standalone: flags['standalone'] === 'true',
     targetDir: flags['dir'] ?? positional[1] ?? `./plugins/${name}`,
   }
 }
