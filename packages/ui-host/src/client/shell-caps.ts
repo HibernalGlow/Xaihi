@@ -52,6 +52,12 @@ export interface ShellCapsInput {
   prefersDark?: (query: string) => { matches: boolean }
   /** 组 `env.platform` 用；传 `navigator.userAgent`。 */
   userAgent?: string
+  /**
+   * 外壳这一侧的设置命名空间 = DSH loader 行的 id（装配侧现读 `ctx.fiber.entry?.options.id`）。
+   * 没给就**不写这一格**：文档侧的四条设置动词会明说"没带命名空间"，
+   * 而不是拿节点短名去撞一条 DSH 的 `No configurable plugin entry`（实测见 ADR-0009）。
+   */
+  settingsNs?: string
   /** 覆盖某组没给时的文案，让界面上的退化原因是人话。 */
   reasons?: Partial<Record<NodeCapabilityId, string>>
 }
@@ -119,6 +125,7 @@ export function shellCapsFrom(input: ShellCapsInput): ShellCapabilities {
       }),
     },
     ...(env ? { env } : {}),
+    ...(input.settingsNs === undefined || input.settingsNs === '' ? {} : { settingsNs: input.settingsNs }),
     reasons,
   }
 }

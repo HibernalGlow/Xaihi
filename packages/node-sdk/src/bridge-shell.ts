@@ -74,6 +74,12 @@ export interface ShellCapabilities {
    * 文档侧读到 undefined 时要把这一格显示成退化，而不是按默认值画一遍。
    */
   env?: BridgeEnv
+  /**
+   * 外壳这一侧的设置命名空间（= DSH loader 行的 id，如 `xaihi-core`）。
+   * 装配侧现读 `ctx.fiber.entry?.options.id`；没读到就**不写这一格**，
+   * 因为文档侧拿它做的是四条设置动词的归属，猜一个比不猜更糟（实测见 `BridgeReady`）。
+   */
+  settingsNs?: string
 }
 
 /** 节点 id 的闸：形状读 `NODE_ID_PATTERN` 那份真源，原型键单独点名下。 */
@@ -309,7 +315,7 @@ export function createShellBridge(
       if (message === null) return false
       if (message.kind === 'hello') {
         const hello = message as BridgeHello
-        ready = negotiateBridge(hello, [...offered], caps.reasons ?? {}, caps.env)
+        ready = negotiateBridge(hello, [...offered], caps.reasons ?? {}, caps.env, caps.settingsNs)
         if (!exceedsMessageBudget(ready)) send(ready)
         onHello?.(ready)
         return true

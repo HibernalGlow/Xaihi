@@ -236,6 +236,13 @@ export interface BridgeReady {
   degraded: readonly BridgeDegradation[]
   /** 外壳没答这一格时是 undefined（不是猜一个亮色）；文档侧读到 undefined 必须显示退化。 */
   env?: BridgeEnv
+  /**
+   * 外壳这一侧的**设置命名空间** = DSH loader 行的 id（如 `xaihi-core`）。
+   * 和 `env` 同一条路：这是只有外壳知道的事实（它自己那份 `ctx.fiber.entry.options.id`），
+   * 文档猜不出来，也不许猜——2026-10-06 实测：拿节点短名去写会被 DSH 拒成
+   * `No configurable plugin entry`。没带就**不写这一格**，文档侧的四条设置动词会明说没接线。
+   */
+  settingsNs?: string
 }
 
 export type BridgeMessage = BridgeHello | BridgeReady | BridgeRequest | BridgeResponse
@@ -312,6 +319,9 @@ export function parseBridgeMessage(raw: unknown, direction: 'from-document' | 'f
       if (!isRecord(raw.env) || (raw.env.theme !== 'light' && raw.env.theme !== 'dark') || typeof raw.env.platform !== 'string') return null
       env = { theme: raw.env.theme, platform: raw.env.platform }
     }
+    // 命名空间带错形状整条 ready 就作废（和 env 同一条规矩）：半截的桥比一条没有更难过，
+    // 因为文档会以为"外壳应答过了"，然后每次设置读写都撞在同一个空指针上。
+    if (raw.settingsNs !== undefined && (typeof raw.settingsNs !== 'string' || raw.settingsNs === '')) return null
     const rows: BridgeDegradation[] = []
     for (const item of raw.degraded) {
       if (!isRecord(item) || !isCapability(item.capability) || typeof item.reason !== 'string') return null
@@ -325,6 +335,7 @@ export function parseBridgeMessage(raw: unknown, direction: 'from-document' | 'f
       refused: [...raw.refused] as NodeCapabilityId[],
       degraded: rows,
       ...(env === undefined ? {} : { env }),
+      ...(typeof raw.settingsNs === 'string' && raw.settingsNs !== '' ? { settingsNs: raw.settingsNs } : {}),
     }
   }
   if (kind === 'response') {
@@ -378,6 +389,8 @@ export function negotiateBridge(
   offered: readonly NodeCapabilityId[],
   reasons: Partial<Record<NodeCapabilityId, string>> = {},
   env?: BridgeEnv,
+  /** 外壳的 `ctx.fiber.entry.options.id`；没给就不带这一格（文档侧会明说没接线，不猜）。 */
+  settingsNs?: string,
 ): BridgeReady {
   const versionOk = hello.contractVersion === BRIDGE_CONTRACT_VERSION
   const offeredSet = new Set(versionOk ? offered : [])
@@ -410,6 +423,7 @@ export function negotiateBridge(
     refused,
     degraded,
     ...(env === undefined ? {} : { env }),
+    ...(settingsNs === undefined || settingsNs === '' ? {} : { settingsNs }),
   }
 }
 

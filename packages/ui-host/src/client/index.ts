@@ -383,8 +383,16 @@ export function apply(ctx: Context): void {
   // 读不到（没装主题包的那台宿主）就**不带这一格**——`createShellBridge` 会把 env 判成没提供，
   // 文档那侧读到的是有名有姓的退化，而不是一个编出来的亮色。
   const activeScheme = readActiveScheme(ctx)
+  // 设置命名空间的出处只能是**这次装配所在的 loader 行**：DSH 自己的写法是
+  // `settingsNs: ctx.fiber.entry?.options.id ?? name`
+  // （`desktop/dsh/packages/llm/llm-deepseek-api-key/src/index.ts:37`）。
+  // 2026-10-06 在 3399 那台宿主上量过反例：拿节点短名去写会被拒成
+  // `No configurable plugin entry "sleept"`，所以读不到就**不带这一格**，
+  // 让文档那侧把四条设置动词读成一条点名原因的 `no-provider`（ADR-0011 决定 4）。
+  const entryId = (ctx as { fiber?: { entry?: { options?: { id?: unknown } } } }).fiber?.entry?.options?.id
   const caps = shellCapsFrom({
     ...(settingsRemote === undefined ? {} : { settings: settingsRemote }),
+    ...(typeof entryId === 'string' && entryId !== '' ? { settingsNs: entryId } : {}),
     ...(activeScheme === undefined ? {} : { preference: activeScheme }),
     ...(typeof navigator === 'undefined' || typeof navigator.userAgent !== 'string'
       ? {}

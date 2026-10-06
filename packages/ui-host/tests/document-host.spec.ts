@@ -67,6 +67,8 @@ const build = (options: {
       settings: options.settings === undefined ? settings : options.settings,
       // exactOptionalPropertyTypes：没给 env 时**不写这个键**，而不是写一个 undefined。
       ...(options.env === undefined ? {} : { env: options.env }),
+      // 命名空间和 env 同一条路：文档猜不出 DSH 的 loader 行 id，只能由外壳随握手带过来。
+      ...(options.settingsNs === undefined ? {} : { settingsNs: options.settingsNs }),
     },
     toDocument,
     ORIGIN,
@@ -77,7 +79,6 @@ const build = (options: {
   const state = { mode: 'block' as string, hits: 0 }
   const host = createDocumentHost({
     bridge: doc,
-    ...(options.settingsNs === undefined ? {} : { settingsNs: options.settingsNs }),
     state: {
       getData: () => {
         state.hits += 1
