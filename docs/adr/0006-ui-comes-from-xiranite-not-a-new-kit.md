@@ -47,6 +47,26 @@
 6. Material You 那层不废弃但**降级**：搬 `design-theme` 时它就是 `md3` 那一份语言，
    与 `swiss` / `lonestar` / `mondrian` / `wuling` 平级，由 `registry` + `DESIGN_DIMENSIONS` 管，
    不再是工作台的默认长相。
+7. **CLI 与 TUI 同样在搬运范围内**（2026-10-06 用户补的口径，推翻 `docs/service-mapping.md` 里
+   "CLI/TUI 面不搬、由 DSH 的 commands + agent tools 替"那条判断）。实测到的现成件：
+
+   | 事实 | 出处 |
+   |---|---|
+   | 终端 UI 是**同一棵 React 树的第二个渲染器** | `packages/cli/src` 与 `packages/cli-runtime/src` 都依赖 `@opentui/react@0.4.5` + `react@19.2.4` |
+   | TUI 运行时已成型 | `packages/cli-runtime/src/tui/`：`theme.tsx` + `tui/opentui/{app,help-screen,action-launcher,task-queue-screen,workbench-controls,chrome-actions,preview-table,slider,multiline-editor,text-input}.tsx`，共 **22 个 `.tsx`**，另有 `termcn-registry/`、`components.json`、`scripts/` |
+   | CLI 是带 bin 的入口包，且**按节点接线** | `packages/cli/package.json`：`@xiranite/cli` 有 `bin`，依赖里逐个点名节点包（`@xiranite/node-linku` 等） |
+
+   也就是说 TUI 不是"另一套界面"，而是 `src/nodes/<id>` 那套组件在终端里的渲染目标——搬运节点 UI 时
+   它的两个渲染面（DOM 与 OpenTUI）要一起过去，不能只搬 DOM 那份。
+
+   **DSH 侧未解决的一条**（本机实测，不猜）：`@deepseek-ai/dsh@0.2.0-rc.2` 的 `--help` 例子写着
+   `dsh tui --patch ./extra.yml`、`dsh tui --resume <session>`，但
+   `dsh --profile tui --dump-config` 直接报
+   `Error: dsh: profile "tui" does not exist; create it with 'dsh plugin --profile tui add <package>'`
+   ——这台机器上**没有随包发布的 tui profile 模板**，`lib/` 里也只解析到 `@deepseek-ai/dsh-app-boot`。
+   所以"TUI 宿主能不能装载插件 UI"目前是**未证**状态：要么上游有 tui bundle 我们没装到，
+   要么 TUI 入口得由 Xaihi 自己带（那就是一条新的 ADR，不能顺手做）。
+   判据留在 `docs/roadmap.md` R11。
 
 ## 后果
 
