@@ -32,6 +32,34 @@ const frontmatter = (text) => {
   return fields
 }
 
+/**
+ * 阳性对照：两条最容易悄悄烂掉的判据——kebab 词法与 frontmatter 解析。
+ * @returns 进程退出码。
+ */
+const selfCheck = () => {
+  const rejected = ['Foo_Bar', 'xaihi-', '-xaihi', 'a/b', 'Xaihi-Node', '']
+  const accepted = ['xaihi-node-ui', 'dsh-prose-standard', 'a']
+  const badRejected = rejected.filter((name) => KEBAB.test(name))
+  const goodAccepted = accepted.filter((name) => !KEBAB.test(name))
+  if (badRejected.length > 0 || goodAccepted.length > 0) {
+    console.error(`check-skills: kebab 尺是瞎的（放过 ${badRejected.join(',') || '无'}；误杀 ${goodAccepted.join(',') || '无'}）`)
+    return 1
+  }
+  const parsed = frontmatter('---\nname: demo-skill\ndescription: Enough words for the model to actually pick this skill up.\n---\n\n# Demo\n')
+  if (parsed === null || parsed.name !== 'demo-skill' || !parsed.description) {
+    console.error('check-skills: frontmatter 解析读不出该有的 name/description')
+    return 1
+  }
+  if (frontmatter('# no block here\n') !== null) {
+    console.error('check-skills: 没有 frontmatter 却被解析出来了（那条 `缺 frontmatter` 的判据是空转）')
+    return 1
+  }
+  console.log('check-skills self-check OK（kebab 词法与 frontmatter 解析各自被抓/被放过一次）')
+  return 0
+}
+
+if (process.argv.includes('--self-check')) process.exit(selfCheck())
+
 for (const entry of readdirSync(SKILLS_DIR).sort()) {
   const path = join(SKILLS_DIR, entry)
   const isDirectory = statSync(path).isDirectory()

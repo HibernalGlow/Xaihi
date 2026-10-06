@@ -1103,5 +1103,66 @@ alpha 发布时按 ADR-0005 写好的形状跑一次："新 profile 只装入口
 - 例外名单只放了入口包一项，**没有**给任何节点包开后门（节点包本来就是干净的）。
 - 入口包的装机证明没跑（前提不成立）；这条如实挂在 R9，不当已验。
 
+## 24 仓的入口文档补上，四条门禁都配上阳性对照
+
+### 改了什么
+
+- **`README.md`（英）+ `README.zh.md`（中）**：Step 0 的那笔提交 `a7a6254` 把模板的
+  `README.md` / `README.zh.md` 删掉了（改名清单里这一步是"去掉模板演示面"），但**没有补上 Xaihi
+  自己的**——这类"删了模板的东西、没交付自己的东西"以前不会被任何尺抓到，因为没有任何门禁看根文档。
+  两份文档按同口径写：谁拥有什么、从哪读起、开发回路（隔离 home 是必需不是洁癖）、四道门禁、
+  五个节点，以及**还没证到的三条**（耐久运行 `records:[]`、面板派发缺 `agentId`、入口 bundle 装机）。
+- **`LICENSE`**：所有 `package.json` 早就声明 `"license": "MIT"`，根目录却没有 LICENSE 文件，
+  于是 README 里那句 MIT 是空的。补 `MIT (c) 2026 HibernalGlow`；上游 vendor 的署名在
+  `.dsh/skills/VENDOR.md`，README 指过去而不是另写一份。
+- `scripts/check-pins.mjs` 抽出纯函数 `depsViolations()` 并加 `--self-check`（错版本必须被抓两个、
+  豁免线与无关依赖必须被放过）；顺带删掉一行死代码 `...(pkg.peerDependenciesMeta ? {} : {})`。
+- `scripts/check-skills.mjs` 加 `--self-check`，打在两条最容易悄悄烂掉的判据上：kebab 词法
+  （`Foo_Bar`/`xaihi-`/`a/b` 必须被拒，`xaihi-node-ui` 必须被放行）与 `frontmatter()`
+  （有块要读出 name/description，没块必须返回 null）。
+- 根脚本改成**先跑对照再跑真文件**：`check:pins` 与 `check:skills` 各加 `--self-check &&`，
+  与 §20/§23 的 `check:panels`、`check:installable` 对齐成四条一致的形状。
+
+### 证据
+
+1. `pnpm test` rc=0，输出里四行对照依次是
+   `check-pins self-check OK`、`check-skills self-check OK`、
+   `check-panels self-check OK（4 条面板规则 + 枚举漏口 + 分层尺三种形状各按预期）`、
+   `check-installable self-check OK`，随后 `check-pins OK` / `skills layout OK` /
+   `check-panels OK` / `check-installable OK`，`-r run build`、`typecheck` 与 10 个测试文件全绿。
+2. 减法跑测（真文件，不许只信 self-check 自己）：
+   - 把 `plugins/hello` 的 `@deepseek-ai/dsh-tools` 改成 `0.1.5-rc.3` ⇒
+     `check-pins FAILED (1): plugins/hello: @deepseek-ai/dsh-tools is 0.1.5-rc.3, expected exactly 0.2.0-rc.2`，
+     rc=1；还原后 `shasum` 与探针前一致（`22749510c8411d71f68ad93cd9037e6088124a35`），重跑 rc=0。
+   - 建 `.dsh/skills/Bad_Name/SKILL.md`（description 只一个 `x`）⇒ rc=1 并连点两条
+     `× Bad_Name: 目录名必须是 kebab-case` 与 `× … description 缺失或过短`；
+     删掉该目录后 rc=0，`.dsh/skills` 回到 6 个技能 + `VENDOR.md`。
+3. README 里每条引用都现验过存在：`CONTEXT.md`、`docs/roadmap.md`、`docs/stages/`、`docs/adr/`、
+   `docs/service-mapping.md`、`docs/upstream-proposals.md`、`docs/adr/0005-…md`、
+   `.dsh/skills/` —— 逐个 `test -e` 全 OK。写文档时最容易留的就是指向不存在的文件，这条不靠印象。
+
+### 为什么这样写
+
+- README 的"还没证到的部分"与"已落地"同权重。一份只写能力的 README 会把 R9 与 P1 那两个真缺口
+  盖成"能用"，而这两个缺口恰好是使用者第一次 `dsh plugin add` 时会撞上的。
+- 对照放在真脚本里而不是测试里：这四条是 CI 的第一道，跑在两秒内；把证伪塞进 vitest 的话，
+  `pnpm test` 的链条顺序（build→typecheck→test）会让"尺瞎了"这件事等到构建完才发现。
+- 双语两份而不是一份混排：这个仓的文档主体是中文、代码注释是中文，但入口包要能被上游社区与
+  DSH 使用者读；两份共用同一批事实，改一处要改两处（这两份的对称性由内容而不是机器守着——
+  没做成自动同步，那是为一个不存在的问题造机制）。
+
+### 与 DSH API 的关系
+
+无新增缝。README 里的装机命令全部是宿主自己的：`dsh --profile <name>`、
+`dsh plugin --profile <name> add file:<path>`、`--dump-config`；`--from-default-profile` 也是宿主
+提供的模板复制路径（§23 取证用的就是它）。
+
+### 后续扩展方式
+
+根文档以后要跟着三件事走：入口包的装机证明（R9 跑过一次才能把它写成"装这一个包就有工作台"）、
+`P1` 的上游答复（拿到身份后把"面板按钮如实失败"那段改成实测派发）、以及新增节点包时节点表加一行。
+门禁再加第五条时，照 `check:panels` 的形状写：纯规则函数 + `--self-check` 三形状 + 真文件减法跑测。
+
+
 
 
