@@ -146,6 +146,7 @@ manifest 加一份带旧品牌的 `.ts`，`check:pins` **rc=0**、`check:brand` 
 | 重放幂等 | 连跑两次 `sync` ⇒ `head`/`tree` 逐字相同（`0b04cd40` / `28898fc8c8d9`）。第一次做这条时**是红的**：`git am` 每次换 committer 时间 ⇒ sha 漂，治法是 `GIT_COMMITTER_DATE` 钉在 pin |
 | 三条阳性对照 | 丢 patch ⇒ `--check` 红；错 pin ⇒ 红且 HEAD 未移动；扰动 patch 的上下文行 ⇒ `sync` 红、`am --abort`、树退回 pin、脏文件 0 |
 | gitlink 踩坑与判据 | 第一次提交把 gitlink 记成 `0b04cd40`（`git am` 在本机造的 patch 后提交，上游没有、我们也推不上去 ⇒ 别人 clone 取不到）；同批写的 `.gitmodules` 里 `ignore = all` 会把这种漂移藏掉，已撤。`--check` 现在比对 `git ls-tree HEAD desktop/dsh` 与 pin，判据的阳性对照正是这个坏状态本身（当场跑红 `gitlink_committed=0b04cd40 want=639ed015`）。修好后重跑 sync ⇒ `--check` rc=0 且 `head` 仍是 patch 态 |
+| 0002 落地与类型结论 | `pnpm run build:lib:host` rc=0（0 条 TS 错）⇒ `pnpm exec tsc -b apps/desktop` rc=0，且 `apps/desktop/lib/types/xaihi-window-policy.js` 在场（新文件进了 program，不是被显式清单跳过）；`pnpm --filter @deepseek-ai/dsh-desktop run bundle` rc=0（306 ms），`lib/main.js`（493,562 B）含 `resolveXaihiDocumentTarget`。0002 的 11 条判策用例实跑 rc=0，摘掉 patch ⇒ `--verify` rc=1。**Electron 实机一次都没起**（`--ignore-scripts` 连二进制都没下，约 120 MB） |
 | 0001 的验证强度 | 三处改动 `node --check` rc=0 + 扰动对照 rc=1（尺看得见）⇒ 语法为真；`ipc.ts` 三条 import 全是 `import type`，可以**直接实跑**：断言 26 条通道、`xaihiWindowOpen='dsh-desktop:xaihi-window-open'`、`browserAcquire` 在场 ⇒ rc=0，期望值换错 ⇒ rc=1。`main.ts` 的运行时行为与上游 `tsc` **未验**（要整个 vendor `pnpm install`）⇒ 这条只能写成 parse + 局部实跑 |
 
 ### 与 `AGENTS.md` 的冲突及处理

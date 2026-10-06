@@ -219,6 +219,53 @@ if (flag('verify')) {
   if (!satisfied(probe.DESKTOP_IPC)) {
     fail('patch 0001 没落地到 IPC 面（通道数或通道名不对）⇒ 它被静默跳过，或上游改了 apps/desktop/src/ipc.ts')
   }
+  // 0002 的判策是纯模块，所以能脱离 Electron 直接执行。拒绝分支才是这条判策的意义所在。
+  const policy = await import('./dsh/apps/desktop/src/xaihi-window-policy.ts')
+  const good = 'dsh-app://app/xaihi/ui/0123456789ab/index.html'
+  const cases = [
+    ['自家文档开自家节点', { url: `${good}?node=findz`, openerUrl: good }, true],
+    ['不给 node 也允许', { url: good, openerUrl: good }, true],
+    ['rev 不是 12 位十六进制', { url: 'dsh-app://app/xaihi/ui/zzzz/index.html?node=a', openerUrl: good }, false],
+    ['路径穿越', { url: 'dsh-app://app/xaihi/ui/0123456789ab/../../etc/index.html', openerUrl: good }, false],
+    ['https 外链', { url: 'https://example.com/xaihi/ui/0123456789ab/index.html', openerUrl: good }, false],
+    ['同 scheme 别的 host', { url: 'dsh-app://shell/xaihi/ui/0123456789ab/index.html', openerUrl: good }, false],
+    ['发起者不是 Xaihi 文档', { url: `${good}?node=a`, openerUrl: 'dsh-app://app/index.html' }, false],
+    ['多带一个查询键', { url: `${good}?node=a&next=http://evil`, openerUrl: good }, false],
+    ['node 含非法字符', { url: `${good}?node=a/../b`, openerUrl: good }, false],
+    ['无法解析的串', { url: 'not a url', openerUrl: good }, false],
+    ['超长串', { url: `${good}?node=${'a'.repeat(3000)}`, openerUrl: good }, false],
+  ]
+  const wrong = cases.filter(([name, req, want]) => (policy.resolveXaihiDocumentTarget(req) !== undefined) !== want)
+  console.log(`verify: 0002 判策 ${String(cases.length)} 用例，判错 ${String(wrong.length)}（拒绝分支含路径穿越/跨 host/非自家发起者）`)
+  if (wrong.length > 0) fail(`verify: 0002 判策与用例表不符 ⇒ ${wrong.map(([n]) => n).join(', ')}`)
+  if (policy.resolveXaihiDocumentTarget({ url: 'https://example.com', openerUrl: good }) !== undefined) {
+    fail('verify: 0002 的判策是瞎的（外链居然被放行）')
+  }
+  // 第二阶段：产物判据。lib/ 是上游 tsc 吐出来的，存在就说明这条通道真被编进了壳的
+  // 主进程与 preload —— 源码里有定义 ≠ 落进了产物（这是构建绿却跑错代码那一类病的解药）。
+  // 新文件要真进 program：tsc -b 的产物在 lib/types/，bundle 的在 lib/ —— 只查后者会漏掉新模块。
+  const built = ['apps/desktop/lib/main.js', 'apps/desktop/lib/preload-app.cjs',
+    'apps/desktop/lib/types/xaihi-window-policy.js']
+    .map((f) => join(VENDOR, f))
+  const missing = built.filter((f) => !existsSync(f))
+  if (missing.length === built.length) {
+    console.log('verify: 产物判据**未跑** —— apps/desktop/lib 不在（先 pnpm run build:lib:host 再 tsc -b apps/desktop）')
+  } else if (missing.length > 0) {
+    fail(`verify: 产物不齐，只缺 ${missing.map((f) => f.split('/').pop()).join(', ')} ⇒ 构建是半截的，别提"已编译验证"`)
+  } else {
+    const mainJs = readFileSync(built[0], 'utf8')
+    const preload = readFileSync(built[1], 'utf8')
+    const inMain = mainJs.includes(want)
+    const policyWired = mainJs.includes('resolveXaihiDocumentTarget')
+    const inPreload = preload.includes(want)
+    // 减法对照：一个不存在的通道名必须两个产物都找不到，否则这判据是白名单式的假绿。
+    const ghost = mainJs.includes('dsh-desktop:xaihi-window-DOES-NOT-EXIST') || preload.includes('dsh-desktop:xaihi-window-DOES-NOT-EXIST')
+    console.log(`verify: 产物 main.js=${String(inMain)} preload-app.cjs=${String(inPreload)} ghost_absent=${String(!ghost)}`)
+    console.log(`verify: 0002 已接进 bundle=${String(policyWired)}`)
+    if (!inMain || !inPreload) fail('verify: 通道没进产物 ⇒ 那条源码改动没被编译，或 patch 被静默跳过')
+    if (!policyWired) fail('verify: 0002 的判策没进 lib/main.js ⇒ 只跑了 tsc 没跑 bundle，产物是半截的')
+    if (ghost) fail('verify: 产物判据是瞎的（不存在的通道名也能搜到）')
+  }
   console.log('verify: 绿（含减法对照）')
   process.exit(0)
 }

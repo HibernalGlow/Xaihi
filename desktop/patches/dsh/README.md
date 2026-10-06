@@ -16,8 +16,11 @@
 | # | 目标 | 上游落点（现读行号，会随 rebase 变） | 对应 proposal |
 |---|---|---|---|
 | 0001 | Xaihi 自有文档的原生窗：一份 `dsh-app` 文档 + 一个窗 | `apps/desktop/src/main.ts:206`（`createWindow`）与 `main.ts:1066`（唯一调用点）；`apps/desktop/src/ipc.ts:8-34` 加 window 通道；preload | P5 |
-| 0002 | 节点独立成窗：同一份 Xaihi 文档 + 节点寻址参数再开一窗 | 同 0001，加上 `main.ts:239-242` 的 `setWindowOpenHandler`（放行同宿主 origin 的具名路由） | P5 |
+| 0002 | **已落地**：页面递来的 `window.open` 先过一条纯 URL 判策，自家文档才转成原生次级窗 | 新模块 `apps/desktop/src/xaihi-window-policy.ts` + `main.ts:239-242` 的 `setWindowOpenHandler` 接线 | P5 |
 | 0003 | 壳侧 profile 策略（本仓自己定，不再受 `paths.ts:19-20` 写死约束） | `apps/desktop/src/paths.ts`、`apps/desktop/src/project-manager.ts:95`（`lock` 独占） | P6 |
 
-0001 起步，0002/0003 第二批（ADR-0011 待拍板 3 建议后者起步）。Xaihi 侧的落地位置已经在
-`../Xaihi` 的 `/xaihi/ui` 路由 + 节点寻址参数上（提交 `0e4b61b`）。
+0001 与 0002 已落地，0003（壳侧 profile 策略）未开工。判据都在 `node desktop/sync-dsh.mjs --verify`：
+0001 查 IPC 通道 + 产物两份文件；0002 查 11 条用例（**拒绝分支才是重点**：路径穿越、跨 host、
+非自家发起者、多带查询键、超长串）+ 新模块进了 `lib/types/` + 判策接进了 `lib/main.js`。
+摘掉 patch 跑 `--verify` ⇒ rc=1（不是空转）。Xaihi 侧的落地位置已经在 `/xaihi/ui` 路由 +
+节点寻址参数上（Xaihi 提交 `0e4b61b`，`packages/core/src/routes.ts:101`）。

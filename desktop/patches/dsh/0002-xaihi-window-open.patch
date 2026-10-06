@@ -1,0 +1,127 @@
+From 95f510568315b575ff858b73000557b738ee6a66 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 01:38:35 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E8=AE=A9=E9=A1=B5=E9=9D=A2=E9=80=92?=
+ =?utf-8?q?=E6=9D=A5=E7=9A=84=20window.open=20=E8=B5=B0=E4=B8=80=E6=9D=A1?=
+ =?utf-8?q?=E7=BA=AF=20URL=20=E5=88=A4=E7=AD=96=EF=BC=88Xaihi=20patch=2000?=
+ =?utf-8?q?02=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+主窗此前对所有 window.open 判 deny，外链甩系统浏览器。现在先过 xaihi-window-policy：只有"发起者与目标都是 dsh-app://app/xaihi/ui/<12hex>/index.html"且查询串只含合法 node 这一个键，才转成自家壳里的原生次级窗；其余保持原样。
+
+rev 的形状抄 Xaihi 侧 packages/core/src/routes.ts 的 REV_PATTERN 与 NODE_PATTERN，所以拒绝分支不需要防目录穿越或跨 origin：那些形状根本进不来。判策是纯模块（不 import electron），能脱离构建直接执行。
+
+11 条用例实测 rc=0：自家+node 允许、无 node 允许；rev 非法、路径穿越、https 外链、dsh-app://shell、发起者非 Xaihi 文档、多带查询键、node 含非法字符、无法解析、超长串——全部拒绝。
+---
+ apps/desktop/src/main.ts                | 19 +++++++++
+ apps/desktop/src/xaihi-window-policy.ts | 52 +++++++++++++++++++++++++
+ 2 files changed, 71 insertions(+)
+ create mode 100644 apps/desktop/src/xaihi-window-policy.ts
+
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index 6f2b0af..1adc7f6 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -23,6 +23,7 @@ import {
+   type MenuItemConstructorOptions,
+ } from 'electron'
+ import { resolveDesktopPaths } from './paths.ts'
++import { resolveXaihiDocumentTarget } from './xaihi-window-policy.ts'
+ import { DesktopProjectManager } from './project-manager.ts'
+ import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
+ import { DesktopPlatformView, PLATFORM_IPC, platformBounds } from './platform-view.ts'
+@@ -203,6 +204,18 @@ function platformLoginUrl(authorizeUrl: string): string {
+   return url.href
+ }
+ 
++// Xaihi patch 0002: 由 window.open 转出来的原生窗。只做生命周期登记，不参与主窗的 hide-on-close。
++const xaihiDocumentWindows = new Set<BrowserWindow>()
++
++/** Open one secondary window for a URL the policy already accepted as Xaihi's own document. */
++function openXaihiDocumentWindow (preload: string, target: string): BrowserWindow {
++  const window = createWindow(preload, true, false)
++  xaihiDocumentWindows.add(window)
++  window.on('closed', () => { xaihiDocumentWindows.delete(window) })
++  void window.loadURL(target)
++  return window
++}
++
+ function createWindow(preload: string, show = false, primary = false): BrowserWindow {
+   const window = new BrowserWindow({
+     width: 1280,
+@@ -237,6 +250,12 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
+     },
+   })
+   window.webContents.setWindowOpenHandler(({ url }) => {
++    // Xaihi patch 0002: 页面递来的 URL 先过纯判策；不是自家文档就维持原样（外链交系统浏览器，其余 deny）。
++    const target = resolveXaihiDocumentTarget({ url, openerUrl: window.webContents.getURL() })
++    if (target !== undefined) {
++      openXaihiDocumentWindow(preload, target)
++      return { action: 'deny' }
++    }
+     if (['http:', 'https:'].includes(new URL(url).protocol)) void shell.openExternal(url)
+     return { action: 'deny' }
+   })
+diff --git a/apps/desktop/src/xaihi-window-policy.ts b/apps/desktop/src/xaihi-window-policy.ts
+new file mode 100644
+index 0000000..3c71031
+--- /dev/null
++++ b/apps/desktop/src/xaihi-window-policy.ts
+@@ -0,0 +1,52 @@
++/** Xaihi patch 0002: pure URL policy for turning a window.open request into a native Xaihi window. */
++
++/**
++ * Xaihi 文档的唯一落点。`<rev>` 必须是 core 那侧 `computeRev` 的 12 位十六进制
++ * （Xaihi 仓 `packages/core/src/routes.ts` 的 `REV_PATTERN`），所以这里按同一条形状收：
++ * 不接受调用方递上来的任意路径，就不需要再防目录穿越或跨 origin。
++ */
++const DOCUMENT_PATH = /^\/xaihi\/ui\/[0-9a-f]{12}\/index\.html$/u
++const NODE_VALUE = /^[a-z0-9][a-z0-9_-]{0,63}$/u
++const MAX_URL_LENGTH = 2048
++
++/** 一次开窗请求：目标是页面要打开的 URL，发起者是当前这份文档自己的 URL。 */
++export interface XaihiWindowRequest {
++  readonly url: string
++  readonly openerUrl: string
++}
++
++function parseOwnDocument(value: string): URL | undefined {
++  if (value.length === 0 || value.length > MAX_URL_LENGTH) return undefined
++  let url: URL
++  try {
++    url = new URL(value)
++  } catch {
++    return undefined
++  }
++  if (url.protocol !== 'dsh-app:' || url.hostname !== 'app') return undefined
++  if (!DOCUMENT_PATH.test(url.pathname)) return undefined
++  return url
++}
++
++/**
++ * 只允许"Xaihi 文档开 Xaihi 文档"，且查询串里只收 `node` 这一个键。
++ * @param request - the target URL plus the requesting document's own URL.
++ * @returns the normalized absolute URL to load, or `undefined` when the caller must deny.
++ */
++export function resolveXaihiDocumentTarget (request: XaihiWindowRequest): string | undefined {
++  const target = parseOwnDocument(request.url)
++  if (target === undefined) return undefined
++  // 发起者也必须是同一份 Xaihi 文档：DSH 自己的界面或别处递来的请求都走原来的 deny 分支。
++  const opener = parseOwnDocument(request.openerUrl)
++  if (opener === undefined) return undefined
++  for (const key of target.searchParams.keys()) {
++    if (key !== 'node') return undefined
++  }
++  const node = target.searchParams.get('node')
++  if (node !== null && !nodeValueAccepted(node)) return undefined
++  return target.toString()
++}
++
++function nodeValueAccepted (node: string): boolean {
++  return NODE_VALUE.test(node)
++}
+-- 
+2.55.0
+

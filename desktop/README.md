@@ -80,12 +80,21 @@ vendor 里那份上游 workspace 定义不会自动并进来。
   **错误集逐字相同**（`diff` 排序后的 `error TS…` 两份 ⇒ 空）⇒ 这两条与我的 patch 无关，
   成因是我 `--ignore-scripts` 装的树里缺 `lib/typert.host.d.ts` 那批产物。
   **但这不等于 patch 被类型检查过了**：`tsc -b` 停在那个包上就再没往下走，`apps/desktop/lib` 根本不存在
-  ⇒ desktop 项目自身（也就是我改的三个文件）**一行都没被编到**。正在跑上游的
-  `pnpm run build:lib:host`（日志 `/tmp/vendor-build-host.log`），它绿了才有资格谈类型结论。
+  ⇒ desktop 项目自身（也就是我改的三个文件）**一行都没被编到**。后续把上游
+  `pnpm run build:lib:host` 跑完（**rc=0、0 条 TS 错**），再跑 `pnpm exec tsc -b apps/desktop`
+  ⇒ **rc=0**，且 `apps/desktop/lib/types/xaihi-window-policy.js` 在场 —— 新文件真进了 program，
+  不是被显式清单静默跳过。类型这一档到这里才有结论。
+- **0002 的实测**：`apps/desktop/src/xaihi-window-policy.ts` 是纯模块（不 import electron），
+  11 条用例直接执行 ⇒ rc=0（**拒绝分支才是重点**：路径穿越、跨 host、非自家发起者、
+  多带一个查询键、超长串）；`pnpm --filter @deepseek-ai/dsh-desktop run bundle` **rc=0**（306 ms），
+  产物 `lib/main.js`（493,562 B）里搜得到 `resolveXaihiDocumentTarget` 与 `/xaihi/ui`。
+  **只跑 tsc 不跑 bundle 的话 `lib/main.js` 是旧的** —— 这条今天踩过，`--verify` 现在两个都查。
+- **仍未验**：Electron 实机一次都没起过（`--ignore-scripts` 装的话连 Electron 二进制都没下，
+  约 120 MB），所以"点一下真开出一个原生窗"这一格是空的，别当已交付。
 - **验证强度**：三处改动 `node --check` rc=0，且扰动对照能抓（rc=1）⇒ 语法是真的；
   `ipc.ts` 的三条 import 全是 `import type`（会被剥掉），所以它能直接跑：
   `node --experimental-strip-types` 加载后断言 `DESKTOP_IPC` **26 条通道**、
   `xaihiWindowOpen === 'dsh-desktop:xaihi-window-open'`、`browserAcquire` 仍在 ⇒ **rc=0**，
-  把期望值换成错值 ⇒ **rc=1**（对照）。类型层与 `main.ts` 的运行时行为仍未验 ——
-  那要 `pnpm install` 整个 vendor 才有结论，别把它写成"已编译验证"或"已实机验过"。
+  把期望值换成错值 ⇒ **rc=1**（对照）。类型层已随 `tsc -b apps/desktop` rc=0 结掉；
+  `main.ts` 里那两个分支（开窗与 deny）只到**编译进产物**，运行时行为要等 Electron 实机才算数。
 - 上游 bump ⇒ patch series 重放；重放红就是红，不许 `--3way` 蒙。
