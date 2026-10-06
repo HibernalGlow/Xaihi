@@ -184,6 +184,40 @@ md3 与 mondrian 发 `#rrggbb`，**武陵发 `oklch(...)`**，**孤星的半透�
 `spec.test.ts` 里有 "the palette clears WCAG AA on the pairs that carry text"），
 **武陵没有**——这一条是真缺口，跨形状的 AA 要等真浏览器那轮补。
 
+## 八、依赖声明与"两把尺分别跑"（搬运树第一次能被类型检查）
+
+搬完之后 `pnpm typecheck` 必然红：那 740 条第三方 value 边里绝大多数没人声明。
+这一节把它变成可核对的东西。
+
+- `scripts/port-deps.mjs`：扫搬运树的裸 import，与 `packages/ui-host/package.json` 对账，
+  一条命令补声明（`--write`），三种红法一起管：**没声明**、**声明了但不是上游实装的那一份**、
+  **被堵住的**。版本只有一个来源——`<Xiranite>/package.json`，它没有就读上游
+  `node_modules` 里真装着的版本（标 `上游实装`）；两处都没有就报出来要人拍，不编。
+  实测结果：**70 类第三方 value 依赖，全部补齐**，唯一 `blocked` 是
+  `@hibernalglow/ocean-dataview`（它的 `peerDependencies` 逐字要 `react: ^19.0.0`，
+  而网页面受 DSH 的 **18.3.1** 单例约束 ⇒ 要么它出一条 18 兼容线，要么这个数据面模块不进 v1）。
+- **精确版本不是洁癖**：上游声明 `@diceui/tags-input@^0.7.2`、自己装的是 0.7.2，
+  而 `^0.7.2` 今天会解到更新的 0.7.x，那份要 `@diceui/shared@0.12.1` —— 两个注册表里都没有这个版本，
+  `pnpm install` 直接 rc=1（`No matching version found`）。 ⇒ 搬运树逐条钉**上游实装的精确版本**。
+- 装完 `pnpm install --no-frozen-lockfile` **rc=0**；`pnpm --filter @hibernalglow/xaihi-ui exec tsc` 从
+  "跑不动"变成能跑，第一次读数 **1074 条红 / 231 个文件**。
+- `scripts/check-types.mjs`：那 1074 条**不是同一家的账**，所以按归属分桶跑两遍
+  （`tsconfig.json` 只量 `src/client/**` + `tests/**`，仓级严格度；
+  `tsconfig.ported.json` 量搬运树，严格度逐条对齐 `<Xiranite>/tsconfig.app.json`）。
+  理由写进配置注释里：上游没有 `noUncheckedIndexedAccess` 也没有 `exactOptionalPropertyTypes`，
+  把这两面旗子压到 613 个搬运文件上，实测 502 条只是口味差——
+  "修"它的正确做法不是在他的界面里塞 500 个 `!`（那是重写，违反 ADR-0006）。
+  桶里 `@xiranite/*` 的边用 `paths` 指到**同仓搬进来的源码**上（那些包还没入 workspace，
+  但类型检查不需要包管理器参与），于是 217 条 TS2307 变可核对。
+  当前读数：**own=0**（默认判据，rc=0）、**ported=291**、别的包=11；
+  `--fail-on-all` 是"接线做完"那天的口径，现在跑它是 rc=1（实测）。
+  正控：`--self-check` 喂一份合成日志，四个桶与"own=0 而 ported>0 时默认放行"这条规则本身必须能被证伪。
+- `scripts/port-ui.mjs` 两处升级：manifest 每个文件记 `state`（上游 `head`/`modified`/`untracked`），
+  新增 `docs/port/xaihi-deltas.json` 申报本地改动（必须连 ours 的 sha 一起对上才算同步，
+  并支持 `removed: true` 表示"按 ADR 有意不要"）。
+  它当场抓到并发 lane 在 23:15 改了 `RuntimeSection.tsx` 并裁掉 4 个 backend/config 接缝文件
+  ——**没有这套机制，下一次搬运就会把他的改动覆盖回去**。
+
 
 **没做 / 未验**（别把这些当已完成）：
 `pnpm build` 与 `typecheck` **还没跑过**——那 740 条第三方 value 边里绝大多数没声明，

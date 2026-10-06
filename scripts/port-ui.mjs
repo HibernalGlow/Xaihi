@@ -9,10 +9,18 @@
  *
  * 这个脚本是幂等的：重复跑只会按同一张表覆盖，不做任何改写（别名、格式、注释全原样）。
  *
+ * **判"删了"只认工作树那一列。** `git status --porcelain` 的 `D ` 是"index 里没有"
+ * （GitButler 的虚拟分支经常这样，文件还在盘上），` D` 才是"人删了"。
+ * 本轮先按 `includes('D')` 写错过一次，把设计语言引擎整棵 41 个文件从目标里删掉了——
+ * 是 157 条尺里的 4 条当场红掉才拦住的（`Cannot find module "../lib/design-theme/contract.ts"`）。
+ * 每个文件的来源状态一并记进 manifest（`state`: `head` / `modified` / `untracked`），
+ * 将来与上游同步时才知道哪些是"他改过、要融合"、哪些是"原样搬来的"。
+ *
  * 用法：node scripts/port-ui.mjs [--check]
  *   无参数 = 搬运 + 写 manifest；--check = 只比对不写，红在未同步。
  */
 
+import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -21,6 +29,49 @@ const ROOT = resolve(import.meta.dirname, '..')
 const SOURCE = '/Users/glow/Base/Code/Freya/Xiranite/src'
 const DEST = join(ROOT, 'packages/ui-host/src')
 const MANIFEST = join(ROOT, 'docs/port/xiranite-ui.json')
+const DELTAS = join(ROOT, 'docs/port/xaihi-deltas.json')
+
+const SOURCE_REPO = '/Users/glow/Base/Code/Freya/Xiranite'
+
+/**
+ * 源仓工作树的脏状态表：`src/` 相对路径 → `head` / `modified` / `untracked` / `deleted`。
+ * 读不到 git 状态（例如源目录不是仓库）时全部按 `head` 处理，但会把"没读到"如实记下来。
+ */
+function upstreamStates() {
+  let out
+  try {
+    out = execFileSync('git', ['-C', SOURCE_REPO, 'status', '--porcelain', 'src'], { encoding: 'utf8' })
+  } catch (error) {
+    console.warn(`port-ui: 读不到上游 git 状态（${error.message.split('\n')[0]}），本轮不剔除标删文件`)
+    return { states: new Map(), available: false }
+  }
+  // 一个路径可能出现多行（实测：`D  src/...` 与 `?? src/...` 同时出现——那是"从 index 里挪走
+  // 但文件还在盘上"，GitButler 的虚拟分支经常这样）。所以先收齐每个路径的全部状态再裁决。
+  const perPath = new Map()
+  for (const line of out.split('\n').filter(Boolean)) {
+    const xy = line.slice(0, 2)
+    let rel = line.slice(3).trim()
+    // rename/copy 行的形状是 `old -> new`，要的是新路径。
+    const arrow = rel.indexOf(' -> ')
+    if (arrow >= 0) rel = rel.slice(arrow + 4)
+    rel = rel.replace(/^src\//, '')
+    if (!rel) continue
+    const seen = perPath.get(rel) ?? new Set()
+    seen.add(xy)
+    perPath.set(rel, seen)
+  }
+  const states = new Map()
+  for (const [rel, seen] of perPath) {
+    // **只有工作树那一列（xy[1]）说 D 才是"人把它删了"**；第一列的 D 只表示 index 里没有，
+    // 文件常常还在盘上——本轮实测 41 个文件（含设计语言引擎整棵）就是这么被误判的，
+    // 判据错在一次 `xy.includes('D')`。文件在不在盘上由目录遍历说了算，这里只负责分类。
+    const worktreeDeleted = [...seen].some((xy) => xy[1] === 'D')
+    const untracked = [...seen].some((xy) => xy === '??')
+    const touched = [...seen].some((xy) => /[MA]/.test(xy))
+    states.set(rel, worktreeDeleted && !untracked ? 'deleted' : untracked ? 'untracked' : touched ? 'modified' : 'head')
+  }
+  return { states, available: true }
+}
 
 /**
  * 上游 `src/` 下要搬的子树（相对 `src/`）。
@@ -108,28 +159,54 @@ const wanted = () => {
 const sha256 = (path) => createHash('sha256').update(readFileSync(path)).digest('hex')
 
 const check = process.argv.includes('--check')
-const files = wanted()
+const { states, available } = upstreamStates()
+const allWanted = wanted()
+const skipped = allWanted.filter((rel) => states.get(rel) === 'deleted')
+const files = allWanted.filter((rel) => states.get(rel) !== 'deleted')
+if (skipped.length > 0) console.log(`port-ui: 跳过上游已标删的 ${skipped.length} 个文件（不搬进 Xaihi）`)
+if (!available) console.log('port-ui: 上游 git 状态不可用 ⇒ manifest 的 state 一律记 head（不代表已核对）')
 const recorded = {}
 let copied = 0
 let drifted = 0
 let missing = 0
+/**
+ * 被显式申报过的本地改动：`{ 上游相对路径: {reason, ours: sha256} }`。
+ * 命中它才算同步，而且**必须连我们这一版的 sha 一起对上**——
+ * 只在名单里出现就放行，等于把这条尺变成一张"谁改了没人知道"的白名单。
+ * 有这个机制是因为并发是常态：本轮实测另一条 lane 在 23:15 改了
+ * `components/views/settings/RuntimeSection.tsx`（比上游少了几条 import），
+ * 那时"目标必须与上游逐字节相等"这条判据会把它当漂移，而搬运器再跑一次就会**覆盖掉他的改动**。
+ */
+const declaredDeltas = existsSync(DELTAS) ? JSON.parse(readFileSync(DELTAS, 'utf8')).deltas ?? {} : {}
 
 for (const rel of files) {
   const src = join(SOURCE, rel)
   const dst = join(DEST, rel)
   const digest = sha256(src)
-  const inSync = existsSync(dst) && sha256(dst) === digest
+  const ours = existsSync(dst) ? sha256(dst) : null
+  const delta = declaredDeltas[rel]
+  // `removed: true` 表示"这一条被显式裁掉"（不是漏搬）：目标必须**不存在**才算同步。
+  // 为什么允许：ADR-0013 定了上游那套"配置住在后端 toml、带版本历史"的通路整块不接，
+  // 于是有几个上游文件是**故意不要**的；搬运器硬把它们拉回来等于违反一条已接受的 ADR。
+  const acceptedDelta = delta !== undefined && (
+    delta.removed === true ? ours === null : ours !== null && ours === delta.ours)
+  const inSync = ours === digest || acceptedDelta
   if (!check && !inSync) {
     mkdirSync(dirname(dst), { recursive: true })
     copyFileSync(src, dst)
     copied += 1
   }
   if (check && !inSync) {
-    console.error(`  × out of sync: ${rel}${existsSync(dst) ? '' : ' (not copied yet)'}`)
+    console.error(`  × out of sync: ${rel}${existsSync(dst) ? '' : ' (not copied yet)'}${delta !== undefined ? '（申报过的 delta 也对不上了：' + delta.reason + '）' : ''}`)
     drifted += 1
   }
+
   if (!existsSync(src)) missing += 1
-  recorded[rel] = { sha256: digest, bytes: statSync(src).size, dest: relative(ROOT, dst) }
+  if (acceptedDelta) {
+    recorded[rel] = { sha256: digest, bytes: statSync(src).size, dest: relative(ROOT, dst), state: states.get(rel) ?? 'head', localDelta: delta.reason, removed: delta.removed === true }
+  } else {
+    recorded[rel] = { sha256: digest, bytes: statSync(src).size, dest: relative(ROOT, dst), state: states.get(rel) ?? 'head' }
+  }
 }
 
 if (!check) {
@@ -153,5 +230,6 @@ if (!check) {
   )
 }
 
-console.log(`${check ? 'check' : 'port'}: ${files.length} tracked file(s), ${copied} copied, ${drifted} out of sync, ${missing} missing`)
+const accepted = Object.keys(declaredDeltas).length
+console.log(`${check ? 'check' : 'port'}: ${files.length} tracked file(s), ${copied} copied, ${drifted} out of sync, ${missing} missing${accepted > 0 ? `, ${accepted} 条申报过的本地改动` : ''}`)
 if (check && drifted > 0) process.exit(1)

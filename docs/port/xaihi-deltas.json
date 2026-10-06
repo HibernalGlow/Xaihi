@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "note": "申报过本地改动的搬运文件：必须连 ours 的 sha256 一起对上才算同步。新增条目要有理由；上游一改，ours 就对不上，--check 立刻红。 允许 removed:true：那一头的判据是「目标必须不存在」，所以它同样不能被静默放宽。",
+  "deltas": {
+    "components/views/settings/RuntimeSection.tsx": {
+      "reason": "并发 lane 于 2026-10-06 23:15 在改这一份（比上游少几条 import，疑似在裁掉还没有对应物的接缝）。搬运器不许把它覆盖回去。",
+      "upstreamSha": null,
+      "ours": "110a859eb22466e6df9715bf1701659c99a053439a28b75701c76f892ba268f1",
+      "lastTouchedByLane": "2026-10-06T23:15+08:00"
+    },
+    "backend/localBackendControl.ts": {
+      "reason": "ADR-0013：上游那条「配置住在后端 toml + HTTP/RPC 读写 + 版本历史」的通路整块不接；这几个文件是它的组成部分，并发 lane 于 2026-10-06 裁掉，这里登记为「有意不要」而不是漏搬。",
+      "removed": true,
+      "upstreamSha": null,
+      "ours": null
+    },
+    "components/views/Webview2ExperimentsPanel.tsx": {
+      "reason": "ADR-0013：上游那条「配置住在后端 toml + HTTP/RPC 读写 + 版本历史」的通路整块不接；这几个文件是它的组成部分，并发 lane 于 2026-10-06 裁掉，这里登记为「有意不要」而不是漏搬。",
+      "removed": true,
+      "upstreamSha": null,
+      "ours": null
+    },
+    "components/views/settings/NodeMemoryProtectionSettings.tsx": {
+      "reason": "ADR-0013：上游那条「配置住在后端 toml + HTTP/RPC 读写 + 版本历史」的通路整块不接；这几个文件是它的组成部分，并发 lane 于 2026-10-06 裁掉，这里登记为「有意不要」而不是漏搬。",
+      "removed": true,
+      "upstreamSha": null,
+      "ours": null
+    },
+    "config/webview2.ts": {
+      "reason": "ADR-0013：上游那条「配置住在后端 toml + HTTP/RPC 读写 + 版本历史」的通路整块不接；这几个文件是它的组成部分，并发 lane 于 2026-10-06 裁掉，这里登记为「有意不要」而不是漏搬。",
+      "removed": true,
+      "upstreamSha": null,
+      "ours": null
+    }
+  }
+}

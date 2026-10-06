@@ -102,8 +102,9 @@ export function designHostLayer(
   const { light, dark } = resolveDesignThemeForSchemes(config)
   const layer: DesignHostLayer = { ...empty, tokens: {}, applied: [], unconfirmed: [], absent: [] }
   for (const role of HOST_ROLES) {
-    const value = { light: light[role.designVar], dark: dark[role.designVar] }
-    if (value.light === undefined || value.dark === undefined) {
+    const lightValue = light[role.designVar]
+    const darkValue = dark[role.designVar]
+    if (lightValue === undefined || darkValue === undefined || lightValue.length === 0 || darkValue.length === 0) {
       // 引擎没发这一槽就是"这条配方不管颜色这一维"，不是名字的问题。
       layer.absent.push(`${role.dswName}（引擎未发 ${role.designVar}）`)
       continue
@@ -112,7 +113,9 @@ export function designHostLayer(
       layer.absent.push(role.dswName)
       continue
     }
-    layer.tokens[role.dswName] = value
+    // 成对值在这里才组装：`{ light: string | undefined }` 过守卫之后 TS 也不会把整个对象
+    // 收窄成 `{ light: string }`（它收窄的是属性读取，不是对象类型），所以先取局部再构造。
+    layer.tokens[role.dswName] = { light: lightValue, dark: darkValue }
     layer.applied.push(role.dswName)
     const description = (known.get(role.dswName) ?? '').toLowerCase()
     if (description.length > 0 && !role.roleWords.some((word) => description.includes(word.toLowerCase()))) {

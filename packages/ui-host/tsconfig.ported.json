@@ -1,0 +1,48 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "//": [
+    "搬运树的尺：严格度按**上游那台装配自己用的那份**，不是 Xaihi 自己那份。",
+    "",
+    "实测对照（`<Xiranite>/tsconfig.app.json`）：它有 `strict`、`noUnusedLocals`、`noUnusedParameters`，",
+    "但**没有** `noUncheckedIndexedAccess`、**没有** `exactOptionalPropertyTypes`、**没有** `noImplicitOverride`",
+    "之外的额外项；而 Xaihi 的 `tsconfig.base.json` 加了这两条。",
+    "两笔一起加到 613 个搬运文件上，实测出 1074 条红，其中 TS2532/TS18048/TS2375/TS2379 合计 502 条",
+    "全部是这两条旗子的口味差——那不是他的代码有 bug，是我换了把尺去量它。",
+    "把它改成能过等于在他的界面里塞 500 处 `!` 与 `?? undefined`，那是重写，违反 ADR-0006。",
+    "",
+    "所以分工是：`tsconfig.json` 量 Xaihi 自己写的部分（保持仓级严格度），",
+    "这一份量搬来的部分（按他的尺），两边都必须绿，且红的时候能一眼看出是谁的账。",
+    "`@xiranite/*` 的边在这里走 `paths` 指到**同仓搬进来的源码**上：",
+    "那些包暂时不入 pnpm workspace（见 `pnpm-workspace.yaml` 的负模式与理由），",
+    "但类型检查不需要包管理器参与，指到 `src` 就能把这 217 条 TS2307 变成可核对的真边。"
+  ],
+  "compilerOptions": {
+    "types": ["node", "vite/client"],
+    "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "paths": {
+      "@/*": ["./src/*"],
+      "react": ["../../node_modules/@types/react"],
+      "react/*": ["../../node_modules/@types/react/*"],
+      "react-dom": ["../../node_modules/@types/react-dom"],
+      "react-dom/*": ["../../node_modules/@types/react-dom/*"],
+      "@xiranite/contract": ["../contract/src/index.ts"],
+      "@xiranite/shared": ["../shared/src/index.ts"],
+      "@xiranite/shared/*": ["../shared/src/*"],
+      "@xiranite/api/client": ["../api/src/client.ts"],
+      "@xiranite/api": ["../api/src/index.ts"],
+      "@xiranite/cli-runtime": ["../cli-runtime/src/index.ts"],
+      "@xiranite/cli-runtime/terminal": ["../cli-runtime/src/tui/index.ts"],
+      "@xiranite/cli-runtime/*": ["../cli-runtime/src/*"],
+      "@xiranite/logging/cli": ["../logging/src/cli.ts"],
+      "@xiranite/logging": ["../logging/src/index.ts"],
+      "@xiranite/node-sleept/*": ["../../plugins/sleept/src/*.ts"],
+      "@xiranite/node-linedup/*": ["../../plugins/linedup/src/*.ts"],
+      "@xiranite/node-dissolvef/*": ["../../plugins/dissolvef/src/*.ts"],
+      "@xiranite/node-findz/*": ["../../plugins/findz/src/*.ts"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["src/client"]
+}
