@@ -115,7 +115,7 @@ Xaihi 这边与之对应的东西**全是我自己造的**：`packages/ui-kit`�
 | 事实 | 出处与数字 |
 |---|---|
 | 每个节点是**四面结构** | `<Xiranite>/packages/nodes/*/src/`：30 个节点各带 `core.ts` / `cli.ts` / `Tui.tsx` / `interaction.ts`（各 **30** 份）；判据原文在 `<Xiranite>/docs/adr/0069-keep-node-cli-tui-gui-triad-with-clap-ratatui-react.md`（"四面结构、GUI 统一不打散、禁止在 face 里重写业务逻辑"），0073/0074 只换掉了实现方式（Rust `clap`+`ratatui` → Node/Bun 的 `citty`/`Clack`/`OpenTUI`） |
-| 终端面不是"另一套界面"，是同一棵 React 树的第二个渲染器 | `packages/cli/package.json`（`@xiranite/cli`，带 `bin`，依赖里逐个点名节点包如 `@xiranite/node-linku`）与 `packages/cli-runtime/package.json` 都吃 `@opentui/react@0.4.5` + `react@19.2.4` |
+| 终端面**不是**网页组件的第二渲染器，而是**同一核心的另一个前端**（实测：`packages/cli/**` 与 `packages/cli-runtime/**` 里没有任何一处 import `src/nodes` 的 React 组件，唯一命中是句注释；共享点在 `contract`/`api`/节点核心那层） | `packages/cli/package.json`（`@xiranite/cli`，带 `bin`，依赖里逐个点名节点包如 `@xiranite/node-linku`）与 `packages/cli-runtime/package.json` 都吃 `@opentui/react@0.4.5` + `react@19.2.4` |
 | TUI 运行时已成型 | `packages/cli-runtime/src/tui/` 共 **22 个 `.tsx`**（`app`、`help-screen`、`action-launcher`、`task-queue-screen`、`workbench-controls`、`chrome-actions`、`preview-table`、`slider`、`multiline-editor`、`text-input`、`theme.tsx`），另有 `termcn-registry/`、`components.json`、`scripts/` |
 | 单节点体量 | `packages/nodes/sleept/src/cli.ts` **885** 行、`Tui.tsx` **544** 行 |
 | Xaihi 现状 | 仓内 `cli.ts` 与 `Tui.tsx` 各 **0** 个 |
@@ -135,3 +135,27 @@ Xaihi 这边与之对应的东西**全是我自己造的**：`packages/ui-kit`�
 这次不是"把迁移产物当设计"（那只是懒），而是**放着使用者已经写好的设计没去看，自己造了一份**。
 两次纠正之间我还在同一条路上走得更远（给自造的组件层补门禁、补状态层、补对比度测试），
 把"我自己定的规则"验得越来越绿。判据错的时候，越绿越危险。
+
+## 分发形状：三面同一个 npm 包（2026-10-06 用户纠正，我上一条写错了）
+
+我写过"节点核心必须拆成 `packages/nodes/<id>`，否则 CLI/TUI 拿不到它"——**那是我凭空造的约束，在此收回**。
+真实要求是：网页面、CLI、TUI **装在同一个 npm 包里**，三面各自独立安装、同一个仓一起维护。核心本来就是
+同包内的相对 import，不存在"CLI 拿不到"。所以**不拆包、不新增跨包运行时依赖**。
+
+支持这个判断的三条实测：
+
+1. **带 `bin` 的包能被当 DSH bundle 装上**：临时给 `plugins/sleept/package.json` 加
+   `"bin": {"xaihi-sleept": "./bin/probe.js"}` ⇒ `dsh plugin --profile xaihi add file:…` **rc=0**，
+   没有 "only bundles are managed" 那类拒绝；测完把该文件退回（`bin` 已不在包内）。
+2. **代价要量着处理**：TUI 依赖若进 `dependencies`，只想要面板的使用者也得下载
+   `@opentui/core` **12 MB** + `@opentui/core-darwin-arm64` **3.6 MB**（平台原生件）+
+   `@opentui/react` 252 KB + `react-dom` **7.1 MB**，另有若干 tree-sitter `.wasm`。
+   ⇒ TUI 那部分走 **`optionalDependencies`**（装不上就退化成"这个包没有终端界面"，CLI 与插件不受影响），
+   平台原生件沿用 ADR-0004 的 `/<pkg>-<platform>-<arch>` 路子，而不是让每个 DSH 使用者吞 20 MB。
+3. **全局 `npm i -g` 要等发布**：走 registry 与 ADR-0005 是同一条前提（`workspace:*` 只在
+   `pnpm publish` 时被改写成真实版本）；开发期只能 `npm i -g file:…/plugins/<node>` 或 tarball。
+
+React 那条不变：只有网页面受 DSH 的 **React 18.3.1** 约束，CLI/TUI 自带 **React 19.2.4** 不受影响；
+TUI 也不需要 DSH 提供 tui 宿主（本机 `dsh --profile tui --dump-config` 报 `profile "tui" does not exist`，
+与本路无关）。上游对"三面共享核心"这件事自己也记过账：
+`<Xiranite>/docs/adr/0069-keep-node-cli-tui-gui-triad-with-clap-ratatui-react.md`。

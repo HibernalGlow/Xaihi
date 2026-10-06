@@ -642,7 +642,7 @@ A `linedup` → B `sleept` → C `dissolvef` → **D `findz`**。前三个都是
 
 ## 18 UI Kit：面板唯一的上色出口
 
-> **已作废（ADR-0006，2026-10-06）**：这一节把「我自己发明的组件包」当成了面板的上色出口，而用户的工作台与节点 UI 早就以 React 实现存在于 `Xiranite`（`src/components/workspace|views|modules|ui`、`src/nodes/<id>/entry.ts` + `Component.tsx`、`src/nodes/shared/`、`src/lib/design-theme/` 六套语言）。本节的形状判据不再有效，保留只为记录我错在哪；`check:panels` 门禁与 `packages/ui-kit` 已按 `docs/adr/0006-ui-comes-from-xiranite-not-a-new-kit.md` 退回。
+> **已作废（ADR-0006，2026-10-06）**：这一节把「我自己发明的组件包」当成了面板的上色出口，而用户的工作台与节点 UI 早就以 React 实现存在于 `Xiranite`（`src/components/workspace|views|modules|ui`、`src/nodes/<id>/entry.ts` + `Component.tsx`、`src/nodes/shared/`、`src/lib/design-theme/` 六套语言）。本节的形状判据不再有效，保留只为记录我错在哪；`check:panels` 门禁与 `packages/ui-kit` 已按 `docs/adr/0006-ui-source-is-xiranite.md` 退回。
 
 
 ### 改了什么
@@ -808,7 +808,7 @@ P1 一旦落地，要改的只有 `resolveAgent()` 里"从哪儿取值"这一处
 
 ## 20 面板上色收口：五个面板全走 kit，并把规则变成门禁
 
-> **已作废（ADR-0006，2026-10-06）**：这一节把「我自己发明的组件包」当成了面板的上色出口，而用户的工作台与节点 UI 早就以 React 实现存在于 `Xiranite`（`src/components/workspace|views|modules|ui`、`src/nodes/<id>/entry.ts` + `Component.tsx`、`src/nodes/shared/`、`src/lib/design-theme/` 六套语言）。本节的形状判据不再有效，保留只为记录我错在哪；`check:panels` 门禁与 `packages/ui-kit` 已按 `docs/adr/0006-ui-comes-from-xiranite-not-a-new-kit.md` 退回。
+> **已作废（ADR-0006，2026-10-06）**：这一节把「我自己发明的组件包」当成了面板的上色出口，而用户的工作台与节点 UI 早就以 React 实现存在于 `Xiranite`（`src/components/workspace|views|modules|ui`、`src/nodes/<id>/entry.ts` + `Component.tsx`、`src/nodes/shared/`、`src/lib/design-theme/` 六套语言）。本节的形状判据不再有效，保留只为记录我错在哪；`check:panels` 门禁与 `packages/ui-kit` 已按 `docs/adr/0006-ui-source-is-xiranite.md` 退回。
 
 
 ### 改了什么
@@ -980,7 +980,7 @@ P1 一旦落地，要改的只有 `resolveAgent()` 里"从哪儿取值"这一处
 
 ## 22 状态层与对比度门禁（`docs/roadmap.md` 的 R1 + R2 一起做掉）
 
-> **已作废（ADR-0006，2026-10-06）**：这一节把「我自己发明的组件包」当成了面板的上色出口，而用户的工作台与节点 UI 早就以 React 实现存在于 `Xiranite`（`src/components/workspace|views|modules|ui`、`src/nodes/<id>/entry.ts` + `Component.tsx`、`src/nodes/shared/`、`src/lib/design-theme/` 六套语言）。本节的形状判据不再有效，保留只为记录我错在哪；`check:panels` 门禁与 `packages/ui-kit` 已按 `docs/adr/0006-ui-comes-from-xiranite-not-a-new-kit.md` 退回。
+> **已作废（ADR-0006，2026-10-06）**：这一节把「我自己发明的组件包」当成了面板的上色出口，而用户的工作台与节点 UI 早就以 React 实现存在于 `Xiranite`（`src/components/workspace|views|modules|ui`、`src/nodes/<id>/entry.ts` + `Component.tsx`、`src/nodes/shared/`、`src/lib/design-theme/` 六套语言）。本节的形状判据不再有效，保留只为记录我错在哪；`check:panels` 门禁与 `packages/ui-kit` 已按 `docs/adr/0006-ui-source-is-xiranite.md` 退回。
 
 
 ### 改了什么
