@@ -130,8 +130,17 @@ G12 那份 vendored `cli-support.ts` 与基线差在"不剥 `--key` 前缀、只
   `command ?? \`/${nodeId}\`` 的默认式，一 import 就全都"有 slash 命令"），量的其实是默认值而不是源码。
   这一档的修法仍然要先有"命令注册"这条缝（`ctx.commands` 现在只有 findz / sleept inject），
   不是把 `command` 字段删掉就完事。
-- **G4 的口径我先前也报宽了**：我说的"55 处 / 15 份"把 `src/cli.ts` 里**主动拒绝**的那批文案
-  （`ui 面未接`、`gd 未接`）一起数了，而那些恰恰是不撒谎的一半。
-  真正的谎面只有清单里那 2 条：`bitv` 的 `help.workflows[1].actions` 带着 `ui` / `gd`
-  （`plugins/bitv/package.json`，`ui`/`gd` 在 `plugins/bitv/src/cli.ts` 都是抛 `not supported yet`）。
-  数法：`rg -c '"ui"|"guided"|"gd"' plugins/*/package.json` ⇒ 27 个清单里只有 bitv 这一个提到这些动作。
+- **G4 我连着写错两次，第三次是遍历真数**（第一次我说"55 处 / 15 份"，把 `src/cli.ts` 里
+  **主动拒绝**的那批文案一起数了——而那些恰恰是不撒谎的一半；第二次我照代理的话写成
+  "谎面只有 bitv 清单里那 2 条"，而 `bitv` 的 `help` 现读只有 `whenToUse` / `safety` 两个键，
+  它根本没有 `workflows`，那两条不存在）。
+  口径改成可机械查的那一条：把 27 份 `package.json#xaihi` **整棵对象**走一遍字符串，
+  找 `x<bin> (ui|gd|guided)` 这种"点名一条跑不起来的腿"的句子。
+  改之前命中 **2 句、2 个包**：`logx` 的 `help.workflows.cli[1]`
+  （"Run `xlogx` for guided mode or `xlogx ui` for OpenTUI."）与
+  `recycleu` 的 `help.workflows.cli[0]`（"…for the guided mode when the command supports interactive prompts"），
+  而这两个包的 `src/cli.ts` 对 `guided` / `ui` 都是 rc=2 响亮拒绝（`plugins/recycleu/src/cli.ts:5`、
+  `plugins/logx/src/cli.ts:20` 各自点名"未接的第二条腿"）——**清单在宣传包自己会拒的东西**。
+  两句都改成 refusal 形状的英文（"not wired in this build: the CLI exits 2 and names the missing seam"），
+  改后同一把探针剩 1 处命中，那 1 处就是我新写的那句里的 "the guided mode"（正则把它当 `x bin guided` 认了），
+  不是假申报。两包 `vitest run` 仍各 18 条 rc=0（它们的 `definition.spec` 不钉这两句散文）。
