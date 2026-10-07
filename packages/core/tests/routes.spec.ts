@@ -145,6 +145,32 @@ describe('uiBundleHandler（ADR-0009 那一刀的文档侧）', () => {
     expect(res.body).toContain(`current ${REV}`)
   })
 
+  it('裸路径 302 到当前 rev（rev 每次重建都会换，人手里的地址只有 /xaihi/ui/）', () => {
+    for (const bare of ['/xaihi/ui', '/xaihi/ui/', '/xaihi/ui/index.html']) {
+      const res = call(uiBundleHandler(uiSource), bare)
+      expect(res.status, `${bare} 该跳而不是 404`).toBe(302)
+      expect(res.headers.location).toBe(`/xaihi/ui/${REV}/index.html`)
+      // 被缓存的 302 会让"下一次还是旧哈希"，等于这条修复自己失效。
+      expect(res.headers['cache-control']).toBe('no-store')
+    }
+  })
+
+  it('跳转要把 ?node= 带过去，不合形状的丢掉（目标页自己报 400）', () => {
+    const kept = call(uiBundleHandler(uiSource), '/xaihi/ui/?node=xaihi-linedup')
+    expect(kept.headers.location).toBe(`/xaihi/ui/${REV}/index.html?node=xaihi-linedup`)
+    const hostile = call(uiBundleHandler(uiSource), `/xaihi/ui/?node=${encodeURIComponent('../../etc/passwd')}`)
+    expect(hostile.status).toBe(302)
+    expect(hostile.headers.location, '越形状的 node 不许被抄进 Location 头').toBe(`/xaihi/ui/${REV}/index.html`)
+  })
+
+  it('阳性对照：rev 不可用时不跳（跳向一个不存在的哈希比读得回的 404 更糟）', () => {
+    const hostile = { dir: () => tree, rev: () => 'a";alert(1);//' }
+    const res = call(uiBundleHandler(hostile), '/xaihi/ui/')
+    expect(res.status).toBe(404)
+    expect(res.headers.location, '不许出现指向注入串的位置头').toBeUndefined()
+    expect(call(uiBundleHandler({ dir: () => '', rev: () => 'missing' }), '/xaihi/ui/').status, '产物目录没配时还是那条 503').toBe(503)
+  })
+
   it('rev 不是 12 位十六进制时不进 boot 对象（它会被写进内联脚本）', () => {
     const hostile = { dir: () => tree, rev: () => 'a";alert(1);//' }
     expect(call(uiBundleHandler(hostile), '/xaihi/ui/whatever/index.html').status).toBe(404)
@@ -183,7 +209,10 @@ describe('uiBundleHandler（ADR-0009 那一刀的文档侧）', () => {
 
   it('穿越与缺段都被拒（与 remote 那条面同一条闸）', () => {
     expect(call(uiBundleHandler(uiSource), uiUrl('..%2Foutside-of-tree.txt')).status).toBe(404)
-    expect(call(uiBundleHandler(uiSource), '/xaihi/ui/').status).toBe(404)
+    // `/xaihi/ui/` 这一格 2026-10-07 改了决定：原来也钉 404，而 rev 每次重建都会换，
+    // 于是"打开一次得回清单抄一次哈希"（使用者原话：“3199 不会自动跳转啊”）。
+    // 这条尺真正守的是**穿越**与**缺段**，裸路径现在归上面那条 302 的尺管。
+    expect(call(uiBundleHandler(uiSource), '/xaihi/ui/').status).toBe(302)
     expect(call(uiBundleHandler(uiSource), `/xaihi/ui/${REV}`).status).toBe(404)
     expect(call(uiBundleHandler(uiSource), uiUrl('chunk.js'), 'POST').status).toBe(405)
   })

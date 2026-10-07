@@ -173,7 +173,7 @@ export function uiBundleHandler(source: UiBundleSource) {
       return
     }
     const url = new URL(req.url ?? '/', 'http://127.0.0.1')
-    if (!url.pathname.startsWith(`${UI_PATH_PREFIX}/`)) {
+    if (url.pathname !== UI_PATH_PREFIX && !url.pathname.startsWith(`${UI_PATH_PREFIX}/`)) {
       send(res, 404, 'not found', 'text/plain; charset=utf-8', 'no-store')
       return
     }
@@ -183,6 +183,30 @@ export function uiBundleHandler(source: UiBundleSource) {
       return
     }
     const rev = source.rev()
+    /**
+     * 裸路径（`/xaihi/ui`、`/xaihi/ui/`、`/xaihi/ui/index.html`）302 到当前 rev 的文档壳。
+     *
+     * 理由：`rev` 是按产物目录**现算**的，重建一次就换一个，而人手里只有手打的裸路径；
+     * 让它 404 的实测后果就是"打开一次得回清单里抄一次哈希"（2026-10-07 使用者的原话：
+     * “3199 不会自动跳转啊”——同一轮里 `ui.rev` 在两次请求之间从 `8d4ed81e8393` 变成
+     * `687d583bc830`，因为那侧正在重建产物目录）。
+     * 三条边界：rev 不可用时**不跳**（跳向一个不存在的哈希比读得回的 404 更难读）；`?node=` 要带过去
+     * （不然跳完丢掉"开哪个节点"，而不合形状的 node 直接丢掉、由目标页自己报 400）；
+     * 响应必须 `no-store`（一份被缓存的 302 会把这条修复变成"下一次还是旧哈希"）。
+     * 写到 rev 但没写文件名的（`/xaihi/ui/<rev>`）**不跳**——那是缺段，同穿越那条闸一起留在 404。
+     */
+    const rest = url.pathname.slice(UI_PATH_PREFIX.length)
+    if (REV_PATTERN.test(rev) && (rest === '' || rest === '/' || rest === '/index.html')) {
+      const node = url.searchParams.get('node') ?? ''
+      const query = node !== '' && NODE_PATTERN.test(node) ? `?node=${encodeURIComponent(node)}` : ''
+      res.writeHead(302, {
+        location: `${UI_PATH_PREFIX}/${rev}/index.html${query}`,
+        'cache-control': 'no-store',
+        'x-content-type-options': 'nosniff',
+      })
+      res.end(req.method === 'HEAD' ? '' : `see ${UI_PATH_PREFIX}/${rev}/index.html`)
+      return
+    }
     const segments = url.pathname.slice(UI_PATH_PREFIX.length + 1).split('/')
     const requested = segments.shift() ?? ''
     const relative = segments.join('/')
