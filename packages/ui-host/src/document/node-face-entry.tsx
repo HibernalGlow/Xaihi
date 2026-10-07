@@ -26,6 +26,13 @@ import { startRealm } from './realm.ts'
 void initI18n()
 
 const NODE = 'xaihi-linedup'
+/**
+ * 这一格状态用的键：不用 URL 上那个节点键。`realm.ts` 握手后自己会跑一次 state 持久探测，
+ * 写的是 `nodeState[boot.node]`——两处同写一格会撞乐观并发围栏，把判据自己搞成假红
+ * （同一件事在 `realm-entry.tsx` 里记过一次）。组件的 `compId` 仍是 `NODE`：
+ * 扁名那层的 `compId` 是"这一格卡"的身份，与状态键不是同一层（见 `node-host-bridge.ts`）。
+ */
+const STATE_NODE = 'xaihi-nodeface'
 const HANDSHAKE_TRIES = 60
 
 const root = document.getElementById('xaihi-ui-root')
@@ -42,7 +49,7 @@ if (root === null || realm === null) {
   )
 } else {
   const { bridge } = realm
-  const node = NODE
+  const node = STATE_NODE
   const state = createPersistedState({ bridge, node })
   const host = toNodeHostApi(createDocumentHost({
     bridge,
@@ -65,10 +72,10 @@ if (root === null || realm === null) {
       return
     }
     clearInterval(timer)
-    ;(globalThis as { __XAIHI_NODEFACE__?: unknown }).__XAIHI_NODEFACE__ = { host, bridge, state, node }
+    ;(globalThis as { __XAIHI_NODEFACE__?: unknown }).__XAIHI_NODEFACE__ = { host, bridge, state, node, compId: NODE }
     const Component = linedupEntry.Component
     const shell = document.createElement('div')
-    shell.dataset.xaihiNodeface = `host=bridge node=${node} granted=[${ready.granted.join(',')}]`
+    shell.dataset.xaihiNodeface = `host=bridge node=${node} comp=${NODE} granted=[${ready.granted.join(',')}]`
     root.replaceChildren(shell)
     const stateLine = document.createElement('pre')
     stateLine.dataset.xaihiNodefaceState = 'pending'

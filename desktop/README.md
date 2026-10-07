@@ -861,3 +861,19 @@ node scripts/check-doc-bridge.mjs --dist packages/ui-host/dist-nodeface
 
 还有两条装配事实顺手取到：`runner` 那句新文案在页面上读不到，是因为 profile 里那份 `file:` 拷贝还是旧的——重新 `plugin:install` 后 `cmp packages/core/lib/host-routes.js` 两侧逐字相同，页面上立刻是新的那句（**判 rc 不算数，比字节才算**）；而 `clipboard`/`runner` 的拒绝文案现在说的是量出来的原因（`runner` 指向上游提案 P1，见 `docs/upstream-proposals.md`）。
 
+## 节点状态持久那一格的活体判据：`scripts/check-nodeface-live.mjs`（2026-10-07 14:3x）
+
+```
+pnpm host                                            # 隔离宿主；core.uiBundleDir 指到 dist-nodeface（换目录要重启）
+chrome-headless-shell --no-sandbox --user-data-dir=$(mktemp -d) --remote-debugging-port=9339 about:blank &
+node scripts/check-nodeface-live.mjs                 # 五条判据；--self-check 拿六份坏读数喂它
+```
+
+五条：① 载体是 `host-http`；② 真节点组件画出来了；③ `clipboard` 没被授予时如实 `refused`；④ `downloads` 由文档自己兑现所以必须成功；⑤ **另一条新会话**读得到这一条写进去的标记（证的是落到底下而不是窗内缓存）。
+
+第一次跑是红的，红出两处：
+
+- 脚本抢在 `hydrate()` 前面写 ⇒ 对面回 `expected revision null, now 2`。现在"装载完"包含**预取落地**（等 `[data-xaihi-nodeface-state]` 离开 `pending`）。
+- 上一节说的"各写各的键就不再抢同一格"只修了一半：`SETTINGS_CONFLICT` 的围栏是**命名空间级**的（`nodeState` 整份共用一个 revision），同一份文档里 realm 自己那次探测照样把它顶上去。真缺陷在写路径——冲突后只重读版本号、不重试，等于把落盘寄托在"使用者还有下一笔写"上，**一次单独的保存会静默留在窗里**。现在 `push()` 带着重读到的版本号补一发，总共两发，再失败就停在 `syncError()`（补读与写一同有界）。减法跑测：把上界改回一发 ⇒ 两条用例全红；恢复后 rc=0。
+
+`node-face-entry.tsx` 的状态键同时换成自己的 `xaihi-nodeface`（`compId` 仍是节点名——扁名那层丢弃 `compId`）。

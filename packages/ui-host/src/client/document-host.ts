@@ -296,19 +296,34 @@ export function createPersistedState<TData extends object = Record<string, unkno
     }
     if (!dirty || data === undefined) return
     dirty = false
-    try {
-      const value = await bridge.call('state.patchData', node, JSON.stringify(data), revision) as { revision?: unknown }
-      if (typeof value?.revision === 'number') revision = value.revision
-      lastError = null
-    } catch (error) {
-      lastError = describeFailure(error)
-      // 冲突后只补一次"重读版本号"，本地那份不动：下一写因此带着外壳现在的 revision 出去，
-      // 而不是反复撞同一堵墙（无界重试在别的仓里撞到过一章 136 次）。
+    /*
+     * 冲突之后**补一发**，只补一发。
+     * 为什么必须补：`SETTINGS_CONFLICT` 那一次对面已经把新的 `revision` 说给我们了（下面就重读它），
+     * 但本地那份如果等"使用者的下一笔写"才送出去，就不一定还有下一笔——界面上看是一次成功的编辑，
+     * 实际留在窗里。2026-10-07 在真宿主上量到：`nodeState` 整份共用一个命名空间版本号，
+     * 同一份文档里另一处写（realm 装载器自己的持久探测）也会把它顶上去，所以这一撞是常态不是意外。
+     * 为什么只有一发：无界重试在别的仓里撞到过一章 136 次。第二发再失败就留在 `syncError()` 里，
+     * 由界面念出来（决定 4），不再往下试。
+     */
+    for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        const again = await bridge.call('state.getData', node) as { revision?: unknown }
-        if (typeof again?.revision === 'number') revision = again.revision
-      } catch {
-        // 连版本号都读不到：原因已经留在 syncError() 里，不再往里加噪声。
+        const value = await bridge.call('state.patchData', node, JSON.stringify(data), revision) as { revision?: unknown }
+        if (typeof value?.revision === 'number') revision = value.revision
+        lastError = null
+        return
+      } catch (error) {
+        lastError = describeFailure(error)
+        // 第二发再失败就停在这里：原因已经在 syncError() 里，既不接着撞也不再读版本号
+        // （补读次数与写次数一同有界，"只补读一次版本号"这条口径保持字面成立）。
+        if (attempt === 1) return
+        try {
+          const again = await bridge.call('state.getData', node) as { revision?: unknown }
+          if (typeof again?.revision === 'number') revision = again.revision
+          else return
+        } catch {
+          // 连版本号都读不到：原因已经留在 syncError() 里，不再往里加噪声。
+          return
+        }
       }
     }
   }

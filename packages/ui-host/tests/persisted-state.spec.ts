@@ -35,12 +35,27 @@ const rig = (options: {
   stored?: Record<string, string>
   revision?: number
   failWritesWith?: { reason: string; detail: string }
+  /** 模拟"同一个命名空间里有别人也在写"：第一发写被按冲突挡掉，版本号往前走一格。 */
+  conflictOnce?: boolean
 } = {}): Rig => {
   const calls: string[] = []
   const writes: Record<string, unknown>[] = []
   const node = options.node ?? 'sleept'
   let revision = options.revision ?? 4
+  let conflicted = false
   const stored: Record<string, string> = { 'other-node': '{"keep":1}', ...(options.stored ?? {}) }
+
+  // 冲突要么一直有（`failWritesWith`），要么只有第一发（`conflictOnce`）：
+  // 后者是 2026-10-07 在真宿主上量到的那种形状——`nodeState` 整份共用一个命名空间版本号，
+  // 同一份文档里另一处写也会把它顶上去，所以第一发撞、重读版本号那一发就该落。
+  const rejectIfNeeded = (): void => {
+    if (options.failWritesWith !== undefined) throw Object.assign(new Error('conflict'), options.failWritesWith)
+    if (options.conflictOnce === true && !conflicted) {
+      conflicted = true
+      revision += 1
+      throw Object.assign(new Error('conflict'), { reason: 'SETTINGS_CONFLICT', detail: `settings namespace "xaihi-core" changed since it was read` })
+    }
+  }
 
   const settings: SettingsFace = {
     describe: () => {
@@ -50,14 +65,14 @@ const rig = (options: {
     update: async (ns, patch) => {
       calls.push(`update:${ns}`)
       writes.push(patch)
-      if (options.failWritesWith !== undefined) throw Object.assign(new Error('conflict'), options.failWritesWith)
+      rejectIfNeeded()
       revision += 1
       return { revision }
     },
     mutate: async (_ns, ops) => {
       calls.push('mutate')
       writes.push({ ops: ops.map((op) => ({ op: op.op, path: op.path as readonly string[], value: op.value })) })
-      if (options.failWritesWith !== undefined) throw Object.assign(new Error('conflict'), options.failWritesWith)
+      rejectIfNeeded()
       revision += 1
       return { revision }
     },
@@ -141,6 +156,23 @@ describe('createPersistedState', () => {
     // 本地那份不能因为写失败就回滚：使用者看到的界面就是他自己改成的样子。
     expect(r.state.getData()).toEqual({ a: 2 })
     expect(r.calls.filter((c) => c === 'describe').length - describesBefore).toBe(1)
+    // 有界的另一面：补一发就到顶，两发都失败就停在 syncError() 里，不再往下撞。
+    expect(r.writes).toHaveLength(2)
+  })
+
+  it('冲突之后带着重读到的版本号补那一发，本地那一笔真的落下去（不等使用者的下一笔）', async () => {
+    // 真宿主上量到的形状：nodeState 整份共用一个命名空间版本号，同一份文档里另一处写会把它顶上去。
+    // 只重读版本号而不重试，等于把落盘寄托在"还有下一笔写"上——一次单独的保存就会静默留在窗里。
+    const r = rig({ stored: { sleept: '{"a":1}' }, conflictOnce: true })
+    await r.state.hydrate()
+    await r.flushMicrotasks()
+    r.state.patchData({ a: 2 })
+    await r.state.flush()
+    await r.flushMicrotasks()
+    expect(r.state.syncError()).toBeNull()
+    expect(r.writes).toHaveLength(2)
+    const values = r.writes.flatMap((w) => ((w as { ops?: { value?: unknown }[] }).ops ?? []).map((op) => op.value))
+    expect(values[values.length - 1]).toBe('{"a":2}')
   })
 
   it('工作台自己（没有节点 id）不写、也不抛，只把"没处可写"这条念出来', async () => {
