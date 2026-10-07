@@ -21,6 +21,17 @@ export interface WorkspacePlugin {
   problems?: string[]
 }
 
+/**
+ * 「这份 UI 产物里有没有问宿主的装载点」这一格的可读回状态。
+ *
+ * 为什么它要出现在清单里：入口（`src/document/main.tsx`）一旦不再调用 realm 装载，
+ * 产物**照旧能建出来、界面照旧画得出**，但每个节点的 `host` 动词问不到对面
+ * （2026-10-07 实测：两种状态的 `build:document` 都 rc=0，产物只差 28 KB）。
+ * ADR-0011 决定 4 要的是"退化在界面上读得回来"，所以这条事实必须从服务端走到那一格，
+ * 不能只活在仓库外的脚本里。
+ */
+export type HostMountState = 'present' | 'absent' | 'unreadable'
+
 /** Xaihi 自己那份 UI 文档（React 19 住在里面）的可装载信息，见 ADR-0009。 */
 export interface UiBundleFace {
   /**
@@ -32,6 +43,12 @@ export interface UiBundleFace {
   rev: string
   /** 有则代表这份文档此刻装不出来，原因要显示给使用者。 */
   problems?: string[]
+  /**
+   * 产物里有没有 host 装载点。`absent` = 文档能装、界面会画，但问宿主无处可问；
+   * `unreadable` = 连产物都读不到（此时 `problems` 已经给了那一句）。
+   * 可选是为了兼容还没发这个字段的旧宿主清单——读不到就当没说，不许猜成 `present`。
+   */
+  hostMount?: HostMountState
 }
 
 /** 工作区聚合文档。 */

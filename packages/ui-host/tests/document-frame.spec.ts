@@ -40,12 +40,37 @@ describe('planSurface：显示哪一面由事实决定，不由开关名决定',
     expect(plan.kind).toBe('in-realm')
     expect(plan.reason).toContain('产物目录读不了')
   })
+
+  it('装载点缺席**不换面**，只把这一格的事实带进 plan（界面照画，退化另说一句）', () => {
+    const plan = planSurface({ documentUrl: '/xaihi/ui/0123456789ab/index.html', rev: '0123456789ab', hostMount: 'absent' })
+    expect(plan.kind).toBe('document')
+    expect(plan.hostMount).toBe('absent')
+  })
+
+  it('清单没发 hostMount 这个字段 ⇒ plan 里没有这个键（"没说"不等于"没有"）', () => {
+    const plan = planSurface({ documentUrl: '/xaihi/ui/0123456789ab/index.html', rev: '0123456789ab' })
+    expect(Object.prototype.hasOwnProperty.call(plan, 'hostMount')).toBe(false)
+  })
 })
 
 describe('fetchSurface：读到什么算成功要说清', () => {
   it('正常清单里的 ui 被原样取出', async () => {
     const result = await fetchSurface(async () => jsonResponse({ schema: 'xaihi.workspace/1', ui: { documentUrl: '/xaihi/ui/abc/index.html', rev: 'abc' } }))
     expect(result).toEqual({ ok: true, ui: { documentUrl: '/xaihi/ui/abc/index.html', rev: 'abc' } })
+  })
+
+  it('hostMount 要穿过这一层：它是**重建对象**不是透传，漏收就是服务端说了而界面没听见', async () => {
+    const result = await fetchSurface(async () => jsonResponse({
+      ui: { documentUrl: '/xaihi/ui/abc/index.html', rev: 'abc', hostMount: 'absent' },
+    }))
+    expect(result.ok === true && result.ui?.hostMount).toBe('absent')
+  })
+
+  it('认不出的 hostMount 值按"没说"处理，不猜成 present', async () => {
+    const result = await fetchSurface(async () => jsonResponse({
+      ui: { documentUrl: '/xaihi/ui/abc/index.html', rev: 'abc', hostMount: 'probably' },
+    }))
+    expect(result.ok === true && Object.prototype.hasOwnProperty.call(result.ui, 'hostMount')).toBe(false)
   })
 
   it('缺 ui 这一格算"读到但没有"，不算读失败（两种退化文案不同）', async () => {

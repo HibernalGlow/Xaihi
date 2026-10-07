@@ -111,4 +111,27 @@ describe('MainSurface 的选择', () => {
       expect(got.runCommand).toBe(props.runCommand)
     }
   })
+
+  it('清单说产物里没有问宿主的装载点 ⇒ iframe 仍在（界面没被诊断顶掉），但上方那句话读得回来', async () => {
+    const fetcher = vi.fn(async () => jsonResponse({
+      ui: { documentUrl: '/xaihi/ui/0123456789ab/index.html', rev: '0123456789ab', hostMount: 'absent' },
+    })) as unknown as typeof fetch
+    const view = renderSurface(fetcher)
+    await waitFor(() => expect(view.container.querySelector('[data-xaihi-host-mount]')).not.toBeNull())
+    expect(view.container.querySelector('iframe.xaihi-document-frame')).not.toBeNull()
+    expect(view.container.querySelector('[data-xaihi-host-mount="absent"]')?.textContent).toContain('问不到对面')
+  })
+
+  it('正向对照：装载点在的时候不许有那句话；清单没发这个字段也不许现编一句', async () => {
+    for (const ui of [
+      { documentUrl: '/xaihi/ui/0123456789ab/index.html', rev: '0123456789ab', hostMount: 'present' },
+      { documentUrl: '/xaihi/ui/0123456789ab/index.html', rev: '0123456789ab' },
+    ]) {
+      const fetcher = vi.fn(async () => jsonResponse({ ui })) as unknown as typeof fetch
+      const view = renderSurface(fetcher)
+      await waitFor(() => expect(view.container.querySelector('iframe.xaihi-document-frame')).not.toBeNull())
+      expect(view.container.querySelector('[data-xaihi-host-mount]')).toBeNull()
+      cleanup()
+    }
+  })
 })

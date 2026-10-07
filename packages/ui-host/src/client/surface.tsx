@@ -101,7 +101,10 @@ export function MainSurface(props: SurfaceProps): ReactElement {
   if (plan.kind === 'document') {
     // 能力面由装配侧给（`shellCapsFrom`）；没给到的那几组会带着自己的退化原因穿到桥对面，
     // 而不是在这里现编一个假实现——文档那侧读到的 refused 是有名字的。
-    return <DocumentFrame documentUrl={plan.documentUrl} caps={caps ?? {}} />
+    // 两个分支只差那一句退化说明在不在：清单没发 `hostMount` 时不传这个键
+    // （`exactOptionalPropertyTypes` 下传 `undefined` 是类型错，语义上也不该把"没说"说成"没有"）。
+    if (plan.hostMount === undefined) return <DocumentFrame documentUrl={plan.documentUrl} caps={caps ?? {}} />
+    return <DocumentFrame documentUrl={plan.documentUrl} caps={caps ?? {}} hostMount={plan.hostMount} />
   }
   const InRealm = inRealm
   return (

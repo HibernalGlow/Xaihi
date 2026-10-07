@@ -8,7 +8,10 @@ import { defineConfig } from 'tsdown'
  * 这条意图由 tests/bundle.spec.ts 用产物断言守住，不靠默认行为。
  */
 export default defineConfig({
-  entry: ['src/index.ts', 'src/registry.ts', 'src/routes.ts'],
+  // `host-routes.ts` 单列一份：`scripts/check-doc-bridge.mjs` 要 import 的是**生产那份判据**
+  // （`detectHostMount`），线下尺与服务端判据必须是同一份判断。这份清单是显式的——
+  // 不写进来就不会出现在 lib/，症状是脚本一跑就 ERR_MODULE_NOT_FOUND（与 `src/routes.ts` 同一条理由）。
+  entry: ['src/index.ts', 'src/registry.ts', 'src/routes.ts', 'src/host-routes.ts'],
   outDir: 'lib',
   format: ['esm'],
   platform: 'node',

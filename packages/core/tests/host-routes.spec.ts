@@ -4,10 +4,13 @@
  * 每条防御都配一条"拆掉防御就必须变绿"的对照（尤其越界写那条）——
  * 否则一个无条件拒绝的判据也能长得一模一样，而它守的不是边界。
  */
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { Readable } from 'node:stream'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   BRIDGE_CONTRACT_VERSION,
   BRIDGE_MAX_MESSAGE_BYTES,
@@ -16,7 +19,15 @@ import {
   STATE_SETTINGS_NS,
   type BridgeMethod,
 } from '@hibernalglow/xaihi-sdk/bridge'
-import { HOST_PATH, hostBridgeHandler, xaihiNamespaces, type SettingsServiceLike } from '../src/host-routes.ts'
+import {
+  HOST_MOUNT_ENTRY,
+  HOST_MOUNT_MARKERS,
+  HOST_PATH,
+  detectHostMount,
+  hostBridgeHandler,
+  xaihiNamespaces,
+  type SettingsServiceLike,
+} from '../src/host-routes.ts'
 
 const SID = 'ab'.repeat(16)
 
@@ -319,5 +330,33 @@ describe('/xaihi/host 的载体判据', () => {
     expect(a.body.value.json).toBe('{"marks":["a"]}')
     expect(b.body.id).toBe('id-second')
     expect(b.body.value.json).toBe('{"secret":1}')
+  })
+})
+
+describe('detectHostMount：这份产物里到底有没有问宿主的装载点', () => {
+  // 夹具按用例建、按用例拆：`afterEach` 在**每个**用例之后跑，只在 describe 开头建一次的话，
+  // 第一个用例就把目录删掉了，后面两条读到的是 ENOENT（实机红过一次）。
+  let fixture = ''
+  beforeEach(() => { fixture = mkdtempSync(join(tmpdir(), 'xaihi-hostmount-')) })
+  afterEach(() => { rmSync(fixture, { recursive: true, force: true }) })
+
+  it('判据用的字面串与桥契约是同一份，不是脚本里另抄的常量', () => {
+    expect(HOST_MOUNT_MARKERS[0]).toBe(BRIDGE_SCHEMA)
+    expect(HOST_MOUNT_MARKERS[1]).toBe('host-http')
+  })
+
+  it('入口产物里两个串都在 ⇒ present', () => {
+    writeFileSync(join(fixture, HOST_MOUNT_ENTRY), `const a="${HOST_MOUNT_MARKERS[0]}";const b="${HOST_MOUNT_MARKERS[1]}";`)
+    expect(detectHostMount(fixture)).toBe('present')
+  })
+
+  it('剥掉载体那一串 ⇒ absent（阳性对照：只剩契约号不算接上）', () => {
+    writeFileSync(join(fixture, HOST_MOUNT_ENTRY), `const a="${HOST_MOUNT_MARKERS[0]}";const b="postMessage";`)
+    expect(detectHostMount(fixture)).toBe('absent')
+  })
+
+  it('入口产物读不到 / 目录没配 ⇒ unreadable，不许与 absent 混成一句', () => {
+    expect(detectHostMount(join(fixture, 'nope'))).toBe('unreadable')
+    expect(detectHostMount('')).toBe('unreadable')
   })
 })

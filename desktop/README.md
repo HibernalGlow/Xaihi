@@ -799,3 +799,31 @@ node scripts/check-doc-bridge.mjs --self-check         # 三条阳性对照
 改完在冷加载的真页面里复跑一次，判据代码是**从 `live-check.mjs` 原文抽出来再求值**的（不是另抄一份同款调用）：**7 条 OK + 1 条 SKIP**（`booted` 属 Electron 侧）。读数：`载体=host-http`、`granted=[contract,state,config]`、`settingsNs=xaihi-core`、`hasEnv=false`、`wrote=ok`、`readBack` 里 `revision=4` 带着本次标记、越界写 `namespace-not-allowed`、越界读 `config-namespace-missing`、同一份产物嵌进 `<iframe>` 时换回 `载体=postMessage`。
 
 **Electron 那一格（真顶层窗里的 Q 段）仍然没跑**——按使用者的要求要另开工位；上面这些是在无窗口浏览器里对着真宿主、真设置服务取的。收尾读数：3199 / 9339 / 19387 / 9229 监听数各 0，`chrome-headless-shell` 残留 0；`ps` 里那 7 条带 `Electron` 的是使用者自己的 App，一条没动。
+
+## 「产物里没有装载点」这句现在在产品界面上（2026-10-07 13:3x）
+
+上一节那把尺在仓库外。判据本身搬进了生产代码，**只有一份**：
+
+| 落点 | 是什么 |
+|---|---|
+| `packages/core/src/host-routes.ts` | `HOST_MOUNT_MARKERS`（`xaihi.bridge/1`、`host-http`）+ `detectHostMount(dir)`，只看入口 `main.js` |
+| `/xaihi/manifest.json` | `ui.hostMount = "present" \| "absent" \| "unreadable"`（`UiBundleFace` 的可选字段；没发就当"没说"） |
+| `packages/ui-host/src/client/document-frame.tsx` | 缺席时**不换面**：iframe 保留，上方补一句 `[data-xaihi-host-mount="absent"]` |
+| `scripts/check-doc-bridge.mjs` | 变成那份生产判据的 CLI 外壳；`--self-check` 多一条 lib 与 src 不许漂移的对照 |
+
+实机两向（无窗口 Chromium + 隔离开发宿主；带令牌入口只从这条宿主自己的 stdout 取）：
+
+```
+uiBundleDir=dist-ui     ⇒ 清单 {"rev":"23d316f7d813","hostMount":"absent"}
+                          屏上 data-xaihi-host-mount="absent" + 那句"…问不到对面…"
+                          iframe.src 仍是 /xaihi/ui/23d316f7d813/index.html（界面没被顶掉）
+uiBundleDir=dist-realm  ⇒ 清单 hostMount="present"，屏上那句消失，iframe 还在
+```
+
+三条从实机掉出来的装配事实：
+
+- **`fetchSurface` 是重建对象，不是透传**。第一版没按值收 `hostMount`，jsdom 里只渲染出 iframe——服务端说了，界面没听见。现在有两条例子钉它：字段要穿过来；认不出的值按"没说"处理（不猜 `present`）。
+- **`tsdown.config.ts` 的 `entry` 是显式清单**：`src/host-routes.ts` 不写进去就没有 `lib/host-routes.js`，症状是脚本一跑 `ERR_MODULE_NOT_FOUND`（`src/routes.ts` 当年同一条理由）。
+- **减法跑测要确认扰动真落地**：`perl -pi -e 's/host-http/host-XX/'` 不带 `/g` 只换第一处，而第一处在我写的注释里 ⇒ 对照照绿。把扰动落到数组那一行之后才红（`× … lib=["xaihi.bridge/1","host-XX"] src=[…]`），恢复后 rc=0。
+
+`pnpm plugin:install` 仍 rc=1（别人删掉的那个包在 `bundleManifest` 里炸），但拷贝确实落地了——判投递只比 sha：`packages/ui-host/lib/client.js` 与 profile 那份都是 `cf865dcd…`。客户端表是 boot 时组合的，所以换了 `client.js` **必须重启宿主**，否则症状是"改了没生效"。

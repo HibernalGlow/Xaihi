@@ -23,7 +23,7 @@ import Schema from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { buildRegistrations, buildWorkspaceDocument, computeRev, type ServedRegistration } from './registry.ts'
 import { manifestHandler, remoteHandler, uiBundleHandler, UI_PATH_PREFIX, type UiBundleSource } from './routes.ts'
-import { HOST_PATH, hostBridgeHandler, xaihiNamespaces, type SettingsServiceLike } from './host-routes.ts'
+import { HOST_PATH, detectHostMount, hostBridgeHandler, xaihiNamespaces, type SettingsServiceLike } from './host-routes.ts'
 import type { UiBundleFace } from '@hibernalglow/xaihi-sdk'
 import { createJournal, operationsSnapshotHandler, operationsStreamHandler } from './operations.ts'
 import { historyHandler, openLedger, type DomainFacilityLike, type RunLedger } from './history.ts'
@@ -373,12 +373,15 @@ export function apply(ctx: HostContext, config: Config): void {
   const uiFace = (): UiBundleFace => {
     const rev = uiSource.rev()
     if (rev === 'missing') {
-      return { documentUrl: '', rev, problems: ['xaihi ui bundle is not configured (config core.uiBundleDir is empty)'] }
+      return { documentUrl: '', rev, problems: ['xaihi ui bundle is not configured (config core.uiBundleDir is empty)'], hostMount: 'unreadable' }
     }
     if (rev === 'unreadable') {
-      return { documentUrl: '', rev, problems: [`xaihi ui bundle directory is not readable: ${config.uiBundleDir}`] }
+      return { documentUrl: '', rev, problems: [`xaihi ui bundle directory is not readable: ${config.uiBundleDir}`], hostMount: 'unreadable' }
     }
-    return { documentUrl: `${UI_PATH_PREFIX}/${rev}/index.html`, rev }
+    // 产物装得出来 ≠ 里面有人问宿主。入口丢了 realm 装载时，界面照样画、每个节点的
+    // host 动词都问不到对面，而 `build:document` 是绿的（2026-10-07 实测两种字节形态差 28 KB）
+    // ⇒ 这条事实必须跟着清单出门，界面上才读得回来（ADR-0011 决定 4）。
+    return { documentUrl: `${UI_PATH_PREFIX}/${rev}/index.html`, rev, hostMount: detectHostMount(config.uiBundleDir) }
   }
   const source = {
     registrations: snapshot,

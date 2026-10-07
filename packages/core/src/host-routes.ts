@@ -22,7 +22,9 @@
  * @module xaihi-core/host-routes
  */
 
+import { readFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { join } from 'node:path'
 import {
   BRIDGE_MAX_MESSAGE_BYTES,
   BRIDGE_REQUEST_TIMEOUT_MS,
@@ -30,6 +32,7 @@ import {
   createShellBridge,
   parseBridgeMessage,
   type BridgeMessage,
+  type HostMountState,
   type NodeCapabilityId,
   type SettingsFace,
   type SettingsPathOp,
@@ -38,6 +41,39 @@ import {
 
 /** 这条路由的路径（文档侧 `boot.apiBase + '/host'` 必须与它逐字一致）。 */
 export const HOST_PATH = '/xaihi/host'
+
+/**
+ * 判"这份 UI 产物里有没有问宿主的装载点"要搜的字面串。
+ *
+ * 为什么搜字符串而不是函数名：产物是 `mode: 'production'` 出来的，标识符会被改名，
+ * `mountSettingsFace` / `startRealm` 这类名字在字节里根本不存在（实测搜不到≠没接线）。
+ * 留得下来的是字符串字面量：`xaihi.bridge/1` 是桥的契约号（两种载体都带），
+ * `host-http` 是顶层窗那条载体的名字（只在 `realm.ts` 选载体那一行出现）。
+ * 两个都要在——只有契约号可能是别的桥代码进来了而没人选载体。
+ */
+export const HOST_MOUNT_MARKERS = ['xaihi.bridge/1', 'host-http'] as const
+
+/** 被检的那份入口产物文件名（`rspack.document.mjs` 与 `rspack.realm.mjs` 都出这个名字）。 */
+export const HOST_MOUNT_ENTRY = 'main.js'
+
+/**
+ * 读一份 UI 产物目录，判它有没有 host 装载点。
+ *
+ * 只看入口那一份：装载点必须由入口引到图里才会跑，别的 chunk 里有那些串而入口没引它，
+ * 等于没接（这条与 `scripts/check-doc-bridge.mjs` 同一条判据，两边共用上面那对字面串）。
+ * @param dir - `core.uiBundleDir` 指的那份产物目录。
+ * @returns `present` / `absent` / `unreadable`（目录没配、文件读不到都算 `unreadable`）。
+ */
+export function detectHostMount(dir: string): HostMountState {
+  if (dir === '') return 'unreadable'
+  let text: string
+  try {
+    text = readFileSync(join(dir, HOST_MOUNT_ENTRY), 'utf8')
+  } catch {
+    return 'unreadable'
+  }
+  return HOST_MOUNT_MARKERS.every((marker) => text.includes(marker)) ? 'present' : 'absent'
+}
 
 /** 会话号形状：文档侧用 `crypto.getRandomValues` 造的十六进制串。形状不合就整条拒。 */
 export const HOST_SID_PATTERN = /^[0-9a-f]{16,64}$/

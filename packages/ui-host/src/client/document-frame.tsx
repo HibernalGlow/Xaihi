@@ -15,7 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import type { UiBundleFace } from '@hibernalglow/xaihi-sdk/bridge'
+import type { HostMountState, UiBundleFace } from '@hibernalglow/xaihi-sdk/bridge'
 import { wireShellToFrame, type ShellCapabilities } from '@hibernalglow/xaihi-sdk/bridge'
 
 /** 这一格此刻该显示哪一面。 */
@@ -25,7 +25,15 @@ export interface SurfacePlan {
   documentUrl: string
   /** 为什么是这一面——两种都要能读回来，退化不是"什么都没发生"。 */
   reason: string
+  /**
+   * 产物里有没有问宿主的装载点（只在 `document` 那一面有意义）。
+   * `undefined` = 宿主清单还没发这个字段（旧产物），按"没说"处理：不显示那句话，也不假装它在。
+   */
+  hostMount?: HostMountState
 }
+
+/** 那句退化说明：文档装得出来、界面也画得出，但节点界面无处可问宿主。 */
+export const HOST_MOUNT_ABSENT_REASON = '这份文档产物里没有问宿主的装载点：界面画得出，但每个节点的 host 动词问不到对面（入口没起那座桥）。产物重新建出来之后这一句自己消失。'
 
 /**
  * 按宿主清单里那份 `ui` 面决定这一格显示什么。
@@ -42,7 +50,12 @@ export function planSurface(ui: UiBundleFace | undefined): SurfacePlan {
   if (ui.problems && ui.problems.length > 0) {
     return { kind: 'in-realm', documentUrl: '', reason: ui.problems.join('；') }
   }
-  return { kind: 'document', documentUrl: ui.documentUrl, reason: 'Xaihi 文档已就绪' }
+  // 装载点缺席时**不换面**：工作台是真画得出来的那一面，把它撤掉等于用一个诊断遮住能用的界面。
+  // 决定 4 要的是"退化读得回来"，所以那句话加在旁边，而不是把界面换成一句说明。
+  // 没发这个字段的旧清单按"没说"处理：不放这个键（`exactOptionalPropertyTypes` 下塞 `undefined` 是类型错，
+  // 而语义上"没说"也不等于"没有"）。
+  const ready: SurfacePlan = { kind: 'document', documentUrl: ui.documentUrl, reason: 'Xaihi 文档已就绪' }
+  return ui.hostMount === undefined ? ready : { ...ready, hostMount: ui.hostMount }
 }
 
 /** 清单里那条 `ui` 面的读取结果：字段缺失与读不到是两件事，分开报。 */
@@ -76,12 +89,25 @@ export async function fetchSurface(fetcher: typeof fetch, path = '/xaihi/manifes
   if (typeof parsed !== 'object' || parsed === null) return { ok: true, ui: undefined }
   const ui = (parsed as { ui?: unknown }).ui
   if (typeof ui !== 'object' || ui === null) return { ok: true, ui: undefined }
-  const face = ui as { documentUrl?: unknown; rev?: unknown; problems?: unknown }
+  const face = ui as { documentUrl?: unknown; rev?: unknown; problems?: unknown; hostMount?: unknown }
   if (typeof face.documentUrl !== 'string' || typeof face.rev !== 'string') {
     return { ok: false, reason: '清单里的 ui 形状不对（documentUrl / rev 缺一个）' }
   }
   const problems = Array.isArray(face.problems) ? face.problems.filter((row): row is string => typeof row === 'string') : undefined
-  return { ok: true, ui: { documentUrl: face.documentUrl, rev: face.rev, ...(problems && problems.length > 0 ? { problems } : {}) } }
+  // `hostMount` 要**按值收**再放进行：这一层是重建对象而不是原样透传，漏了这一步就是
+  // 服务端说了、界面没听见（实机症状：产物里没有装载点而那一格安静地画着工作台）。
+  // 认不出的值按"没说"处理，不猜成 present。
+  const hostMount: HostMountState | undefined =
+    face.hostMount === 'present' || face.hostMount === 'absent' || face.hostMount === 'unreadable' ? face.hostMount : undefined
+  return {
+    ok: true,
+    ui: {
+      documentUrl: face.documentUrl,
+      rev: face.rev,
+      ...(problems && problems.length > 0 ? { problems } : {}),
+      ...(hostMount === undefined ? {} : { hostMount }),
+    },
+  }
 }
 
 export interface DocumentFrameProps {
@@ -92,6 +118,11 @@ export interface DocumentFrameProps {
   caps: ShellCapabilities
   /** 显示给使用者的退化文案（`in-realm` 那条路径用它）。 */
   reason?: string
+  /**
+   * 产物里有没有问宿主的装载点（`absent` 时在那一格上方补一句）。
+   * `undefined` 按"没说"处理：不补句子，也不说它有。
+   */
+  hostMount?: HostMountState
 }
 
 /**
@@ -126,13 +157,22 @@ export function DocumentFrame(props: DocumentFrameProps): ReactElement {
   }
   const src = props.node ? `${plan.documentUrl}?node=${encodeURIComponent(props.node)}` : plan.documentUrl
   return (
-    <iframe
-      ref={ref}
-      className="xaihi-document-frame"
-      data-xaihi-surface="document"
-      src={src}
-      title="Xaihi"
-      style={{ width: '100%', height: '100%', minHeight: 360, border: 0 }}
-    />
+    <>
+      {props.hostMount === 'absent' ? (
+        /* 这一句是给使用者看的，不是给控制台：文档装得出来、界面画得出来，但节点界面问不到宿主，
+           症状会是"点了没反应"。决定 4 要求这种退化在界面上读得回来。 */
+        <div className="xaihi-notice xaihi-host-mount-absent" data-xaihi-host-mount="absent" role="status">
+          {HOST_MOUNT_ABSENT_REASON}
+        </div>
+      ) : null}
+      <iframe
+        ref={ref}
+        className="xaihi-document-frame"
+        data-xaihi-surface="document"
+        src={src}
+        title="Xaihi"
+        style={{ width: '100%', height: '100%', minHeight: 360, border: 0 }}
+      />
+    </>
   )
 }
