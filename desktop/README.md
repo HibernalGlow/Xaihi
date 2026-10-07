@@ -762,10 +762,40 @@ ADR-0011 拍的是路线 (A)：**节点界面要的 `host` 由 Xaihi 自己的�
 
 还有一条**验证渠道本身**值得记：这条链不需要桌面也能验——用 Playwright 缓存里的 `chrome-headless-shell`（`--virtual-time-budget=15000 --dump-dom`）打隔离开发宿主的 `/xaihi/ui/<rev>/index.html?node=…`，DOM 里直接读回 `data-xaihi-host-roundtrip="crossed"` 与能力清单；`?node=Not-A-Node` 则连文档都出不来，对面回 `node must be a manifest id matching …`。以后凡是「文档 + 自己服务面」这条链的改动，先走这条，别去占使用者的桌面。
 
-判据也跟上：`live-check` 的 Q 段现在会等那块板从 `pending` 落地（页内轮询，12 秒上限）再断 `roundtrip=crossed`。无 GUI 那侧另有一条硬证据：起隔离宿主后按 manifest 给的 rev 取 `/xaihi/ui/<rev>/main.js`（218,366 B），两个 `data-xaihi-host-*` 口子与 `config.getUi` 那句都在里面——发出去的产物带上了消费点，不是只有本地 dist 编好。
+判据也跟上：`live-check` 的 Q 段会等板上那两行往返落地（页内轮询，12 秒上限）再断——**这一条下面那节（12:5x—13:1x）把它改过：读的是协商板 `[data-xaihi-bridge]` 而不是探针专属的 `data-xaihi-host-roundtrip`，且"等板"排在脚本自己写 state 之前**。无 GUI 那侧另有一条硬证据：起隔离宿主后按 manifest 给的 rev 取 `/xaihi/ui/<rev>/main.js`（218,366 B），两个 `data-xaihi-host-*` 口子与 `config.getUi` 那句都在里面——发出去的产物带上了消费点，不是只有本地 dist 编好。
 
 再往前一格：`/xaihi/host` 现在**有真消费点**了——`packages/ui-host/src/document/host-probe.ts` 的 `runHostRoundTrip` 在 realm 装载器握手之后跑一次九组 `host` 面的往返，板上念得出能力、`config.getUi` 的对面读数、`state crossed` 与没给的原因；`data-xaihi-host-roundtrip` 是活体判据的读回口子。它今天是这条路线唯一进得了产物的消费点，因为生产入口 `main.tsx` 被搬运那刀改成只挂 `<App />`（见下一节撞车）。
 
 再加一条测：`packages/core/tests/host-route-over-http-bridge.spec.ts` 走真套接字把 **文档侧 HTTP 载体 ↔ `/xaihi/host` ↔ 命名空间闸 ↔ 设置面** 串起来（6 条，两侧都是生产代码）。它存在的原因是两边各自单测都绿时，中间仍可能差一个字节（sid 参数、应答的 `id` 回填、握手之后才成立的授权集）。
 
-一条本轮从实机掉出来的教训：超限分支里 `req.destroy()` 会把**响应**一起毁掉——假 `res` 收得到 `writeHead`，真 socket 上 curl 只读到 `000`。判据因此改成真 HTTP 服务器跑（`host-routes.spec.ts` 里那条 413），并另跑一次活体 `curl` 复核（413 到得了对面）。顺带一条装配事实：`uiBundleDir` 是请求期现读的，改产物**不用重启宿主**，但 `file:` 装的包要 `dsh plugin --profile xaihi install` 重投并 `shasum` 比过才算数（本轮比到过 `51a59cc0` 两侧一致）。
+一条本轮从实机掉出来的教训：超限分支里 `req.destroy()` 会把**响应**一起毁掉——假 `res` 收得到 `writeHead`，真 socket 上 curl 只读到 `000`。判据因此改成真 HTTP 服务器跑（`host-routes.spec.ts` 里那条 413），并另跑一次活体 `curl` 复核（413 到得了对面）。顺带一条装配事实：`uiBundleDir` 指的那个**目录里的文件**是请求期现读的，换产物不用重启宿主；但**换目录**要重启（13:0x 实测：把 `dist-ui` 改成 `dist-realm`，manifest 的 rev 直到重启之前都还停在旧目录那一串）。`file:` 装的包要 `dsh plugin --profile xaihi install` 重投并 `shasum` 比过才算数（本轮比到过 `51a59cc0` 两侧一致）。
+
+## 路线 (A) 的生产消费点：量到了两种状态，并配了一把尺（2026-10-07 12:5x—13:1x，无 GUI）
+
+上一条里那句"生产入口 `main.tsx` 没落进去、等使用者定"今天变成了读数：**落进去过，又被抹掉过，两次都是绿的构建**。
+
+| 状态 | 产物 | 字节尺（`xaihi.bridge/1` / `host-http`） | 屏幕上 |
+|---|---|---|---|
+| 装上（rev `e21b08875b29`） | `dist-ui/main.js` 1,413,786 B | 命中 2 / 1 | 工作台渲染（`xiranite-topbar`，DOM 56,020 B）**且**协商板 `载体=host-http · granted=[contract, state, config] · config.get 往返成功 10ms · state 半边…刷后=ok` |
+| 没装（12:54 与 13:05 两次） | 1,385,029 / 1,385,125 B | 135 份 .js 里命中 **0** | 工作台照样渲染，页面上没有任何 host 面 |
+
+`build:document` 两种状态都 rc=0，差的 28 KB 就是整座桥——**症状不在构建期也不在界面上**，所以判据只能落在产物字节上。尺在 `scripts/check-doc-bridge.mjs`：
+
+```
+node scripts/check-doc-bridge.mjs                      # 量 dist-ui
+node scripts/check-doc-bridge.mjs --dist packages/ui-host/dist-realm
+node scripts/check-doc-bridge.mjs --self-check         # 三条阳性对照
+```
+
+三条对照分别钉：两个串都在=绿、只留契约号（有人起了桥但没人选载体）=红、目录里只有 `.css`（看不见）=红；另外拿真产物做减法跑过一次——复制那份 1.4 MB 把两串换掉 ⇒ rc=1 并点名"入口要调用 realm 装载"。它**故意还没接进 `pnpm test`**：读的是搬运 lane 正在重写的入口，接线时机与 `check:brand`、`check-node-face` 同一档。
+
+同一轮的另一条假绿：`dist-realm/` 被整份拷成了 `dist-ui/` 的副本，两边 main.js sha256 逐字节相同（`d395978cd3b0…`，另一组 `826691b63cace…`），145 个文件里 135 份 `.js`。`rm -rf dist-realm` 后按 `rspack.realm.mjs` 重建才回到 1 份 `.js` / 218,366 B。**目录在不在不算证据，字节才算。**
+
+`live-check` 的 Q 段跟着改两处，两处都是当场抓到自己写错：
+
+1. 判据源从探针专属的 `[data-xaihi-host-roundtrip]` 换成**两份入口都有**的协商板 `[data-xaihi-bridge]`（等 `config.get` 与 `state 半边` 两行落地）。第一版取 `text.slice(0, 900)`，而那两行正好在 900 字之后 ⇒ 判据恒红；改成按行挑。
+2. 顺序：先等板落地，再由脚本写 `state.patchData`。反过来抢同一个 `nodeState` 格时，板上会落 `刷后=失败 threw · settings namespace "xaihi-core" changed since it was read (expected revision 1, now 2)`——那是 `expectedRevision` 围栏在正常工作，不是路由不通，但一条红会被读成断路。
+
+改完在冷加载的真页面里复跑一次，判据代码是**从 `live-check.mjs` 原文抽出来再求值**的（不是另抄一份同款调用）：**7 条 OK + 1 条 SKIP**（`booted` 属 Electron 侧）。读数：`载体=host-http`、`granted=[contract,state,config]`、`settingsNs=xaihi-core`、`hasEnv=false`、`wrote=ok`、`readBack` 里 `revision=4` 带着本次标记、越界写 `namespace-not-allowed`、越界读 `config-namespace-missing`、同一份产物嵌进 `<iframe>` 时换回 `载体=postMessage`。
+
+**Electron 那一格（真顶层窗里的 Q 段）仍然没跑**——按使用者的要求要另开工位；上面这些是在无窗口浏览器里对着真宿主、真设置服务取的。收尾读数：3199 / 9339 / 19387 / 9229 监听数各 0，`chrome-headless-shell` 残留 0；`ps` 里那 7 条带 `Electron` 的是使用者自己的 App，一条没动。

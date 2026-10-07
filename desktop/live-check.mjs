@@ -972,6 +972,33 @@ const Q = await evaluateMain(`(async () => {
   Object.assign(steps, await grab('readyShape', '(() => { const pack = window.__XAIHI_REALM__; const r = (pack && pack.bridge.ready()) || null;'
     + ' if (r === null) return null;'
     + ' return { granted: r.granted, refused: r.refused, settingsNs: r.settingsNs || null, hasEnv: Object.prototype.hasOwnProperty.call(r, "env") }; })()'))
+  // 板上的往返：realm.ts 在握手之后自己跑两次（config.get 与 state 那一半），都往
+  // [data-xaihi-bridge] 那块板上写。等的是产物里那块板，不是脚本造的对象——
+  // 所以它同时证了「这条路线真进得了产物」。为什么不再等 data-xaihi-host-roundtrip：
+  // 那块板属于 realm 探针入口（realm-entry.tsx），而上线形态的入口（main.tsx）挂的是
+  // 工作台；协商板由 realm.ts 写，两份入口都有，判据因此不押在哪一份产物上。
+  // 探针那块板仍然读出来放进 roundtrip（读数在场，断言不看它）。
+  // 顺序也算判据的一部分：这一步必须在下面那两次写之前跑完——页面自己那半边的 state 探测
+  // 与本检查写的是同一个 nodeState 格，带 expectedRevision 的写会撞（实机：板上落成
+  // 「刷后=失败 threw · settings namespace "xaihi-core" changed since it was read」，
+  // 那是围栏在正常工作，不是路由不通）。等到板上的往返写完再动手，两边就不抢了。
+  const WAIT_HOST = "(() => new Promise((res) => { let n = 0;"
+    + " const pick = (t) => t.split('\\n').filter((l) => l.indexOf('config.get') >= 0 || l.indexOf('state 半边') >= 0).join(' | ');"
+    + " const t = setInterval(() => {"
+    + "  const el = document.querySelector('[data-xaihi-bridge]');"
+    + "  n += 1;"
+    + "  const text = el ? String(el.textContent) : '';"
+    + "  const probe = document.querySelector('[data-xaihi-host-roundtrip]');"
+    + "  const roundtrip = probe ? probe.getAttribute('data-xaihi-host-roundtrip') : null;"
+    + "  if (text.includes('config.get 往返') && text.includes('state 半边')) {"
+    + "   clearInterval(t); res({ text: pick(text), roundtrip }); return;"
+    + "  }"
+    + "  if (text.includes('config.get 没走通') || text.includes('半边没走通')) {"
+    + "   clearInterval(t); res({ text: pick(text), roundtrip, failed: true }); return;"
+    + "  }"
+    + "  if (n > 40) { clearInterval(t); res({ text: pick(text), roundtrip, timedOut: true }); }"
+    + " }, 300); }))()"
+  Object.assign(steps, await grab('hostBoard', WAIT_HOST))
   const marker = 'q-' + String(Date.now())
   const payload = JSON.stringify({ marks: [marker] })
   Object.assign(steps, await grab('wrote', 'window.__XAIHI_REALM__.bridge.call("state.patchData", ' + JSON.stringify(node) + ', ' + JSON.stringify(payload) + ')'
@@ -982,22 +1009,6 @@ const Q = await evaluateMain(`(async () => {
     + '.then((v) => "RESOLVED " + JSON.stringify(v), (e) => "REJECTED: " + String((e && e.reason) || e))'))
   Object.assign(steps, await grab('foreignRead', 'window.__XAIHI_REALM__.bridge.call("config.getUi", "llm")'
     + '.then(() => "RESOLVED", (e) => "REJECTED: " + String((e && e.reason) || e))'))
-  // 板上的 host 往返：realm 装载器在握手之后自己会跑一次（host-probe.ts），这里只等它落地再读。
-  // 等的是产物里那块板，不是脚本造的对象——所以它同时证了「这条路线真进得了产物」。
-  const WAIT_HOST = "(() => new Promise((res) => { let n = 0;"
-    + " const t = setInterval(() => {"
-    + "  const el = document.querySelector('[data-xaihi-host-roundtrip]');"
-    + "  n += 1;"
-    + "  if (el !== null && el.getAttribute('data-xaihi-host-roundtrip') !== 'pending') {"
-    + "   clearInterval(t);"
-    + "   res({ roundtrip: el.getAttribute('data-xaihi-host-roundtrip'),"
-    + "    caps: el.getAttribute('data-xaihi-host-capabilities') || '',"
-    + "    text: String(el.innerText).slice(0, 300) });"
-    + "   return;"
-    + "  }"
-    + "  if (n > 40) { clearInterval(t); res(null); }"
-    + " }, 300); }))()"
-  Object.assign(steps, await grab('hostBoard', WAIT_HOST))
   // 反向对照：同一份产物被嵌进 iframe 时必须换回 postMessage 载体——选载体按容器，不是写死的字符串。
   const IFRAME = "(() => new Promise((res) => {"
     + " const frame = document.createElement('iframe');"
@@ -1235,9 +1246,10 @@ need('Q: 越界命名空间的写在窗里被拒，原因点名那条闸',
   String(qs.foreignWrite).startsWith('REJECTED: namespace-not-allowed'))
 need('Q: 越界命名空间的读回 config-namespace-missing（别人的行不发出去）',
   qs.foreignRead === 'REJECTED: config-namespace-missing')
-need('Q: 板上的 host 往返真跨到对面（产物里的板，不是脚本造的对象）',
-  qs.hostBoard?.roundtrip === 'crossed' && String(qs.hostBoard?.caps).includes('config')
-  && String(qs.hostBoard?.caps).includes('state') && String(qs.hostBoard?.text).includes('config.getUi'))
+need('Q: 板上的两条往返真跨到对面（config.get 走了一个来回、state 那半边刷出去没报错）',
+  String(qs.hostBoard?.text).includes('config.get 往返成功')
+  && String(qs.hostBoard?.text).includes('刷后=ok')
+  && String(qs.hostBoard?.text).includes('没走通') === false)
 need('Q: 反向对照——同一份产物被嵌进 iframe 时换回 postMessage 载体',
   typeof qq.iframeCarrier === 'string' && qq.iframeCarrier.includes('载体=postMessage'))
 need('Q: 收尾把自家窗清干净', qq.ownedLeft === 0)
