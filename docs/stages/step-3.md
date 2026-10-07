@@ -23,7 +23,8 @@
 
 - `pnpm test` 全绿：`create-xaihi-plugin 4 / node-sdk 17 / ui-host 5 / core 22`，`check-pins OK`。
 - `dsh plugin --profile xaihi add file:…/plugins/linedup` ⇒ `ADD_RC=0`；`/xaihi/manifest.json` 现在两个插件、`problems: None`；linedup 的 `remoteEntry.js` 与同级 chunk 各 200。
-- headless agent 真调用生成的工具：
+- headless agent 真调用生成的工具（**后续更正**：这一条当时被当成验收门槛，其实模型不是必需的调用方——
+  工具与面板/命令共用同一个 `invoke()`；门槛的替代判据见 ADR-0016。下面那次跑动的读数仍然有效，只是降级成额外证）：
   `linedup_filter(sourceText=zebra/apple/zebra/drop-ZZZ, filterText=drop)` ⇒
   ```
   linedup · kept 2, removed 1

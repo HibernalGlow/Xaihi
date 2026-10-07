@@ -39,6 +39,33 @@
 - **feed（运行回显）**：壳状态栏里那一条最近运行。传输方式如实标出来（`data-transport="live|polling|offline"`），退到轮询就写轮询，不假装实时。
 - **inhibitor（睡眠拦截）**：sleept 里"养一个活着的子进程来阻止系统休眠"这件事的统称。两平台同形：mac 是 `caffeinate`，Windows 是调 `SetThreadExecutionState` 的 PowerShell —— **状态随进程消失**，所以解除 = 杀进程，宿主退出也必须杀（`ctx.effect`）。
 - **locale-proof 解析**：解析外部命令输出时只依赖 ASCII token、GUID/十六进制形状与位置，不读任何本地化标签、不假设控制台编码。判据来自真机（zh-CN Windows 的 `powercfg` 与 GBK 字节输出）。
+## 配置面
+
+真源与判据在 `docs/adr/0013-config-goes-through-dsh-settings.md`；这一节只放词。
+
+- **settings 面**：DSH 的标准配置通路，一个名字两个半边——服务侧 `ctx.settings`（`SettingsForms`），
+  客户端侧 `ctx.remote.settings`。**Xaihi 不自带配置文件**：上游那个 `xiranite.config.toml` 连同它的
+  HTTP/RPC 读写面整块不接。
+- **namespace（`ns`）**：一条配置的所有者，**就是 profile 里那条 entry 的 id**（`ui-xaihi`、`xaihi-findz`），
+  不是我们自己起的名字。声明仍然是每个包自己的 `Config = Schema.object({…})`。
+- **revision / expectedRevision**：`revision` 是该 entry 配置的单调计数，写的时候当乐观并发令牌原样送回；
+  令牌过期抛 `SETTINGS_CONFLICT`（带 `expected` / `actual`）。冲突是**可读回的状态**，不是"操作失败"那种 toast。
+- **脱敏读（redactSecrets）**：远程读永远脱敏，`secrets[].set` 只回答"这个槽配过没有"，值从不上线。
+  因此**改密钥只能走 path op（`mutate`）**；拿那份天生不完整的文档去 `replace`，会静默删掉线上从没返回过的密钥。
+- **自动生成页（`autoGenerate` / `configure({auto})`）**：没有自定义页面时 DSH 按 schema 自己生成配置页。
+  要留自定义页必须说清标准面给不了什么交互，且数据源是 settings 面。
+
+## 内核算独立进程的节点
+
+只在节点内核**不是 JS** 时出现。判据与形状的真源是 `docs/adr/0004-non-js-core-delivery.md`。
+
+- **core host（内核宿主）**：把原生内核包成一个独立可执行文件的入口（当前只有一个：`native/findz-go/dist/findz-host`）。命名是 `<node>-host`。**不是**"宿主进程"（那是 DSH），也**不是** DLL。
+- **frame protocol（帧协议）**：与内核宿主说话的形状 —— 一行一个 JSON 信封，进 `{requestVersion,requestId,method,params}`、出一 `{ok,requestId,result|error}`。请求顺序即响应顺序，所以待决表是一条 FIFO，不需要 id 匹配表。
+- **greeting（问候帧）**：内核宿主启动后写出的**第一帧**，内容就是它的自述（ABI、请求版本、能力集、支持的图像格式）。节点用它完成握手，并且**`api_info` 动作也由这一帧回答** —— 它在内核里不是一个方法。这是移植里最容易漏的一处：FFI 时代它是一个自由符号（`findz_api_info`），换成帧协议后它变成了问候。写成请求帧的症状是 `unsupported_method: api.info`。
+- **platform package（平台可选依赖包）**：`@hibernalglow/xaihi-<node>-<platform>-<arch>`，装内核宿主的可执行文件。节点在**装载期**解析它，解析不到就报错，不等到第一次调用。**目前一个都还没发**。
+- **调用面（invocation surface）**：一个节点动作可被谁触发的那一层。本仓有三种——面板、终端、工具执行管线；**三者都不是模型**，模型只是恰好用其中一条发起调用的第三方。判"某能力够得着吗"要问的是这三条里有没有一条到得了它，不是问模型有没有提示词。（ADR-0016）
+- **命令面（command surface）**：节点给 `/` 命令与面板提供的入口，是动作清单的**一个子集**。装不下的组合（分页游标、路径前缀…）只有工具执行管线那条路能到（模型不是那条路的必要调用方）—— 说清楚边界，而不是做一个按不动的控件。
+- **死讯（death reason）**：内核宿主没了时给调用方的那一句话。必须同时带退出码与内核自己打到 stderr 的诊断（`diagnose()` 写的那段）—— 只报 "stdout 关了" 等于把最坏那条路上唯一有用的信息吞掉。
 
 ## 宿主隔离
 

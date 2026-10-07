@@ -108,10 +108,15 @@ same: 27        stale: 0        unreadable: 2（xaihi-core、xaihi-ui：它们�
 
 ## 5. 还没证的三条（写清楚，不含糊过去）
 
-1. **agent 真的调用一次某个节点的 tool**。代码与单测在场，实机那一次要动使用者自己配的模型额度，
-   我没有替你花。要跑就是两条命令（另开终端先 `pnpm host`）：
-   `pnpm host:headless "调用 xaihi_nodes，把输出原样贴回来"`，
-   它回的第一行会是 `ui document: …`，那一条同时是第 2 条的读数。
+1. **非模型入口真跑一次节点动作**（ADR-0016 把这条换掉了原来的"agent 真调一次 tool"）。
+   原先写成"要动使用者自己配的模型额度，我没替你花"——那是把**巧合的调用方**当成了**必需的调用方**：
+   `defineNode` 注册工具时其 `execute` 走的就是面板与命令用的同一个 `invoke()`
+   （`packages/node-sdk/src/define-node.ts:221`、`:273-283`），所以这件事本不需要模型、也就不需要授权。
+   剩下的真活是**命令通道**：面板对未接的节点运行现在给的是可见拒绝
+   （`packages/ui-host/src/client/node-mount.tsx:229`，实测注册过的 `ctx.commands` 入口只有两条）。
+   模型跑过的那几次（Step 2/3 的 nonce 读数）继续算证据，只是从门槛降级成额外证。
+   `xaihi_nodes` 那个列表面向工具的判据改成宿主 HTTP 面：`/xaihi/manifest.json` 的插件数 ==
+   `/xaihi/debug.json` 的注册数（`check-remotes-live` 判的就是这个，现跑 rc=0）。
 2. **节点界面在屏上**。判据是 `scripts/check-node-face.mjs`（在 `dist-ui/*.js` 里搜每个节点自己的中文串），
    它现在仍然红，因为 `pnpm run build:document` 仍有 6 条错、`dist-ui/` 是空的：
 
