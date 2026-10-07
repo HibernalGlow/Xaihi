@@ -236,4 +236,40 @@ DSH 0.2.0-rc.2 的设置标准面只有五个动词（实测
 这对"每个节点一小份 JSON"是够的，但对大的、二进制的、要历史回溯的状态不合适。
 第 1、2 条建议（命名空间历史 / 有名字的子文档）要的还是那两件事，请不要因为上面这段跑通了就撤掉。
 
+## P9 · 桌面端把宿主凭证只发给主窗那一个 webContents，次级窗拿不到任何带作用域的 Peer
 
+这条也是**量出来的**，不是推测（2026-10-07 08:5x—09:0x，自家壳上同刻逐窗对照；逐条读数与 file:line 记在
+`../docs/adr/0011-*.md` 的路线行）：
+
+- 桌面壳给网关流面（`ws://127.0.0.1:<port>/api/remote.mux`）附加凭证的那条 hook 写死了主窗：
+  `apps/desktop/src/main.ts:1008` 判 `details.webContentsId !== mainWindow?.webContents.id` 就
+  `callback({})`；只有主窗那一份被改写成 `origin: target.origin` + `cookie: hostCookie` +
+  `sec-fetch-site: same-origin`（`:1011-1018`）。
+- admission 只有两档：`packages/client/connection/src/rpc-host.ts:104-113` —— 过了 Host/Origin 闸
+  **并且** `browserAuth.isAuthenticated` 就整块发 `operator` Peer，**没有**按 origin/按窗的中间档。
+- 实测三条：① 壳开出来的次级窗里 `window.dshDesktopBoot.ready()` **成立**，`keys=["injections","streamBaseUrl"]`、
+  `streamBaseUrl=http://127.0.0.1:19387`（那个动词来自 `apps/desktop/src/preload-app.ts:104-107`，
+  sender 闸只按 hostname `app` 放）——门牌读得到；② 同一个窗里 `new WebSocket(.../api/remote.mux)`
+  **握手失败**（`readyState:3`）；③ 同一时刻主窗跑同一段代码 `opened:true`。差别只在 webContentsId，
+  不在 CSP、不在网络。
+- 顺带澄清一条容易搞错的：**同源不等于同通道**。`protocol.handle` 把 `dsh-app://app` 下非静态路径转给
+  Host（`apps/desktop/src/main.ts:761-776`），但 `GET /api`、`GET /api/remote.mux` 与编出来的路径
+  在两只窗里都 **404** —— 那个 origin 从来不是 RPC 通路。自家服务面（`/xaihi/*`）反倒在任何 `app` 窗里都通
+  （`live-check` F 段把它钉成判据了）。
+
+**为什么是缺口**：ADR-0009 要的形态是"每个节点有自己的原生窗"，而那些窗里的内容需要宿主服务面。
+今天的形状下它们一条路都没有：要么界面只在主窗里渲染，要么插件**自己再实现一层服务端语义**
+（我们正被推到这一档）。把凭证原样放宽给所有窗**不是**修复 —— 那是把 operator 范围发给任意同 origin
+文档（包括第三方 bundle），是安全退化，不是便利。
+
+**建议的最小改法（任一即可，按优先级）**：
+1. 那条 hook 按"**壳自己创建并登记过的 webContents**"发凭证，而不是硬编码 `mainWindow`；
+   改写 `origin`/`sec-fetch-site` 的形状保持不变。
+2. 或者给 admission 一个**带作用域的 Peer**（按 origin 或按登记过的能力集授权，能力清单是白名单而不是
+   整块 operator），使次级窗最多只能问到被明确授予的那几组方法。
+3. 或者**明确文档化**"次级窗不得访问宿主 RPC"。那我们就不必再把它当一条潜在路去试——今天已经把
+   它当事实写进 ADR 了，但"上游本意如此"与"上游还没想到这一层"读起来不一样，值得写清。
+
+**现状与暴露面**：`desktop/patches/dsh/0001–0016` 只解决"开得出窗 + 窗能问自家服务 + 退化读得回来"，
+桥仍然只在产品主窗那一侧。路线选择（服务侧自己实现 host 语义 vs 壳内中继）记在 `desktop/README.md`
+的交接一节，等使用者拍。
