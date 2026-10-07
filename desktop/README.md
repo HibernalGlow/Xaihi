@@ -827,3 +827,27 @@ uiBundleDir=dist-realm  ⇒ 清单 hostMount="present"，屏上那句消失，if
 - **减法跑测要确认扰动真落地**：`perl -pi -e 's/host-http/host-XX/'` 不带 `/g` 只换第一处，而第一处在我写的注释里 ⇒ 对照照绿。把扰动落到数组那一行之后才红（`× … lib=["xaihi.bridge/1","host-XX"] src=[…]`），恢复后 rc=0。
 
 `pnpm plugin:install` 仍 rc=1（别人删掉的那个包在 `bundleManifest` 里炸），但拷贝确实落地了——判投递只比 sha：`packages/ui-host/lib/client.js` 与 profile 那份都是 `cf865dcd…`。客户端表是 boot 时组合的，所以换了 `client.js` **必须重启宿主**，否则症状是"改了没生效"。
+
+## 路线 (A) 服务了一个真节点组件：`dist-nodeface/` 这一格（2026-10-07 13:4x—13:5x）
+
+节点界面读的不是九组分组面，而是**带 compId 的扁名**（`host.getData(compId)` / `patchData` / `config?.get` / `downloadText`——`packages/contract/src/index.ts:507-540` 那份 `@deprecated` 兼容层）。`components/modules/hostApi.ts:320-345` 已经在折这份扁表面，但它折的是本进程那套（Xiranite 的 `configRpcClient` + `store/`），也就是 ADR-0013 说不接的通路。所以加了**同一条折叠、换个来源**的一层：
+
+```
+packages/ui-host/src/client/node-host-bridge.ts   toNodeHostApi(createDocumentHost({ bridge, state, workspace }))
+packages/ui-host/src/document/node-face-entry.tsx 一个真节点组件（linedup）挂在折叠出来的面上
+packages/ui-host/rspack.nodeface.mjs              出 dist-nodeface/main.js（.gitignore 的 dist-* 那条已覆盖）
+```
+
+怎么复跑（不需要桌面）：
+
+```
+pnpm --filter @hibernalglow/xaihi-ui exec rspack build -c rspack.nodeface.mjs
+# 把隔离 home 的 profiles/xaihi/cordis.patch.yml 里 uiBundleDir 指到 dist-nodeface（换目录要重启宿主）
+pnpm host
+node scripts/check-doc-bridge.mjs --dist packages/ui-host/dist-nodeface
+# 再用无窗口 Chromium 打开 manifest 给的 /xaihi/ui/<rev>/index.html?node=xaihi-linedup
+```
+
+量到的七条（完整因果在 `../docs/adr/0011-*.md` 那一行）：组件真画出来（36,908 B 的 DOM，`复制保留结果 / 清空状态 / 粘贴源文本 / 运行过滤` 这些它自己的按钮与 `textarea` 在场）；`host.getData` 从对面读回落盘那份标记；组件级写同步即可读；第一次 flush 被 `expectedRevision` 挡下（同一份文档里 realm 自己的 state 探测在写同一格——那是围栏在正常工作），第二次写落进 `profiles/xaihi/cordis.patch.yml`。
+
+**给下一个人的两条**：折叠**不许展开那份 host**——`{ ...host }` 会在装配这一步就求值 `env` 那个"没快照就抛 `refused`"的取值器，症状是协商板一切正常而 `#xaihi-ui-root` 空着（真浏览器里红过一次；`tests/node-host-bridge.spec.ts` 把折叠改回展开就红给你看）。交给搬运 lane 的落点只有一行：`useNodeHostApi` 那份分组面的来源换成 `toNodeHostApi(createDocumentHost(...))`，组件与判据都不改。
