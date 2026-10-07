@@ -877,3 +877,24 @@ node scripts/check-nodeface-live.mjs                 # 五条判据；--self-che
 - 上一节说的"各写各的键就不再抢同一格"只修了一半：`SETTINGS_CONFLICT` 的围栏是**命名空间级**的（`nodeState` 整份共用一个 revision），同一份文档里 realm 自己那次探测照样把它顶上去。真缺陷在写路径——冲突后只重读版本号、不重试，等于把落盘寄托在"使用者还有下一笔写"上，**一次单独的保存会静默留在窗里**。现在 `push()` 带着重读到的版本号补一发，总共两发，再失败就停在 `syncError()`（补读与写一同有界）。减法跑测：把上界改回一发 ⇒ 两条用例全红；恢复后 rc=0。
 
 `node-face-entry.tsx` 的状态键同时换成自己的 `xaihi-nodeface`（`compId` 仍是节点名——扁名那层丢弃 `compId`）。
+
+## 壳的转发层能不能承载路线 (A)：`node desktop/forward-check.mjs`（2026-10-07 14:5x，不开 Electron）
+
+顶层原生窗里那份文档发的是 `POST dsh-app://app/xaihi/host?sid=…`。它出不出得了壳的 scheme 转发，
+是那条腿唯一真正的未知——而这一件不需要 GUI 就能定：`desktop/dsh/apps/desktop/src/web-document.ts`
+只 import `node:fs/promises` 与 `node:path`，所以 Node 直接把 `forwardWebRequest` 载进来，
+喂一个 `dsh-app://app/...` 的 `Request`，看假 Host 收到什么。
+
+```
+node desktop/forward-check.mjs              # 四条判据
+node desktop/forward-check.mjs --self-check # 三份坏转发器，各须红在它该红的那一条
+```
+
+四条：① 方法 / 请求体 / `?sid=` 原样到对面；② 窗侧的 `host`/`origin`/`sec-fetch-site` 被删、`cookie` 换成宿主那份；
+③ 对面的状态码不被改写（GET 仍 405）；④ 阳性对照——来源不是 `dsh-app://app` 的必须 403 且**一条都不发给对面**。
+读数：四条全 OK（`method=POST bodyLen=16 url=/xaihi/host?sid=0123456789abcdef…`、`cookie=dsh-host-cookie=opaque`、
+`status=405`、`status=403 对面多收到 0 条`）；三条对照分别红在 ①②④。
+
+所以剩下来只有一句：**Q 段缺的是一个工位，不是一条没验过的管路。**
+`gitlink` 与 pin 没被碰（`desktop/UPSTREAM_PIN` 仍是 `dsh-v0.2.0-rc.2 639ed0153972…`），
+这条尺读 vendor 源码但不以任何门禁的扫描根为输入（`check:pins` / `check:skills` 自检照旧 rc=0）。
