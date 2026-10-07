@@ -760,6 +760,8 @@ ADR-0011 拍的是路线 (A)：**节点界面要的 `host` 由 Xaihi 自己的�
 
 还有一处**撞车**（本轮现读，未修）：`packages/ui-host/src/document/main.tsx` 被搬运那刀重写成无条件挂 `<App />` 的 33 行版本，我加的「等握手再挂界面 / 等不到画读回面」那一格随之消失。我没有覆盖回去，也没有把那一格提进自己的分支——`describeNoBridge` 因此暂时没有生产调用者，而第一帧的每条 host 调用会以 `not-ready` 抛。要恢复还是有意识地挪进 App 的第一帧，等使用者定。
 
+还有一条**验证渠道本身**值得记：这条链不需要桌面也能验——用 Playwright 缓存里的 `chrome-headless-shell`（`--virtual-time-budget=15000 --dump-dom`）打隔离开发宿主的 `/xaihi/ui/<rev>/index.html?node=…`，DOM 里直接读回 `data-xaihi-host-roundtrip="crossed"` 与能力清单；`?node=Not-A-Node` 则连文档都出不来，对面回 `node must be a manifest id matching …`。以后凡是「文档 + 自己服务面」这条链的改动，先走这条，别去占使用者的桌面。
+
 判据也跟上：`live-check` 的 Q 段现在会等那块板从 `pending` 落地（页内轮询，12 秒上限）再断 `roundtrip=crossed`。无 GUI 那侧另有一条硬证据：起隔离宿主后按 manifest 给的 rev 取 `/xaihi/ui/<rev>/main.js`（218,366 B），两个 `data-xaihi-host-*` 口子与 `config.getUi` 那句都在里面——发出去的产物带上了消费点，不是只有本地 dist 编好。
 
 再往前一格：`/xaihi/host` 现在**有真消费点**了——`packages/ui-host/src/document/host-probe.ts` 的 `runHostRoundTrip` 在 realm 装载器握手之后跑一次九组 `host` 面的往返，板上念得出能力、`config.getUi` 的对面读数、`state crossed` 与没给的原因；`data-xaihi-host-roundtrip` 是活体判据的读回口子。它今天是这条路线唯一进得了产物的消费点，因为生产入口 `main.tsx` 被搬运那刀改成只挂 `<App />`（见下一节撞车）。
