@@ -760,4 +760,6 @@ ADR-0011 拍的是路线 (A)：**节点界面要的 `host` 由 Xaihi 自己的�
 
 还有一处**撞车**（本轮现读，未修）：`packages/ui-host/src/document/main.tsx` 被搬运那刀重写成无条件挂 `<App />` 的 33 行版本，我加的「等握手再挂界面 / 等不到画读回面」那一格随之消失。我没有覆盖回去，也没有把那一格提进自己的分支——`describeNoBridge` 因此暂时没有生产调用者，而第一帧的每条 host 调用会以 `not-ready` 抛。要恢复还是有意识地挪进 App 的第一帧，等使用者定。
 
+再加一条测：`packages/core/tests/host-route-over-http-bridge.spec.ts` 走真套接字把 **文档侧 HTTP 载体 ↔ `/xaihi/host` ↔ 命名空间闸 ↔ 设置面** 串起来（6 条，两侧都是生产代码）。它存在的原因是两边各自单测都绿时，中间仍可能差一个字节（sid 参数、应答的 `id` 回填、握手之后才成立的授权集）。
+
 一条本轮从实机掉出来的教训：超限分支里 `req.destroy()` 会把**响应**一起毁掉——假 `res` 收得到 `writeHead`，真 socket 上 curl 只读到 `000`。判据因此改成真 HTTP 服务器跑（`host-routes.spec.ts` 里那条 413），并另跑一次活体 `curl` 复核（413 到得了对面）。顺带一条装配事实：`uiBundleDir` 是请求期现读的，改产物**不用重启宿主**，但 `file:` 装的包要 `dsh plugin --profile xaihi install` 重投并 `shasum` 比过才算数（本轮比到过 `51a59cc0` 两侧一致）。
