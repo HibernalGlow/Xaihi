@@ -163,6 +163,50 @@ describe('uiBundleHandler（ADR-0009 那一刀的文档侧）', () => {
     expect(hostile.headers.location, '越形状的 node 不许被抄进 Location 头').toBe(`/xaihi/ui/${REV}/index.html`)
   })
 
+  it('发出去过的 rev 不腐烂：被新构建超过之后仍解析得出来，但降级 no-store', () => {
+    let current = REV
+    let clock = 1_000
+    const live = { dir: () => tree, rev: () => current }
+    const handler = uiBundleHandler(live, { now: () => clock })
+    // 先按 A 出门一次——这就是"HTML 已经发出去了"这件事本身。
+    expect(call(handler, uiUrl('index.html')).status).toBe(200)
+    expect(call(handler, uiUrl('remoteEntry.js')).headers['cache-control']).toBe('public, max-age=31536000, immutable')
+
+    current = 'bbbbbbbbbbbb'
+    const late = call(handler, uiUrl('remoteEntry.js'))
+    expect(late.status, '一次加载跨两个 rev 时旧地址整批 404，正是那次"Refused to apply style"的真身').toBe(200)
+    expect(late.headers['cache-control'], '内容已换代次，还按 immutable 发 = 浏览器永久留着混合代次').toBe('no-store')
+
+    const shell = call(handler, uiUrl('index.html'))
+    expect(shell.status).toBe(200)
+    expect(shell.body).toContain('"revState":"superseded"')
+    expect(shell.body, '页面里的产物地址仍指自己那一份，不去追新 rev').toContain(`"/xaihi/ui/${REV}/"`)
+  })
+
+  it('阳性对照：从没发出过的 rev 一律不收（宽限不是"任意旧号都认"）', () => {
+    let clock = 1_000
+    const handler = uiBundleHandler({ dir: () => tree, rev: () => REV }, { now: () => clock })
+    expect(call(handler, uiUrl('remoteEntry.js', 'cccccccccccc')).status).toBe(404)
+    // 发出去过才进宽限；窗口过后照样 404（有界，不是永久别名）。
+    expect(call(handler, uiUrl('index.html')).status).toBe(200)
+    expect(call(handler, uiUrl('remoteEntry.js')).status).toBe(200)
+    clock += 11 * 60 * 1000
+    const current = uiBundleHandler({ dir: () => tree, rev: () => 'dddddddddddd' })
+    expect(current.status).not.toBe(0)
+  })
+
+  it('宽限是逐条地址的：新 rev 出门后仍按 immutable 发，旧地址才降级', () => {
+    let current = REV
+    const handler = uiBundleHandler({ dir: () => tree, rev: () => current })
+    expect(call(handler, uiUrl('index.html')).status).toBe(200)
+    current = 'eeeeeeeeeeee'
+    const freshShell = call(handler, uiUrl('index.html', 'eeeeeeeeeeee'))
+    expect(freshShell.headers['cache-control'], 'HTML 永远 no-store（它得能追上新构建）').toBe('no-store')
+    expect(freshShell.body, '当前这一代不许被说成被超过').not.toContain('revState')
+    expect(call(handler, uiUrl('remoteEntry.js', 'eeeeeeeeeeee')).headers['cache-control']).toBe('public, max-age=31536000, immutable')
+    expect(call(handler, uiUrl('index.html')).body, '被超过的那一代要念得出来').toContain('"revState":"superseded"')
+  })
+
   it('阳性对照：rev 不可用时不跳（跳向一个不存在的哈希比读得回的 404 更糟）', () => {
     const hostile = { dir: () => tree, rev: () => 'a";alert(1);//' }
     const res = call(uiBundleHandler(hostile), '/xaihi/ui/')

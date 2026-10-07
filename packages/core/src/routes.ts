@@ -123,9 +123,24 @@ const NODE_PATTERN = NODE_ID_PATTERN
 export interface UiBundleSource {
   /** 产物根目录的绝对路径；空串代表没配。 */
   dir: () => string
-  /** 当前产物修订号。 */
+  /** 当前产物修订号（每次请求现算，ADR-0018：冻在启动时就没有热重载了）。 */
   rev: () => string
 }
+
+/**
+ * 已经发出的 rev 的宽限窗（ADR-0018 的正题）。
+ *
+ * rev 必须每次现算——"改完产物、刷新页面就吃到"这条开发回路靠的就是它。
+ * 但一次页面加载是**一串**请求：HTML 先按 A 出门，浏览器回头要 A 的 chunk 时目录
+ * 可能已经重建到 B，于是整批 404，而 Chrome 对 404 的 `text/plain` 报成
+ * 「Refused to apply style … (text/plain)」，看着像 MIME 坏了
+ * （2026-10-07 实测：`ui.rev` 在两次清单请求之间从 `8d4ed81e8393` 变成 `687d583bc830`）。
+ * 所以这里不冻哈希，只保证**发出去过的地址不腐烂**：被超过之后仍然解析得出来，
+ * 但降级成 `no-store`（内容已经不是当年那一份，再按 `immutable` 发就是让浏览器
+ * 永久留着混合代次），并在文档壳的 boot 里念一句 `revState:"superseded"`。
+ */
+const REV_GRACE_WINDOW_MS = 10 * 60 * 1000
+const REV_GRACE_CAP = 16
 
 /**
  * 生成文档壳。
@@ -135,12 +150,15 @@ export interface UiBundleSource {
  * 形状照搬运源仓那份装载器：URL 决定装载什么、读不到的东西显示成可见失败。
  * @param rev - 写进 boot 对象的修订号，必须是 12 位十六进制。
  * @param node - 要打开哪个节点的表面；空串表示"整个工作台"。
+ * @param revState - `superseded` 表示这个地址已经被新一次构建超过了（ADR-0018）；
+ *   它跟着 boot 对象出门，界面因此能说"你看到的这批文件不是最新那一次构建"。
  * @returns 文档正文。
  */
-export function renderUiDocument(rev: string, node = ''): string {
+export function renderUiDocument(rev: string, node = '', revState: 'current' | 'superseded' = 'current'): string {
   if (!REV_PATTERN.test(rev)) return '<!doctype html><html><body>xaihi ui rev is unusable</body></html>'
   const base = `${UI_PATH_PREFIX}/${rev}/`
-  const boot = JSON.stringify(node === '' ? { rev, apiBase: '/xaihi', bundleBase: base } : { rev, apiBase: '/xaihi', bundleBase: base, node })
+  const shared = { rev, apiBase: '/xaihi', bundleBase: base, ...(revState === 'superseded' ? { revState } : {}) }
+  const boot = JSON.stringify(node === '' ? shared : { ...shared, node })
   return [
     '<!doctype html>',
     '<html lang="zh">',
@@ -166,7 +184,27 @@ export function renderUiDocument(rev: string, node = ''): string {
  * 2. 产物目录没配时必须**先**报这条，不能掉进 rev 不匹配的 404——后者会让人以为
  *    是缓存问题，而真正的原因是 `core.uiBundleDir` 是空串。
  */
-export function uiBundleHandler(source: UiBundleSource) {
+export function uiBundleHandler(source: UiBundleSource, options?: { now?: () => number }) {
+  const now = options?.now ?? ((): number => Date.now())
+  const issued = new Map<string, number>()
+  const remember = (rev: string): void => {
+    issued.set(rev, now())
+    for (const [key, at] of issued) if (now() - at > REV_GRACE_WINDOW_MS) issued.delete(key)
+    while (issued.size > REV_GRACE_CAP) {
+      const oldest = issued.keys().next().value
+      if (oldest === undefined) break
+      issued.delete(oldest)
+    }
+  }
+  const withinGrace = (rev: string): boolean => {
+    const at = issued.get(rev)
+    if (at === undefined) return false
+    if (now() - at > REV_GRACE_WINDOW_MS) {
+      issued.delete(rev)
+      return false
+    }
+    return true
+  }
   return (req: IncomingMessage, res: ServerResponse): void => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       send(res, 405, 'method not allowed', 'text/plain; charset=utf-8', 'no-store')
@@ -214,9 +252,23 @@ export function uiBundleHandler(source: UiBundleSource) {
       send(res, 404, 'not found', 'text/plain; charset=utf-8', 'no-store')
       return
     }
-    if (!REV_PATTERN.test(rev) || requested !== rev) {
-      send(res, 404, `rev mismatch (current ${REV_PATTERN.test(rev) ? rev : 'unreadable'})`, 'text/plain; charset=utf-8', 'no-store')
+    // 当前 rev 自己不合形状时先到这里为止：只比 `requested !== rev` 不够，
+    // 两边可以相等，然后 200 一份什么都装不出来的 HTML。
+    if (!REV_PATTERN.test(rev)) {
+      send(res, 404, 'rev mismatch (current unreadable)', 'text/plain; charset=utf-8', 'no-store')
       return
+    }
+    // 当前 rev：正常出，并记下"这个地址发出去过"。
+    let state: 'current' | 'superseded' = 'current'
+    if (requested !== rev) {
+      const superseded = REV_PATTERN.test(requested) && withinGrace(requested)
+      if (!superseded) {
+        send(res, 404, `rev mismatch (current ${REV_PATTERN.test(rev) ? rev : 'unreadable'})`, 'text/plain; charset=utf-8', 'no-store')
+        return
+      }
+      state = 'superseded'
+    } else {
+      remember(rev)
     }
     if (relative === 'index.html') {
       const node = url.searchParams.get('node') ?? ''
@@ -226,7 +278,7 @@ export function uiBundleHandler(source: UiBundleSource) {
         send(res, 400, 'node must be a manifest id matching [a-z0-9][a-z0-9_-]{0,63}', 'text/plain; charset=utf-8', 'no-store')
         return
       }
-      send(res, 200, req.method === 'HEAD' ? '' : renderUiDocument(rev, node), 'text/html; charset=utf-8', 'no-store')
+      send(res, 200, req.method === 'HEAD' ? '' : renderUiDocument(requested, node, state), 'text/html; charset=utf-8', 'no-store')
       return
     }
     const served = resolveUiFile(dir, decodeURIComponent(relative))
@@ -235,7 +287,7 @@ export function uiBundleHandler(source: UiBundleSource) {
       return
     }
     const extensionIndex = served.lastIndexOf('.')
-    send(res, 200, req.method === 'HEAD' ? '' : readFileSync(served), MIME[served.slice(extensionIndex)] ?? 'application/octet-stream', IMMUTABLE)
+    send(res, 200, req.method === 'HEAD' ? '' : readFileSync(served), MIME[served.slice(extensionIndex)] ?? 'application/octet-stream', state === 'superseded' ? 'no-store' : IMMUTABLE)
   }
 }
 
