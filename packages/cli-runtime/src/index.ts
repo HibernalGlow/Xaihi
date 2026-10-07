@@ -44,11 +44,11 @@ export interface CliEventRenderOptions {
   progressWidth?: number
 }
 
-export const NODE_CLI_PREFIX = "x"
+export const NODE_CLI_PREFIX = ""
 export const LEGACY_NODE_CLI_PREFIX = "xiranite-"
 
 export function nodeCliName(nodeId: string): string {
-  return `${NODE_CLI_PREFIX}${nodeId}`
+  return nodeId
 }
 
 export function normalizeNodeCliName(value: string): string {
@@ -298,7 +298,7 @@ export async function selectRich<Value extends string | number | boolean>(
 
 export async function runGuidedInteraction<Input, Result>(
   definition: TerminalInteractionDefinition<Input, Result>,
-  options: { host: CliHost; language: TerminalLanguage; help?: import("@xiranite/contract").NodeHelp },
+  options: { host: CliHost; language: TerminalLanguage; help?: import("@hibernalglow/xaihi-contract").NodeHelp },
 ): Promise<void> {
   const { host, language } = options
   const { schema } = definition

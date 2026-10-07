@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "xdissolvef": "./lib/cli.js"
+    "dissolvef": "./lib/cli.js"
   },
   "files": [
     "lib/**",

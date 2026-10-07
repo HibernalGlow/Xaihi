@@ -28,7 +28,7 @@ afterEach(async () => {
 })
 
 describe('linedup CLI', () => {
-  it('非 TTY 且无参数时拒绝，并给出 xlinedup ui 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 linedup ui 的提示', async () => {
     const host = createHost()
 
     await runProgram([], host)
@@ -37,8 +37,8 @@ describe('linedup CLI', () => {
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xlinedup')
-    expect(host.stderrText()).toContain('xlinedup ui')
+    expect(host.stderrText()).toContain('linedup')
+    expect(host.stderrText()).toContain('linedup ui')
   })
 
   it('内联文本过滤并输出 JSON（脚本化用法）', async () => {
@@ -87,7 +87,7 @@ describe('linedup CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xlinedup filter')
+    expect(help).toContain('Usage linedup filter')
     expect(help).toContain('--sourceFile')
     expect(help).toContain('--caseInsensitive')
   })

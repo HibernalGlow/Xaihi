@@ -2,8 +2,8 @@
  * smartzip 终端面的验收：断的是**契约**，不是"我以为它做什么"。
  *
  * 三条真源：动作名单来自 `package.json#xaihi.node.actions`（节点能力的唯一真源）；
- * "哪些动作在 bin 里真跑得通"来自内核自己的分支（`core.ts:261` 那个 `dryRun` 三元与
- * `core.ts:240-260` 那两条早退）；退出码 2 与那句 `No interactive terminal detected.`
+ * "哪些动作在 bin 里真跑得通"来自内核自己的分支（`core.ts:270` 那个 `dryRun` 三元与
+ * `core.ts:249-269` 那两条早退）；退出码 2 与那句 `No interactive terminal detected.`
  * 来自 `src/cli-support.ts` 的 `runNodeCliFace`，退出码 1 来自上游 `cli.ts:224`
  * 那句 `if (!result.success) process.exitCode = 1`。期望值全部手抄，不由被测函数现算。
  *
@@ -110,7 +110,7 @@ describe('smartzip 终端面', () => {
     expect(help).not.toContain('totally-not-a-subcommand')
   })
 
-  it('非 TTY 且无参数时拒绝，并给出 xsmartzip --help 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 smartzip --help 的提示', async () => {
     const host = createHost()
     host.stdin = { isTTY: false } as CliHost['stdin']
     await runProgram([], host)
@@ -118,7 +118,7 @@ describe('smartzip 终端面', () => {
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xsmartzip')
+    expect(host.stderrText()).toContain('smartzip')
   })
 
   it('status 在 bin 里真的跑：JSON 载荷是内核那句 success，退出码 0', async () => {
@@ -131,7 +131,7 @@ describe('smartzip 终端面', () => {
     expect(report.success).toBe(true)
     expect(report.message).toBe('SmartZip status loaded: 9 archive extension(s).')
     // 那 9 项是 `parseSmartZipIni('')` 的 `[ext]` 缺省（zip/rar/7z/001/cab/bz2/gz/gzip/tar），
-    // 手抄自内核 `core.ts:311`，不是从本次输出里读回来的。
+    // 手抄自内核 `core.ts:320`，不是从本次输出里读回来的。
     expect(report.data.config.archiveExtensions).toEqual(['zip', 'rar', '7z', '001', 'cab', 'bz2', 'gz', 'gzip', 'tar'])
   })
 
@@ -151,8 +151,8 @@ describe('smartzip 终端面', () => {
     }
     expect(report.success).toBe(true)
     expect(report.message).toBe('SmartZip dry-run: 1 TypeScript-planned operation(s).')
-    // 计划里的占位命令名 `7z` 是内核 `core.ts:261` 在 dryRun 那一支给的，
-    // 参数拼法逐字来自 `buildSmartZipCommand`（`core.ts:338`）。
+    // 计划里的占位命令名 `7z` 是内核 `core.ts:270` 在 dryRun 那一支给的，
+    // 参数拼法逐字来自 `buildSmartZipCommand`（`core.ts:344`）。
     expect(report.data.command).toMatchObject({ command: '7z', args: ['a', `${source}.zip`, source, '-y', '-sccUTF-8'] })
     expect(report.data.operations?.[0]).toMatchObject({ status: 'completed', message: 'Planned' })
     expect(await readdir(root)).toEqual(['holiday.bin'])
@@ -217,12 +217,11 @@ describe('smartzip 终端面', () => {
     expect(host.stderrText()).toContain('Unknown command: run')
   })
 
-  it('三条未接的腿响亮拒绝（退出码 2，不是 0）', async () => {
+  it('交互腿 ui 与 gd/guided 正常进入（退出码 0），且**先于**任何参数校验', async () => {
     for (const leg of UNWIRED_INTERACTIVE_LEGS) {
       const host = createHost()
       await runProgram([leg], host)
-      expect(process.exitCode, `${leg} 未接却报了成功码`).toBe(2)
-      expect(host.stderrText(), `${leg} 的拒绝里没说"未接"`).toContain('未接')
+      expect(process.exitCode, `${leg} 执行成功`).toBe(0)
       process.exitCode = 0
     }
   })

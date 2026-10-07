@@ -35,4 +35,4 @@ if (node === undefined) {
 
 // 类型在这里点名：不写的话 dts 生成会报 TS4023（用了外部模块的类型却叫不出名字）。
 // 只传 bin：见文件头那条 G7 判据（本包不 inject `commands`）。
-export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'xencodeb' })
+export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'encodeb' })

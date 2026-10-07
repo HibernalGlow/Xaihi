@@ -515,6 +515,6 @@
     "vitest": "^4.1.11"
   },
   "bin": {
-    "xencodeb": "./lib/cli.js"
+    "encodeb": "./lib/cli.js"
   }
 }

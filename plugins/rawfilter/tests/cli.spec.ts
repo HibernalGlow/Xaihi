@@ -34,7 +34,7 @@ afterEach(async () => {
 })
 
 describe('rawfilter CLI', () => {
-  it('非 TTY 且无参数时拒绝，并给出 xrawfilter ui 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 rawfilter ui 的提示', async () => {
     const host = createHost()
 
     await runProgram([], host)
@@ -43,7 +43,7 @@ describe('rawfilter CLI', () => {
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xrawfilter ui')
+    expect(host.stderrText()).toContain('rawfilter ui')
   })
 
   it('--help 列出三个动作与三条未接腿', async () => {
@@ -53,7 +53,7 @@ describe('rawfilter CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xrawfilter')
+    expect(help).toContain('Usage rawfilter')
     for (const verb of ['scan', 'plan', 'execute', 'ui', 'gd', 'guided']) {
       expect(help).toContain(verb)
     }
@@ -67,7 +67,7 @@ describe('rawfilter CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xrawfilter plan')
+    expect(help).toContain('Usage rawfilter plan')
     for (const flag of ['--path <value>', '--nameOnly', '--nameOnlyMode', '--createShortcuts', '--trashOnly', '--minSimilarity <value>', '--dryRun', '--json']) {
       expect(help).toContain(flag)
     }
@@ -225,18 +225,14 @@ describe('rawfilter CLI', () => {
     expect(host.stderrText()).toContain('Unknown option: --nope')
   })
 
-  it('未接的交互腿响亮拒绝、点名剪贴板那条要 ctx.subprocess，且不许先做参数校验', async () => {
+  it('交互腿正常进入（退出码 0），且**先于**任何参数校验', async () => {
     const host = createHost({ tty: true })
 
     await runProgram(['gd'], host)
 
     const exitCode = process.exitCode
     process.exitCode = 0
-    expect(exitCode).toBe(2)
-    expect(host.stderrText()).toContain('未接')
-    expect(host.stderrText()).toContain('@clack')
-    expect(host.stderrText()).toContain('OpenTUI')
-    expect(host.stderrText()).toContain('ctx.subprocess')
+    expect(exitCode).toBe(0)
     expect(host.stderrText()).not.toContain('Missing required argument')
 
     // 结构尺：三条未接腿一个参数都不许标 required。

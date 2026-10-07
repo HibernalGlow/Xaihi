@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "xgifu": "./lib/cli.js"
+    "gifu": "./lib/cli.js"
   },
   "files": [
     "lib/**",

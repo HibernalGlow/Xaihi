@@ -130,7 +130,7 @@ describe('bitv 终端面', () => {
     const exitCode = process.exitCode
     process.exitCode = 0
     expect(exitCode).toBe(2)
-    expect(host.stderrText()).toBe(`xbitv analyze 未接：${BITV_PROCESS_SEAM_REFUSAL}\n`)
+    expect(host.stderrText()).toBe(`bitv analyze 未接：${BITV_PROCESS_SEAM_REFUSAL}\n`)
     expect(host.stdoutText()).toBe('')
   })
 
@@ -170,7 +170,7 @@ describe('bitv 终端面', () => {
     expect((JSON.parse(both.stdoutText()) as { dryRun: boolean }).dryRun).toBe(false)
   })
 
-  it('非 TTY 且无参数时拒绝，并给出 xbitv --help 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 bitv --help 的提示', async () => {
     const host = createHost()
     host.stdin.isTTY = false
     await runProgram([], host)
@@ -178,7 +178,7 @@ describe('bitv 终端面', () => {
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xbitv')
+    expect(host.stderrText()).toContain('bitv')
   })
 
   it('未知 flag 判为用法错（退出码 2）', async () => {
@@ -190,7 +190,7 @@ describe('bitv 终端面', () => {
     expect(host.stderrText()).toContain('Unknown option: --nope.')
   })
 
-  it('位置参不支持（vendored 支撑的契约）：`xbitv analyze D:/videos` 是用法错，不是猜路径', async () => {
+  it('位置参不支持（vendored 支撑的契约）：`bitv analyze D:/videos` 是用法错，不是猜路径', async () => {
     const host = createHost()
     await runProgram(['analyze', 'D:/videos'], host)
     const exitCode = process.exitCode
@@ -199,22 +199,13 @@ describe('bitv 终端面', () => {
     expect(host.stderrText()).toContain('Unknown argument')
   })
 
-  it('三条未接的腿响亮拒绝（退出码 2，不是 0），并点名缺的是哪个包', async () => {
+  it('交互腿 ui 与 gd/guided 正常进入（退出码 0），且**先于**任何参数校验', async () => {
     for (const leg of UNWIRED_INTERACTIVE_LEGS) {
       const host = createHost()
       await runProgram([leg], host)
-      expect(process.exitCode, `${leg} 未接却报了成功码`).toBe(2)
-      expect(host.stderrText(), `${leg} 的拒绝里没说"未接"`).toContain('未接')
+      expect(process.exitCode, `${leg} 执行成功`).toBe(0)
       process.exitCode = 0
     }
-    const guided = createHost()
-    await runProgram(['gd'], guided)
-    process.exitCode = 0
-    expect(guided.stderrText()).toContain('@clack')
-    const ui = createHost()
-    await runProgram(['ui'], ui)
-    process.exitCode = 0
-    expect(ui.stderrText()).toContain('OpenTUI')
   })
 
   it('`--recursive` 与 `--no-recursive` 都认（上游那对布尔），而不是被判成未知 flag', async () => {

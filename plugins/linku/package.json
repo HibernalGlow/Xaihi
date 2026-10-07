@@ -461,6 +461,6 @@
     "vitest": "^4.1.11"
   },
   "bin": {
-    "xlinku": "./lib/cli.js"
+    "linku": "./lib/cli.js"
   }
 }

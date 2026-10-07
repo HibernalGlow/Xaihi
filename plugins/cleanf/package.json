@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "xcleanf": "./lib/cli.js"
+    "cleanf": "./lib/cli.js"
   },
   "files": [
     "lib/**",

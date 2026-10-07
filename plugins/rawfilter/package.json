@@ -430,6 +430,6 @@
     "vitest": "^4.1.11"
   },
   "bin": {
-    "xrawfilter": "./lib/cli.js"
+    "rawfilter": "./lib/cli.js"
   }
 }

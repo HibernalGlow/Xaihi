@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "xbandia": "./lib/cli.js"
+    "bandia": "./lib/cli.js"
   },
   "files": [
     "lib/**",

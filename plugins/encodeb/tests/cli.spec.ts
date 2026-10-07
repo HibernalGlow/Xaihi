@@ -39,7 +39,7 @@ afterEach(async () => {
 })
 
 describe('encodeb CLI', () => {
-  it('非 TTY 且无参数时拒绝，并给出 xencodeb ui 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 encodeb ui 的提示', async () => {
     const host = createHost()
 
     await runProgram([], host)
@@ -48,7 +48,7 @@ describe('encodeb CLI', () => {
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xencodeb ui')
+    expect(host.stderrText()).toContain('encodeb ui')
   })
 
   it('--help 列出三个动作与三条未接腿', async () => {
@@ -58,7 +58,7 @@ describe('encodeb CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xencodeb')
+    expect(help).toContain('Usage encodeb')
     for (const verb of ['find', 'preview', 'recover', 'ui', 'gd', 'guided']) {
       expect(help).toContain(verb)
     }
@@ -72,7 +72,7 @@ describe('encodeb CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xencodeb find')
+    expect(help).toContain('Usage encodeb find')
     for (const flag of ['--paths <value>', '--preset <value>', '--srcEncoding <value>', '--dstEncoding <value>',
       '--transform <value>', '--strategy <value>', '--limit <value>', '--json']) {
       expect(help).toContain(flag)
@@ -231,19 +231,14 @@ describe('encodeb CLI', () => {
     expect(host.stderrText()).toContain('Unknown option: --nope')
   })
 
-  it('未接的交互腿响亮拒绝并点名缺的东西，且不许先做参数校验（sleept 那个 bug 的尺）', async () => {
+  it('交互腿正常进入（退出码 0），且**先于**任何参数校验', async () => {
     const host = createHost({ tty: true })
 
     await runProgram(['gd'], host)
 
     const exitCode = process.exitCode
     process.exitCode = 0
-    expect(exitCode).toBe(2)
-    expect(host.stderrText()).toContain('未接')
-    expect(host.stderrText()).toContain('@clack')
-    expect(host.stderrText()).toContain('OpenTUI')
-    // 面级拒绝必须给一条能走的脚本化路子。
-    expect(host.stderrText()).toContain('xencodeb find')
+    expect(exitCode).toBe(0)
     expect(host.stderrText()).not.toContain('Missing required argument')
 
     // 结构尺：三条未接腿一个参数都不许标 required。

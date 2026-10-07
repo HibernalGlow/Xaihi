@@ -42,7 +42,7 @@ afterEach(async () => {
 })
 
 describe('migratef CLI', () => {
-  it('非 TTY 且无参数时拒绝，并给出 xmigratef ui 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 migratef ui 的提示', async () => {
     const host = createHost()
 
     await runProgram([], host)
@@ -51,7 +51,7 @@ describe('migratef CLI', () => {
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xmigratef ui')
+    expect(host.stderrText()).toContain('migratef ui')
   })
 
   it('--help 列出五个动作与三条未接腿', async () => {
@@ -61,7 +61,7 @@ describe('migratef CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xmigratef')
+    expect(help).toContain('Usage migratef')
     for (const verb of ['plan', 'move', 'copy', 'history', 'undo', 'ui', 'gd', 'guided']) {
       expect(help).toContain(verb)
     }
@@ -75,7 +75,7 @@ describe('migratef CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xmigratef plan')
+    expect(help).toContain('Usage migratef plan')
     for (const flag of ['--path <value>', '--source <value>', '--target <value>', '--mode <value>',
       '--historyPath <value>', '--batchId <value>', '--dryRun', '--json']) {
       expect(help).toContain(flag)
@@ -270,18 +270,14 @@ describe('migratef CLI', () => {
     expect(host.stderrText()).toContain('Unknown option: --nope')
   })
 
-  it('未接的交互腿响亮拒绝并点名缺的东西，且不许先做参数校验（sleept 那个 bug 的尺）', async () => {
+  it('交互腿正常进入（退出码 0），且**先于**任何参数校验', async () => {
     const host = createHost({ tty: true })
 
     await runProgram(['guided'], host)
 
     const exitCode = process.exitCode
     process.exitCode = 0
-    expect(exitCode).toBe(2)
-    expect(host.stderrText()).toContain('未接')
-    expect(host.stderrText()).toContain('@clack')
-    expect(host.stderrText()).toContain('OpenTUI')
-    expect(host.stderrText()).toContain('xmigratef plan')
+    expect(exitCode).toBe(0)
     expect(host.stderrText()).not.toContain('Missing required argument')
     // 上游 guided 腿那个硬编码 Windows 默认目录不该随本包出现在任何一条文案里。
     expect(host.stderrText()).not.toContain('1Hub')

@@ -34,7 +34,7 @@ afterEach(async () => {
 })
 
 describe('samea CLI', () => {
-  it('非 TTY 且无参数时拒绝，并给出 xsamea ui 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 samea ui 的提示', async () => {
     const host = createHost()
 
     await runProgram([], host)
@@ -43,7 +43,7 @@ describe('samea CLI', () => {
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xsamea ui')
+    expect(host.stderrText()).toContain('samea ui')
   })
 
   it('--help 列出两个动作、run 别名与三条未接腿', async () => {
@@ -53,7 +53,7 @@ describe('samea CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xsamea')
+    expect(help).toContain('Usage samea')
     for (const verb of ['plan', 'classify', 'run', 'ui', 'gd', 'guided']) {
       expect(help).toContain(verb)
     }
@@ -67,7 +67,7 @@ describe('samea CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xsamea plan')
+    expect(help).toContain('Usage samea plan')
     expect(help).toContain('--paths <value>')
     expect(help).toContain('--min <value>')
     expect(help).toContain('--centralize')
@@ -165,17 +165,14 @@ describe('samea CLI', () => {
     expect(host.stderrText()).toContain('Unknown option: --nope')
   })
 
-  it('未接的交互腿响亮拒绝并点名缺的东西，且不许先做参数校验（sleept 那个 bug 的尺）', async () => {
+  it('交互腿正常进入（退出码 0），且**先于**任何参数校验', async () => {
     const host = createHost({ tty: true })
 
     await runProgram(['gd'], host)
 
     const exitCode = process.exitCode
     process.exitCode = 0
-    expect(exitCode).toBe(2)
-    expect(host.stderrText()).toContain('未接')
-    expect(host.stderrText()).toContain('@clack')
-    expect(host.stderrText()).toContain('OpenTUI')
+    expect(exitCode).toBe(0)
     expect(host.stderrText()).not.toContain('Missing required argument')
 
     // 结构尺：三条未接腿一个参数都不许标 required。

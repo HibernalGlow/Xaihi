@@ -31,4 +31,4 @@ if (node === undefined) {
 // 修法写明"只在包真注册时传"。这里今天只能少印一条真入口；推导器仍然会按 nodeId 兜出
 // `/bitv` 那一格（`packages/node-sdk/src/help.ts:108` 的 `?? \`/${nodeId}\``），
 // 那一刀在 SDK 侧，不在本包顺手改。
-export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'xbitv' })
+export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'bitv' })

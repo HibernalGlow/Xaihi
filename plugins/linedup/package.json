@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "xlinedup": "./lib/cli.js"
+    "linedup": "./lib/cli.js"
   },
   "files": [
     "lib/**",

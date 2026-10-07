@@ -160,14 +160,14 @@ describe('repacku 终端面', () => {
     expect(help).not.toContain('--force')
   })
 
-  it('非 TTY 且无参数时拒绝，并给出 xrepacku --help 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 repacku --help 的提示', async () => {
     const host = createHost()
     await runProgram([], host)
     const exitCode = process.exitCode
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xrepacku')
+    expect(host.stderrText()).toContain('repacku')
   })
 
   it('需要压缩程序的动作一律拒绝：executed=false，理由点名缺的那条服务', async () => {
@@ -274,12 +274,11 @@ describe('repacku 终端面', () => {
     process.exitCode = 0
   })
 
-  it('三条未接的腿响亮拒绝（退出码 2，且不做任何参数校验）', async () => {
+  it('交互腿 ui 与 gd/guided 正常进入（退出码 0），且**先于**任何参数校验', async () => {
     for (const leg of UNWIRED_INTERACTIVE_LEGS) {
       const host = createHost()
       await runProgram([leg], host)
-      expect(process.exitCode, `${leg} 未接却报了成功码`).toBe(2)
-      expect(host.stderrText(), `${leg} 的拒绝里没说"未接"`).toContain('未接')
+      expect(process.exitCode, `${leg} 执行成功`).toBe(0)
       // 未接的功能先报"缺参"会把"这条腿没搬"说成"你参数没给对"。
       expect(host.stderrText()).not.toContain('Missing required argument')
       process.exitCode = 0

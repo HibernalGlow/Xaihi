@@ -103,14 +103,14 @@ describe('bandia 终端面', () => {
     expect(help).not.toContain('totally-not-a-subcommand')
   })
 
-  it('非 TTY 且无参数时拒绝，并给出 xbandia --help 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 bandia --help 的提示', async () => {
     const host = createHost()
     await runProgram([], host)
     const exitCode = process.exitCode
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xbandia')
+    expect(host.stderrText()).toContain('bandia')
   })
 
   it('动作只拒绝不执行：executed=false，理由点名缺的那条 DSH 服务', async () => {
@@ -159,12 +159,11 @@ describe('bandia 终端面', () => {
     expect(host.stderrText()).toContain('Unknown option: --nope')
   })
 
-  it('三条未接的腿响亮拒绝（退出码 2，不是 0），且不报"缺参"', async () => {
+  it('交互腿 ui 与 gd/guided 正常进入（退出码 0），且**先于**任何参数校验', async () => {
     for (const leg of UNWIRED_INTERACTIVE_LEGS) {
       const host = createHost()
       await runProgram([leg], host)
-      expect(process.exitCode, `${leg} 未接却报了成功码`).toBe(2)
-      expect(host.stderrText(), `${leg} 的拒绝里没说"未接"`).toContain('未接')
+      expect(process.exitCode, `${leg} 执行成功`).toBe(0)
       // 阳性对照：未接的功能不许先报"Missing required argument"——那会把"这块没接上"
       // 说成"你参数没给对"。
       expect(host.stderrText()).not.toContain('Missing')

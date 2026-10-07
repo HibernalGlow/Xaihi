@@ -131,20 +131,20 @@ describe('gifu 终端面', () => {
     await runProgram(['plan', '--help'], host)
     expect(process.exitCode ?? 0).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xgifu plan')
+    expect(help).toContain('Usage gifu plan')
     for (const flag of UPSTREAM_FLAGS) expect(help, `--help 里没有 ${flag}`).toContain(flag)
     // 上游那条 positional 换成了一条 string flag（本仓解析器没有 positional 这一档）。
     expect(help).not.toContain('[paths]')
   })
 
-  it('非 TTY 且无参数时拒绝，并给出 xgifu --help 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 gifu --help 的提示', async () => {
     const host = createHost()
     await runProgram([], host)
     const exitCode = process.exitCode
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xgifu')
+    expect(host.stderrText()).toContain('gifu')
   })
 
   it('三条动作只拒绝不执行：executed=false，理由点名 ctx.subprocess 那条缝', async () => {
@@ -203,15 +203,11 @@ describe('gifu 终端面', () => {
     expect(host.stdoutText()).not.toContain('ctx.subprocess')
   })
 
-  it('三条未接的腿响亮拒绝（退出码 2，不是 0）', async () => {
+  it('交互腿 ui 与 gd/guided 正常进入（退出码 0），且**先于**任何参数校验', async () => {
     for (const leg of UNWIRED_INTERACTIVE_LEGS) {
       const host = createHost()
       await runProgram([leg], host)
-      expect(process.exitCode, `${leg} 未接却报了成功码`).toBe(2)
-      expect(host.stderrText(), `${leg} 的拒绝里没说"未接"`).toContain('未接')
-      // 本包不注册斜杠命令（`inject` 里没有 `commands`，缺口 G7）⇒ 替代归属只点名真的东西。
-      expect(host.stderrText()).toContain('gifu_inspect')
-      expect(host.stderrText()).not.toContain('/gifu')
+      expect(process.exitCode, `${leg} 执行成功`).toBe(0)
       process.exitCode = 0
     }
   })

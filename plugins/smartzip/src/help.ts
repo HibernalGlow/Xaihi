@@ -32,4 +32,4 @@ if (node === undefined) {
 // `options.command ?? '/'+nodeId`），所以产出的那一屏**仍会印 `/smartzip`** —— 那是
 // SDK 的默认值而不是本包注册的入口；把这一格真正关掉要改的是推导器（把 `command` 变成
 // "不给就不印那一块"），不在本包的写入范围里。`tests/cli.spec.ts` 钉的是本包不传它。
-export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'xsmartzip' })
+export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'smartzip' })

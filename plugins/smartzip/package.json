@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "xsmartzip": "./lib/cli.js"
+    "smartzip": "./lib/cli.js"
   },
   "files": [
     "lib/**",

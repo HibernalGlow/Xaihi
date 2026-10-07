@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "xsamea": "./lib/cli.js"
+    "samea": "./lib/cli.js"
   },
   "files": [
     "lib/**",

@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "xrepacku": "./lib/cli.js"
+    "repacku": "./lib/cli.js"
   },
   "files": [
     "lib/**",

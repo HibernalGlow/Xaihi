@@ -41,4 +41,4 @@ if (node === undefined) {
 }
 
 // 类型在这里点名：不写的话 dts 生成会报 TS4023（用了外部模块的类型却叫不出名字）。
-export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'xtrename' })
+export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'trename' })

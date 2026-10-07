@@ -29,4 +29,4 @@ if (node === undefined) {
 // **不传 `command`**（缺口 G7）：本包的 `inject` 只有 `['tools']`，没注册任何斜杠命令，
 // 印一条宿主里不存在的 `/cleanf` 就是屏幕撒谎。`nodeHelpFromManifest` 现在仍会用 `/cleanf`
 // 兜底（`packages/node-sdk/src/help.ts:108`），那一格不在本包的权限内，已记进报告。
-export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'xcleanf' })
+export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'cleanf' })

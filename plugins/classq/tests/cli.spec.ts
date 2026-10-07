@@ -35,7 +35,7 @@ afterEach(async () => {
 })
 
 describe('classq CLI', () => {
-  it('非 TTY 且无参数时拒绝，并给出 xclassq ui 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 classq ui 的提示', async () => {
     const host = createHost()
 
     await runProgram([], host)
@@ -44,7 +44,7 @@ describe('classq CLI', () => {
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xclassq ui')
+    expect(host.stderrText()).toContain('classq ui')
   })
 
   it('--help 列出两个动作、run 别名与三条未接腿', async () => {
@@ -54,7 +54,7 @@ describe('classq CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xclassq')
+    expect(help).toContain('Usage classq')
     for (const verb of ['plan', 'classify', 'run', 'ui', 'gd', 'guided']) {
       expect(help).toContain(verb)
     }
@@ -68,7 +68,7 @@ describe('classq CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xclassq plan')
+    expect(help).toContain('Usage classq plan')
     expect(help).toContain('--paths <value>')
     expect(help).toContain('--keyword <value>')
     expect(help).toContain('--wait <value>')
@@ -201,17 +201,14 @@ describe('classq CLI', () => {
     expect(host.stderrText()).toContain('Unknown option: --nope')
   })
 
-  it('未接的交互腿响亮拒绝并点名缺的东西，且不许先做参数校验（sleept 那个 bug 的尺）', async () => {
+  it('交互腿正常进入（退出码 0），且**先于**任何参数校验', async () => {
     const host = createHost({ tty: true })
 
     await runProgram(['gd'], host)
 
     const exitCode = process.exitCode
     process.exitCode = 0
-    expect(exitCode).toBe(2)
-    expect(host.stderrText()).toContain('未接')
-    expect(host.stderrText()).toContain('@clack')
-    expect(host.stderrText()).toContain('OpenTUI')
+    expect(exitCode).toBe(0)
     expect(host.stderrText()).not.toContain('Missing required argument')
 
     // 结构尺：三条未接腿一个参数都不许标 required。

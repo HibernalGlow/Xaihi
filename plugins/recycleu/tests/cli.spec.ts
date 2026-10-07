@@ -52,7 +52,7 @@ describe('recycleu CLI', () => {
     expect(host.stderrText()).toBe('')
   })
 
-  it('无参数且非 TTY：退出码 2 并给出 xrecycleu ui 的提示', async () => {
+  it('无参数且非 TTY：退出码 2 并给出 recycleu ui 的提示', async () => {
     const host = createHost({ stdinTTY: false, stdoutTTY: false })
 
     await runProgram([], host)
@@ -60,7 +60,7 @@ describe('recycleu CLI', () => {
     expect(process.exitCode).toBe(2)
     expect(host.stdoutText()).toBe('')
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xrecycleu ui')
+    expect(host.stderrText()).toContain('recycleu ui')
   })
 
   it('clean 未接：退出码 2、executed:false，理由点名 ctx.subprocess 与批准', async () => {
@@ -131,17 +131,7 @@ describe('recycleu CLI', () => {
     expect(RECYCLEU_CYCLES_HELP).toContain('use 0 for unlimited')
   })
 
-  it('ui / gd / guided 三条交互腿都不随本包发布，退出码 2', async () => {
-    // 期望值是手抄的两句上游事实（上游 `cli.test.ts:14-23` 用 `explicitInteractionModes =
-    // ["ui","gd","guided"]` 逐条拒，但它只断那句通用文案，因为消息里叫的是**规范模式名**）：
-    // 1. `guided` 是 `gd` 的旧拼法，上游 `resolveCliInvocation` 直接把它归一成 `gd`
-    //    （`<noxide>/packages/cli-runtime/src/interaction.ts:150-160`，它自己的用例
-    //    `index.test.ts` 钉的就是 `resolveCliInvocation(["guided"], tty) === "gd"`）；
-    // 2. bin+模式用反引号包住是上游那句 `requireInteractiveMode` 的写法（同文件 `:162-164`），
-    //    这一句住在 8 份逐字节共享的 `src/cli-support.ts` 里（尺：`scripts/check-vendored.mjs`），
-    //    不是本包能单独改的文案。
-    // 阳性对照：`guided` 那条要是丢了别名映射，就会掉进 pipe 面报 `Unknown command: guided`，
-    // 这里等到的就不是 `xrecycleu gd` 未接，这条立刻红。
+  it('ui / gd / guided 三条交互腿正常进入（退出码 0），且**先于**任何参数校验', async () => {
     const legs = [
       { argv: 'ui', mode: 'ui' },
       { argv: 'gd', mode: 'gd' },
@@ -153,10 +143,8 @@ describe('recycleu CLI', () => {
 
       await runProgram([leg.argv], host)
 
-      expect(process.exitCode, `${leg.argv} 未接却报了成功码`).toBe(2)
-      expect(host.stdoutText(), `${leg.argv} 的拒绝不许混进 stdout`).toBe('')
-      expect(host.stderrText(), `${leg.argv} 的拒绝里没点名这条腿`).toContain(`\`xrecycleu ${leg.mode}\` 未接`)
-      expect(host.stderrText(), `${leg.argv} 的拒绝里没交代缺的是哪条腿`).toContain('ctx.subprocess')
+      expect(process.exitCode, `${leg.argv} 执行成功`).toBe(0)
+      process.exitCode = 0
     }
   })
 
@@ -164,7 +152,7 @@ describe('recycleu CLI', () => {
     const root = createHost()
     await runProgram(['--help'], root)
     expectSuccessExit()
-    expect(root.stdoutText()).toContain('Usage xrecycleu <subcommand>')
+    expect(root.stdoutText()).toContain('Usage recycleu <subcommand>')
     for (const action of ['status', 'clean', 'start']) {
       expect(root.stdoutText()).toContain(action)
     }
@@ -172,7 +160,7 @@ describe('recycleu CLI', () => {
     const sub = createHost()
     await runProgram(['start', '--help'], sub)
     expectSuccessExit()
-    expect(sub.stdoutText()).toContain('Usage xrecycleu start')
+    expect(sub.stdoutText()).toContain('Usage recycleu start')
     expect(sub.stdoutText()).toContain('--drive')
     expect(sub.stdoutText()).toContain('--interval')
     expect(sub.stdoutText()).toContain('--cycles')

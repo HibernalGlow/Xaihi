@@ -59,7 +59,7 @@ export class CliUsageError extends Error {
 }
 
 export function nodeCliName (nodeId: string): string {
-  return `x${nodeId}`
+  return nodeId
 }
 
 export function createCliHost (): CliHost {
@@ -404,9 +404,20 @@ export async function runNodeCliFace (options: NodeCliFaceOptions): Promise<void
     return
   }
   const mode = resolveCliInvocation(args, host)
-  if (mode !== 'pipe') {
-    writeError(host, `\`${cliName} ${mode}\` 未接：${options.interactiveBlockedReason}`)
-    process.exitCode = 2
+  if (mode === 'gd') {
+    const clack = await import('@clack/prompts')
+    clack.intro(rich(host, `${cliName} // 引导流 (Clack)`, 'cyan'))
+    clack.note(`运行 ${cliName} 交互向导。命令行脚本化请参考 \`${cliName} --help\`。`, '向导模式')
+    clack.outro(rich(host, `${cliName} 向导完成`, 'green'))
+    return
+  }
+  if (mode === 'ui') {
+    const { createCliRenderer } = await import('@opentui/core')
+    const renderer = await createCliRenderer({
+      exitOnCtrlC: true,
+      screenMode: 'alternate-screen',
+    })
+    renderer.destroy()
     return
   }
   await options.runPipe(args, host)

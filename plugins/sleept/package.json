@@ -357,6 +357,6 @@
     "vitest": "^4.1.11"
   },
   "bin": {
-    "xsleept": "./lib/cli.js"
+    "sleept": "./lib/cli.js"
   }
 }

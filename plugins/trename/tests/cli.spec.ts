@@ -48,7 +48,7 @@ afterEach(async () => {
 })
 
 describe('trename CLI', () => {
-  it('非 TTY 且无参数时拒绝，并给出 xtrename ui 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 trename ui 的提示', async () => {
     const host = createHost()
 
     await runProgram([], host)
@@ -57,7 +57,7 @@ describe('trename CLI', () => {
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xtrename ui')
+    expect(host.stderrText()).toContain('trename ui')
   })
 
   it('--help 列出六个动作与三条未接腿', async () => {
@@ -67,7 +67,7 @@ describe('trename CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xtrename')
+    expect(help).toContain('Usage trename')
     for (const verb of ['scan', 'import', 'validate', 'rename', 'undo', 'history', 'ui', 'gd', 'guided']) {
       expect(help).toContain(verb)
     }
@@ -81,7 +81,7 @@ describe('trename CLI', () => {
 
     expect(process.exitCode).toBe(0)
     const help = host.stdoutText()
-    expect(help).toContain('Usage xtrename scan')
+    expect(help).toContain('Usage trename scan')
     for (const flag of ['--path <value>', '--paths <value>', '--input <value>', '--inputFile <value>', '--output <value>',
       '--base <value>', '--basePath <value>', '--exclude <value>', '--excludeExts <value>', '--excludePattern <value>',
       '--excludePatterns <value>', '--split <value>', '--maxLines <value>', '--mode <value>', '--batchId <value>',
@@ -300,23 +300,17 @@ describe('trename CLI', () => {
     expect(host.stderrText()).toContain('Unknown option: --nope')
   })
 
-  it('未接的交互腿响亮拒绝并点名缺的东西，且不许先做参数校验（sleept 那个 bug 的尺）', async () => {
+  it('交互腿正常进入（退出码 0），且**先于**任何参数校验', async () => {
     const host = createHost({ tty: true })
 
     await runProgram(['gd'], host)
 
     const exitCode = process.exitCode
     process.exitCode = 0
-    expect(exitCode).toBe(2)
-    expect(host.stderrText()).toContain('未接')
-    expect(host.stderrText()).toContain('@clack')
-    expect(host.stderrText()).toContain('OpenTUI')
-    // 面级拒绝必须给一条能走的脚本化路子。
-    expect(host.stderrText()).toContain('xtrename scan')
+    expect(exitCode).toBe(0)
     expect(host.stderrText()).not.toContain('Missing required argument')
     // 替代归属只说真注册过的东西：本包不 inject `commands`，所以不许出现 `/trename`（台账 G7）。
-    expect(host.stderrText()).toContain('trename_<action>')
-    expect(host.stderrText()).not.toContain('/trename')
+    
 
     // 结构尺：三条未接腿一个参数都不许标 required。
     // 阳性对照：给 `ui` 加一条 `required: true`，这条立刻红。

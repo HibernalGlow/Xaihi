@@ -29,7 +29,7 @@ afterEach(async () => {
 })
 
 describe('dissolvef CLI', () => {
-  it('非 TTY 且无参数时拒绝，并给出 xdissolvef ui 的提示', async () => {
+  it('非 TTY 且无参数时拒绝，并给出 dissolvef ui 的提示', async () => {
     const host = createHost()
 
     await runProgram([], host)
@@ -38,8 +38,8 @@ describe('dissolvef CLI', () => {
     process.exitCode = 0
     expect(exitCode).toBe(2)
     expect(host.stderrText()).toContain('No interactive terminal detected')
-    expect(host.stderrText()).toContain('xdissolvef')
-    expect(host.stderrText()).toContain('xdissolvef ui')
+    expect(host.stderrText()).toContain('dissolvef')
+    expect(host.stderrText()).toContain('dissolvef ui')
   })
 
   it('真跑 nested 解散与撤销，纯 JSON 输出（上游同款用例）', async () => {
@@ -142,7 +142,7 @@ describe('dissolvef CLI', () => {
     for (const verb of ['plan', 'dissolve', 'nested', 'media', 'archive', 'direct', 'collect-archives', 'history', 'undo', 'guided']) {
       expect(help).toContain(verb)
     }
-    expect(help).toContain('Usage xdissolvef')
+    expect(help).toContain('Usage dissolvef')
   })
 })
 
