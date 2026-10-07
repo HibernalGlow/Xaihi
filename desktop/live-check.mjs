@@ -77,6 +77,31 @@ const SCAN = `
   const openedWins = () => all().filter((w) => w !== main() && isOwnedDocWindow(w))
 `
 
+// 起壳之后先等"产品主窗把 dsh-app://app/ 加载出来、而且 Xaihi 的路由已经挂上"再开跑。
+// 实测过两种整片假红：① 调试端口一连上就跑判据，那一刻主窗 `getURL()` 还是空串
+// （R 读到 windows:[""] / appCount=0 ⇒ 88 条一起不成立）；② 主窗已经在了，但
+// `/xaihi/manifest.json` 还回 503（profile 的 bundle 挂载晚于主窗加载 ⇒ B 一开就红，
+// 连带 C/D 那 19 条）。等的是 B 自己断言的那两条，不是另造一条更松的前置：
+// 等不到就照原样往下走，让 B 把 503 报出来 —— 这把尺不许把"没等到"改写成"没问题"。
+const READY_WAIT_MS = 120_000
+let ready = null
+for (let waited = 0; waited < READY_WAIT_MS; waited += 2_000) {
+  ready = await evaluateMain(`(async () => {
+    const { BrowserWindow } = ${ELECTRON}
+    ${SCAN}
+    const app = main()
+    if (app === undefined) return { waited: ${waited}, appCount: 0, url: '', manifest: null,
+      urls: all().map((w) => w.webContents.getURL()) }
+    const manifest = await app.webContents.executeJavaScript(
+      "fetch('/xaihi/manifest.json').then(async (r) => ({ status: r.status, rev: r.status === 200 ? ((await r.json()).ui?.rev ?? null) : null }))", true)
+    return { waited: ${waited}, appCount: appWindows().length, url: app.webContents.getURL(),
+      manifest: manifest.status, rev: manifest.rev }
+  })()`)
+  if (ready.ok && ready.value?.appCount > 0 && ready.value?.manifest === 200) break
+  await new Promise((resolveWait) => { setTimeout(resolveWait, 2_000) })
+}
+console.log(`等待产品主窗与 Xaihi 路由 ⇒ ${JSON.stringify(ready)}`)
+
 // R 段：复位。关掉所有自家开出去的文档窗，把主窗带回产品文档根，并确认它真的回了。
 // 导航放在这里而不是收尾：这一刻没有并发的 close，主框导航不会撞上游的恢复态。
 const R = await evaluateMain(`(async () => {
