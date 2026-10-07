@@ -1,0 +1,220 @@
+From 8f7a627744112f44a47d08bf4757464a7d7656dd Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 07:42:58 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E7=AA=97=E6=8E=A7=E5=9B=9B=E6=9D=A1?=
+ =?utf-8?q?=20controlMain=20/=20controlComponent=20/=20openDevTools=20/=20?=
+ =?utf-8?q?startDragging=EF=BC=88Xaihi=20patch=200014=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/ipc.ts                 | 18 ++++++-
+ apps/desktop/src/main.ts                | 65 ++++++++++++++++++++++++-
+ apps/desktop/src/preload-app.ts         |  6 ++-
+ apps/desktop/src/xaihi-window-policy.ts | 39 +++++++++++++++
+ 4 files changed, 125 insertions(+), 3 deletions(-)
+
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+index 6baf228..5deefd0 100644
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -2,7 +2,7 @@
+ 
+ import type { DesktopKeyboardApi, DesktopShortcutsApi } from '@deepseek-ai/dsh-client-shortcuts/protocol'
+ import type { IpcMainInvokeEvent } from 'electron'
+-import type { XaihiWindowCapabilities } from './xaihi-window-policy.ts'
++import type { XaihiWindowAction, XaihiWindowCapabilities, XaihiWindowCommandResult } from './xaihi-window-policy.ts'
+ import type { DesktopBrowserBridge } from '@deepseek-ai/dsh-client-ui-sidebar-browser/types'
+ 
+ /** IPC channel names kept private to the desktop application bundle. */
+@@ -39,6 +39,10 @@ export const DESKTOP_IPC = {
+   xaihiWindowGetBounds: 'dsh-desktop:xaihi-window-get-bounds',
+   xaihiWindowSetBounds: 'dsh-desktop:xaihi-window-set-bounds',
+   xaihiWindowFrameChanged: 'dsh-desktop:xaihi-window-frame-changed',
++  xaihiWindowControlMain: 'dsh-desktop:xaihi-window-control-main',
++  xaihiWindowControlComponent: 'dsh-desktop:xaihi-window-control-component',
++  xaihiWindowDevTools: 'dsh-desktop:xaihi-window-devtools',
++  xaihiWindowStartDragging: 'dsh-desktop:xaihi-window-start-dragging',
+ } as const
+ 
+ /** Desktop release update state rendered by desktop-owned UI. */
+@@ -138,6 +142,18 @@ export interface DshDesktopProductApi {
+       readonly width: number
+       readonly height: number
+     }) => void): () => void
++    /**
++     * Xaihi patch 0014: 窗控。动作词与结果形状逐字照基线
++     * （`Xiranite/src/backend/runtime/runtime.ts:84` 与 `:102-108`）。
++     * 结果里的 `supported` 不是装饰：这套壳的窗 `frameless=false`，所以 `startDragging` 就是没有 ——
++     * 缺了那一位，界面只能把"没做成"读成"做成了但没变化"，那正是 ADR-0011 决定 4 禁止的静默。
++     * `controlMain('close')` 说的是真话：上游主窗的关闭是**隐藏**（`main.ts` 那条 hide-on-close），
++     * 所以那条的 `state` 是 `normal` 而消息写着 hidden，不假装窗被销毁了。
++     */
++    controlMain(action: XaihiWindowAction): Promise<XaihiWindowCommandResult>
++    controlComponent(windowId: number, action: XaihiWindowAction): Promise<XaihiWindowCommandResult>
++    openDevTools(windowId?: number): Promise<XaihiWindowCommandResult>
++    startDragging(windowId?: number): Promise<XaihiWindowCommandResult>
+     focus(windowId: number): Promise<{ readonly windowId: number }>
+     close(windowId: number): Promise<{ readonly windowId: number }>
+     getBounds(windowId: number): Promise<{ readonly x: number, readonly y: number, readonly width: number, readonly height: number }>
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index b3cfa5b..f059702 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -24,7 +24,7 @@ import {
+   type WebContents,
+ } from 'electron'
+ import { resolveDesktopPaths } from './paths.ts'
+-import { normalizeXaihiWindowBounds, normalizeXaihiWindowSize, resolveXaihiDocumentTarget, xaihiWindowCapabilities, xaihiWindowKey, type XaihiWindowSize } from './xaihi-window-policy.ts'
++import { normalizeXaihiWindowAction, normalizeXaihiWindowBounds, normalizeXaihiWindowSize, resolveXaihiDocumentTarget, xaihiWindowCapabilities, xaihiWindowState, xaihiWindowKey, type XaihiWindowAction, type XaihiWindowCommandResult, type XaihiWindowSize } from './xaihi-window-policy.ts'
+ 
+ import { DesktopProjectManager } from './project-manager.ts'
+ import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
+@@ -895,6 +895,69 @@ async function main(): Promise<void> {
+       kind === 'inset' ? DARWIN_TRAFFIC_LIGHT_POSITION : undefined,
+     )
+   })
++  // Xaihi patch 0014: 窗控。状态一律是**做完之后量出来的**，不是"我以为会变成"的那个；
++  // 做不到的事回 `supported:false` 而不是假成功（决定 4）。`applyXaihiWindowAction` 被
++  // 主窗与自家文档窗共用，两条差别只在"关"：主窗那条是上游自己的 hide-on-close 行为。
++  const stateOf = (target: BrowserWindow) => xaihiWindowState({
++    minimized: target.isMinimized(),
++    maximized: target.isMaximized(),
++    fullscreen: target.isFullScreen(),
++  })
++  const applyXaihiWindowAction = (target: BrowserWindow, action: XaihiWindowAction, hidesInsteadOfClosing: boolean): XaihiWindowCommandResult => {
++    const id = target.id
++    switch (action) {
++      case 'minimize': target.minimize(); break
++      case 'maximize': target.maximize(); break
++      case 'toggle-fullscreen': target.setFullScreen(!target.isFullScreen()); break
++      case 'restore': target.restore(); target.unmaximize(); break
++      case 'close': {
++        if (hidesInsteadOfClosing) {
++          target.hide()
++          return { success: true, supported: true, windowId: id, state: 'normal', message: 'xaihi desktop: main window hidden, not closed (hide-on-close)' }
++        }
++        target.close()
++        return { success: true, supported: true, windowId: id, state: 'closed', message: 'xaihi desktop: window closed' }
++      }
++    }
++    if (target.isDestroyed()) return { success: true, supported: true, windowId: id, state: 'closed', message: 'xaihi desktop: window closed' }
++    return { success: true, supported: true, windowId: id, state: stateOf(target), message: `xaihi desktop: ${action} applied` }
++  }
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowControlMain, (event, action: unknown) => {
++    assertXaihiWindowSender(event)
++    const normalized = normalizeXaihiWindowAction(action)
++    if (normalized === undefined) throw new Error('xaihi desktop: action must be minimize, maximize, toggle-fullscreen, restore or close')
++    if (mainWindow === undefined || mainWindow.isDestroyed()) {
++      return { success: false, supported: false, message: 'xaihi desktop: no main window' }
++    }
++    return applyXaihiWindowAction(mainWindow, normalized, true)
++  })
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowControlComponent, (event, windowId: unknown, action: unknown) => {
++    const target = needXaihiWindow(event, windowId)
++    const normalized = normalizeXaihiWindowAction(action)
++    if (normalized === undefined) throw new Error('xaihi desktop: action must be minimize, maximize, toggle-fullscreen, restore or close')
++    return applyXaihiWindowAction(target, normalized, false)
++  })
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowDevTools, (event, windowId?: unknown) => {
++    // 给 id 就动自家登记表里那一个窗，不给就动产品主窗；两条都过同一条发起者闸。
++    const target = windowId === undefined || windowId === null
++      ? (assertXaihiWindowSender(event), mainWindow)
++      : needXaihiWindow(event, windowId)
++    if (target === undefined || target.isDestroyed()) return { success: false, supported: false, message: 'xaihi desktop: no such window' }
++    if (!target.webContents.isDevToolsOpened()) target.webContents.openDevTools({ mode: 'detach' })
++    return { success: true, supported: true, windowId: target.id, message: 'xaihi desktop: devtools opened' }
++  })
++  // 这条**故意不假装能做**：自家窗都有系统标题栏（0011 报的 `frameless:false`、`captionOwner:'system'`），
++  // 无边框拖拽在这里没有对应物。回 supported:false 是有信息的答案，做一个"返回成功的空操作"才是决定 4 说的静默。
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowStartDragging, (event, windowId?: unknown) => {
++    const target = windowId === undefined || windowId === null
++      ? (assertXaihiWindowSender(event), mainWindow)
++      : needXaihiWindow(event, windowId)
++    return {
++      success: false, supported: false,
++      ...(target !== undefined && !target.isDestroyed() ? { windowId: target.id } : {}),
++      message: 'xaihi desktop: windows are system-framed here, so there is nothing to drag',
++    }
++  })
+   ipcMain.handle(DESKTOP_IPC.xaihiWindowFocus, (event, windowId: unknown) => {
+     const window = needXaihiWindow(event, windowId)
+     if (window.isMinimized()) window.restore()
+diff --git a/apps/desktop/src/preload-app.ts b/apps/desktop/src/preload-app.ts
+index 3d450f5..adad37d 100644
+--- a/apps/desktop/src/preload-app.ts
++++ b/apps/desktop/src/preload-app.ts
+@@ -1,7 +1,7 @@
+ /** Origin-scoped boot, native directory selection, host paths of picked files, and update presentation with native confirmation actions. */
+ 
+ import type { DesktopShortcutInput, ShortcutConfigSnapshot, ShortcutSaveResult } from '@deepseek-ai/dsh-client-shortcuts/protocol'
+-import type { XaihiWindowCapabilities } from './xaihi-window-policy.ts'
++import type { XaihiWindowCommandResult, XaihiWindowCapabilities } from './xaihi-window-policy.ts'
+ import { contextBridge, ipcRenderer, webUtils } from 'electron'
+ import { DESKTOP_IPC, SCHEME, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
+ import { PLATFORM_IPC } from './platform-ipc.ts'
+@@ -25,6 +25,10 @@ function createProductApi(): DshDesktopProductApi {
+         ipcRenderer.on(DESKTOP_IPC.xaihiWindowFrameChanged, handle)
+         return () => { ipcRenderer.off(DESKTOP_IPC.xaihiWindowFrameChanged, handle) }
+       },
++      controlMain: (action: string) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowControlMain, action) as Promise<XaihiWindowCommandResult>,
++      controlComponent: (windowId: number, action: string) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowControlComponent, windowId, action) as Promise<XaihiWindowCommandResult>,
++      openDevTools: (windowId?: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowDevTools, windowId) as Promise<XaihiWindowCommandResult>,
++      startDragging: (windowId?: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowStartDragging, windowId) as Promise<XaihiWindowCommandResult>,
+       focus: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowFocus, windowId) as Promise<{ readonly windowId: number }>,
+       close: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowClose, windowId) as Promise<{ readonly windowId: number }>,
+       getBounds: (windowId: number) => ipcRenderer.invoke(DESKTOP_IPC.xaihiWindowGetBounds, windowId) as Promise<{ readonly x: number, readonly y: number, readonly width: number, readonly height: number }>,
+diff --git a/apps/desktop/src/xaihi-window-policy.ts b/apps/desktop/src/xaihi-window-policy.ts
+index 8f6fcbd..752581f 100644
+--- a/apps/desktop/src/xaihi-window-policy.ts
++++ b/apps/desktop/src/xaihi-window-policy.ts
+@@ -155,6 +155,45 @@ export function xaihiWindowCapabilities (
+     message: 'Xaihi desktop shell: native component windows; address by windowId: focus, close, getBounds, setBounds',
+   }
+ }
++/**
++ * Xaihi patch 0014: 窗控动作与结果，逐字照基线
++ * `Xiranite/src/backend/runtime/runtime.ts:84` 的 `MainWindowAction` 与 `:102-108` 的 `WindowCommandResult`。
++ *
++ * 为什么结果里必须有 `supported`：那台机器上有些动作**在这套壳里就是没有**
++ * （比如无边框拖拽 —— 我们的窗 `frameless=false`）。缺了这个位，界面只能把"没做成"
++ * 读成"做成了但没变化"，那正是决定 4 禁止的那种静默。
++ */
++export type XaihiWindowAction = 'minimize' | 'maximize' | 'toggle-fullscreen' | 'restore' | 'close'
++
++const WINDOW_ACTIONS: readonly string[] = ['minimize', 'maximize', 'toggle-fullscreen', 'restore', 'close']
++
++/** 只认基线那五个词；不认的词返回 `undefined`，由调用方按形状错误拒（不许猜近义）。 */
++export function normalizeXaihiWindowAction (action: unknown): XaihiWindowAction | undefined {
++  return typeof action === 'string' && WINDOW_ACTIONS.includes(action) ? action as XaihiWindowAction : undefined
++}
++
++/** 一条窗控的结果；`state` 是**做完之后量出来的**，不是"我以为会变成"的那个。 */
++export interface XaihiWindowCommandResult {
++  readonly success: boolean
++  readonly supported: boolean
++  readonly windowId?: number
++  readonly message: string
++  readonly state?: 'normal' | 'maximized' | 'fullscreen' | 'minimized' | 'closed'
++}
++
++/**
++ * 把窗的三个布尔位归成一个状态。顺序是**最小化优先**：mac 上缩到 Dock 的窗可能同时仍报
++ * `isMaximized()`，先问最大化就会把"最小化"报成"最大化"。哪个顺序对不靠猜 ——
++ * `desktop/live-check.mjs` 的 P 段先 `minimize` 再读 `state`，报错了那条就红。
++ * @param flags - the live Electron window flags.
++ * @returns the state a caller can render.
++ */
++export function xaihiWindowState (flags: { minimized: boolean, maximized: boolean, fullscreen: boolean }): 'normal' | 'maximized' | 'fullscreen' | 'minimized' {
++  if (flags.minimized) return 'minimized'
++  if (flags.fullscreen) return 'fullscreen'
++  return flags.maximized ? 'maximized' : 'normal'
++}
++
+ /** 一条窗的位置与尺寸；`x`/`y` 是屏幕坐标，可以带符号。 */
+ export interface XaihiWindowBounds extends XaihiWindowSize {
+   readonly x: number
+-- 
+2.55.0
+

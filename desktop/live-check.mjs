@@ -47,12 +47,12 @@ const send = (method, params) => new Promise((resolve) => {
   ws.send(JSON.stringify({ id, method, params }))
 })
 const EVAL_TIMEOUT_MS = 30_000
-async function evaluateMain (expression) {
+async function evaluateMain (expression, timeoutMs = EVAL_TIMEOUT_MS) {
   // 宿主起不来的时候 executeJavaScript 会永远挂着；判据必须自己超时并报警，
   // 否则"没结论"会被读成"没失败"。
-  const timer = new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), EVAL_TIMEOUT_MS))
+  const timer = new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), timeoutMs))
   const reply = await Promise.race([send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }), timer])
-  if (reply?.timeout === true) return { ok: false, text: `求值超时（${String(EVAL_TIMEOUT_MS / 1000)} 秒）⇒ 宿主或文档没到 ready` }
+  if (reply?.timeout === true) return { ok: false, text: `求值超时（${String(timeoutMs / 1000)} 秒）⇒ 宿主或文档没到 ready` }
   const detail = reply.result?.exceptionDetails
   if (detail !== undefined) {
     return { ok: false, text: detail.exception?.description?.split('\n')[0] ?? detail.text ?? 'unknown' }
@@ -805,6 +805,80 @@ const O = await evaluateMain(`(async () => {
 })()`)
 console.log('O 段（尺寸推送真到达、退订真断）⇒ ' + JSON.stringify(O))
 
+// P 段：0014 的窗控。判据打在**量得到的效果**上（轮询 Electron 自己的布尔位），
+// 因为 `minimize()` / `maximize()` 这类调用在 mac 上不保证同步翻转标志位 ——
+// 把断言压在"动词当场回的那个 state"上会造出抖动红。当场那个值照样打印出来：
+// 要是它系统性落后一步，那是该改壳去等事件的**真缺陷**，看得见才有下一步。
+const P = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  const mainId = app.id
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 600))
+  const ready = new Promise((r) => app.webContents.once('did-finish-load', r))
+  await app.webContents.loadURL('dsh-app://app/')
+  await Promise.race([ready, new Promise((r) => setTimeout(r, 6000))])
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const nodes = manifest.plugins.map((p) => p.manifest.id)
+  const docPath = manifest.ui.documentUrl
+  const call = (verb, args) => app.webContents.executeJavaScript(
+    'Promise.resolve(window.dshDesktop.xaihiWindow.' + verb + '(' + args + '))'
+    + '.then((r) => ({ kind: "ok", value: r }), (e) => ({ kind: "rejected", message: String(e && e.message ? e.message : e) }))', true)
+  const flagsOf = (win) => win === undefined || win.isDestroyed()
+    ? { destroyed: true }
+    : { destroyed: false, minimized: win.isMinimized(), maximized: win.isMaximized(), fullscreen: win.isFullScreen(), visible: win.isVisible() }
+  const waitFlags = async (win, predicate, ms) => {
+    const until = Date.now() + ms
+    while (Date.now() < until) { if (predicate(flagsOf(win))) return true; await new Promise((r) => setTimeout(r, 120)) }
+    return false
+  }
+  const minimize = await call('controlMain', "'minimize'")
+  const minimizedOk = await waitFlags(app, (f) => f.minimized === true, 3000)
+  const restoreMain = await call('controlMain', "'restore'")
+  const restoredOk = await waitFlags(app, (f) => f.minimized === false, 3000)
+  const mainClose = await call('controlMain', "'close'")
+  await new Promise((r) => setTimeout(r, 700))
+  const mainAfterClose = flagsOf(app)
+  app.show()
+  const opened = await call('open', JSON.stringify(nodes[0]) + ', ' + JSON.stringify({ documentPath: docPath }))
+  await new Promise((r) => setTimeout(r, 900))
+  const id = opened.value ? opened.value.windowId : -1
+  const win = all().find((w) => w.id === id)
+  // 进全屏是一次 Space 切换：先把那个窗带到前台，否则量的就是"后台窗能不能抢焦点"而不是全屏本身。
+  if (win !== undefined && !win.isDestroyed()) win.focus()
+  await new Promise((r) => setTimeout(r, 400))
+  const maximize = await call('controlComponent', String(id) + ", 'maximize'")
+  const maximizedOk = await waitFlags(win, (f) => f.maximized === true && f.minimized === false, 3000)
+  const fullscreen = await call('controlComponent', String(id) + ", 'toggle-fullscreen'")
+  const fullscreenOk = await waitFlags(win, (f) => f.fullscreen === true, 12000)
+  const unfullscreen = await call('controlComponent', String(id) + ", 'toggle-fullscreen'")
+  const unfullscreenOk = await waitFlags(win, (f) => f.fullscreen === false, 12000)
+  const devtools = await call('openDevTools', String(id))
+  await new Promise((r) => setTimeout(r, 800))
+  const devtoolsOpen = win !== undefined && !win.isDestroyed() && win.webContents.isDevToolsOpened()
+  if (win !== undefined && !win.isDestroyed()) win.webContents.closeDevTools()
+  const dragging = await call('startDragging', String(id))
+  const badAction = await call('controlComponent', String(id) + ", 'Close'")
+  const foreign = await call('controlComponent', String(mainId) + ", 'minimize'")
+  const closeComp = await call('controlComponent', String(id) + ", 'close'")
+  await new Promise((r) => setTimeout(r, 900))
+  const windowStillThere = all().some((w) => w.id === id)
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 700))
+  return {
+    id, minimize, minimizedOk, restoreMain, restoredOk, mainClose, mainAfterClose,
+    maximize, maximizedOk, fullscreen, fullscreenOk, unfullscreen, unfullscreenOk,
+    devtools, devtoolsOpen, dragging, badAction, foreign, closeComp, windowStillThere,
+    ownedLeft: openedWins().length,
+  }
+})()`, 150_000)
+console.log('P 段（窗控：效果量得到、做不到的老实说不支持）⇒ ' + JSON.stringify(P))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -970,6 +1044,34 @@ need('O: 最后一条事件报的是生效后的矩形',
 need('O: 退订之后不再收（监听器不泄漏）',
   typeof oo.afterUnsubCount === 'number' && oo.afterUnsubCount === oo.countAtUnsub)
 need('O: 收尾把自家窗清干净', oo.ownedLeft === 0)
+
+const pp = P.ok === true ? P.value : {}
+const STATE_WORDS = ['normal', 'maximized', 'fullscreen', 'minimized', 'closed']
+const stateIsLegal = (res) => res?.value && typeof res.value.state === 'string' && STATE_WORDS.includes(res.value.state)
+need('P: 主窗 minimize / restore 的效果量得到（并先证明它真最小化了）',
+  pp.minimize?.kind === 'ok' && pp.minimizedOk === true && pp.restoreMain?.kind === 'ok' && pp.restoredOk === true)
+need('P: 主窗的 close 说的是真话 —— 隐藏而不是谎报销毁',
+  pp.mainClose?.value?.supported === true && String(pp.mainClose?.value?.message).includes('hidden, not closed')
+  && pp.mainAfterClose?.destroyed === false && pp.mainAfterClose?.visible === false)
+need('P: 自家窗 maximize 效果量得到；全屏要么真进去、要么如实报没进去（两者必居其一）',
+  pp.maximizedOk === true && pp.maximize?.value?.success === pp.maximizedOk
+  && pp.fullscreen?.value?.success === pp.fullscreenOk)
+if (pp.fullscreenOk === false) {
+  console.log('  观察：本机进不了原生全屏 —— 探针实测连不带 vibrancy/hiddenInset 的普通 BrowserWindow 也不生效'
+    + '（plainOk=false，darwin / Electron 44.0.0），所以这不是壳的缺陷也不是窗样式的问题。'
+    + '这条**不算已验**：要在能正常切 Space 的机器上复量。')
+}
+need('P: 每条结果都带合法的 state 词（不是随手造的字符串）',
+  stateIsLegal(pp.minimize) && stateIsLegal(pp.maximize) && stateIsLegal(pp.fullscreen))
+need('P: openDevTools 真开出来（自家窗自己的调试面）', pp.devtools?.kind === 'ok' && pp.devtoolsOpen === true)
+need('P: 无边框拖拽老实回不支持，而不是假成功',
+  pp.dragging?.kind === 'ok' && pp.dragging?.value?.supported === false && pp.dragging?.value?.success === false)
+need('P: 基线词表之外的动作被拒（不许猜近义）',
+  pp.badAction?.kind === 'rejected' && String(pp.badAction?.message).includes('action must be minimize'))
+need('P: 边界照旧 —— 拿主窗的 id 走 controlComponent 也被拒',
+  pp.foreign?.kind === 'rejected' && String(pp.foreign?.message).includes('unknown window'))
+need('P: 自家窗的 close 真的关掉那个窗', pp.closeComp?.value?.state === 'closed' && pp.windowStillThere === false)
+need('P: 收尾把自家窗清干净', pp.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {

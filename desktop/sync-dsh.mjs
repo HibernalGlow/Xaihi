@@ -211,9 +211,10 @@ if (flag('verify')) {
   // 之所以能直接跑：ipc.ts 的三条 import 全是 `import type`，剥掉类型后不依赖 node_modules。
   const probe = await import('./dsh/apps/desktop/src/ipc.ts')
   const want = 'dsh-desktop:xaihi-window-open'
-  const EXPECTED_CHANNELS = 32
+  const EXPECTED_CHANNELS = 36
   // 0010 那四条通道名要点得出名字：只数条数会漏掉"少一条功能、多一条别的"这种漂移。
-  const commandChannels = ['xaihiWindowFocus', 'xaihiWindowClose', 'xaihiWindowGetBounds', 'xaihiWindowSetBounds', 'xaihiWindowCapabilities', 'xaihiWindowFrameChanged']
+  const commandChannels = ['xaihiWindowFocus', 'xaihiWindowClose', 'xaihiWindowGetBounds', 'xaihiWindowSetBounds', 'xaihiWindowCapabilities', 'xaihiWindowFrameChanged',
+    'xaihiWindowControlMain', 'xaihiWindowControlComponent', 'xaihiWindowDevTools', 'xaihiWindowStartDragging']
   const missingChannels = commandChannels.filter((name) => probe.DESKTOP_IPC[name] === undefined)
   const gotChannels = Object.keys(probe.DESKTOP_IPC).length
   // 先报现场，再报结论：这条尺红过一次是因为**话术**把"表里少四条"说成"减法对照没落地"，
@@ -340,6 +341,24 @@ if (flag('verify')) {
     fail('verify: 0009 的尺寸校验把合法尺寸也拒了（尺是瞎的）')
   }
 
+  // 0014 的两条纯函数：动作词表（只认基线那五个）与状态归并的**优先级**。
+  const actionTable = [
+    ['minimize', true], ['maximize', true], ['toggle-fullscreen', true], ['restore', true], ['close', true],
+    ['Close', false], ['fullscreen', false], ['hide', false], ['', false], ['minimaze', false],
+  ]
+  const actionWrong = actionTable.filter(([name, allowed]) => (policy.normalizeXaihiWindowAction(name) !== undefined) !== allowed)
+  const stateTable = [
+    [{ minimized: true, maximized: true, fullscreen: false }, 'minimized'],
+    [{ minimized: true, maximized: false, fullscreen: false }, 'minimized'],
+    [{ minimized: false, maximized: true, fullscreen: true }, 'fullscreen'],
+    [{ minimized: false, maximized: true, fullscreen: false }, 'maximized'],
+    [{ minimized: false, maximized: false, fullscreen: false }, 'normal'],
+  ]
+  const stateWrong = stateTable.filter(([flags, want]) => policy.xaihiWindowState(flags) !== want)
+  console.log(`verify: 0014 动作词 ${String(actionTable.length)} 用例判错 ${String(actionWrong.length)}；状态归并 ${String(stateTable.length)} 用例判错 ${String(stateWrong.length)}`)
+  if (actionWrong.length > 0) fail(`verify: 0014 的动作词表与用例不符 ⇒ ${String(actionWrong.map(([n]) => n).join(', '))}`)
+  if (stateWrong.length > 0) fail(`verify: 0014 的状态优先级与用例不符 ⇒ ${String(stateWrong.map(([f]) => JSON.stringify(f)).join(', '))}`)
+
   // 0011 的协商形状：逐字段照基线，且**没给位置就不许造一个位置出来**。
   const capsInset = policy.xaihiWindowCapabilities('inset', { x: 16, y: 18 })
   const capsOverlay = policy.xaihiWindowCapabilities('overlay')
@@ -408,6 +427,9 @@ if (flag('verify')) {
     // 0012 的推送:发信口与两个挂点都得在产物里,少一个就是"订阅了但永远不响"。
     const frameWired = mainJs.includes('xaihiFrameSink') && mainJs.includes('publishFrame')
       && mainJs.includes('xaihiWindowFrameChanged')
+    // 0014：三条能做的 + 一条老实回 unsupported 的，都要在产物里点得到名。
+    const controlWired = mainJs.includes('applyXaihiWindowAction') && mainJs.includes('hide-on-close')
+      && mainJs.includes('system-framed here') && mainJs.includes('fullscreen did not engage')
     // 0006 只在这个函数体里查：整个 bundle 里 "page-title-updated" 是上游自己也用的词，
     // 全局搜会得到一个与我的改动无关的绿 —— 减法对照实测就抓到了这一点（摘掉 0006 重建产物，
     // main.js 里仍有 1 处 page-title-updated，来自别的上游模块被打包进来）。
@@ -426,6 +448,7 @@ if (flag('verify')) {
     if (!commandWired) fail('verify: 0010 的寻址四条没进 lib/main.js ⇒ 产物比系列旧')
     if (!capsWired) fail('verify: 0011 的协商那条没进 lib/main.js ⇒ 产物比系列旧')
     if (!frameWired) fail('verify: 0012 的尺寸推送没进 lib/main.js ⇒ 订阅了也不会响')
+    if (!controlWired) fail('verify: 0014 的窗控四条没进 lib/main.js ⇒ 产物比系列旧')
     if (titleControl) fail('verify: 0006 的判据是瞎的（抹掉那一行还读得到）')
     if (!titleWired) fail('verify: 0006 的标题保护没进 lib/main.js 的 openXaihiDocumentWindow ⇒ 产物比系列旧')
     if (!inMain || !inPreload) fail('verify: 通道没进产物 ⇒ 那条源码改动没被编译，或 patch 被静默跳过')

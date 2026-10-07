@@ -516,7 +516,9 @@ settings / storage 面，壳不另开一份存储。校验放在纯模块里（`
 | `focus(id)` / `close(id)` | ✅ 0010：`xaihiWindow.focus(windowId)` 与 `.close(windowId)`，只认自家那张登记表里的窗 | M 段活体，含两条边界对照：拿主窗 id 来问也被拒、关掉之后同 id 读不回来 |
 | `getFrame(id)` / `setFrame(frame, id)` | ✅ 0010：`.getBounds(windowId)` 与 `.setBounds(windowId, rect)`，回读的是**生效后**量出来的矩形（屏幕会 clamp，报回去的必须是界面实际拿到的那份） | M 段：`1100x850` 与主进程自己 `getBounds()` 的四元组逐字相同；小数坐标按形状拒 |
 | `subscribeFrameChanges(handler)` | ✅ 0012：自家文档窗被挪动/改尺寸时把**当前量到的**矩形推给产品文档；订阅返回退订函数 | O 段活体：载荷五个键逐字对、退订后再挪一次不再收 |
-| `controlMain` / `controlComponent` / `openDevTools` / `startDragging` | ❌ 未提供。**其中 `startDragging` 我们这侧是真的不适用**（自家窗都有原生框，`frameless=false`）—— 等界面真问到时该回"不支持"，不许做一个返回成功的假动词 | 无 |
+| `controlMain(action)` / `controlComponent(id, action)` | ✅ 0014（+0015/0016 两处修正）：动作词照基线那五个，状态是**做完之后量出来的**；主窗的 `close` 明说"隐藏不是销毁"（上游 hide-on-close），自家窗的 `close` 才真销毁 | P 段：minimize / restore / maximize 效果轮询量得到；主窗关完 `destroyed:false, visible:false` |
+| `openDevTools(id?)` | ✅ 0014：给 id 动自家那个窗，不给动产品主窗 | P 段：`isDevToolsOpened()===true`（用完关掉，不留残窗） |
+| `startDragging(id?)` | ✅ 0014 答的是**没有**：`supported:false, success:false` + 一句原因（自家窗 `frameless:false`，没有可拖的自定义标题栏） | P 段：不许做一个返回成功的空操作 —— 那是决定 4 点名禁止的静默 |
 
 ⇒ 搬运那刀接 `windowService.ts` 时，除 `open` 之外每一条都要**先接降级再接触点**：
 按决定 4，探测不到就画"这一格没有提供者"，不许把 `controlComponent` 之类写成"成功但什么都没做"。
@@ -614,3 +616,39 @@ mac 上 `captionOwner=system`、`captionInset={x:16,y:18}`、`nativeWindowContro
 但先撞上的是**通道名**那条（`0010/0011 的通道缺 ⇒ xaihiWindowFrameChanged`，现读 31 期望 32）就退出了，
 所以产物侧那三个标识符的敏感性只由"旧写法恒假那一次假红"证明过，没有独立跑成"摘掉后由产物判据点名"。
 恢复 13/13 重放 + 重建 ⇒ `--verify` rc=0、`live-check` 再跑一次 **79 条 OK、rc=0**。
+
+## 0014 / 0015 / 0016：窗控四条，以及一条被当场抓到的假成功（2026-10-07 07:4x–07:5x）
+
+基线 `WindowRuntime` 的十一个成员到这里每条都有**确定答复**（做不到的也答"做不到"）。
+动作词与结果形状逐字照基线（`runtime.ts:84` 的五个动作、`:102-108` 的 `WindowCommandResult`），
+两条实现上的讲究值得写下来：
+
+- **`state` 是做完之后量的**，不是"我以为会变成"的那个：`minimize/maximize/toggle-fullscreen/restore`
+  之后回读 Electron 自己的三个布尔位归并成状态（`xaihiWindowState`，纯函数，`--verify` 钉它的优先级 ——
+  最小化要先判，否则 mac 上会把"缩进 Dock"报成"最大化"）。
+- **主窗的 `close` 与自家窗的 `close` 不是一回事**：上游主窗关闭是 hide-on-close，所以那条回的是
+  `state:'normal'` + 消息里明写 `hidden, not closed`；自家文档窗那条才真销毁并回 `state:'closed'`。
+  把两条统一成"closed"就是对着界面撒谎。
+
+`0015` 与 `0016` 是 P 段**第一天就抓到的两件事**，不是我预见的：
+
+1. `toggle-fullscreen` 在一条刚被 `maximize` 的窗上调 `setFullScreen(true)` **标志位根本不动**，
+   而 handler 回的是 `success:true` —— 正是决定 4 禁止的"成功但什么都没发生"。
+   改成：先进全屏前解除最大化，再等到位（`waitFlag`），**没到位就回 `success:false` + `fullscreen did not engage`**。
+2. 放宽到 8 s + 先把窗带到前台之后仍然进不了全屏。于是做一次决定性区分：造一个
+   **不带 vibrancy / `hiddenInset` / 透明底的普通 `BrowserWindow`** 再 `setFullScreen(true)` ——
+   读数 `plainOk:false`（darwin / Electron 44.0.0）⇒ **这台机器的会话不能进原生全屏**，
+   与我们的窗样式和 patch 无关。判据因此钉的是"要么真进去、要么如实报没进去"（假成功仍会红），
+   并把这条环境读数打成**观察、不算已验**：要在能正常切 Space 的机器上复量。
+
+`openDevTools` 走同一条发起者闸与同一张登记表；`startDragging` 老实回
+`supported:false`（`windows are system-framed here`）。边界照旧：拿产品主窗的 id 走
+`controlComponent` ⇒ `unknown window`；词表外的动作（`'Close'`）⇒ 当场拒，不猜近义。
+
+实机（P 段十条，`node desktop/live-check.mjs` ⇒ **89 条 OK、0 FAIL、rc=0**）：
+主窗 minimize→restore 效果轮询量到；主窗 close 后 `destroyed:false, visible:false`；
+自家窗 maximize 效果量到、`success` 与效果一致；`openDevTools` 后 `isDevToolsOpened()===true`；
+`startDragging` 是 `supported:false, success:false`；`'Close'` 与主窗 id 两条都被拒；
+自家窗 `close` 后 `windowStillThere:false`；收尾 `ownedLeft:0`。
+通道判据现 **36 条**并逐条点名，`--verify` 另有 10 条动作词用例 + 5 条状态归并用例。
+

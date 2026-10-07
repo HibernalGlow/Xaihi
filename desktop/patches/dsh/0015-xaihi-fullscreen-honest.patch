@@ -1,0 +1,82 @@
+From 1a6c93879cd4ad102fe704e3e3b4999849793706 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Wed, 7 Oct 2026 07:46:36 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E5=85=A8=E5=B1=8F=E5=89=8D=E5=85=88?=
+ =?utf-8?q?=E8=A7=A3=E9=99=A4=E6=9C=80=E5=A4=A7=E5=8C=96=EF=BC=8C=E6=B2=A1?=
+ =?utf-8?q?=E7=94=9F=E6=95=88=E5=B0=B1=E5=9B=9E=20success:false=EF=BC=88Xa?=
+ =?utf-8?q?ihi=20patch=200015=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/main.ts | 32 ++++++++++++++++++++++++++------
+ 1 file changed, 26 insertions(+), 6 deletions(-)
+
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index f059702..f70d268 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -903,12 +903,32 @@ async function main(): Promise<void> {
+     maximized: target.isMaximized(),
+     fullscreen: target.isFullScreen(),
+   })
+-  const applyXaihiWindowAction = (target: BrowserWindow, action: XaihiWindowAction, hidesInsteadOfClosing: boolean): XaihiWindowCommandResult => {
++  const waitFlag = async (predicate: () => boolean, ms: number): Promise<boolean> => {
++    const until = Date.now() + ms
++    while (Date.now() < until) {
++      if (predicate()) return true
++      await new Promise((resolve) => setTimeout(resolve, 100))
++    }
++    return predicate()
++  }
++  const applyXaihiWindowAction = async (target: BrowserWindow, action: XaihiWindowAction, hidesInsteadOfClosing: boolean): Promise<XaihiWindowCommandResult> => {
+     const id = target.id
+     switch (action) {
+       case 'minimize': target.minimize(); break
+       case 'maximize': target.maximize(); break
+-      case 'toggle-fullscreen': target.setFullScreen(!target.isFullScreen()); break
++      case 'toggle-fullscreen': {
++        // 实测：mac 上**正处于最大化**的窗调 setFullScreen(true) 不会进全屏（标志位不动）。
++        // 所以先解除最大化再进 —— 这不是"顺手多调一次"，是那一步不做这条能力就没有。
++        const next = !target.isFullScreen()
++        if (next && target.isMaximized()) target.unmaximize()
++        target.setFullScreen(next)
++        const engaged = await waitFlag(() => target.isFullScreen() === next, 2500)
++        if (!engaged && !target.isDestroyed()) {
++          // 没做成就说没做成。回 success:true 是决定 4 明令禁止的那种"成功但什么都没发生"。
++          return { success: false, supported: true, windowId: id, state: stateOf(target), message: 'xaihi desktop: fullscreen did not engage' }
++        }
++        break
++      }
+       case 'restore': target.restore(); target.unmaximize(); break
+       case 'close': {
+         if (hidesInsteadOfClosing) {
+@@ -922,20 +942,20 @@ async function main(): Promise<void> {
+     if (target.isDestroyed()) return { success: true, supported: true, windowId: id, state: 'closed', message: 'xaihi desktop: window closed' }
+     return { success: true, supported: true, windowId: id, state: stateOf(target), message: `xaihi desktop: ${action} applied` }
+   }
+-  ipcMain.handle(DESKTOP_IPC.xaihiWindowControlMain, (event, action: unknown) => {
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowControlMain, async (event, action: unknown) => {
+     assertXaihiWindowSender(event)
+     const normalized = normalizeXaihiWindowAction(action)
+     if (normalized === undefined) throw new Error('xaihi desktop: action must be minimize, maximize, toggle-fullscreen, restore or close')
+     if (mainWindow === undefined || mainWindow.isDestroyed()) {
+       return { success: false, supported: false, message: 'xaihi desktop: no main window' }
+     }
+-    return applyXaihiWindowAction(mainWindow, normalized, true)
++    return await applyXaihiWindowAction(mainWindow, normalized, true)
+   })
+-  ipcMain.handle(DESKTOP_IPC.xaihiWindowControlComponent, (event, windowId: unknown, action: unknown) => {
++  ipcMain.handle(DESKTOP_IPC.xaihiWindowControlComponent, async (event, windowId: unknown, action: unknown) => {
+     const target = needXaihiWindow(event, windowId)
+     const normalized = normalizeXaihiWindowAction(action)
+     if (normalized === undefined) throw new Error('xaihi desktop: action must be minimize, maximize, toggle-fullscreen, restore or close')
+-    return applyXaihiWindowAction(target, normalized, false)
++    return await applyXaihiWindowAction(target, normalized, false)
+   })
+   ipcMain.handle(DESKTOP_IPC.xaihiWindowDevTools, (event, windowId?: unknown) => {
+     // 给 id 就动自家登记表里那一个窗，不给就动产品主窗；两条都过同一条发起者闸。
+-- 
+2.55.0
+
