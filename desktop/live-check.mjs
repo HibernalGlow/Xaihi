@@ -425,7 +425,17 @@ const F = await evaluateMain(`(async () => {
     + " document.body.appendChild(frame);"
     + " }))()"
   const nested = await app.webContents.executeJavaScript(NESTED, true)
-  return { node, docUrl, top, nested }
+  // 第三件事：这个顶层自家文档窗里，自家服务面**自己问得到吗**。这是"节点界面的 host 换个来源"
+  // 那条路的**前提**，先前只是推断（08:4x 的一次性探针量到 200，现在钉成判据）。
+  // 三条一起问：manifest 要 200、编出来的 API 路径与编出来的 rev 都要 404 —— 后者是这条尺的减法对照，
+  // 没有它，"任何 fetch 都回 200"这种假象（比如整页被重写成欢迎面）也会报绿。
+  const ROUTES = "Promise.all(["
+    + "fetch('/xaihi/manifest.json').then(async (r) => ({ status: r.status, rev: r.status === 200 ? ((await r.json()).ui?.rev ?? null) : null })),"
+    + " fetch('/xaihi/manifest-not-a-route.json').then((r) => r.status),"
+    + " fetch('/xaihi/ui/deadbeefcafe/index.html').then((r) => r.status)])"
+  const routes = await app.webContents.executeJavaScript(ROUTES, true)
+  const [service, bogusApi, bogusPage] = Array.isArray(routes) ? routes : []
+  return { node, docUrl, top, nested, service, bogusApi, bogusPage }
 })()`)
 console.log('F 段（屏幕上的退化读回）⇒ ' + JSON.stringify(F))
 
@@ -963,6 +973,13 @@ need('F: 那句能力与现场注入面对得上（不是写死的字符串）',
   ffs.top?.attr === 'supported' ? ffs.top?.surface === 'object' : ffs.top?.surface !== 'object')
 need('F: 反向对照——同一份文档嵌进 iframe 后换了说法',
   typeof ffs.nested?.text === 'string' && ffs.nested.text.includes('外层 iframe') && ffs.nested.text !== ffs.top?.text)
+// 顶层自家窗里"窗自己问得到自家服务"这一格：它是"节点界面的 host 换一个来源"那条路的前提。
+// 期望里的 rev 是从**这个窗正停着的那个 URL** 上摘下来的 12 位十六进制，不是从 fetch 的返回值反推的。
+const fRevFromUrl = /\/xaihi\/ui\/([0-9a-f]{12})\/index\.html$/u.exec(String(ffs.docUrl ?? '').split('?')[0])?.[1] ?? ''
+need('F: 顶层自家文档窗里自家服务面读得到（rev 与这个窗 URL 上那位一致）',
+  ffs.service?.status === 200 && fRevFromUrl.length === 12 && ffs.service.rev === fRevFromUrl)
+need('F: 减法对照——同源面上编出来的 API 与编出来的 rev 都不许回 200',
+  ffs.bogusApi === 404 && ffs.bogusPage === 404)
 
 const hh = H.ok === true ? H.value : {}
 need('H: 产品文档带自家路径转达 ⇒ 真开出一个原生窗（面板那一格的通路）',
