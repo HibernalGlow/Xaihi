@@ -1,19 +1,24 @@
 /**
  * 节点内存保护设置这一格的读写判据。
  *
- * 钉的是三件会真出事的事：
+ * 钉的是四件会真出事的事：
  * 1. 写是**整份 Config 的一格**——不先读就把整份交出去，会抹掉别人的字段（verbose/nodeUi…）；
  * 2. 冲突必须是**读得回的状态**（消息留住、reason 标出来），不能被 catch 成"看起来失败了"；
- * 3. 形状不合的写在**出门之前**就被拒，桥上不留痕迹。
+ * 3. 形状不合的写在**出门之前**就被拒，桥上不留痕迹；
+ * 4. 写成功的判据是**再读一次**，不是"回包里带值"——真桥的写应答特意只回版本号
+ *    （`packages/node-sdk/src/bridge-shell.ts` 的 `config.save` 分支），按回包认成功会把
+ *    每一次正常写都报成失败。
  *
  * 阳性对照：`save` 里断言收到的整份对象与版本号；拒绝路径断"一次都没调用 save"；
- * 装配缺失那条断的是"读回来 supported:false + 原因"，而不是默认数字。
+ * 装配缺失那条断的是"读回来 supported:false + 原因"，而不是默认数字；
+ * 适配那两条分别喂真包法与一份形状不明的东西，后者必须报"读不到这一格"。
  *
  * @module xaihi-ui/tests/local-backend-control
  */
 
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  configFaceFromDocumentConfig,
   getNodeMemoryProtection,
   setNodeMemoryProtection,
   setNodeMemoryProtectionFace,
@@ -28,14 +33,22 @@ const VALUE: NodeMemoryProtectionSettingsDTO = {
 
 const OTHERS = { verbose: true, uiBundleDir: '/tmp/ui', nodeState: { linedup: 'a' }, nodeUi: { linedup: 'b' } }
 
-/** 装配一张假面：`config` 是宿主回包里的整份 Config，`revision` 是它的版本号。 */
+/**
+ * 装配一张假面：存的是**可写的整份**，所以写完再读能读到刚写进去的东西
+ * （真面就是这个行为，写成功的判据因此必须是回读）。
+ */
 function inject(config: unknown, revision?: number) {
   const saved: Array<{ config: unknown, revision: number | undefined }> = []
+  let stored = config
+  let storedRevision = revision
   const face: ConfigFace = {
-    get: async () => ({ config, ...(revision === undefined ? {} : { revision }) }),
+    get: async () => ({ config: stored, ...(storedRevision === undefined ? {} : { revision: storedRevision }) }),
     save: async (whole, expectedRevision) => {
       saved.push({ config: whole, revision: expectedRevision })
-      return { config: whole, ...(revision === undefined ? {} : { revision }) }
+      stored = whole
+      if (storedRevision !== undefined) storedRevision += 1
+      // 真桥的写应答就这一份（投影过）；这里刻意不多带值。
+      return storedRevision === undefined ? {} : { revision: storedRevision }
     },
   }
   setNodeMemoryProtectionFace(face)
@@ -79,6 +92,14 @@ describe('节点内存保护设置这一格', () => {
     expect(saved[0]?.revision, '不带版本号写 = 静默覆盖别人的第 N 版').toBe(7)
   })
 
+  it('写：回包只带版本号也算成功（真桥就是这么回的）', async () => {
+    inject({ ...OTHERS, nodeMemoryProtection: VALUE }, 7)
+    const state = await setNodeMemoryProtection({ ...VALUE, defaultPolicy: { ...VALUE.defaultPolicy, maxRetainedEvents: 7 } })
+    expect(state.supported).toBe(true)
+    expect(state.settings?.defaultPolicy.maxRetainedEvents).toBe(7)
+    expect(state.revision, '版本号要从写应答里读回来，界面才说得出"这是第几版"').toBe(8)
+  })
+
   it('写：显式给了版本号就用给的（乐观锁由调用方握着）', async () => {
     const saved = inject({ ...OTHERS, nodeMemoryProtection: VALUE }, 7)
     await setNodeMemoryProtection(VALUE, 12)
@@ -109,11 +130,60 @@ describe('节点内存保护设置这一格', () => {
     expect(saved).toHaveLength(0)
   })
 
-  it('写：服务端没把这一格回给回来时按"没确认"处理', async () => {
+  it('写：回读时那一格不见了按"没确认"处理', async () => {
     setNodeMemoryProtectionFace({
-      get: async () => ({ config: { ...OTHERS, nodeMemoryProtection: VALUE } }),
-      save: async () => ({ config: { ...OTHERS } }),
+      get: (() => {
+        let calls = 0
+        return async () => {
+          calls += 1
+          // 第一次（写之前）有这一格，回读时没了 ⇒ 不能报成功。
+          return { config: calls === 1 ? { ...OTHERS, nodeMemoryProtection: VALUE } : { ...OTHERS }, revision: 1 }
+        }
+      })(),
+      save: async () => ({ revision: 2 }),
     })
-    await expect(setNodeMemoryProtection(VALUE)).rejects.toThrow('没在回包里读到')
+    await expect(setNodeMemoryProtection(VALUE)).rejects.toThrow('读不回这一格')
+  })
+})
+
+describe('host 的 config 面到这一格之间的适配', () => {
+  /** 真包法：`getUi()` 回 `{ ns, value, revision }`，`saveUi()` 只回 `{ revision }`。 */
+  function fakeSurface(config: unknown, revision?: number) {
+    const pushes: unknown[] = []
+    let stored = config
+    return {
+      pushes,
+      surface: {
+        getUi: async () => ({ ns: 'xaihi-core', value: stored, ...(revision === undefined ? {} : { revision }) }),
+        saveUi: async (whole: unknown) => {
+          pushes.push(whole)
+          stored = whole
+          return { revision: (revision ?? 0) + pushes.length }
+        },
+      },
+    }
+  }
+
+  it('按真包法拆得开：值从 value 拿，版本号从 revision 拿', async () => {
+    const { surface, pushes } = fakeSurface({ ...OTHERS, nodeMemoryProtection: VALUE }, 5)
+    setNodeMemoryProtectionFace(configFaceFromDocumentConfig(surface))
+    const read = await getNodeMemoryProtection()
+    expect(read.supported).toBe(true)
+    expect(read.revision).toBe(5)
+    const written = await setNodeMemoryProtection({ ...VALUE, defaultPolicy: { ...VALUE.defaultPolicy, maxRssGrowthMiB: 128 } })
+    expect(written.settings?.defaultPolicy.maxRssGrowthMiB).toBe(128)
+    expect((pushes[0] as Record<string, unknown>).nodeMemoryProtection, '过桥的整份里得带着这一格').toBeDefined()
+    expect(written.revision).toBe(6)
+  })
+
+  it('阳性对照：包法认不出时报"读不到这一格"，不把那份东西当 Config 用', async () => {
+    setNodeMemoryProtectionFace(configFaceFromDocumentConfig({
+      getUi: async () => 'not-a-view',
+      saveUi: async () => undefined,
+    }))
+    const read = await getNodeMemoryProtection()
+    expect(read.supported).toBe(false)
+    expect(read.settings).toBeNull()
+    expect(read.reason, '原因要指向回包形状，而不是含糊的"不支持"').toContain('对象形')
   })
 })

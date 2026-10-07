@@ -50,7 +50,13 @@ export const DEFAULT_NODE_MEMORY_PROTECTION_SETTINGS: NodeMemoryProtectionSettin
 export interface ConfigFace {
   /** 读整份 Config；`revision` 是 DSH 给的版本号，写的时候要带回去。 */
   get(): Promise<{ config: unknown, revision?: number }>
-  save(config: unknown, expectedRevision?: number): Promise<{ config: unknown, revision?: number }>
+  /**
+   * 写整份 Config。回包**只保证有版本号**：DSH 那条桥的写应答是特意投影过的
+   * （`packages/node-sdk/src/bridge-shell.ts` 的 `config.save` 分支只回 `projectWriteAck(...)`，
+   * 因为写 `xaihi-core` 时整份命名空间视图会带着 `nodeState`，实测 200 KiB 的写"落盘成功却回 too-large"）。
+   * 所以这一格写完必须**再读一次**确认，不许把"回包里没有值"当成写失败。
+   */
+  save(config: unknown, expectedRevision?: number): Promise<{ revision?: number }>
 }
 
 /** 一次读的结果：形状与上游那份一致（`supported` + `settings | null`），多的那条是原因。 */
@@ -80,6 +86,41 @@ let injectedFace: ConfigFace | undefined
 /** 装配点：文档侧把 `host.config` 递进来；递 undefined 是撤回（退化路径与测试都用这条路）。 */
 export function setNodeMemoryProtectionFace(face: ConfigFace | undefined): void {
   injectedFace = face
+}
+
+/** 文档侧 host 的 config 面里，这一格真正用到的两条动词（`createDocumentHost(...).config` 的子集）。 */
+export interface DocumentConfigSurface {
+  getUi(): Promise<unknown>
+  saveUi(config: unknown, expectedRevision?: number): Promise<unknown>
+}
+
+/**
+ * 把 host 的 `config.getUi()` / `config.saveUi()` 折成这一格要的 `ConfigFace`。
+ *
+ * 两边的包法不一样，照实拆开，别一一对应地糊过去：
+ * - `getUi()` 回 `{ ns, value, revision? }`（`packages/node-sdk/src/bridge-shell.ts` 的
+ *   `readNamespace`：只把**问的那一格**发回去，整份 `describe()` 会带上所有插件的 schema 与值）；
+ * - `saveUi()` 回投影过的 `{ revision }`（同一条桥的 `config.save` 分支，理由是那侧记过的
+ *   "200 KiB 的写落盘成功却回 too-large"）。
+ * 认不出这个包法时把 `config` 报成 null，让读那一侧明说"读不到这一格"，
+ * 而不是把一份形状不明的东西当 Config 用（那等于伪造）。
+ * @param surface - 装配点手里那份 host 的 config 面。
+ * @returns 可以直接交给 `setNodeMemoryProtectionFace()` 的面。
+ */
+export function configFaceFromDocumentConfig(surface: DocumentConfigSurface): ConfigFace {
+  return {
+    get: async () => {
+      const view = await surface.getUi()
+      if (!isRecord(view)) return { config: null }
+      const revision = typeof view.revision === 'number' ? view.revision : undefined
+      return { config: view.value ?? null, ...(revision === undefined ? {} : { revision }) }
+    },
+    save: async (config, expectedRevision) => {
+      const ack = await surface.saveUi(config, expectedRevision)
+      const revision = isRecord(ack) && typeof ack.revision === 'number' ? ack.revision : undefined
+      return revision === undefined ? {} : { revision }
+    },
+  }
 }
 
 /**
@@ -155,21 +196,23 @@ export async function setNodeMemoryProtection(
     throw new Error('写之前读不回整份 Config，拒绝只写自己那一格（否则会抹掉别的字段）')
   }
 
-  let saved: { config: unknown, revision?: number }
+  let ack: { revision?: number }
   try {
-    saved = await face.save({ ...whole.config, [FIELD]: checked.settings }, expectedRevision ?? whole.revision)
+    ack = await face.save({ ...whole.config, [FIELD]: checked.settings }, expectedRevision ?? whole.revision)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     const reason = error instanceof Error ? (error as Error & { reason?: string }).reason : undefined
     throw Object.assign(new Error(message), { reason: reason ?? (/conflict/i.test(message) ? 'settings_conflict' : 'rejected') })
   }
 
-  const after = pick(saved.config)
+  // 回包只带版本号（见 `ConfigFace.save` 那条注释），所以"写进去了没有"只能再读一次问。
+  const reread = await face.get()
+  const after = pick(reread.config)
   if (after.settings === undefined) {
-    // 写没报错但回包里读不到这一格：按"没确认"处理，不许当成写进去了。
-    throw new Error(`写之后没在回包里读到 ${FIELD}：${after.reason ?? '未知'}`)
+    throw new Error(`写之后读不回这一格：${after.reason ?? '未知'}`)
   }
-  return { supported: true, settings: after.settings, ...(saved.revision === undefined ? {} : { revision: saved.revision }) }
+  const revision = ack.revision ?? reread.revision
+  return { supported: true, settings: after.settings, ...(revision === undefined ? {} : { revision }) }
 }
 
 export type LocalBackendRestartSource = "http" | "none"

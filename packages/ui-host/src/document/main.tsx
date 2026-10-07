@@ -1,80 +1,45 @@
 /**
- * Xaihi 文档的入口：整个界面唯一一份 HTML 里跑的那份 JS（React 19）。
- *
- * 形状照搬运源仓那份装载器（`src/plugin-host-main.tsx`）：URL 决定装载什么、
- * 装载不到的东西显示成**读得回的失败**而不是空白，页面自己报告拿到了哪些能力。
- *
- * 与那一版不同的地方只有两条，都是被 DSH 这一侧逼出来的：
- * 1. 源仓那份是"同一个应用的第二个顶层文档"，remote 用宿主自己的 MF 实例装载；
- *    这里的文档是被 DSH 的槽框住的（`<iframe>`），所以拿不到宿主的模块表，
- *    React 19 由构建期别名 `react → react-19` 内联进来（ADR-0009 的实测结论：
- *    同一次编译里做不到外面 18 里面 19，那张图必须闭合且不能把元素交回宿主渲染）。
- * 2. 节点组件要的 `host` 不再来自进程内对象，而来自 `postMessage`（`bridge-document`）。
- *    这一步现在只把桥建起来并握手；把 `components/modules/hostApi.ts` 的求值面换成这座桥
- *    是下一刀，那一刀要动的是搬进来的 422 行，不能顺手改一半。
+ * Xaihi 工作台文档入口（React 19）。
+ * 挂载 Xiranite 工作台根组件 App。
  *
  * @module xaihi-ui/document/main
  */
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NuqsAdapter } from 'nuqs/adapters/react'
+import { initI18n } from '@/i18n'
 import App from '@/App'
-import { startRealm } from './realm.ts'
-import { describeNoBridge } from './boot-notice.ts'
 import '@/index.css'
 
-/**
- * 桥等不到时画出来的那一面（决定 4：可以退化，不许静默）。
- * 文本由 `boot-notice.ts` 判，这里只负责挂上 DOM 并留一个读回属性。
- */
-function renderNotice (container: HTMLElement, notice: ReturnType<typeof describeNoBridge>): void {
-  document.title = 'Xaihi — 桥未接通'
-  const box = document.createElement('pre')
-  box.dataset.xaihiDocumentBoot = notice.reason
-  box.style.cssText = 'margin:0;padding:16px;font:12px/1.7 ui-monospace,monospace;white-space:pre-wrap'
-  box.textContent = notice.lines.join('\n\n')
-  container.replaceChildren(box)
-}
+// 预先初始化 i18n 资源
+void initI18n()
 
-/**
- * 文档那一侧的正式入口：realm 管道在 `realm.ts`，这里只负责把工作台挂上去。
- * 形状照搬运源仓那份装载器：URL 决定装载什么、读不到的东西显示成可见失败。
- */
-const realm = startRealm()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
-if (realm === null) {
-  document.getElementById('xaihi-ui-root')?.replaceChildren(
-    Object.assign(document.createElement('pre'), {
-      textContent: 'Xaihi 文档缺少启动信息（window.__XAIHI_UI__ 未定义）——这份 main.js 应当由 /xaihi/ui/<rev>/index.html 装载。',
-    }),
+// 挂载工作台 UI
+const container = document.getElementById('xaihi-ui-root') || document.getElementById('root')
+if (container) {
+  document.title = 'Xaihi'
+  createRoot(container).render(
+    <StrictMode>
+      <NuqsAdapter>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </NuqsAdapter>
+    </StrictMode>,
   )
-  document.title = 'Xaihi — 装载失败'
 } else {
-  const container = document.getElementById('xaihi-ui-root')
-  if (container === null) {
-    document.title = 'Xaihi — 装载失败'
-  } else {
-    const isTopLevel = window.parent === window
-    const notice = () => describeNoBridge({ isTopLevel, scope: globalThis, node: realm.boot.node ?? '' })
-    // 顶层文档没有父帧，桥的那一侧不可能存在（自家桌面壳开出来的独立窗就是这一格）：
-    // 不等 8 秒，直接画读回面。等到点才画＝中间是一段什么都不是的空白。
-    if (isTopLevel) {
-      renderNotice(container, notice())
-    } else {
-      // 握手先走完再挂界面：host 形状来自桥，早挂会让第一帧读到的能力是"未知"而不是"没有"。
-      const wait = setInterval(() => {
-        if (realm.bridge.ready() === null) return
-        clearInterval(wait)
-        createRoot(container).render(
-          <StrictMode>
-            <App />
-          </StrictMode>,
-        )
-      }, 120)
-      setTimeout(() => {
-        clearInterval(wait)
-        if (realm.bridge.ready() === null) renderNotice(container, notice())
-      }, 8000)
-    }
-  }
+  console.error('[Xaihi] Failed to find root container (#xaihi-ui-root or #root)')
 }
+
+
