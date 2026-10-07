@@ -158,6 +158,16 @@ describe('/xaihi/host 的协商', () => {
     expect(reason).not.toContain('没接到这条路由上')
   })
 
+  it('downloads 那句要说的是"不过桥"，不是"这件事做不了"', async () => {
+    // 真顶层窗里量到：协商里 downloads 归 refused，而 `host.downloads.text()` 调用成功（文档自己造 Blob 存盘）。
+    // 所以这一组的文案不许留在"提案账上"那一类里，否则一条本来能用的事被读成宿主缺勤。
+    const handler = hostBridgeHandler({ settings: () => fakeSettings(), allowedNamespaces: () => ALLOWED })
+    const ready = (await ask(handler, hello())).body
+    const reason = String(ready.degraded.find((row: { capability: string }) => row.capability === 'downloads').reason)
+    expect(reason).toContain('不过桥')
+    expect(reason).not.toContain('提案账上')
+  })
+
   it('设置面缺席时 granted 不含 config/state，并说清是没挂载', async () => {
     const handler = hostBridgeHandler({ settings: () => undefined, allowedNamespaces: () => ALLOWED })
     const ready = (await ask(handler, hello())).body

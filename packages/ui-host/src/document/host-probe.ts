@@ -17,7 +17,7 @@
  */
 
 import type { DocumentBridge, NodeCapabilityId } from '@hibernalglow/xaihi-sdk/bridge'
-import type { PersistedState, XaihiNodeHost } from '../client/document-host.ts'
+import { isDocumentFulfilled, type PersistedState, type XaihiNodeHost } from '../client/document-host.ts'
 
 /** 一次往返的读数。全部是纯数据：判据与界面读的是同一份。 */
 export interface HostRoundTrip {
@@ -38,6 +38,13 @@ export interface HostRoundTrip {
   }
   /** 没被授予的每一组与它的原因（屏上原样念，不改写）。 */
   refused: readonly { capability: NodeCapabilityId, reason: string }[]
+  /**
+   * `refused` 里**由文档自己兑现**的那几组（今天只有 downloads）。
+   * 单列出来是因为协商说"对面不给"与这一格能不能用是两件事：
+   * 2026-10-07 在真顶层窗里量到 `hasCapability('downloads')=false` 而 `downloads.text()` 调用成功，
+   * 混在 refused 里念就等于让使用者去追一条不存在的能力缺口。
+   */
+  documentFulfilled: readonly NodeCapabilityId[]
 }
 
 /** 一次往返的入参：`host` 是给界面的形状，`bridge` 是它背后那条会话，`state` 是同一份持久面。 */
@@ -113,5 +120,6 @@ export async function runHostRoundTrip (deps: HostRoundTripDeps): Promise<HostRo
       syncError: state.syncError(),
     },
     refused,
+    documentFulfilled: refused.filter((row) => isDocumentFulfilled(row.capability)).map((row) => row.capability),
   }
 }

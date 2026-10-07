@@ -17,7 +17,7 @@ import {
   type DocumentBridge,
   type SettingsFace,
 } from '@hibernalglow/xaihi-sdk/bridge'
-import { createDocumentHost } from '../src/client/document-host.ts'
+import { DOCUMENT_FULFILLED_GROUPS, createDocumentHost, isDocumentFulfilled } from '../src/client/document-host.ts'
 
 const ORIGIN = 'http://127.0.0.1:3199'
 
@@ -158,6 +158,13 @@ describe('本地的事不过桥', () => {
     document.createElement = realCreate
     expect(clicked).toBe(1)
     expect(sent).toHaveLength(before)
+  })
+
+  it('本地那一组被单列成"文档自己兑现"，其余不过桥的事不算在内（界面靠这个分句）', () => {
+    expect(isDocumentFulfilled('downloads')).toBe(true)
+    expect(isDocumentFulfilled('clipboard')).toBe(false)
+    expect(isDocumentFulfilled('localFiles')).toBe(false)
+    expect(DOCUMENT_FULFILLED_GROUPS).toEqual(['downloads'])
   })
 
   it('localFiles.getUrl 指本仓同源路由，不是去问外壳', () => {

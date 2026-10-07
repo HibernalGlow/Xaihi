@@ -107,6 +107,11 @@ describe('runHostRoundTrip', () => {
     // 没给的那几组必须带一句人话，且 env 不在场就是"没带快照"。
     expect(readout.refused.map((row) => row.capability)).toEqual(expect.arrayContaining(['env', 'runner']))
     for (const row of readout.refused) expect(row.reason.length).toBeGreaterThan(3)
+    // downloads 在这一套里同样**没被授予**（假外壳只给 contract/state/config），但动作在文档自己那一侧成立
+    // ——真顶层窗里量到过：`hasCapability('downloads')=false` 而 `downloads.text()` 调用成功。
+    // 所以它必须被单列出来，而不是和 clipboard/env/runner 混成同一句"没给"。
+    expect(readout.documentFulfilled).toContain('downloads')
+    expect(readout.documentFulfilled).not.toContain('clipboard')
   })
 
   it('阳性对照：外壳没挂设置面时，读数报的是 refused/no-provider 而不是一片绿', async () => {

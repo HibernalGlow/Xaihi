@@ -851,3 +851,13 @@ node scripts/check-doc-bridge.mjs --dist packages/ui-host/dist-nodeface
 量到的七条（完整因果在 `../docs/adr/0011-*.md` 那一行）：组件真画出来（36,908 B 的 DOM，`复制保留结果 / 清空状态 / 粘贴源文本 / 运行过滤` 这些它自己的按钮与 `textarea` 在场）；`host.getData` 从对面读回落盘那份标记；组件级写同步即可读；第一次 flush 被 `expectedRevision` 挡下（同一份文档里 realm 自己的 state 探测在写同一格——那是围栏在正常工作），第二次写落进 `profiles/xaihi/cordis.patch.yml`。
 
 **给下一个人的两条**：折叠**不许展开那份 host**——`{ ...host }` 会在装配这一步就求值 `env` 那个"没快照就抛 `refused`"的取值器，症状是协商板一切正常而 `#xaihi-ui-root` 空着（真浏览器里红过一次；`tests/node-host-bridge.spec.ts` 把折叠改回展开就红给你看）。交给搬运 lane 的落点只有一行：`useNodeHostApi` 那份分组面的来源换成 `toNodeHostApi(createDocumentHost(...))`，组件与判据都不改。
+
+## 协商面与真实行为对齐，以及自家判据的一次假红（2026-10-07 14:1x—14:2x）
+
+在顶层文档里直接驱动那份扁表面，读到两件事：
+
+- `clipboard.readText()` 抛 `refused`（对）；`downloads.text()` **调用成功**，而 `hasCapability('downloads')` 是 `false`。下载在文档自己那一侧就成立（Blob + `<a download>`），不过桥——把它混进"没给的能力"里念，使用者会去追一条不存在的能力缺口。现在界面上分两行：`没给：…`（剔除自兑现那组）与 `文档自己兑现（不过桥）：downloads`（名单在 `ui-host/src/client/document-host.ts` 的 `DOCUMENT_FULFILLED_GROUPS`）。
+- 同一轮里 `data-xaihi-host-roundtrip` 变成 `not-crossed`，板上写着 `写侧=threw · settings namespace "xaihi-core" changed since it was read (expected revision 0, now 1)` 而 `读侧=ok`。**根因不是路线**：探针这块板与 `realm.ts` 握手后自己那次 state 探测写的是同一个 `nodeState` 格，后写的一发撞上乐观并发围栏。围栏是对的，判据把它报成断路就是自己的假红 ⇒ 往返那一次改用板子自己的键 `xaihi-roundtrip`。改完重取：`roundtrip="crossed"`、`写侧=ok 读侧=ok`。
+
+还有两条装配事实顺手取到：`runner` 那句新文案在页面上读不到，是因为 profile 里那份 `file:` 拷贝还是旧的——重新 `plugin:install` 后 `cmp packages/core/lib/host-routes.js` 两侧逐字相同，页面上立刻是新的那句（**判 rc 不算数，比字节才算**）；而 `clipboard`/`runner` 的拒绝文案现在说的是量出来的原因（`runner` 指向上游提案 P1，见 `docs/upstream-proposals.md`）。
+

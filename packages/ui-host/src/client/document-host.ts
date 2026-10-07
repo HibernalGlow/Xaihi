@@ -126,6 +126,22 @@ function requireSettingsNs(ns: string | undefined): string {
 }
 
 /**
+ * 这几组**由文档自己兑现**，不过桥，也不需要对面授予。
+ *
+ * 列出来不是为了绕过协商，而是因为 2026-10-07 在真顶层窗里量到过一层面与行为不一致：
+ * 协商回 `refused=[… downloads …]`，而 `host.downloads.text('x.txt','hi')` **调用成功**
+ * （文档里就有 DOM 与 Blob，这动作从来不经过对面）。界面上把这种组念成"宿主没给"，
+ * 使用者就会去追一条根本不存在的能力缺口——而真正该说的是"这一格本地就能做，桥不管"。
+ * `localFiles.getUrl` 是同一类（把本地路径变成同源 `/xaihi/files/...` 的资源 URL）。
+ */
+export const DOCUMENT_FULFILLED_GROUPS = ['downloads'] as const
+
+/** 这一组是不是"文档自己做的那一类"（不做桥上往返，也不该被算成宿主缺勤）。 */
+export function isDocumentFulfilled (capability: string): boolean {
+  return (DOCUMENT_FULFILLED_GROUPS as readonly string[]).includes(capability)
+}
+
+/**
  * 组一个 `host`。
  * @param deps - 桥与两个文档本地面。
  * @returns 与上游九组同形的对象；每条跨界方法在握手完成前调用会得到 `not-ready`。

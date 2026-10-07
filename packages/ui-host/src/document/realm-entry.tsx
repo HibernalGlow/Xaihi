@@ -38,7 +38,15 @@ if (realm === null) {
   } else {
     const isTopLevel = window.parent === window
     const notice = describeHostSurface({ isTopLevel, scope: globalThis, node: realm.boot.node ?? '' })
-    const node = realm.boot.node === undefined || realm.boot.node === '' ? 'realm-probe' : realm.boot.node
+    /**
+     * 往返那一次写用**这块板自己的键**，不用 URL 上那个节点键。
+     * 理由是一条实机读数：`realm.ts` 在握手之后自己会跑一次 state 持久探测，写的就是同一个
+     * `nodeState[节点键]` 格；两处一起写时后写的那一发撞上乐观并发围栏，板上落成
+     * `写侧=threw · settings namespace "xaihi-core" changed since it was read (expected revision 0, now 1)`
+     * 而 `读侧=ok` ⇒ `crossed=false`。那是围栏在正常工作，但把它当"路线不通"报出来就是判据自己的假红，
+     * 所以这一格改成各写各的键（动词、命名空间、落点都与之前同一个，只是不再抢同一格）。
+     */
+    const roundTripNode = 'xaihi-roundtrip'
     /**
      * 这块板自己的组件清单：板上一个组件都没挂，所以空数组是**真话**，
      * 不是工作台那份 store 的替身（真那份住在 `store/`，由装载 `host` 的那一层给）。
@@ -56,13 +64,13 @@ if (realm === null) {
         const timer = setInterval(() => {
           if (realm === null || realm.bridge.ready() === null) return
           clearInterval(timer)
-          const state = createPersistedState({ bridge: realm.bridge, node })
+          const state = createPersistedState({ bridge: realm.bridge, node: roundTripNode })
           void state.hydrate()
             .then(() => runHostRoundTrip({
               host: createDocumentHost({ bridge: realm.bridge, state, workspace: probeWorkspace }),
               bridge: realm.bridge,
               state,
-              node,
+              node: roundTripNode,
               marker: `probe-${String(Date.now())}`,
             }))
             .then((value) => { if (!cancelled) setReadout(value) })
@@ -108,7 +116,10 @@ if (realm === null) {
             <br />
             {`state 往返 → ${stateText}`}
             <br />
-            {`没给：${readout === null ? '—' : readout.refused.map((row) => `${row.capability}=${row.reason}`).join(' ｜ ') || '（都给了）'}`}
+            {`没给：${readout === null ? '—' : readout.refused.filter((row) => !readout.documentFulfilled.includes(row.capability)).map((row) => `${row.capability}=${row.reason}`).join(' ｜ ') || '（都给了）'}`}
+            <br />
+            {/* 这几组协商里不给，但动作在文档自己这一侧就成立——分开念，免得一条红被读成缺勤。 */}
+            {`文档自己兑现（不过桥）：${readout === null || readout.documentFulfilled.length === 0 ? '—' : readout.documentFulfilled.join(', ')}`}
           </div>
         </div>
       )
