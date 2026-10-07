@@ -76,7 +76,9 @@ export function describeHostSurface (probe: BootProbe): HostSurface {
   return {
     placement: probe.isTopLevel ? 'top-level' : 'nested',
     windowSupported: capability.supported,
-    windowReason: capability.reason,
+    // 顶层窗有动词时没有"原因"可报；这个包的 tsconfig 开着 exactOptionalPropertyTypes，
+    // 所以这里是不放这个键，而不是放一个 undefined 进去。
+    ...(capability.reason === undefined ? {} : { windowReason: capability.reason }),
     windowStatus: capability.status,
     windowLine: capability.line,
     lines: [whereLine(probe), capability.line],
@@ -99,6 +101,6 @@ export function describeNoBridge (probe: BootProbe): NoBridgeNotice {
   return {
     ...surface,
     reason: probe.isTopLevel ? 'top-level-no-bridge' : 'iframe-no-answer',
-    lines: [surface.lines[0], cause, surface.windowLine],
+    lines: [whereLine(probe), cause, surface.windowLine],
   }
 }
