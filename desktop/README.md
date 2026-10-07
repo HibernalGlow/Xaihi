@@ -915,3 +915,15 @@ node desktop/forward-check.mjs --self-check # 三份坏转发器，各须红在�
 **一次自己造成的破坏与恢复**（记在这里，免得下次再撞同一条铁律）。跑减法对照之后我用 `git checkout -- packages/ui-host/src/client/document-host.ts` 复原守卫——那是 AGENTS.md 明令禁止的命令，而它确实把该文件里**未提交**的那部分（上一条的 `requireGranted` 那一版与这一条的可选 `workspace`）一起清回了 index 里那份 214 行的旧变体（HEAD 是 358 行）。恢复按内容判，不靠 but 的元数据：`git show HEAD:<path>` 取出那份 358 行写回工作树（`DOCUMENT_FULFILLED_GROUPS` 与冲突补发那两处逐字读回在场），再重放这一刀的 2 处改动（脚本里对每处 `count == 1` 断言），然后四个 spec rc=0（31 条）、重建 rc=0、活体八条 rc=0 才算恢复完。**减法跑测的复原只能走 `but undo` 或"先把要改的那段原文抄回来再改"**，一条 `git checkout --` 会把同一文件里几轮的未提交活儿一起带走。
 
 **读数**：`vitest run` 四个 spec rc=0（31 条）· `check-nodeface-live.mjs --self-check` rc=0（9 条对照）· `rspack build -c rspack.nodeface.mjs` rc=0 · `check-nodeface-live.mjs` rc=0（八条 OK，rev 4c447524d347）· `check-doc-bridge --dist packages/ui-host/dist-nodeface` rc=0 · `check-types` own 桶我这批剩那 3 条 `TS2307`/`TS7006`（这一格的类型账），另 2 条在 `src/client/workspace.tsx` 与 `tests/workspace-app-render.spec.tsx`（搬运 lane 正在写，没碰）。
+
+## 接线那一半的活体读数：`node scripts/check-realm-live.mjs`（2026-10-07 15:5x，无 GUI）
+
+上一条只证了一半（顶层单节点文档里 `workspace` 落到有名字的 refused）。这一半证的是相反方向：**接了线的文档必须读到那一份**，而不是被协商结果闸掉。
+
+- 载体是页面本身：`realm-entry.tsx` 的协商板新增一行 `工作台清单 → 已接线（N 个）` / `没接线：<原因>`，判据读的是这行字，不是 `globalThis` 上挂的对象——这一格要证的正是"退化/没退化在界面上读得回来"（决定 4）。
+- 判据四条：① 板子离开 `pending`（`data-xaihi-host-roundtrip`）② 板上那行含 `载体=host-http` ③ 工作台那行是 `已接线（\d+ 个）` ④ `config.getUi →` 说得出下落。`--self-check` 五份手写坏读数各只破一条，其中两份专门破 ③（一行念成 `没接线：…`、一行整行不见）——**上一版按握手 `granted` 闸，红的正是活体上的这一条**。
+- 现场读数（隔离宿主 `pnpm host` + `chrome-headless-shell`，`uiBundleDir=dist-realm`，`REALM_RC=0`）：`roundtrip=crossed`、`xaihi realm: rev=7fad11afaf7b … 载体=host-http`、`工作台清单 → 已接线（0 个）`、`config.getUi → 对面那格 ns=xaihi-core revision=0`。
+
+**这条 CDP 时序上的坑记下来，下次别当成"路由不通"**：`chrome-headless-shell … about:blank` 起来之后 `/json/version` 是通的，但 `/json/list` 回**空数组**（0 个 page target），于是任何"连到现有页面"的脚本都会停在"9339 上没有可连的页面"。开一个 target 要有显式一步：`curl -X PUT 'http://127.0.0.1:9339/json/new?url=about:blank'`。这把尺遇到空 list 时报的是这句提示，不是假装通过。
+
+**读数**：`rspack build -c rspack.realm.mjs` rc=0（`工作台清单 →` 那个串在 `dist-realm/main.js` 里命中 1 处）· `check-doc-bridge --dist packages/ui-host/dist-realm` rc=0（`hostMount=present`）· `vitest run` 四个 spec rc=0（32 条，`host-probe.spec.ts` 里两条：接线的读数逐字 `{ wired: true, count: 0, reason: null }`，没接线的那条 `reason` 含"没有工作台可问"）· `check-realm-live.mjs --self-check` rc=0（5 份对照）· `check-realm-live.mjs` rc=0。

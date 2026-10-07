@@ -120,6 +120,9 @@ if (realm === null) {
             <br />
             {/* 这几组协商里不给，但动作在文档自己这一侧就成立——分开念，免得一条红被读成缺勤。 */}
             {`文档自己兑现（不过桥）：${readout === null || readout.documentFulfilled.length === 0 ? '—' : readout.documentFulfilled.join(', ')}`}
+            <br />
+            {/* 工作台那一格归文档自己：念的是"装配有没有接线"，不是"外壳给没给"，所以它不进上面那两行。 */}
+            {`工作台清单 → ${readout === null ? '—' : readout.workspace.wired ? `已接线（${String(readout.workspace.count)} 个）` : `没接线：${readout.workspace.reason}`}`}
           </div>
         </div>
       )

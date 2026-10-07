@@ -45,6 +45,14 @@ export interface HostRoundTrip {
    * 混在 refused 里念就等于让使用者去追一条不存在的能力缺口。
    */
   documentFulfilled: readonly NodeCapabilityId[]
+  /**
+   * 文档自己有没有接到工作台那一格。
+   *
+   * 为什么板子上要有这一行：`workspace` 按 `host-bridge.ts:163` 的 `DOCUMENT_OWNED_GROUPS` **归文档自己**，
+   * 外壳永远不会 grant 它，所以"这一格没接线"与"宿主缺勤"是两件事。前者只能由装配侧回答，
+   * 而装配侧不回答时界面就会把"没人兑现"念成"没有组件"（2026-10-07 在顶层窗里量到的那一处）。
+   */
+  workspace: { wired: boolean, count: number | null, reason: string | null }
 }
 
 /** 一次往返的入参：`host` 是给界面的形状，`bridge` 是它背后那条会话，`state` 是同一份持久面。 */
@@ -106,6 +114,15 @@ export async function runHostRoundTrip (deps: HostRoundTripDeps): Promise<HostRo
     readError = `${failureOf(error).error}${failureOf(error).detail === '' ? '' : ` · ${failureOf(error).detail}`}`
   }
 
+  // 这一格不问对面：按装配有没有接线判。
+  let workspace: HostRoundTrip['workspace']
+  try {
+    workspace = { wired: true, count: host.workspace.listComponents().length, reason: null }
+  } catch (error) {
+    const failure = failureOf(error)
+    workspace = { wired: false, count: null, reason: `${failure.error}${failure.detail === '' ? '' : ` · ${failure.detail}`}` }
+  }
+
   return {
     // 从不带副作用的 getter 上读：`host.contract.version` 在未握手时会抛，而这一格的全部意义
     // 就是"任何一步失败都返回读得回的失败"。握手结果此刻已经在手上。
@@ -121,5 +138,6 @@ export async function runHostRoundTrip (deps: HostRoundTripDeps): Promise<HostRo
     },
     refused,
     documentFulfilled: refused.filter((row) => isDocumentFulfilled(row.capability)).map((row) => row.capability),
+    workspace,
   }
 }

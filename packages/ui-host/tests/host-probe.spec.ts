@@ -112,6 +112,28 @@ describe('runHostRoundTrip', () => {
     // 所以它必须被单列出来，而不是和 clipboard/env/runner 混成同一句"没给"。
     expect(readout.documentFulfilled).toContain('downloads')
     expect(readout.documentFulfilled).not.toContain('clipboard')
+    // 工作台那一格接了线（这份装配注入了 `workspace`）：读到的是那一份，不是协商结果。
+    expect(readout.workspace).toEqual({ wired: true, count: 0, reason: null })
+  })
+
+  it('workspace 没接线时报"装配没接线"，不是"外壳缺勤"（这一组归文档自己）', async () => {
+    // `DOCUMENT_OWNED_GROUPS` 里有 workspace/env/contract：外壳永远不 grant 它们，
+    // 所以这一格的缺失只能由装配侧解释；把它混进"没给"那行就是把没接线报成宿主没出勤。
+    const { docBridge } = wired({ settings: fakeSettings(), settingsNs: STATE_SETTINGS_NS })
+    await handshake(docBridge)
+    const state = createPersistedState({ bridge: docBridge, node: NODE })
+    const readout = await runHostRoundTrip({
+      host: createDocumentHost({ bridge: docBridge, state }),
+      bridge: docBridge,
+      state,
+      node: NODE,
+      marker: 'probe-W',
+    })
+    expect(readout.workspace.wired).toBe(false)
+    expect(readout.workspace.count).toBeNull()
+    expect(readout.workspace.reason).toContain('没有工作台可问')
+    // 同一条装配里 `downloads` 照样成功：这一格没接线不等于整份界面都缺东西。
+    expect(readout.documentFulfilled).toContain('downloads')
   })
 
   it('阳性对照：外壳没挂设置面时，读数报的是 refused/no-provider 而不是一片绿', async () => {
