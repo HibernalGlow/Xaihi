@@ -117,7 +117,10 @@ describe('toNodeHostApi：把桥的分组面折成节点组件读的扁表面', 
     await handshake(docBridge)
     const flat = toNodeHostApi(host)
     const read = await flat.getNodeUiConfig?.<Record<string, unknown>>()
-    expect(JSON.stringify(read)).toContain(STATE_SETTINGS_NS)
+    // 形状只有 `config`：对面从没说过一个路径，所以这里不出现 `path`（编一个就是伪造宿主没给的东西）。
+    expect(Object.keys(read ?? {})).toEqual(['config'])
+    // 读到的是对面**那一格**的值，不是整份 `describe()`（后者会把所有插件的行都搬过桥）。
+    expect(JSON.stringify(read?.config)).toContain(STATE_SETTINGS_FIELD)
     await flat.saveNodeUiConfig?.({ caseSensitive: true })
     expect(JSON.stringify(settings.rows[STATE_SETTINGS_NS])).toContain('caseSensitive')
   })

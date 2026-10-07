@@ -25,14 +25,42 @@
  */
 
 import type { HostComponentRef, NodeHostApi } from '@xiranite/contract'
-import type { XaihiNodeHost } from './document-host.ts'
+import type { XaihiConfigFace, XaihiNodeHost } from './document-host.ts'
 
 /**
  * 折叠一份桥背书的 host 面。
  * @param host - `createDocumentHost(...)` 出来的那份分组面。
  * @returns 节点组件直接能用的那份扁表面；分组那几片读到才求值。
  */
-export function toNodeHostApi(host: XaihiNodeHost): NodeHostApi {
+/**
+ * 折叠层的产出：上游 `NodeHostApi` **减去今天给不出的那三处形状**，减掉的部分按本仓的真实形状声明。
+ *
+ * 这三处不是疏忽，逐条有出处（`docs/adr/0011` 2026-10-07 那两行），也不许在这一层用 `as` 抹平：
+ * - `contract.name`：上游那份是字面量 `xiranite.node-host`，而本仓会随代码活下去的自称是 Xaihi（ADR-0010）。
+ *   现读整棵搬来的树里没有一条**组件**读这个名字（只有 `src/plugins/frontendHost.ts:168` 把它转发出去，
+ *   以及两条测试按它比），所以这一处的差异今天不影响行为；接缝上若要一份字面意义上的 `NodeHostApi`，
+ *   那是装配侧的显式决定（改契约那份字面量，或就地 cast），不在这层偷偷做。
+ * - `config` 与扁名 `getNodeConfig` / `getNodeUiConfig`：上游回 `{ config, path }`，
+ *   而路线 (A) 的对面只回 `{ ns, value, revision }` —— DSH 的标准面没有"配置文件路径"这一说
+ *   （ADR-0013 正是把它拿掉的那条），编一个 toml 路径就是伪造宿主没说过的数据。
+ *
+ * 其余成员（`state`/`workspace`/`env`/`runner`/`clipboard`/`downloads`/`localFiles` 与那些扁名）
+ * 逐字沿用上游那几份接口，本仓不另描一遍字段表。
+ */
+export type XaihiNodeHostApi = Omit<NodeHostApi, 'contract' | 'config' | 'getNodeConfig' | 'getNodeUiConfig'> & {
+  contract: XaihiNodeHost['contract']
+  config: XaihiConfigFace
+  getNodeConfig?: <T = unknown>() => Promise<{ config: T | undefined }>
+  getNodeUiConfig?: <T = unknown>() => Promise<{ config: T | undefined }>
+}
+
+/** 读对面那一格的值（`config.getUi` 的应答形状：`{ ns, value, revision }`）。 */
+async function namespaceValue (host: XaihiNodeHost): Promise<unknown> {
+  const view = await host.config.getUi() as { value?: unknown } | undefined
+  return view?.value
+}
+
+export function toNodeHostApi(host: XaihiNodeHost): XaihiNodeHostApi {
   return {
     get contract() { return host.contract },
     get state() { return host.state },
@@ -57,11 +85,16 @@ export function toNodeHostApi(host: XaihiNodeHost): NodeHostApi {
     downloadText: (filename: string, content: string): void => {
       host.downloads.text(filename, content)
     },
-    getNodeConfig: async () => await host.config.get(),
+    // 上游的扁名回的是"**这个节点**的配置"，而本仓的 `config.get` 那条动词映射到 DSH 的 `describe()`——
+    // 那是**所有**插件的行（活体读数：`{"namespaces":[…]}`，2026-10-06 在同一条桥上量过整份文档能撑爆 256 KiB 上界）。
+    // 所以这里走 `getUi`：它按装配带进来的 loader 行 id 只回那一格。`path` 不填——对面从没说过一个路径，
+    // 编一个就是伪造宿主没给的数据（ADR-0013）；上游那两处 `setConfigFilePath(response.path)` 因此读不到东西，
+    // 那一格等一个真定位符（见 ADR-0011 2026-10-07 那两行）。
+    getNodeConfig: async <T = unknown>() => ({ config: await namespaceValue(host) as T | undefined }),
     saveNodeConfig: async (config: unknown) => {
       await host.config.save(config)
     },
-    getNodeUiConfig: async () => await host.config.getUi(),
+    getNodeUiConfig: async <T = unknown>() => ({ config: await namespaceValue(host) as T | undefined }),
     saveNodeUiConfig: async (config: unknown) => {
       await host.config.saveUi(config)
     },

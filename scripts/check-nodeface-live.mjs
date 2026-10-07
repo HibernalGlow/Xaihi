@@ -77,12 +77,23 @@ export function judge (r) {
   // 界面念出来是"工作台里没有组件"，实际发生的是"这份文档里根本没有工作台"。
   // 判的是"这一组有没有下落"（对面授予的 + 文档自己接线兑现的），不是"协商里给了谁"：
   // `workspace`/`env`/`contract` 按 `host-bridge.ts:163` 本来就归文档，外壳永远不 grant 它们。
-  const groupOf = (name) => name === 'env' ? 'env' : name === 'actions.run' || name === 'actions.cancelCurrent' ? 'runner' : name.split('.')[0]
+  // 扁名要归到它真正落的那一组（`getNodeConfig` 走的是 `config`），否则 ⑧ 会把一条合法回答当成越权。
+  const FLAT_GROUPS = { getNodeConfig: 'config', getNodeUiConfig: 'config', getData: 'state', patchData: 'state' }
+  const groupOf = (name) => name === 'env' ? 'env' : name === 'actions.run' || name === 'actions.cancelCurrent' ? 'runner' : FLAT_GROUPS[name] ?? name.split('.')[0]
   const grantedSet = Array.isArray(r.granted) ? new Set(r.granted) : new Set()
   const lying = (r.coverage ?? []).filter((row) => row.outcome === 'resolved' && !grantedSet.has(groupOf(row.name)) && row.name !== 'localFiles.getUrl')
   need('⑧ 没人兑现的那一组不许在覆盖表里回成 resolved（注入面不替缺勤作答）',
     Array.isArray(r.granted) && lying.length === 0,
     Array.isArray(r.granted) ? (lying.length === 0 ? `granted=[${[...grantedSet].join(',')}]，没有一条越权回答` : lying.map((row) => row.name).join(', ')) : '(没读到 granted)')
+  // ⑨ 扁名 `getNodeConfig` 今天被 25 个节点用着，两条坏形状都算红：
+  // 把整份 `describe()`（所有插件的行）当成"这个节点的配置"搬过桥，或者凭空多出一个 `path` 键。
+  const getNodeConfig = (r.coverage ?? []).find((row) => row.name === 'getNodeConfig')
+  const nodeConfigPayload = String(getNodeConfig?.value ?? '')
+  const wholeDocument = nodeConfigPayload.includes('namespaces')
+  const inventedPath = /"[A-Za-z]*[Pp]ath"\s*:/.test(nodeConfigPayload)
+  need('⑨ getNodeConfig 读的是这一格，不是整份设置文档，也不带编出来的 path',
+    getNodeConfig?.outcome === 'resolved' && !wholeDocument && !inventedPath && nodeConfigPayload.length > 2,
+    getNodeConfig === undefined ? '(没探到这一条)' : wholeDocument ? '回的是整份 describe()（所有插件的行都过桥）' : inventedPath ? '读数里冒出一个 path 键（对面从没说过路径）' : `${String(getNodeConfig.outcome)} ${nodeConfigPayload.slice(0, 56)}`)
   const openFile = (r.coverage ?? []).find((row) => row.name === 'config.openFile')
   need('⑦ config.openFile 的现状是有名字的失败（no-provider 一类），不是成功也不是静默',
     openFile?.outcome === 'refused' && openFile.reason.length > 3,
@@ -220,6 +231,7 @@ async function gather () {
       ['clipboard.readText', () => pack.host.clipboard.readText()],
       ['localFiles.pickFiles', () => pack.host.localFiles.pickFiles({})],
       ['localFiles.getUrl', () => pack.host.localFiles.getUrl('/tmp/x.png')],
+      ['getNodeConfig', () => (pack.host.getNodeConfig ? pack.host.getNodeConfig() : 'no-member')],
       ['workspace.listComponents', () => pack.host.workspace.listComponents()],
       ['env', () => pack.host.env],
     ];
@@ -269,6 +281,7 @@ function selfCheck () {
     granted: ['contract', 'state', 'config'],
     coverage: [
       { name: 'config.get', outcome: 'resolved', value: '{"namespaces":[]}' },
+      { name: 'getNodeConfig', outcome: 'resolved', value: '{"config":{"panel":"wide"}}' },
       { name: 'localFiles.getUrl', outcome: 'resolved', value: '"/xaihi/files/x"' },
       { name: 'config.openFile', outcome: 'refused', reason: 'no-provider', detail: '外壳那半边没有 openDocument' },
       { name: 'actions.run', outcome: 'refused', reason: 'capability-refused', detail: '命令执行面等提案 P1' },
@@ -281,6 +294,8 @@ function selfCheck () {
     { name: 'clipboard 悄悄成功（那就是在猜） = ③ 红', reading: { ...good, clipboard: { ok: true, value: '"x"' } }, expectFail: 1 },
     { name: 'downloads 失败 = ④ 红（自兑现那一格不能凭空消失）', reading: { ...good, downloads: { ok: false, reason: 'refused', detail: 'x' } }, expectFail: 1 },
     { name: '新会话读不到标记 = ⑤ 红（写在窗内而不是对面）', reading: { ...good, secondPageHasMarker: false, secondPageData: '{"marks":["旧"]}' }, expectFail: 1 },
+    { name: 'getNodeConfig 回整份 describe() = ⑨ 红', reading: { ...good, coverage: good.coverage.map((row) => row.name === 'getNodeConfig' ? { ...row, value: '{"namespaces":[{"ns":"xaihi-core","value":{"nodeState":{"secret":"x"}}}]}' } : row) }, expectFail: 1 },
+    { name: 'getNodeConfig 编出一个 path = ⑨ 红', reading: { ...good, coverage: good.coverage.map((row) => row.name === 'getNodeConfig' ? { ...row, value: '{"config":{"panel":"wide"},"path":"/etc/xiranite.config.toml"}' } : row) }, expectFail: 1 },
     { name: '没人兑现的一组回成 resolved = ⑧ 红（注入面替缺勤作答）', reading: { ...good, coverage: [...good.coverage, { name: 'workspace.listComponents', outcome: 'resolved', value: '[]' }] }, expectFail: 1 },
     { name: '覆盖表里冒出一条挂住的 = ⑥ 红', reading: { ...good, coverage: [...good.coverage, { name: 'runner.getInfo', outcome: 'timeout', reason: '', detail: '' }] }, expectFail: 1 },
     { name: 'config.openFile 静默成功（那是假绿）= ⑦ 红', reading: { ...good, coverage: good.coverage.map((c) => c.name === 'config.openFile' ? { ...c, outcome: 'resolved', value: 'null' } : c) }, expectFail: 1 },

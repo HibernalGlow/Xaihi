@@ -939,3 +939,15 @@ node desktop/forward-check.mjs --self-check # 三份坏转发器，各须红在�
 **自家尺的一条时序错也被这轮抓出来**：`check-nodeface-live.mjs` 在第一次 `load()` **之前**读 `granted`，读到的是标签页里上一轮留下的页面。宿主重启后第一次跑就红在 ⑧ `(没读到 granted)` ⇒ GATE_RC=1，而前几轮的"绿"是撞上了残留页面。**教训：判据读 `globalThis` 之前必须已经把这轮的文档装进这一页**——`/json/list` 里那个 page target 是跨装载活的，它不会替你把状态清掉。
 
 **读数**：`check-types` own=10（我这批 4 条=上面两处缺口，另 2 条在搬运 lane 的 `src/client/workspace.tsx:262` 与 `tests/workspace-app-render.spec.tsx:2`；`tsconfig.ported.json` 侧那 4 条是同一批文件被两个项目各检一遍）· `vitest run` 四个 spec rc=0（32 条）· `rspack realm` 与 `rspack nodeface` 各 rc=0 · `check-nodeface-live.mjs --self-check` rc=0（9 份对照）· 活体 rc=0（rev `041170836e0f`）· `check-realm-live.mjs` rc=0（rev `7fad11afaf7b`，`工作台清单 → 已接线（0 个）`、`roundtrip=crossed`）。
+
+## 扁名 `getNodeConfig` 原来读的是整份设置文档；折叠层的声称收到它真保证得了的那份（2026-10-07 16:0x）
+
+**类型那一刀顺出来的是个真缺陷，不是类型洁癖。** `toNodeHostApi` 的 `getNodeConfig` 当时直接转 `host.config.get`，而 `config.get` 在对面映射到 `ctx.settings.describe()`——活体读数写着回的是 `{"namespaces":[{"autoGenerate":true,"ns":"xaihi-co…`，即**所有插件的行**。25 个节点在用这个扁名，它们要的"我这个节点的配置"于是每次都把整份文档搬过桥（2026-10-06 在同一条桥上量过 200 KiB 撑爆 256 KiB 上界）。现在两条扁名都走 `config.getUi(settingsNs)`，只读装配带进来的那一格。
+
+**形状只给 `{ config }`，不给 `path`。** 路线 (A) 的对面从没说过一个配置文件路径（DSH 标准面里根本没有这个概念，ADR-0013 正是拿掉它的那条），所以这一格读不到 `path`，`dissolvef/Component.tsx:60`、`bandia/Component.tsx:73,82`、`cleanf/Component.tsx:53`、`formatv/Component.tsx:55` 那几处 `setConfigFilePath(response.path)` 今天念出来是空。这不是可以"顺手填上"的东西：填一个 `/etc/…toml` 就是伪造宿主没说的数据。要么给真定位符（设置命名空间／设置文档），要么改这几处显示，两案都要人拍。
+
+**折叠层的声称也跟着收了。** `toNodeHostApi` 不再返回字面意义上的上游 `NodeHostApi`，改成 `Omit<NodeHostApi, 'contract' | 'config' | 'getNodeConfig' | 'getNodeUiConfig'>` 再补上本仓那三处的真形状：`contract.name` 保 `xaihi.node-host`（ADR-0010 的自称；现读整棵搬来的树里没有一条**组件**读这个名字，只有 `src/plugins/frontendHost.ts:168` 把它转发出去与两条测试按它比），差异逐条写在这个类型的注释里。接缝上谁需要一份真 `NodeHostApi`，那是装配侧的显式决定（改契约字面量或就地 cast），**不在折叠层用 `as` 抹平**。
+
+**判据**：`check-nodeface-live.mjs` 的覆盖表多一条 `getNodeConfig`，新增第 ⑨ 条——读数里不许出现 `namespaces`（那是整份文档），也不许冒出 `path` 键（那是编出来的）。两份阳性对照各只红 ⑨：`{"namespaces":[{"ns":"xaihi-core",…}]}` 与 `{"config":{…},"path":"/etc/xiranite.config.toml"}`。**加这条时自己撞出第二个错**：⑧ 的 `groupOf` 按名字第一段归组，把 `getNodeConfig` 判成"没人兑现却回了 resolved"⇒ 全绿的读数变红。归组函数改成认扁名（`getNodeConfig`→`config`、`getData`/`patchData`→`state`），⑧ 一条没放宽。
+
+**读数**：`check-types` own 桶我这批=0（`src/client/node-host-bridge.ts` 从 9 条红到 0；整份 own=2 都在搬运 lane 的 `workspace.tsx:262` 与 `workspace-app-render.spec.tsx:2`，没碰）· `vitest run` 四个 spec rc=0（32 条）· `check-nodeface-live.mjs --self-check` rc=0（11 份手写对照）· 活体 rc=0（九条判据 + 覆盖表 12 条，rev `867372cfb0d8`，`getNodeConfig resolved · {"config":{"verbose":false,"nodeState":{"xaihi-lin…`）· `rspack realm`/`rspack nodeface` 各 rc=0 · `check-realm-live.mjs` rc=0（四条，`工作台清单 → 已接线（0 个）`）。
