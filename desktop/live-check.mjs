@@ -982,6 +982,22 @@ const Q = await evaluateMain(`(async () => {
     + '.then((v) => "RESOLVED " + JSON.stringify(v), (e) => "REJECTED: " + String((e && e.reason) || e))'))
   Object.assign(steps, await grab('foreignRead', 'window.__XAIHI_REALM__.bridge.call("config.getUi", "llm")'
     + '.then(() => "RESOLVED", (e) => "REJECTED: " + String((e && e.reason) || e))'))
+  // 板上的 host 往返：realm 装载器在握手之后自己会跑一次（host-probe.ts），这里只等它落地再读。
+  // 等的是产物里那块板，不是脚本造的对象——所以它同时证了「这条路线真进得了产物」。
+  const WAIT_HOST = "(() => new Promise((res) => { let n = 0;"
+    + " const t = setInterval(() => {"
+    + "  const el = document.querySelector('[data-xaihi-host-roundtrip]');"
+    + "  n += 1;"
+    + "  if (el !== null && el.getAttribute('data-xaihi-host-roundtrip') !== 'pending') {"
+    + "   clearInterval(t);"
+    + "   res({ roundtrip: el.getAttribute('data-xaihi-host-roundtrip'),"
+    + "    caps: el.getAttribute('data-xaihi-host-capabilities') || '',"
+    + "    text: String(el.innerText).slice(0, 300) });"
+    + "   return;"
+    + "  }"
+    + "  if (n > 40) { clearInterval(t); res(null); }"
+    + " }, 300); }))()"
+  Object.assign(steps, await grab('hostBoard', WAIT_HOST))
   // 反向对照：同一份产物被嵌进 iframe 时必须换回 postMessage 载体——选载体按容器，不是写死的字符串。
   const IFRAME = "(() => new Promise((res) => {"
     + " const frame = document.createElement('iframe');"
@@ -1219,6 +1235,9 @@ need('Q: 越界命名空间的写在窗里被拒，原因点名那条闸',
   String(qs.foreignWrite).startsWith('REJECTED: namespace-not-allowed'))
 need('Q: 越界命名空间的读回 config-namespace-missing（别人的行不发出去）',
   qs.foreignRead === 'REJECTED: config-namespace-missing')
+need('Q: 板上的 host 往返真跨到对面（产物里的板，不是脚本造的对象）',
+  qs.hostBoard?.roundtrip === 'crossed' && String(qs.hostBoard?.caps).includes('config')
+  && String(qs.hostBoard?.caps).includes('state') && String(qs.hostBoard?.text).includes('config.getUi'))
 need('Q: 反向对照——同一份产物被嵌进 iframe 时换回 postMessage 载体',
   typeof qq.iframeCarrier === 'string' && qq.iframeCarrier.includes('载体=postMessage'))
 need('Q: 收尾把自家窗清干净', qq.ownedLeft === 0)
