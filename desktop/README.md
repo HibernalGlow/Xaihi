@@ -756,6 +756,8 @@ ADR-0011 拍的是路线 (A)：**节点界面要的 `host` 由 Xaihi 自己的�
 
 实机（头less、真 DSH 设置服务、无 GUI）八条读数与两条阳性对照见 `../docs/adr/0011-*.md` 的路线 (A) 那一行。**没验的那半格**：Q 段（在真顶层窗里跑同一批判据）代码就绪但没跑——起第二份壳会在使用者的日常桌面里弹「已经打开了一个 DSH 桌面端」抢焦点，按使用者的要求要另开工位，等一个约定的时间窗。
 
+归属点名：本格那次提交里 `packages/core/src/index.ts` 是整文件提交的，搭着别人那一刀的 `nodeMemoryProtection` `Config` 声明（约 34 行，含 `DEFAULT_NODE_MEMORY_PROTECTION` 与两份 schema）——不是我写的、也没被我接线，但 blame 落在那条提交上。
+
 还有一处**撞车**（本轮现读，未修）：`packages/ui-host/src/document/main.tsx` 被搬运那刀重写成无条件挂 `<App />` 的 33 行版本，我加的「等握手再挂界面 / 等不到画读回面」那一格随之消失。我没有覆盖回去，也没有把那一格提进自己的分支——`describeNoBridge` 因此暂时没有生产调用者，而第一帧的每条 host 调用会以 `not-ready` 抛。要恢复还是有意识地挪进 App 的第一帧，等使用者定。
 
 一条本轮从实机掉出来的教训：超限分支里 `req.destroy()` 会把**响应**一起毁掉——假 `res` 收得到 `writeHead`，真 socket 上 curl 只读到 `000`。判据因此改成真 HTTP 服务器跑（`host-routes.spec.ts` 里那条 413），并另跑一次活体 `curl` 复核（413 到得了对面）。顺带一条装配事实：`uiBundleDir` 是请求期现读的，改产物**不用重启宿主**，但 `file:` 装的包要 `dsh plugin --profile xaihi install` 重投并 `shasum` 比过才算数（本轮比到过 `51a59cc0` 两侧一致）。
