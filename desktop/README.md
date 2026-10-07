@@ -738,3 +738,24 @@ mac 上 `captionOwner=system`、`captionInset={x:16,y:18}`、`nativeWindowContro
 **还挂着的一件簿记**：`docs/roadmap.md` 里 R14 那一行（含上面这些读数）故意仍未提交——它与别人的
 R1/R10/R11/R13 挤在同一条 hunk，而那些行引用的 `docs/adr/0007`/`0008` 还是未跟踪文件，整文件提会让
 tip 指向不存在的文档。理由也记在栈里那条提交的说明里。
+
+## `/xaihi/host`：顶层自家窗问宿主的那条路由（2026-10-07 12:2x）
+
+ADR-0011 拍的是路线 (A)：**节点界面要的 `host` 由 Xaihi 自己的服务路由答**，不改壳、不等上游。
+形状上只有一条规矩——**同一份桥，两种载体**：
+
+| 层 | 被嵌在产品槽里 | 桌面壳开出来的顶层窗 |
+|---|---|---|
+| 文档侧 | `createDocumentBridge` + `parent.postMessage` | `createHttpDocumentBridge` + `POST /xaihi/host?sid=…` |
+| 对面 | DSH realm 里的外壳半边（`bridge-shell`） | Host 进程里的 `hostBridgeHandler`（`packages/core/src/host-routes.ts`） |
+| 选哪条 | `window.parent !== window` | `window.parent === window`（`realm.ts` 现判，不是配置项） |
+
+外壳半边（`createShellBridge`）原封不动复用，所以动词表、协商、失败词、字节上界只有一份真源。
+
+**安全边界只有一条命名空间闸**（`fenceSettings`）：可碰的设置行 = `@hibernalglow/` scope 下**当下真在 loader 表里**的那些行 + `xaihi-core`；读一律 `redactSecrets`，越界的读回 `config-namespace-missing`、越界的写整条拒 `namespace-not-allowed` 且**不打到设置面**。`sid` 是会话记账不是凭据——任何本机进程自己 hello 也能开会话，兜住的是那圈闸；这条写在文件头注释里，也写在判据里。`env` 故意不给：宿主主题只有客户端知道，服务端编一个亮/暗就是决定 4 禁止的伪造，界面上读得到那句退化。
+
+实机（头less、真 DSH 设置服务、无 GUI）八条读数与两条阳性对照见 `../docs/adr/0011-*.md` 的路线 (A) 那一行。**没验的那半格**：Q 段（在真顶层窗里跑同一批判据）代码就绪但没跑——起第二份壳会在使用者的日常桌面里弹「已经打开了一个 DSH 桌面端」抢焦点，按使用者的要求要另开工位，等一个约定的时间窗。
+
+还有一处**撞车**（本轮现读，未修）：`packages/ui-host/src/document/main.tsx` 被搬运那刀重写成无条件挂 `<App />` 的 33 行版本，我加的「等握手再挂界面 / 等不到画读回面」那一格随之消失。我没有覆盖回去，也没有把那一格提进自己的分支——`describeNoBridge` 因此暂时没有生产调用者，而第一帧的每条 host 调用会以 `not-ready` 抛。要恢复还是有意识地挪进 App 的第一帧，等使用者定。
+
+一条本轮从实机掉出来的教训：超限分支里 `req.destroy()` 会把**响应**一起毁掉——假 `res` 收得到 `writeHead`，真 socket 上 curl 只读到 `000`。判据因此改成真 HTTP 服务器跑（`host-routes.spec.ts` 里那条 413），并另跑一次活体 `curl` 复核（413 到得了对面）。顺带一条装配事实：`uiBundleDir` 是请求期现读的，改产物**不用重启宿主**，但 `file:` 装的包要 `dsh plugin --profile xaihi install` 重投并 `shasum` 比过才算数（本轮比到过 `51a59cc0` 两侧一致）。

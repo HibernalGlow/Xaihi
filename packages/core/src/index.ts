@@ -23,6 +23,7 @@ import Schema from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { buildRegistrations, buildWorkspaceDocument, computeRev, type ServedRegistration } from './registry.ts'
 import { manifestHandler, remoteHandler, uiBundleHandler, UI_PATH_PREFIX, type UiBundleSource } from './routes.ts'
+import { HOST_PATH, hostBridgeHandler, xaihiNamespaces, type SettingsServiceLike } from './host-routes.ts'
 import type { UiBundleFace } from '@hibernalglow/xaihi-sdk'
 import { createJournal, operationsSnapshotHandler, operationsStreamHandler } from './operations.ts'
 import { historyHandler, openLedger, type DomainFacilityLike, type RunLedger } from './history.ts'
@@ -87,6 +88,43 @@ const nodeStateSchema: Schema<Record<string, string>> = Schema.dict(Schema.strin
 // 同一套标注理由（TS2883 的 `Dict` 指不到 cosmokit，而 `Schema<Config>` 会撞 exactOptionalPropertyTypes）。
 const nodeUiSchema: Schema<Record<string, string>> = Schema.dict(Schema.string()).default({})
 
+/**
+ * 节点内存保护的阈值策略：一份默认 + 每节点覆盖。
+ *
+ * 值的唯一落点是 DSH 的 settings 面（ADR-0013）：这里只**声明**，不自己存文件、不自己开历史。
+ * 写必须带 expectedRevision，冲突当成可读回的状态返回（见 host-routes 的 write 分支）。
+ */
+interface MemoryPolicy {
+  maxRssGrowthMiB: number
+  maxHeapGrowthMiB: number
+  maxRetainedEvents: number
+  sampleIntervalMs: number
+}
+
+interface NodeMemoryProtection {
+  defaultPolicy: MemoryPolicy
+  nodePolicies: Record<string, MemoryPolicy>
+}
+
+/** 默认数字只有这一份。界面要"恢复默认"就问服务端要 defaults，不抄第二份。 */
+export const DEFAULT_NODE_MEMORY_PROTECTION: NodeMemoryProtection = {
+  defaultPolicy: { maxRssGrowthMiB: 8192, maxHeapGrowthMiB: 4096, maxRetainedEvents: 1000, sampleIntervalMs: 250 },
+  nodePolicies: {},
+}
+
+// 同样要显式标注：Schema.dict 的返回类型引用 cosmokit 的 Dict（见 nodeStateSchema 那条注释）。
+const memoryPolicySchema: Schema<MemoryPolicy> = Schema.object({
+  maxRssGrowthMiB: Schema.number().default(8192),
+  maxHeapGrowthMiB: Schema.number().default(4096),
+  maxRetainedEvents: Schema.number().default(1000),
+  sampleIntervalMs: Schema.number().default(250),
+})
+
+const nodeMemoryProtectionSchema: Schema<NodeMemoryProtection> = Schema.object({
+  defaultPolicy: memoryPolicySchema,
+  nodePolicies: Schema.dict(memoryPolicySchema).default({}),
+}).default(DEFAULT_NODE_MEMORY_PROTECTION)
+
 export const Config = Schema.object({
   verbose: Schema.boolean().default(false).volatile(),
   uiBundleDir: Schema.string().default(''),
@@ -96,6 +134,7 @@ export const Config = Schema.object({
   // 而标注成 `Schema<Config>` 会撞上 exactOptionalPropertyTypes（TS2375）。
   nodeState: nodeStateSchema.volatile(),
   nodeUi: nodeUiSchema.volatile(),
+  nodeMemoryProtection: nodeMemoryProtectionSchema.volatile(),
 })
 
 /** loader 行的最小结构面（cordis-plugin-loader 的 Entry.options 子集）。 */
@@ -131,7 +170,7 @@ type HostContext = DiscoverContext & { webServer: WebServerLike }
  * （没 storage domain 就只在内存里记账），但"少了吗"必须有一个地方能读到，
  * 否则症状会是"检查点没存"而没人知道是装配问题还是代码问题。
  */
-export const OPTIONAL_SERVICES = ['storageDomain', 'approval', 'commands', OPERATIONS_SERVICE] as const
+export const OPTIONAL_SERVICES = ['storageDomain', 'approval', 'commands', 'settings', OPERATIONS_SERVICE] as const
 
 /**
  * 现读一次可选服务的可用性。
@@ -375,6 +414,18 @@ export function apply(ctx: HostContext, config: Config): void {
     path: UI_PATH_PREFIX,
     handler: uiBundleHandler(uiSource),
   }), 'xaihi-core: ui document route')
+
+  // 桌面壳开出来的顶层窗没有外层可以 postMessage，而宿主凭证只发给主窗那一个 webContents
+  // （ADR-0011 的路线行记着这两条实测）。这条路由用同一份桥的线上形状回答"问宿主"的那批动词，
+  // 能碰的命名空间只有 Xaihi 自己的行 + `xaihi-core`——闸在 `host-routes.ts` 的 `fenceSettings`。
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: HOST_PATH,
+    handler: hostBridgeHandler({
+      settings: () => ctx.get('settings' as never) as SettingsServiceLike | undefined,
+      allowedNamespaces: () => xaihiNamespaces([...ctx.loader.entries()]),
+    }),
+  }), 'xaihi-core: host bridge route')
 
   // 事件流的合法性来自宿主文档对 WebRoute.handler 的原话："may hold the response open,
   // e.g. SSE"。快照路由是它的兜底：不是所有宿主形态都允许长连接（桌面壳走 IPC 桥）。

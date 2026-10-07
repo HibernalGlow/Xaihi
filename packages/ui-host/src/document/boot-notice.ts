@@ -41,7 +41,7 @@ export interface HostSurface {
 
 export interface NoBridgeNotice extends HostSurface {
   /** 为什么没桥：顶层根本没有父帧，还是 iframe 里那一侧没答话。 */
-  readonly reason: 'top-level-no-bridge' | 'iframe-no-answer'
+  readonly reason: 'host-route-silent' | 'iframe-no-answer'
 }
 
 /** 开窗能力那句话；不可用时必须把原因写进去，不许只说"不可用"。 */
@@ -93,14 +93,14 @@ export function describeHostSurface (probe: BootProbe): HostSurface {
  */
 export function describeNoBridge (probe: BootProbe): NoBridgeNotice {
   const surface = describeHostSurface(probe)
-  // 顶层窗里没有父帧，桥的那一侧不可能存在——这句是结构事实，不是猜的。
+  // 顶层窗里没有父帧，宿主的话由 Xaihi 自己的 `/xaihi/host` 路由答（ADR-0011 拍下来的那条）；
   // iframe 那一格必须等过才报，因为"还没答话"和"没装配"读起来是同一片空白。
   const cause = probe.isTopLevel
-    ? '节点界面要经 DSH 工作台那一侧的桥（bridge-shell）才出内容，顶层没有父帧，这条通路还没接通。'
+    ? '顶层窗没有父帧，宿主的话由 /xaihi/host 那条路由答：到点没拿到握手，就是那条路由没应答（装配里缺 xaihi-core 的 host 路由，或宿主那侧没挂设置面）。'
     : '桥的那一侧到点没答话：装配（bridge-shell）没挂上，或握手被拒 —— 外层给的 cap 与协议版本对不上时也走这一格。'
   return {
     ...surface,
-    reason: probe.isTopLevel ? 'top-level-no-bridge' : 'iframe-no-answer',
+    reason: probe.isTopLevel ? 'host-route-silent' : 'iframe-no-answer',
     lines: [whereLine(probe), cause, surface.windowLine],
   }
 }

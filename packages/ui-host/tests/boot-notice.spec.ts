@@ -13,7 +13,7 @@ const HALF = scopeWith({ xaihiWindow: { open: 'not-a-function' } })
 describe('describeNoBridge 的顶层与 iframe 两格', () => {
   it('顶层 + 自家壳：说清通路没接通，但独立窗读回来是可用', () => {
     const notice = describeNoBridge({ isTopLevel: true, scope: OWNED, node: 'xaihi-sleept' })
-    expect(notice.reason).toBe('top-level-no-bridge')
+    expect(notice.reason).toBe('host-route-silent')
     expect(notice.windowSupported).toBe(true)
     expect(notice.windowReason).toBeUndefined()
     expect(notice.lines[0]).toContain('xaihi-sleept')

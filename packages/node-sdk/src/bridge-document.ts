@@ -23,6 +23,7 @@ import {
   BRIDGE_SCHEMA,
   exceedsMessageBudget,
   groupOf,
+  negotiateBridge,
   parseBridgeMessage,
   type BridgeHello,
   type BridgeMethod,
@@ -58,6 +59,84 @@ export interface DocumentBridge {
   call(method: BridgeMethod, ...args: readonly unknown[]): Promise<unknown>
   /** 撤掉所有在飞的请求（文档卸载时用；留着会变成一堆 timeout）。 */
   abortAll(reason: string): void
+}
+
+/** HTTP 载体要的东西。`endpoint` 与 `sid` 由调用方（文档的 boot 信息）给，本模块不猜。 */
+export interface HttpBridgeOptions {
+  /** 消息投到哪，形如 `/xaihi/host`（不带 query）。 */
+  endpoint: string
+  /** 这一份文档的会话号；路由那侧按形状拒不合的。 */
+  sid: string
+  /** 这份界面要用到的能力组。 */
+  requested: readonly NodeCapabilityId[]
+  /** 传给内部会话的来源值。HTTP 没有"这条消息来自哪个 frame"，所以它只用来让那条来源判据自洽。 */
+  selfOrigin: string
+  /** 可注入的 fetch（取证与单测用）。缺省取 `globalThis.fetch`。 */
+  fetchImpl?: typeof fetch
+  /** 单条调用的上界。 */
+  timeoutMs?: number
+}
+
+/**
+ * 文档侧的**同源 HTTP 载体**：与 `createDocumentBridge` 同一套消息、同一套失败词，
+ * 只是对面从"父帧"换成"Xaihi 自己的服务路由"。
+ *
+ * 存在的理由：桌面壳开出来的顶层窗里没有父帧（`window.parent === window`）、也没有 opener，
+ * 而宿主凭证只发给主窗那一个 webContents（ADR-0011 的路线行有实测）。这条载体让节点界面
+ * 在自家窗里也能问宿主，不需要在界面里分叉出"桌面版调用形状"。
+ * @param options - 端点、会话号、能力组与可注入的 fetch。
+ * @returns 与 postMessage 载体同形的桥会话（`hello`/`call`/`ready`/`receive`/`abortAll`）。
+ */
+export function createHttpDocumentBridge (options: HttpBridgeOptions): DocumentBridge {
+  const call = options.fetchImpl ?? globalThis.fetch
+  const url = `${options.endpoint}?sid=${encodeURIComponent(options.sid)}`
+  let deliver: ((raw: unknown, origin: string) => boolean) | null = null
+  let lastHello: BridgeHello | null = null
+
+  /** 载体自己失败时的两种下文：请求回一条带原因的失败应答，握手回一份"什么都没给"的协商结果。 */
+  const reportFailure = (message: BridgeHello | BridgeRequest, detail: string): void => {
+    if (message.kind === 'hello') {
+      const hello = lastHello ?? message
+      const reasons: Partial<Record<NodeCapabilityId, string>> = {}
+      for (const capability of hello.requested) reasons[capability] = `宿主路由不可达（${detail}）`
+      deliver?.(negotiateBridge(hello, [], reasons), options.selfOrigin)
+      return
+    }
+    deliver?.({
+      schema: BRIDGE_SCHEMA,
+      kind: 'response',
+      id: message.id,
+      ok: false,
+      error: { reason: 'transport', detail },
+    }, options.selfOrigin)
+  }
+
+  const send = (message: BridgeHello | BridgeRequest): void => {
+    if (message.kind === 'hello') lastHello = message
+    void (async () => {
+      let payload: unknown
+      try {
+        const response = await call(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(message),
+        })
+        if (!response.ok) {
+          reportFailure(message, `HTTP ${String(response.status)}`)
+          return
+        }
+        payload = await response.json()
+      } catch (error) {
+        reportFailure(message, String(error))
+        return
+      }
+      deliver?.(payload, options.selfOrigin)
+    })()
+  }
+
+  const bridge = createDocumentBridge(send, options.selfOrigin, options.requested, options.timeoutMs)
+  deliver = (raw: unknown, origin: string) => bridge.receive(raw, origin)
+  return bridge
 }
 
 /**

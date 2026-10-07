@@ -12,7 +12,7 @@
 
 import { version as reactVersion } from 'react'
 import { NODE_CAPABILITY_IDS, REQUIRED_CAPABILITIES } from '@hibernalglow/xaihi-sdk/bridge'
-import { createDocumentBridge, type DocumentBridge } from '@hibernalglow/xaihi-sdk/bridge'
+import { createDocumentBridge, createHttpDocumentBridge, type DocumentBridge } from '@hibernalglow/xaihi-sdk/bridge'
 import { createPersistedState } from '../client/document-host.ts'
 
 /** 把上一次跑留下的标记读出来（形状不认识时按空处理，不让取证页因为一份旧数据就画不出来）。 */
@@ -53,6 +53,13 @@ function makeReport(): (line: string) => void {
   }
 }
 
+/** 顶层窗那次会话的号：只要合路由那侧的形状（16–64 位十六进制）。它是会话记账，不是凭据。 */
+function hostSessionId(): string {
+  const bytes = new Uint8Array(16)
+  globalThis.crypto.getRandomValues(bytes)
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 /**
  * 起好这一份文档的 realm。
  * @returns 启动信息、桥，以及一个往页面上写字的口子。
@@ -62,16 +69,30 @@ export function startRealm(): Realm | null {
   if (boot === undefined) return null
   const report = makeReport()
   const origin = window.location.origin
-  const bridge = createDocumentBridge(
-    (message) => window.parent.postMessage(message, origin),
-    origin,
-    [...NODE_CAPABILITY_IDS],
-  )
-  window.addEventListener('message', (event: MessageEvent) => {
-    if (event.source !== window.parent) return
-    void bridge.receive(event.data, event.origin)
-  })
-  report(`xaihi realm: rev=${boot.rev} node=${boot.node ?? ''} React=${reactVersion} · 等宿主握手`)
+  // 对面是谁，取决于这一份文档落在哪个容器里（ADR-0011 的三条路里被拍下来的那条）：
+  // 被嵌在产品槽里 ⇒ 父帧就是外壳，走 postMessage；桌面壳自己开出来的顶层窗 ⇒
+  // 既没有父帧也没有 opener，走 Xaihi 自己的 `/xaihi/host` 路由。
+  // 两条载体共用同一套消息与失败词，界面因此不分叉。
+  const isTopLevel = window.parent === window
+  const bridge = isTopLevel
+    ? createHttpDocumentBridge({
+      endpoint: `${boot.apiBase}/host`,
+      sid: hostSessionId(),
+      requested: [...NODE_CAPABILITY_IDS],
+      selfOrigin: origin,
+    })
+    : createDocumentBridge(
+      (message) => window.parent.postMessage(message, origin),
+      origin,
+      [...NODE_CAPABILITY_IDS],
+    )
+  if (!isTopLevel) {
+    window.addEventListener('message', (event: MessageEvent) => {
+      if (event.source !== window.parent) return
+      void bridge.receive(event.data, event.origin)
+    })
+  }
+  report(`xaihi realm: rev=${boot.rev} node=${boot.node ?? ''} React=${reactVersion} 载体=${isTopLevel ? 'host-http' : 'postMessage'} · 等宿主握手`)
   bridge.hello(boot.node ?? '')
   // 协商成功之后主动跑一次**真动词**：`config.get` 会穿过桥落到外壳的 settings 面，
   // 对岸应答不回来就是 timeout/refused。只看 granted=[…] 证的是"外壳接了这条桥"，

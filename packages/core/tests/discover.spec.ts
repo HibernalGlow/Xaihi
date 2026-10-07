@@ -115,11 +115,16 @@ describe('discover', () => {
       storageDomain: false,
       approval: false,
       commands: false,
+      // `/xaihi/host` 要用它答 config/state；没挂载时必须被读成 false 而不是"能用"。
+      settings: false,
       xaihiOperations: false,
     })
     const withStorage = discover(fakeContext(rows, { storageDomain: { open: () => {} } }))
     expect(withStorage.services.storageDomain).toBe(true)
     expect(withStorage.services.approval).toBe(false)
+    const withSettings = discover(fakeContext(rows, { settings: { describe: () => [] } }))
+    expect(withSettings.services.settings).toBe(true)
+    expect(withSettings.services.storageDomain).toBe(false)
   })
 
   it('collect 是 discover 的登记表投影', () => {

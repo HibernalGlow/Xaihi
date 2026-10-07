@@ -247,6 +247,12 @@ export interface BridgeReady {
 
 export type BridgeMessage = BridgeHello | BridgeReady | BridgeRequest | BridgeResponse
 
+/** 文档那一侧只可能发出这两种；把它写进类型，接的一侧就不必为"第三个 kind"编一条永远走不到的分支。 */
+export type FromDocumentMessage = BridgeHello | BridgeRequest
+
+/** 外壳那一侧只可能发出这两种。 */
+export type FromShellMessage = BridgeReady | BridgeResponse
+
 /**
  * 界面环境快照。上游 `NodeEnvCapability` 是数据不是方法（`theme` / `platform`），
  * 所以它**没有对应的桥动词**——没有 `env.getX` 这种东西可搬。
@@ -286,6 +292,8 @@ const isMethod = (value: unknown): value is BridgeMethod =>
  * @param direction - `'inbound'` 表示外壳收到的（只许 hello/request 之外的两种之一，见下）。
  * @returns 校验通过的消息，或 null。
  */
+export function parseBridgeMessage(raw: unknown, direction: 'from-document'): FromDocumentMessage | null
+export function parseBridgeMessage(raw: unknown, direction: 'from-shell'): FromShellMessage | null
 export function parseBridgeMessage(raw: unknown, direction: 'from-document' | 'from-shell'): BridgeMessage | null {
   if (!isRecord(raw) || raw.schema !== BRIDGE_SCHEMA) return null
   const kind = raw.kind

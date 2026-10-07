@@ -914,6 +914,95 @@ const P = await evaluateMain(`(async () => {
 })()`, 150_000)
 console.log('P 段（窗控：效果量得到、做不到的老实说不支持）⇒ ' + JSON.stringify(P))
 
+// Q 段：ADR-0011 拍下来的那条路——顶层自家窗经 Xaihi 自己的 `/xaihi/host` 路由问宿主。
+// 判据全打在**生产对象**上（realm 挂在 window.__XAIHI_REALM__ 的那个 bridge），
+// 脚本里不另写一份同款的调用：那样证的是脚本，不是界面真正走的代码。
+const Q = await evaluateMain(`(async () => {
+  const { BrowserWindow } = ${ELECTRON}
+  ${SCAN}
+  ${TIMED}
+  let at = 'start'
+  try {
+  const app = main()
+  if (app === undefined) return { skipped: '没有产品主窗' }
+  at = '清场'
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 600))
+  at = 'manifest'
+  const manifest = await timed(app.webContents.executeJavaScript(
+    "fetch('/xaihi/manifest.json').then(async (r) => r.status === 200 ? await r.json() : null)", true), 8000, 'fetch')
+  if (manifest === null || manifest === undefined || manifest.__timeout !== undefined) return { skipped: 'manifest 读不到' }
+  const node = manifest.plugins[0].manifest.id
+  const docUrl = 'dsh-app://app' + manifest.ui.documentUrl + '?node=' + node
+  at = 'open'
+  const opened = await app.webContents.executeJavaScript(
+    'window.dshDesktop.xaihiWindow.open(' + JSON.stringify(node) + ', { documentPath: ' + JSON.stringify(manifest.ui.documentUrl) + ' })', true)
+  const win = all().find((w) => w.id === (opened?.windowId ?? -1))
+  if (win === undefined) return { skipped: '开不出窗', opened, appUrl: app.webContents.getURL() }
+  at = '等加载'
+  await new Promise((r) => { const t = setTimeout(r, 8000); win.webContents.once('did-finish-load', () => { clearTimeout(t); r(null) }) })
+  at = '已加载'
+  // realm 起来才有 __XAIHI_REALM__；等它，最多 8 秒。
+  // 这一步单独容错：窗口正在导航时 executeJavaScript 会当场拒（不是超时），重试是同一步的下一次问，
+  // 不是"重试到绿"——**观察到 true 才算 booted**，否则后面每条判据都因为缺值而红。
+  let booted = false
+  let bootTries = 0
+  let bootError = null
+  for (let i = 0; i < 40 && booted !== true; i++) {
+    bootTries = i + 1
+    try {
+      booted = await win.webContents.executeJavaScript('window.__XAIHI_REALM__ !== undefined', true)
+    } catch (error) {
+      bootError = String(error?.message ?? error).slice(0, 120)
+      await new Promise((r) => setTimeout(r, 200))
+    }
+  }
+  const ask = (code) => win.webContents.executeJavaScript(code, true)
+  // 每一步单独吞异常：整段一起死的话，读到的是一条"脚本执行失败"，看不出是哪一步、
+  // 也读不到前面已经成立的那些数（判据照样因为缺值而红，但红得有名有姓）。
+  const grab = async (name, code) => {
+    try {
+      return { [name]: await ask(code) }
+    } catch (error) {
+      return { [name]: 'THREW: ' + String(error?.message ?? error).slice(0, 160) }
+    }
+  }
+  const steps = {}
+  Object.assign(steps, await grab('carrierLine', "(document.querySelector('[data-xaihi-bridge]')||{textContent:''}).textContent.split('\\n')[0]"))
+  Object.assign(steps, await grab('readyShape', '(() => { const pack = window.__XAIHI_REALM__; const r = (pack && pack.bridge.ready()) || null;'
+    + ' if (r === null) return null;'
+    + ' return { granted: r.granted, refused: r.refused, settingsNs: r.settingsNs || null, hasEnv: Object.prototype.hasOwnProperty.call(r, "env") }; })()'))
+  const marker = 'q-' + String(Date.now())
+  const payload = JSON.stringify({ marks: [marker] })
+  Object.assign(steps, await grab('wrote', 'window.__XAIHI_REALM__.bridge.call("state.patchData", ' + JSON.stringify(node) + ', ' + JSON.stringify(payload) + ')'
+    + '.then(() => "ok", (e) => "REJECTED: " + String((e && e.reason) || e))'))
+  Object.assign(steps, await grab('readBack', 'window.__XAIHI_REALM__.bridge.call("state.getData", ' + JSON.stringify(node) + ')'
+    + '.then((v) => JSON.stringify(v), (e) => "REJECTED: " + String((e && e.reason) || e))'))
+  Object.assign(steps, await grab('foreignWrite', 'window.__XAIHI_REALM__.bridge.call("config.save", "settings", { xaihiProbe: 1 })'
+    + '.then((v) => "RESOLVED " + JSON.stringify(v), (e) => "REJECTED: " + String((e && e.reason) || e))'))
+  Object.assign(steps, await grab('foreignRead', 'window.__XAIHI_REALM__.bridge.call("config.getUi", "llm")'
+    + '.then(() => "RESOLVED", (e) => "REJECTED: " + String((e && e.reason) || e))'))
+  // 反向对照：同一份产物被嵌进 iframe 时必须换回 postMessage 载体——选载体按容器，不是写死的字符串。
+  const IFRAME = "(() => new Promise((res) => {"
+    + " const frame = document.createElement('iframe');"
+    + " frame.style.cssText = 'position:fixed;left:-4000px;width:600px;height:400px';"
+    + " frame.addEventListener('load', () => { setTimeout(() => {"
+    + " try { const el = frame.contentDocument.querySelector('[data-xaihi-bridge]');"
+    + " const first = el ? String(el.textContent).split('\\n')[0] : '';"
+    + " res({ carrier: first }); } catch (error) { res({ error: String(error).slice(0, 80) }); } frame.remove(); }, 2200); }, { once: true });"
+    + " frame.src = " + JSON.stringify(docUrl) + ";"
+    + " document.body.appendChild(frame);"
+    + " }))()"
+  const iframeSide = await app.webContents.executeJavaScript(IFRAME, true)
+  for (const w of all()) if (isOwnedDocWindow(w) && w !== app) w.close()
+  await new Promise((r) => setTimeout(r, 700))
+  return { node, marker, booted, bootTries, bootError, steps, iframeCarrier: iframeSide?.carrier ?? null, ownedLeft: openedWins().length }
+  } catch (error) {
+    return { threw: String(error?.message ?? error).slice(0, 240), at, appUrl: main()?.webContents.getURL() ?? null, urls: all().map((w) => w.webContents.getURL()) }
+  }
+})()`, 150_000)
+console.log('Q 段（顶层窗经自家路由问宿主）⇒ ' + JSON.stringify(Q))
+
 let failures = 0
 const need = (label, pass) => { console.log(`${pass ? 'OK  ' : 'FAIL'} ${label}`); if (!pass) failures += 1 }
 const a = A.ok === true ? A.value : {}
@@ -1114,6 +1203,25 @@ need('P: 边界照旧 —— 拿主窗的 id 走 controlComponent 也被拒',
   pp.foreign?.kind === 'rejected' && String(pp.foreign?.message).includes('unknown window'))
 need('P: 自家窗的 close 真的关掉那个窗', pp.closeComp?.value?.state === 'closed' && pp.windowStillThere === false)
 need('P: 收尾把自家窗清干净', pp.ownedLeft === 0)
+
+const qq = Q.ok === true ? Q.value : {}
+const qs = qq.steps ?? {}
+need('Q: realm 在顶层自家窗里起来了（产物装载，不是脚本造的对象）', qq.booted === true)
+need('Q: 那份文档选的载体是 /xaihi/host（顶层窗没有父帧）',
+  typeof qs.carrierLine === 'string' && qs.carrierLine.includes('载体=host-http'))
+need('Q: 经这条路由拿到 config/state 两组与宿主给的真实命名空间，且不伪造主题',
+  Array.isArray(qs.readyShape?.granted) && qs.readyShape.granted.includes('config')
+  && qs.readyShape.granted.includes('state') && qs.readyShape.settingsNs === 'xaihi-core'
+  && qs.readyShape.hasEnv === false)
+need('Q: 真写进 DSH 设置并从对面读回同一条标记（写在对面，不是窗内缓存）',
+  qs.wrote === 'ok' && typeof qs.readBack === 'string' && qs.readBack.includes(String(qq.marker)))
+need('Q: 越界命名空间的写在窗里被拒，原因点名那条闸',
+  String(qs.foreignWrite).startsWith('REJECTED: namespace-not-allowed'))
+need('Q: 越界命名空间的读回 config-namespace-missing（别人的行不发出去）',
+  qs.foreignRead === 'REJECTED: config-namespace-missing')
+need('Q: 反向对照——同一份产物被嵌进 iframe 时换回 postMessage 载体',
+  typeof qq.iframeCarrier === 'string' && qq.iframeCarrier.includes('载体=postMessage'))
+need('Q: 收尾把自家窗清干净', qq.ownedLeft === 0)
 
 ws.close()
 if (failures > 0) {
