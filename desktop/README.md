@@ -708,3 +708,33 @@ mac 上 `captionOwner=system`、`captionInset={x:16,y:18}`、`nativeWindowContro
 自家窗 `close` 后 `windowStillThere:false`；收尾 `ownedLeft:0`。
 通道判据现 **36 条**并逐条点名，`--verify` 另有 10 条动作词用例 + 5 条状态归并用例。
 
+
+## 交接（2026-10-07 09:0x，目标未达成，壳侧无待办）
+
+**已经闭合的那一半（可复现，别人照本文跑会得到同样的数）**：`pin=639ed015` 上重放 16 个 patch ⇒
+`head=64683866 tree=b55efa8c1286 patches=16/16 dirty=0`（连跑三次逐字相同）⇒ 免装的 `pnpm run build` rc=0
+⇒ `--verify` rc=0（36 条通道逐条点名 + 新加那条"文件登记"尺）⇒ `dev-shell check` rc=0（bundles=6）
+⇒ 起壳 ⇒ `live-check` **91 条 OK、0 FAIL、rc=0**。基线 `WindowRuntime` 那 11 个成员各有确定答案，
+`startDragging` 是唯一被如实报"不支持"的那一个。
+
+**没达成的那一半，卡点只有两处，都不在壳里**：
+
+1. **节点界面编不出来**：`pnpm exec rspack build -c rspack.document.mjs` rc=1，4 条 Module not found ——
+   `RuntimeSection.tsx` 引盘上不存在的 `./NodeMemoryProtectionSettings`；`ClassfDeletionHistoryDialog.tsx` 引
+   `@xiranite/node-classf/deletion-history`（全仓零个包用 `@xiranite/` 这个 scope，永远解析不出）；
+   `WorkflowEditor.tsx` 引 `@xyflow/react` 与它的 CSS（`packages/ui-host/package.json` 没声明、根 `node_modules` 没有）。
+   这三处归属搬运 lane。
+2. **顶层窗拿不到 `host`，而"便宜路"已量死**：壳把网关流面的凭证只发给主窗那一个 webContents
+   （`main.ts:1008`），自家窗里 `dshDesktopBoot.ready()` 读得到 `streamBaseUrl` 但 `ws://…/api/remote.mux`
+   握手失败（同一时刻主窗 `opened:true`）；`/api` 在两只窗里都 404 ⇒ `dsh-app://app` 这个 origin 从来不是 RPC 通路。
+   读数逐条在 `../docs/adr/0011-*.md` 的路线行里。
+
+**下一步的具体落点（等使用者拍，我不替他选）**：
+① 把节点界面的 `host` 动词落到 **Xaihi 自己的服务路由**上（服务跑在 Host 进程里，服务端半边已有 `ctx.remote`；
+自家窗与 `dsh web` 都够得着 `/xaihi/*`，代价是那层 host 语义要我们自己实现，且不许把 operator 全量透出去）；
+② 或做**壳内中继**（新 patch，让产品主窗替自家窗转发——桥的语义从此进壳）；
+③ 或维持现状（自家窗只出探针板与退化读回）。
+
+**还挂着的一件簿记**：`docs/roadmap.md` 里 R14 那一行（含上面这些读数）故意仍未提交——它与别人的
+R1/R10/R11/R13 挤在同一条 hunk，而那些行引用的 `docs/adr/0007`/`0008` 还是未跟踪文件，整文件提会让
+tip 指向不存在的文档。理由也记在栈里那条提交的说明里。
