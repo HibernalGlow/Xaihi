@@ -32,6 +32,8 @@ import { DEFAULT_DESIGN_THEME } from '../lib/design-theme/contract.ts'
 import { designHostLayer } from './theme/design-language.ts'
 import { MainSurface } from './surface.tsx'
 import { shellCapsFrom, type RemoteSettingsFace } from './shell-caps.ts'
+// 行 id 的真源只有这一份：SDK 里那条常量同时是 `state.*` 落点那一格所在的行。
+import { STATE_SETTINGS_NS } from '@hibernalglow/xaihi-sdk/bridge'
 
 /** Xaihi 声明的插槽，`children` 与 props 类型共用这一份。 */
 const CHILDREN = {
@@ -383,16 +385,17 @@ export function apply(ctx: Context): void {
   // 读不到（没装主题包的那台宿主）就**不带这一格**——`createShellBridge` 会把 env 判成没提供，
   // 文档那侧读到的是有名有姓的退化，而不是一个编出来的亮色。
   const activeScheme = readActiveScheme(ctx)
-  // 设置命名空间的出处只能是**这次装配所在的 loader 行**：DSH 自己的写法是
-  // `settingsNs: ctx.fiber.entry?.options.id ?? name`
-  // （`desktop/dsh/packages/llm/llm-deepseek-api-key/src/index.ts:37`）。
-  // 2026-10-06 在 3399 那台宿主上量过反例：拿节点短名去写会被拒成
-  // `No configurable plugin entry "sleept"`，所以读不到就**不带这一格**，
-  // 让文档那侧把四条设置动词读成一条点名原因的 `no-provider`（ADR-0011 决定 4）。
-  const entryId = (ctx as { fiber?: { entry?: { options?: { id?: unknown } } } }).fiber?.entry?.options?.id
+  // 设置命名空间：**不能**取 `ctx.fiber.entry?.options.id`。
+  // 2026-10-06 真浏览器读数（3399 宿主 + 真 iframe，只读取证）把这条钉死了：那一格在这台
+  // 宿主上回的是散列样行名 `8f3ca9e1`，而 `describe()` 的 20 行里没有它——因为 `xaihi-ui`
+  // 这一行**刻意没声明 Config**（见 `packages/ui-host/src/index.ts` 文件头），不可配置的行
+  // 不进设置文档。于是广播那个值的结果是每条设置读写都稳定落在 `config-namespace-missing`。
+  // 真源换成我们自己那一行 `STATE_SETTINGS_NS`（实测就在 `describe()` 里：
+  // `{ns:"xaihi-core", revision:7, value:{verbose, nodeState}}`，本轮又补了 `nodeUi`），
+  // 它是**编译期常量**，不依赖这次装配的实例号，也和 `state.*` 走同一格。
   const caps = shellCapsFrom({
     ...(settingsRemote === undefined ? {} : { settings: settingsRemote }),
-    ...(typeof entryId === 'string' && entryId !== '' ? { settingsNs: entryId } : {}),
+    ...(settingsRemote === undefined ? {} : { settingsNs: STATE_SETTINGS_NS }),
     ...(activeScheme === undefined ? {} : { preference: activeScheme }),
     ...(typeof navigator === 'undefined' || typeof navigator.userAgent !== 'string'
       ? {}

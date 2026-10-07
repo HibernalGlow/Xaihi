@@ -64,9 +64,28 @@ export interface Config {
    * 这里声明只是为了让那道门在使用者的设置文档里存在。
    */
   nodeState: Volatile<Record<string, string>>
+  /**
+   * 节点**界面设置**的落点：键 = 节点 id，值 = 那份界面设置的 JSON 文本（形状与 `nodeState` 同一条）。
+   *
+   * 为什么这一格要存在：界面上今天有真读者——`packages/ui-host/src/nodes/enginev/Component.tsx:226`
+   * 就在 `await host.config.saveUi(uiConfig)`，那条过桥之后必须落进**某一格声明过的 volatile 字段**，
+   * 否则撞的是 DSH 第二道写闸（`Config field "…" is not volatile`）。
+   * 出处在 2026-10-06 的真浏览器读数里：外壳广播了 `settingsNs` 之后 `config.getUi` 仍回
+   * `config-namespace-missing`，因为 `ctx.fiber.entry?.options.id` 回的是散列样行名（`8f3ca9e1`），
+   * 而那一行**没声明 Config**（`ui-host/src/index.ts` 的文件头就是刻意不声明的），
+   * 所以它压根不在 `describe()` 的那 20 行里。
+   *
+   * 为什么补在 core 这一行而不是给 ui-host 补一份 schema：`ui-host` 只有
+   * `@deepseek-ai/schemastery` 的 devDependency，要真 import 它得进 `dependencies` 并重算锁，
+   * 而 `pnpm-lock.yaml` 正被并发 lane 大面积重写——不为这一格去动别人的在途文件。
+   */
+  nodeUi: Volatile<Record<string, string>>
 }
 
 const nodeStateSchema: Schema<Record<string, string>> = Schema.dict(Schema.string()).default({})
+
+// 同一套标注理由（TS2883 的 `Dict` 指不到 cosmokit，而 `Schema<Config>` 会撞 exactOptionalPropertyTypes）。
+const nodeUiSchema: Schema<Record<string, string>> = Schema.dict(Schema.string()).default({})
 
 export const Config = Schema.object({
   verbose: Schema.boolean().default(false).volatile(),
@@ -76,6 +95,7 @@ export const Config = Schema.object({
   // "inferred type cannot be named without a reference to …cosmokit"，
   // 而标注成 `Schema<Config>` 会撞上 exactOptionalPropertyTypes（TS2375）。
   nodeState: nodeStateSchema.volatile(),
+  nodeUi: nodeUiSchema.volatile(),
 })
 
 /** loader 行的最小结构面（cordis-plugin-loader 的 Entry.options 子集）。 */
