@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, useSyncExternalStore } from "react"
+import { lazy, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from "react"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("module.renderer")
@@ -32,6 +32,9 @@ import { projectHostForFrontendPlugin } from "@/plugins/frontendHost"
 import type { FrontendPluginComponentProps, XiraniteFrontendHost } from "@/plugins/frontendHost"
 import { LocalFilesProvider } from "@/nodes/shared/useLocalFileDrop"
 import { NodeRuntimeProvider } from "@/nodes/shared/NodeRuntimeContext"
+import { NodeUiConfigProvider } from "@/nodes/shared/NodeUiConfigContext"
+import { createBridgeNodeUiConfigCarrier } from "@/backend/nodeUiConfig"
+import { useDocumentBridge } from "@/document/bridge-context"
 import { startupDebug, startupDebugAsync } from "@/lib/startupDebug"
 import { registerNodeTrays } from "@/desktop/tray/trayCoordinator"
 
@@ -172,6 +175,13 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
   }
 
   const nodeHost = grant.host
+  // 节点界面设置（"开机恢复"这类要持久化的 UI 偏好）的载体：落在桥那半边
+  // `xaihi-core.nodeUi[nodeId]`（`src/backend/nodeUiConfig.ts`），由这里按结构递进
+  // context —— nodes/** 不 import src/backend/**，所以经 context 而不是 prop 或直接 import。
+  // 这份文档不在宿主里（bridge === null）时不编一份空载体：消费方读到 undefined，
+  // 走它自己的可见退化（本地遗留键），而不是把"没接线"报成"存好了"。
+  const bridge = useDocumentBridge()
+  const nodeUiConfig = useMemo(() => (bridge ? createBridgeNodeUiConfigCarrier(bridge) : undefined), [bridge])
   // One entry, two props contracts: which cast is used is decided by the same discriminant that
   // decides the host object, so the type and the value handed to the remote always agree.
   const Component = entry.Component as ComponentType<NodeComponentProps>
@@ -180,13 +190,15 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
     <div className={nodeSurfaceClassName(moduleId)} data-module-id={moduleId} data-component-id={compId}>
       <NodeRenderBoundary moduleId={moduleId}>
         <NodeRuntimeProvider nodeId={moduleId}>
-          <LocalFilesProvider value={nodeHost.localFiles}>
-            {grant.fullHost ? (
-              <Component compId={compId} host={grant.host} />
-            ) : (
-              <PluginComponent compId={compId} host={grant.host} />
-            )}
-          </LocalFilesProvider>
+          <NodeUiConfigProvider store={nodeUiConfig}>
+            <LocalFilesProvider value={nodeHost.localFiles}>
+              {grant.fullHost ? (
+                <Component compId={compId} host={grant.host} />
+              ) : (
+                <PluginComponent compId={compId} host={grant.host} />
+              )}
+            </LocalFilesProvider>
+          </NodeUiConfigProvider>
         </NodeRuntimeProvider>
       </NodeRenderBoundary>
     </div>

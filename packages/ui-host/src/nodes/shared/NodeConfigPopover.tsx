@@ -55,6 +55,7 @@ import { createLogger } from "@/lib/logger"
 import { cn } from "@/lib/utils"
 import { useNodeRuntimeId } from "./NodeRuntimeContext"
 import { useNodeI18n } from "./useNodeI18n"
+import { useNodeUiConfig } from "./NodeUiConfigContext"
 
 const LazyNodeConfigHistoryPanel = lazy(() => import("./NodeConfigHistoryPanel"))
 const LazyNodeConfigSourceView = lazy(() => import("./NodeConfigSourceView"))
@@ -247,6 +248,12 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
   const [presetImportText, setPresetImportText] = useState("")
   const [configImportText, setConfigImportText] = useState("")
   const autoRestoreNodeId = props.autoRestoreKey ?? runtimeNodeId
+  // 节点界面设置载体（装配侧从桥递进来，落点 `xaihi-core.nodeUi[nodeId]`）。
+  // undefined = 这一份渲染树没接载体（不在宿主里/独立卡片）：偏好退回本地遗留键，
+  // 不再试那条已裁掉的 REST 往返 —— 那正是 2026-10-07 控制台里每帧一条
+  // "Xiranite local backend is not configured" warn 的出处。
+  const nodeUiConfig = useNodeUiConfig()
+  const storedPrefsRef = useRef<Record<string, unknown> | undefined>(undefined)
   const [autoRestore, setAutoRestore] = useState(false)
   const [autoRestoreLoaded, setAutoRestoreLoaded] = useState(false)
   const [autoRestoreSaving, setAutoRestoreSaving] = useState(false)
@@ -276,9 +283,17 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
 
     async function loadAutoRestorePreference() {
       try {
-        const response = await nodeConfigApi.getUi<NodeConfigUiPreferences>(autoRestoreNodeId!)
+        if (!nodeUiConfig) {
+          // 没有载体时的读得回来的退化：本地遗留键照常生效，偏好不出这台机器。
+          setAutoRestore(readLegacyAutoRestorePreference(autoRestoreNodeId!, props.configPath) ?? false)
+          return
+        }
+        const stored = await nodeUiConfig.read(autoRestoreNodeId!)
         if (cancelled) return
-        const persisted = resolveAutoRestorePreference(response.config)
+        storedPrefsRef.current = stored !== null && typeof stored === "object" && !Array.isArray(stored)
+          ? stored as Record<string, unknown>
+          : undefined
+        const persisted = resolveAutoRestorePreference(storedPrefsRef.current as NodeConfigUiPreferences | undefined)
         const legacy = persisted === undefined
           ? readLegacyAutoRestorePreference(autoRestoreNodeId!, props.configPath)
           : undefined
@@ -286,7 +301,8 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
 
         if (persisted === undefined && legacy !== undefined) {
           try {
-            await nodeConfigApi.saveUi(autoRestoreNodeId!, { restoreOnStartup: legacy })
+            await nodeUiConfig.write(autoRestoreNodeId!, { restoreOnStartup: legacy })
+            storedPrefsRef.current = { restoreOnStartup: legacy }
             removeLegacyAutoRestorePreferences(autoRestoreNodeId!, props.configPath)
           } catch (error) {
             logger.warn("Failed to migrate restore-on-startup preference", { nodeId: autoRestoreNodeId }, error)
@@ -305,7 +321,7 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
     return () => {
       cancelled = true
     }
-  }, [autoRestoreNodeId, props.configPath])
+  }, [autoRestoreNodeId, nodeUiConfig, props.configPath])
 
   useEffect(() => {
     if (!autoRestoreLoaded || autoRestoreSaving || !autoRestore || !effectiveDefaults || autoRestoredRef.current) return
@@ -319,8 +335,16 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
     setAutoRestore(enabled)
     setAutoRestoreSaving(true)
     try {
-      await nodeConfigApi.saveUi(autoRestoreNodeId, { restoreOnStartup: enabled })
-      removeLegacyAutoRestorePreferences(autoRestoreNodeId, props.configPath)
+      if (nodeUiConfig) {
+        // 整格覆盖前合并上次读到的偏好：这一格按节点 id 只有一份 JSON，
+        // 只写自己认识的键会把将来别人放进来的偏好抹掉。
+        const next = { ...(storedPrefsRef.current ?? {}), restoreOnStartup: enabled }
+        await nodeUiConfig.write(autoRestoreNodeId, next)
+        storedPrefsRef.current = next
+        removeLegacyAutoRestorePreferences(autoRestoreNodeId, props.configPath)
+      } else {
+        writeLegacyAutoRestorePreference(autoRestoreNodeId, enabled, props.configPath)
+      }
     } catch (error) {
       setAutoRestore(previous)
       logger.warn("Failed to save restore-on-startup preference", { nodeId: autoRestoreNodeId }, error)
@@ -681,6 +705,20 @@ function readLegacyAutoRestorePreference(nodeId: string, configPath?: string): b
     return undefined
   }
   return undefined
+}
+
+/**
+ * 没有界面设置载体时的本地退化写（键形状沿用旧的遗留键 —— 改名 = 数据迁移，ADR-0010，
+ * 动之前先问使用者）。只发生在"这份渲染树没接桥"的场合；接了桥的写入走载体并清掉这些键。
+ */
+function writeLegacyAutoRestorePreference(nodeId: string, value: boolean, configPath?: string): void {
+  try {
+    const keys = legacyAutoRestoreStorageKeys(nodeId, configPath)
+    if (keys.length === 0) return
+    window.localStorage.setItem(keys[0]!, value ? "1" : "0")
+  } catch {
+    // Restricted WebViews can disable browser storage; the toggle stays honest for this session only.
+  }
 }
 
 function removeLegacyAutoRestorePreferences(nodeId: string, configPath?: string): void {

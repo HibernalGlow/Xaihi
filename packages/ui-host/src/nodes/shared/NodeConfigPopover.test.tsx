@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { createCapabilityAdapters, NodeConfigPopover } from "./NodeConfigPopover"
 import { NodeRuntimeProvider } from "./NodeRuntimeContext"
+import { NodeUiConfigProvider, type NodeUiConfigStore } from "./NodeUiConfigContext"
 
 const configApi = vi.hoisted(() => ({
   getUi: vi.fn(),
@@ -18,10 +19,26 @@ vi.mock("@/nodes/shared/api", async (importOriginal) => {
   return { ...actual, nodeConfigApi: { ...actual.nodeConfigApi, ...configApi } }
 })
 
+// Restore-on-startup persists through the node UI config store (bridge-backed in production).
+const uiStore = vi.hoisted(() => ({
+  read: vi.fn(),
+  write: vi.fn(),
+}))
+
+function storeMock(overrides?: Partial<NodeUiConfigStore>): NodeUiConfigStore {
+  return {
+    read: uiStore.read,
+    write: uiStore.write,
+    ...overrides,
+  }
+}
+
 beforeEach(() => {
   window.localStorage.clear()
   configApi.getUi.mockResolvedValue({ config: undefined, path: "D:/config/xiranite.config.toml" })
   configApi.saveUi.mockResolvedValue(undefined)
+  uiStore.read.mockResolvedValue(undefined)
+  uiStore.write.mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -84,17 +101,15 @@ describe("NodeConfigPopover configuration center", () => {
     expect(await screen.findByRole("dialog", { name: "Xlchemy configuration" })).toBeTruthy()
   })
 
-  test("persists restore-on-startup in node UI config and restores after remount", async () => {
+  test("persists restore-on-startup in the node UI config store and restores after remount", async () => {
     let persisted = false
-    configApi.getUi.mockImplementation(async () => ({
-      config: { restoreOnStartup: persisted },
-      path: "D:/config/xiranite.config.toml",
-    }))
-    configApi.saveUi.mockImplementation(async (_nodeId, config) => {
+    uiStore.read.mockImplementation(async () => ({ restoreOnStartup: persisted }))
+    uiStore.write.mockImplementation(async (_nodeId, config) => {
       persisted = config.restoreOnStartup
     })
     const onRestore = vi.fn()
     const user = userEvent.setup()
+    const store = storeMock()
 
     const first = renderWithProviders(<NodeConfigPopover
       dirty={false}
@@ -104,13 +119,13 @@ describe("NodeConfigPopover configuration center", () => {
       onReload={vi.fn()}
       onRestore={onRestore}
       onSave={vi.fn()}
-    />, "xlchemy")
+    />, "xlchemy", store)
 
     await user.click(screen.getByRole("button", { name: "Xlchemy configuration" }))
     const restoreSwitch = await screen.findByRole("switch")
     await waitFor(() => expect(restoreSwitch.hasAttribute("disabled")).toBe(false))
     await user.click(restoreSwitch)
-    await waitFor(() => expect(configApi.saveUi).toHaveBeenCalledWith("xlchemy", { restoreOnStartup: true }))
+    await waitFor(() => expect(uiStore.write).toHaveBeenCalledWith("xlchemy", { restoreOnStartup: true }))
     first.unmount()
     onRestore.mockClear()
 
@@ -122,13 +137,13 @@ describe("NodeConfigPopover configuration center", () => {
       onReload={vi.fn()}
       onRestore={onRestore}
       onSave={vi.fn()}
-    />, "xlchemy")
+    />, "xlchemy", store)
 
     await waitFor(() => expect(onRestore).toHaveBeenCalledTimes(1))
-    expect(configApi.getUi).toHaveBeenLastCalledWith("xlchemy")
+    expect(uiStore.read).toHaveBeenLastCalledWith("xlchemy")
   })
 
-  test("migrates the config-path localStorage preference into node UI config", async () => {
+  test("migrates the config-path localStorage preference into the node UI config store", async () => {
     const configPath = "D:/config/xiranite.config.toml"
     const legacyKey = `xiranite:auto-restore:config:${configPath}`
     window.localStorage.setItem(legacyKey, "1")
@@ -143,11 +158,37 @@ describe("NodeConfigPopover configuration center", () => {
       onReload={vi.fn()}
       onRestore={onRestore}
       onSave={vi.fn()}
-    />, "xlchemy")
+    />, "xlchemy", storeMock())
 
-    await waitFor(() => expect(configApi.saveUi).toHaveBeenCalledWith("xlchemy", { restoreOnStartup: true }))
+    await waitFor(() => expect(uiStore.write).toHaveBeenCalledWith("xlchemy", { restoreOnStartup: true }))
     await waitFor(() => expect(onRestore).toHaveBeenCalledTimes(1))
     expect(window.localStorage.getItem(legacyKey)).toBeNull()
+  })
+
+  test("degrades to the local legacy keys when no node UI config store is wired", async () => {
+    const legacyKey = "xiranite:auto-restore:xlchemy"
+    window.localStorage.setItem(legacyKey, "1")
+    const onRestore = vi.fn()
+    const user = userEvent.setup()
+
+    renderWithProviders(<NodeConfigPopover
+      dirty={false}
+      defaults={{ format: "AVIF" }}
+      triggerLabel="Xlchemy configuration"
+      t={translate}
+      onReload={vi.fn()}
+      onRestore={onRestore}
+      onSave={vi.fn()}
+    />, "xlchemy")
+
+    await user.click(screen.getByRole("button", { name: "Xlchemy configuration" }))
+    const restoreSwitch = await screen.findByRole("switch")
+    await waitFor(() => expect(restoreSwitch.hasAttribute("disabled")).toBe(false))
+    expect(restoreSwitch.getAttribute("aria-checked")).toBe("true")
+    expect(onRestore).toHaveBeenCalledTimes(1)
+
+    await user.click(restoreSwitch)
+    await waitFor(() => expect(window.localStorage.getItem(legacyKey)).toBe("0"))
   })
 
   test("keeps history off the hot path and loads it only when its tab opens", async () => {
@@ -275,7 +316,9 @@ describe("NodeConfigPopover configuration center", () => {
 
 const translate = (_key: string, fallback?: string) => fallback ?? _key
 
-function renderWithProviders(element: React.ReactElement, nodeId?: string) {
-  const content = nodeId ? <NodeRuntimeProvider nodeId={nodeId}>{element}</NodeRuntimeProvider> : element
+function renderWithProviders(element: React.ReactElement, nodeId?: string, store?: NodeUiConfigStore) {
+  let content = element
+  if (nodeId) content = <NodeRuntimeProvider nodeId={nodeId}>{content}</NodeRuntimeProvider>
+  if (store) content = <NodeUiConfigProvider store={store}>{content}</NodeUiConfigProvider>
   return render(<TooltipProvider>{content}</TooltipProvider>)
 }
