@@ -83,10 +83,75 @@ describe('NodeRegistry 本地执行通道', () => {
     expect(result.data).toEqual({ sum: 12, numbers: [5, 7] })
   })
 
-  it('当节点不存在或报错时如实返回失败原因', async () => {
+  it('当节点不存在或报错时如实返回失败原因，并保留已捕获的 data', async () => {
     const runner = createLocalRunner()
     const notFound = await runner.run('non-existent-node', {}) as { success: boolean; message: string }
     expect(notFound.success).toBe(false)
     expect(notFound.message).toContain('not registered')
+
+    const ctx = { tools: { register() {} }, on() {} }
+    const def = {
+      definitionVersion: 1,
+      nodeId: 'failing-sample',
+      title: { en: 'Failing', zh: '失败测试' },
+      description: { en: 'Desc', zh: '描述' },
+      actions: [{ id: 'fail', label: { en: 'Fail', zh: '失败' } }],
+      fields: [],
+      inputBindings: [],
+    }
+    defineNode(ctx as never, {
+      definition: def,
+      handlers: {
+        async fail({ run }) {
+          run.resultView({ partialErrors: ['something wrong'] })
+          throw new Error('boom')
+        },
+      },
+    })
+
+    const failed = await runner.run('failing-sample', { action: 'fail' }) as {
+      success: boolean
+      message: string
+      data: unknown
+    }
+    expect(failed.success).toBe(false)
+    expect(failed.message).toBe('boom')
+    expect(failed.data).toEqual({ partialErrors: ['something wrong'] })
+  })
+
+  it('支持向 onEvent 回调实时推送 progress 与 preview 日志', async () => {
+    const ctx = { tools: { register() {} }, on() {} }
+    const def = {
+      definitionVersion: 1,
+      nodeId: 'progress-sample',
+      title: { en: 'Progress', zh: '进度测试' },
+      description: { en: 'Desc', zh: '描述' },
+      actions: [{ id: 'work', label: { en: 'Work', zh: '执行' } }],
+      fields: [],
+      inputBindings: [],
+    }
+
+    defineNode(ctx as never, {
+      definition: def,
+      handlers: {
+        async work({ run }) {
+          run.progress({ done: 5, total: 10 })
+          run.preview({ message: 'working on step 1' })
+          return 'done'
+        },
+      },
+    })
+
+    const events: unknown[] = []
+    const runner = createLocalRunner()
+    const result = await runner.run('progress-sample', { action: 'work' }, (event) => {
+      events.push(event)
+    }) as { success: boolean }
+
+    expect(result.success).toBe(true)
+    expect(events).toEqual([
+      { type: 'progress', progress: 50, done: 5, total: 10 },
+      { type: 'log', message: 'working on step 1' },
+    ])
   })
 })

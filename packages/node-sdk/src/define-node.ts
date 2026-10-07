@@ -227,7 +227,7 @@ export interface NodeHandle {
   /**
    * 运行一个动作并返回结构化的 NodeRunResult，捕获并透传 `run.resultView` 载荷。
    */
-  run(actionId: string, args?: Record<string, unknown>): Promise<NodeRunResult>
+  run(actionId: string, args?: Record<string, unknown>, onEvent?: (event: unknown) => void): Promise<NodeRunResult>
 }
 
 /**
@@ -277,7 +277,11 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
   }
 
   /** 一次动作调用并返回结构化结果：开运行、绑输入、跑实现、捕获 resultView 并结算。 */
-  const runAction = async (actionId: string, raw: Record<string, unknown> = {}): Promise<NodeRunResult> => {
+  const runAction = async (
+    actionId: string,
+    raw: Record<string, unknown> = {},
+    onEvent?: (event: unknown) => void,
+  ): Promise<NodeRunResult> => {
     const handler = options.handlers[actionId]
     if (handler === undefined) {
       return { success: false, message: `xaihi.node/v1: no handler for action "${actionId}"` }
@@ -288,8 +292,19 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
     let capturedResultView: unknown = undefined
     const run: OperationRun = {
       runId: baseRun.runId,
-      progress: (p) => { baseRun.progress(p) },
-      preview: (p) => { baseRun.preview(p) },
+      progress: (p) => {
+        baseRun.progress(p)
+        try {
+          const percent = typeof p.total === 'number' && p.total > 0 ? Math.round((p.done / p.total) * 100) : p.done
+          onEvent?.({ type: 'progress', progress: percent, ...p })
+        } catch {}
+      },
+      preview: (p) => {
+        baseRun.preview(p)
+        try {
+          onEvent?.({ type: 'log', message: p.message, ...p })
+        } catch {}
+      },
       resultView: (payload) => {
         capturedResultView = payload
         baseRun.resultView(payload)
@@ -312,6 +327,7 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
       return {
         success: false,
         message: errorMessage,
+        data: capturedResultView,
         runId: baseRun.runId,
       }
     }

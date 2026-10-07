@@ -55,10 +55,12 @@ export interface SettingsPathOp {
   value?: unknown
 }
 
-/** 注入的运行面：节点动作的执行通路（装配侧经 `ctx.remote.commands` 或工具分发接上）。 */
+/** 注入的运行面：节点动作的执行通路（装配侧经本地 Runner 或工具分发接上）。 */
 export interface RunFace {
-  run(nodeId: string, input: unknown): Promise<{ runId: string }>
+  run(nodeId: string, input: unknown, onEvent?: (event: unknown) => void): Promise<unknown>
   cancel?(runId: string): Promise<boolean>
+  getInfo?(nodeId: string): Promise<unknown>
+  cancelCurrent?(): Promise<boolean>
 }
 
 /** 外壳此刻真能兑现的东西。缺失的组不要塞占位实现——缺失会以退化形式显示到界面上。 */

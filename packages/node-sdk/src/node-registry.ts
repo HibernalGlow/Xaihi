@@ -24,7 +24,7 @@ export interface RegisteredNode {
   definition: NodeDefinition
   handlers: NodeHandlers
   invoke: (actionId: string, raw?: Record<string, unknown>) => Promise<string>
-  run: (actionId: string, raw?: Record<string, unknown>) => Promise<NodeRunResult>
+  run: (actionId: string, raw?: Record<string, unknown>, onEvent?: (event: unknown) => void) => Promise<NodeRunResult>
   execute?: (input: unknown, onEvent?: (event: unknown) => void) => Promise<NodeRunResult>
 }
 
@@ -75,8 +75,9 @@ export class NodeRegistry {
    * 运行一个节点的动作。
    * @param nodeId - 节点 ID（如 "findz", "linedup", "sleept" 或带包名前缀）。
    * @param input - 输入载荷（通常包含 action 字段及参数）。
+   * @param onEvent - 可选的过程事件回调（progress, preview 等）。
    */
-  async run(nodeId: string, input: unknown): Promise<NodeRunResult> {
+  async run(nodeId: string, input: unknown, onEvent?: (event: unknown) => void): Promise<NodeRunResult> {
     const entry = this.get(nodeId)
     if (!entry) {
       return {
@@ -87,7 +88,7 @@ export class NodeRegistry {
 
     if (entry.execute) {
       try {
-        return await entry.execute(input)
+        return await entry.execute(input, onEvent)
       } catch (error) {
         return {
           success: false,
@@ -122,7 +123,7 @@ export class NodeRegistry {
       }
     }
 
-    return await entry.run(actionId, raw)
+    return await entry.run(actionId, raw, onEvent)
   }
 
   async cancel(_runId: string): Promise<boolean> {
@@ -139,7 +140,7 @@ export const nodeRegistry = new NodeRegistry()
  */
 export function createLocalRunner(registry: NodeRegistry = nodeRegistry): RunFace {
   return {
-    run: (nodeId: string, input: unknown) => registry.run(nodeId, input),
+    run: (nodeId: string, input: unknown, onEvent?: (event: unknown) => void) => registry.run(nodeId, input, onEvent),
     cancel: (runId: string) => registry.cancel(runId),
   }
 }
