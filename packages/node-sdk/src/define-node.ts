@@ -19,6 +19,7 @@ import { defineTool, type ParameterPropertySpec, type ParameterSchemaSpec } from
 import { validateNodeDefinition, type NodeDefinition, type NodeField, type NodeTransform } from './node.ts'
 import { matchCondition } from './conditions.ts'
 import { NULL_RUN, type OperationJournal, type OperationRun } from './operations.ts'
+import { nodeRegistry, type NodeRunResult } from './node-registry.ts'
 
 /**
  * 工具参数表。直接用 dsh-tools 的类型而不是长得像的本地副本：它的参数面带
@@ -223,6 +224,10 @@ export interface NodeHandle {
    * @param args - 字段值（表单形状，不是执行槽位）。
    */
   invoke(actionId: string, args?: Record<string, unknown>): Promise<string>
+  /**
+   * 运行一个动作并返回结构化的 NodeRunResult，捕获并透传 `run.resultView` 载荷。
+   */
+  run(actionId: string, args?: Record<string, unknown>): Promise<NodeRunResult>
 }
 
 /**
@@ -260,13 +265,55 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
     if (journal === undefined) warnNoJournal()
     const run = journal?.open({ nodeId: definition.nodeId, actionId }) ?? NULL_RUN
     try {
-      const result = await handler({ args: raw, inputs: bindInputs(definition, raw), run })
+      const inputs = { ...raw, ...bindInputs(definition, raw) }
+      const result = await handler({ args: raw, inputs, run })
       journal?.finish(run.runId)
       return result
     } catch (error) {
       journal?.fail(run.runId, error instanceof Error ? error.message : String(error))
       // 原样抛出：把失败咽成一次成功输出，症状会是"面板显示了空结果"。
       throw error
+    }
+  }
+
+  /** 一次动作调用并返回结构化结果：开运行、绑输入、跑实现、捕获 resultView 并结算。 */
+  const runAction = async (actionId: string, raw: Record<string, unknown> = {}): Promise<NodeRunResult> => {
+    const handler = options.handlers[actionId]
+    if (handler === undefined) {
+      return { success: false, message: `xaihi.node/v1: no handler for action "${actionId}"` }
+    }
+    const journal = resolve()
+    if (journal === undefined) warnNoJournal()
+    const baseRun = journal?.open({ nodeId: definition.nodeId, actionId }) ?? NULL_RUN
+    let capturedResultView: unknown = undefined
+    const run: OperationRun = {
+      runId: baseRun.runId,
+      progress: (p) => { baseRun.progress(p) },
+      preview: (p) => { baseRun.preview(p) },
+      resultView: (payload) => {
+        capturedResultView = payload
+        baseRun.resultView(payload)
+      },
+      checkpoint: (p) => { baseRun.checkpoint(p) },
+    }
+    const inputs = { ...raw, ...bindInputs(definition, raw) }
+    try {
+      const message = await handler({ args: raw, inputs, run })
+      journal?.finish(baseRun.runId)
+      return {
+        success: true,
+        message,
+        data: capturedResultView,
+        runId: baseRun.runId,
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      journal?.fail(baseRun.runId, errorMessage)
+      return {
+        success: false,
+        message: errorMessage,
+        runId: baseRun.runId,
+      }
     }
   }
 
@@ -295,7 +342,19 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
     })
   }
 
+  const handle: NodeHandle = { invoke, run: runAction }
+
+  // 自动注册到全局节点注册表，打通本地 Runner 通道
+  nodeRegistry.register({
+    nodeId: definition.nodeId,
+    definition,
+    handlers: options.handlers,
+    invoke,
+    run: runAction,
+  })
+
   // 注意：`invoke` 不走 `tools/pre-execute`，所以它绕过了危险闸门。
   // 非模型入口（命令、面板按钮）必须自己先问 `dangerFor`，别把危险动作接到它上面。
-  return { invoke }
+  return handle
 }
+

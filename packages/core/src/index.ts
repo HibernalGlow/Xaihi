@@ -25,8 +25,7 @@ import Schema from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { buildRegistrations, buildWorkspaceDocument, computeRev, type ServedRegistration } from './registry.ts'
 import { manifestHandler, remoteHandler, uiBundleHandler, UI_PATH_PREFIX, type UiBundleSource } from './routes.ts'
-import { HOST_PATH, detectHostMount, hostBridgeHandler, xaihiNamespaces, type SettingsServiceLike } from './host-routes.ts'
-import type { UiBundleFace } from '@hibernalglow/xaihi-sdk'
+import { HOST_PATH, RUNNER_PATH, detectHostMount, hostBridgeHandler, runnerHttpHandler, xaihiNamespaces, type SettingsServiceLike } from './host-routes.ts'
 import { createJournal, operationsSnapshotHandler, operationsStreamHandler } from './operations.ts'
 import { historyHandler, openLedger, type DomainFacilityLike, type RunLedger } from './history.ts'
 import {
@@ -40,8 +39,11 @@ import {
   OPERATIONS_SERVICE,
   OPERATIONS_SNAPSHOT_PATH,
   OPERATIONS_STREAM_PATH,
+  createLocalRunner,
+  nodeRegistry,
   type OperationEvent,
   type RunRecord,
+  type UiBundleFace,
 } from '@hibernalglow/xaihi-sdk'
 
 export const name = '@hibernalglow/xaihi-core'
@@ -89,12 +91,32 @@ export interface Config {
    * 而 `pnpm-lock.yaml` 正被并发 lane 大面积重写——不为这一格去动别人的在途文件。
    */
   nodeUi: Volatile<Record<string, string>>
+  /**
+   * **工作台自己那份界面设置**的落点：键 = 段名（`ui` = `AppUiConfig`、`themes` = 自定义主题表、
+   * `bgImage` = 背景图 URL），值 = 那一段的 JSON 文本（形状与 `nodeState` / `nodeUi` 同一条）。
+   *
+   * 为什么不复用 `nodeUi`：那一格按**节点 id** 分格（桥的 `state.*` 那条路还会拿它撞 `NODE_ID_PATTERN`），
+   * 而工作台 chrome 的主题 / 语言 / 布局偏好不属于任何节点。混进同一格会让 `nodeUi['ui']`
+   * 看起来像一个叫 `ui` 的节点。
+   *
+   * `bgImage` 那一格有**体积闸**：桥的单条消息上界是 256 KiB，而读回来的是整格
+   * `describe()` 里这一份命名空间的值（含 `nodeState` / `nodeUi`），所以一段最多占
+   * 预算的四分之一（闸与理由在 `ui-host/src/backend/appConfigSections.ts`）。
+   *
+   * 读写的唯一出口是桥的 `config.getUi` / `config.save`（ADR-0013：这里只**声明**，
+   * 本包不自己存文件、不自己开历史）。
+   */
+  appUi: Volatile<Record<string, string>>
 }
 
 const nodeStateSchema: Schema<Record<string, string>> = Schema.dict(Schema.string()).default({})
 
 // 同一套标注理由（TS2883 的 `Dict` 指不到 cosmokit，而 `Schema<Config>` 会撞 exactOptionalPropertyTypes）。
 const nodeUiSchema: Schema<Record<string, string>> = Schema.dict(Schema.string()).default({})
+
+// 第三份同形状的字典：工作台自己的界面设置（`appUi`）。分格键是段名不是节点 id，
+// 但值的形状与上面两格逐字相同，所以共用同一条"用字符串装 JSON 文本"的取舍。
+const appUiSchema: Schema<Record<string, string>> = Schema.dict(Schema.string()).default({})
 
 /**
  * 节点内存保护的阈值策略：一份默认 + 每节点覆盖。
@@ -142,6 +164,7 @@ export const Config = Schema.object({
   // 而标注成 `Schema<Config>` 会撞上 exactOptionalPropertyTypes（TS2375）。
   nodeState: nodeStateSchema.volatile(),
   nodeUi: nodeUiSchema.volatile(),
+  appUi: appUiSchema.volatile(),
   nodeMemoryProtection: nodeMemoryProtectionSchema.volatile(),
 })
 
@@ -446,8 +469,16 @@ export function apply(ctx: HostContext, config: Config): void {
     handler: hostBridgeHandler({
       settings: () => bridgeSettings,
       allowedNamespaces: () => xaihiNamespaces([...ctx.loader.entries()]),
+      runner: () => createLocalRunner(nodeRegistry),
     }),
   }), 'xaihi-core: host bridge route')
+
+  // 本地插件执行通道（Runner）：供 UI 客户端直调 / HTTP 桥调
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: RUNNER_PATH,
+    handler: runnerHttpHandler(() => createLocalRunner(nodeRegistry)),
+  }), 'xaihi-core: local runner route')
 
   // 节点设置历史：列表（带对账）/ 单份 / 恢复。与 `/xaihi/history.json` 同一档
   // 威胁模型（本机可直达、命名空间闸在这里兜），数据纪律是"只存脱敏值"。

@@ -18,8 +18,10 @@ import type { Context, Volatile } from '@deepseek-ai/cordis'
 // 运行时实现由宿主提供，本包不在产物里引它。
 import type { CommandResult } from '@deepseek-ai/dsh-commands'
 import Schema from '@deepseek-ai/schemastery'
-import { defineNode, dangerFor, OPERATIONS_SERVICE, validateNodeDefinition, type OperationJournal } from '@hibernalglow/xaihi-sdk'
+import { defineNode, dangerFor, OPERATIONS_SERVICE, nodeRegistry, validateNodeDefinition, type NodeRunResult, type OperationJournal } from '@hibernalglow/xaihi-sdk'
 import { createInhibitor, createRunner, type InhibitorState } from './exec.ts'
+import { runSleept, type SleeptInput } from './core.ts'
+import { createNodeSleeptRuntime } from './runtime.ts'
 import {
   parseHibernateEnabled,
   parseMacAssertions,
@@ -209,6 +211,27 @@ export function apply(ctx: Context, config: Config): void {
       },
     },
   })
+
+  // 本地 Runner 自定义执行派发：兼顾电源底层控制与定时器/监控（countdown, specific_time, netspeed, cpu, get_stats）
+  const sleeptRuntime = createNodeSleeptRuntime()
+  const customExecute = async (input: unknown): Promise<NodeRunResult> => {
+    const raw = typeof input === 'object' && input !== null ? (input as SleeptInput) : {}
+    const action = raw.action ?? 'status'
+    if (['block', 'unblock', 'displayOff', 'screensaver', 'sleep'].includes(action)) {
+      return await node.run(action, raw as Record<string, unknown>)
+    }
+    const result = await runSleept(raw, sleeptRuntime)
+    return {
+      success: result.success,
+      message: result.message,
+      data: result.data,
+    }
+  }
+
+  const registered = nodeRegistry.get(nodeDefinition.nodeId)
+  if (registered) {
+    registered.execute = customExecute
+  }
 
   /**
    * 不经过模型的入口：composer 里输入 `/sleept status` 就直接执行

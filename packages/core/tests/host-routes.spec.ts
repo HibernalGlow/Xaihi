@@ -354,6 +354,26 @@ describe('/xaihi/host 的载体判据', () => {
     expect(b.body.id).toBe('id-second')
     expect(b.body.value.json).toBe('{"secret":1}')
   })
+
+  it('注入 runner 时握手授予 runner 能力且可执行 runner.run', async () => {
+    const settings = fakeSettings()
+    const runner = {
+      run: async (nodeId: string, input: unknown) => ({ success: true, message: `run ${nodeId}`, data: input }),
+    }
+    const handler = hostBridgeHandler({
+      settings: () => settings,
+      allowedNamespaces: () => ALLOWED,
+      runner,
+    })
+    const helloRes = await ask(handler, hello())
+    expect(helloRes.body.granted).toContain('runner')
+    expect(helloRes.body.refused).not.toContain('runner')
+
+    const runReq = request('runner.run', ['xaihi-findz', { query: 'test' }])
+    const runRes = await ask(handler, runReq.body)
+    expect(runRes.body.ok).toBe(true)
+    expect(runRes.body.value).toEqual({ success: true, message: 'run xaihi-findz', data: { query: 'test' } })
+  })
 })
 
 describe('detectHostMount：这份产物里到底有没有问宿主的装载点', () => {

@@ -34,6 +34,7 @@ import {
   type BridgeMessage,
   type HostMountState,
   type NodeCapabilityId,
+  type RunFace,
   type SettingsFace,
   type SettingsPathOp,
   type ShellCapabilities,
@@ -100,6 +101,8 @@ export interface HostBridgeDeps {
   settings: () => SettingsServiceLike | undefined
   /** 本路由可以碰的设置命名空间 = Xaihi 自己的那批 loader 行 + `xaihi-core`。 */
   allowedNamespaces: () => ReadonlySet<string>
+  /** 本地插件执行面；传入时授予 runner 能力，不传则维持退化拒绝原因。 */
+  runner?: RunFace | (() => RunFace | undefined)
 }
 
 /** 越界的写：抛一条带 `reason` 的错，桥那半边把它原样转成读得回的失败。 */
@@ -315,11 +318,17 @@ export function hostBridgeHandler(deps: HostBridgeDeps) {
 
     const service = deps.settings()
     const allowed = deps.allowedNamespaces()
-    const reasons = service === undefined
-      ? { ...HOST_REFUSAL_REASONS, ...HOST_MISSING_SETTINGS_REASONS }
-      : HOST_REFUSAL_REASONS
+    const runner = typeof deps.runner === 'function' ? deps.runner() : deps.runner
+    const reasons: Partial<Record<NodeCapabilityId, string>> = {
+      ...HOST_REFUSAL_REASONS,
+      ...(service === undefined ? HOST_MISSING_SETTINGS_REASONS : {}),
+    }
+    if (runner !== undefined) {
+      delete reasons.runner
+    }
     const caps: ShellCapabilities = {
       ...(service === undefined ? {} : { settings: fenceSettings(service, allowed) }),
+      ...(runner === undefined ? {} : { runner }),
       reasons,
       settingsNs: STATE_SETTINGS_NS,
     }
@@ -360,5 +369,52 @@ export function hostBridgeHandler(deps: HostBridgeDeps) {
       return
     }
     sendJson(res, 200, outbound)
+  }
+}
+
+/** 本地 Runner HTTP 执行路径。 */
+export const RUNNER_PATH = '/xaihi/runner'
+
+/**
+ * `/xaihi/runner` 的 HTTP 处理器。
+ * @param runner - 本地 runner 执行面。
+ */
+export function runnerHttpHandler(runner: RunFace | (() => RunFace)) {
+  return async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+    if (req.method !== 'POST') {
+      sendJson(res, 405, { success: false, message: '只收 POST 请求' })
+      return
+    }
+    const text = await readBody(req, BRIDGE_MAX_MESSAGE_BYTES)
+    if (text === null) {
+      sendJson(res, 413, { success: false, message: '请求体超限' })
+      return
+    }
+    let body: unknown
+    try {
+      body = JSON.parse(text)
+    } catch {
+      sendJson(res, 400, { success: false, message: '请求体不是合法的 JSON' })
+      return
+    }
+    if (typeof body !== 'object' || body === null) {
+      sendJson(res, 400, { success: false, message: '请求体需要为 JSON 对象' })
+      return
+    }
+    const { nodeId, input } = body as { nodeId?: unknown; input?: unknown }
+    if (typeof nodeId !== 'string' || nodeId === '') {
+      sendJson(res, 400, { success: false, message: '缺少 nodeId' })
+      return
+    }
+    try {
+      const activeRunner = typeof runner === 'function' ? runner() : runner
+      const result = await activeRunner.run(nodeId, input)
+      sendJson(res, 200, result)
+    } catch (error) {
+      sendJson(res, 500, {
+        success: false,
+        message: error instanceof Error ? error.message : String(error),
+      })
+    }
   }
 }

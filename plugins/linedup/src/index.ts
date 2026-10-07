@@ -39,9 +39,15 @@ export function apply(ctx: Context, config: Config): void {
     journal: () => ctx.get(OPERATIONS_SERVICE) as OperationJournal | undefined,
     handlers: {
       async filter({ inputs, run }) {
+        const source = Array.isArray(inputs.sourceLines)
+          ? (inputs.sourceLines as string[])
+          : splitLines(String(inputs.sourceText ?? ''))
+        const targetFilters = Array.isArray(inputs.filterLines)
+          ? (inputs.filterLines as string[])
+          : splitLines(String(inputs.filterText ?? ''))
         const result = filterLines({
-          sourceLines: splitLines(String(inputs.sourceText ?? '')),
-          filterLines: splitLines(String(inputs.filterText ?? '')),
+          sourceLines: source,
+          filterLines: targetFilters,
           caseSensitive: inputs.caseSensitive !== false,
           sort: inputs.sort !== false,
         })

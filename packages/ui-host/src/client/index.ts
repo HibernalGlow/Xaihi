@@ -393,7 +393,27 @@ export function apply(ctx: Context): void {
   // 真源换成我们自己那一行 `STATE_SETTINGS_NS`（实测就在 `describe()` 里：
   // `{ns:"xaihi-core", revision:7, value:{verbose, nodeState}}`，本轮又补了 `nodeUi`），
   // 它是**编译期常量**，不依赖这次装配的实例号，也和 `state.*` 走同一格。
+  const runner = {
+    async run(nodeId: string, input: unknown) {
+      const res = await fetch('/xaihi/runner', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ nodeId, input }),
+      })
+      if (!res.ok) {
+        let msg = `HTTP ${res.status}`
+        try {
+          const body = (await res.json()) as { message?: string }
+          if (body?.message) msg = body.message
+        } catch {}
+        return { success: false, message: msg }
+      }
+      return await res.json()
+    },
+  }
+
   const caps = shellCapsFrom({
+    runner,
     ...(settingsRemote === undefined ? {} : { settings: settingsRemote }),
     ...(settingsRemote === undefined ? {} : { settingsNs: STATE_SETTINGS_NS }),
     ...(activeScheme === undefined ? {} : { preference: activeScheme }),

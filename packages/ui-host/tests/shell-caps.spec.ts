@@ -87,4 +87,26 @@ describe('shellCapsFrom 的设置面', () => {
     expect(await grantOf(without)).not.toContain('config')
     expect(await grantOf(withSettings)).toContain('config')
   })
+
+  it('阳性对照：注入 runner 时，runner 组被授予，且 reasons 中不含 runner 拒绝原因', async () => {
+    const runner = {
+      run: async (nodeId: string, input: unknown) => ({ success: true, message: 'ok', data: { nodeId, input } }),
+    }
+    const caps = shellCapsFrom({ runner })
+    expect(caps.runner).toBe(runner)
+    expect(caps.reasons?.runner).toBeUndefined()
+
+    const sent: BridgeMessage[] = []
+    const bridge = createShellBridge(caps, (message) => sent.push(message), 'http://127.0.0.1:3199')
+    await bridge.receive({ schema: 'xaihi.bridge/1', kind: 'hello', contractVersion: '1.0.0', node: '', requested: ['runner'] }, 'http://127.0.0.1:3199')
+    const ready = bridge.ready()
+    expect(ready?.granted).toContain('runner')
+    expect(ready?.refused).not.toContain('runner')
+
+    await bridge.receive({ schema: 'xaihi.bridge/1', kind: 'request', id: 'run-1', method: 'runner.run', args: ['sleept', { minutes: 10 }] }, 'http://127.0.0.1:3199')
+    const reply = sent.filter((m) => m.kind === 'response').at(-1)
+    if (reply?.kind !== 'response') throw new Error('没等到应答')
+    expect(reply.ok).toBe(true)
+    expect(reply.value).toEqual({ success: true, message: 'ok', data: { nodeId: 'sleept', input: { minutes: 10 } } })
+  })
 })

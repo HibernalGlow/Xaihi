@@ -23,7 +23,7 @@
  * @module xaihi-ui/shell-caps
  */
 
-import type { BridgeEnv, NodeCapabilityId, SettingsPathOp, ShellCapabilities } from '@hibernalglow/xaihi-sdk/bridge'
+import type { BridgeEnv, NodeCapabilityId, RunFace, SettingsPathOp, ShellCapabilities } from '@hibernalglow/xaihi-sdk/bridge'
 
 /** 装配侧要的那份远程面的形状（导出给 index.ts 断言用）。 */
 export type RemoteSettingsFace = RemoteLike
@@ -58,6 +58,8 @@ export interface ShellCapsInput {
    * 而不是拿节点短名去撞一条 DSH 的 `No configurable plugin entry`（实测见 ADR-0009）。
    */
   settingsNs?: string
+  /** 本地 runner 运行面；传入时授予 runner 能力，不传则报上游缺口原因。 */
+  runner?: RunFace
   /** 覆盖某组没给时的文案，让界面上的退化原因是人话。 */
   reasons?: Partial<Record<NodeCapabilityId, string>>
 }
@@ -95,12 +97,13 @@ export function resolveEnv(input: ShellCapsInput): BridgeEnv | undefined {
 export function shellCapsFrom(input: ShellCapsInput): ShellCapabilities {
   const env = resolveEnv(input)
   const reasons: Partial<Record<NodeCapabilityId, string>> = {
-    runner: '宿主侧面板拿不到 agentId（上游提案 P1），运行面没接',
+    ...(input.runner ? {} : { runner: '宿主侧面板拿不到 agentId（上游提案 P1），运行面没接' }),
     ...input.reasons,
   }
   if (input.settings === undefined) {
     return {
       ...(env ? { env } : {}),
+      ...(input.runner ? { runner: input.runner } : {}),
       reasons: {
         ...reasons,
         config: '远程设置面没读到（ctx.remote.settings 不在）',
@@ -113,6 +116,7 @@ export function shellCapsFrom(input: ShellCapsInput): ShellCapabilities {
   }
   const remote = input.settings
   return {
+    ...(input.runner ? { runner: input.runner } : {}),
     settings: {
       describe: () => unwrap<unknown>(remote.describe()),
       update: async (ns, patch, revision) => unwrap<unknown>(remote.update(ns, patch as Record<string, unknown>, revision)),
