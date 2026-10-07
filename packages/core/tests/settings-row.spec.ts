@@ -48,15 +48,19 @@ describe('设置命名空间的落点', () => {
     expect(STATE_SETTINGS_NS).toBe('xaihi-core')
   })
 
-  it('core 那一行真声明了 volatile 落点：状态与界面设置各一条', () => {
+  it('core 那一行真声明了 volatile 落点：状态、界面设置、内存保护各一条', () => {
     const fields = volatileConfigFields(readFileSync(CORE_ENTRY, 'utf8'))
-    expect(fields).toEqual(expect.arrayContaining(['nodeState', 'nodeUi']))
+    // 第三条不是装饰：`NodeMemoryProtectionSettings` 那一格过桥之后落的就是它，
+    // 少了 `.volatile()` 撞的是 DSH 第二道写闸（`Config field "…" is not volatile`）。
+    expect(fields).toEqual(expect.arrayContaining(['nodeState', 'nodeUi', 'nodeMemoryProtection']))
   })
 
   it('阳性对照：摘掉 .volatile() 就该看不见那一格（尺看得见违规，不是恒真）', () => {
     const src = readFileSync(CORE_ENTRY, 'utf8')
     const sabotaged = src.replace('nodeUi: nodeUiSchema.volatile(),', 'nodeUi: nodeUiSchema,')
     expect(volatileConfigFields(sabotaged)).not.toContain('nodeUi')
+    const sabotagedMemory = src.replace('nodeMemoryProtection: nodeMemoryProtectionSchema.volatile(),', 'nodeMemoryProtection: nodeMemoryProtectionSchema,')
+    expect(volatileConfigFields(sabotagedMemory), '这一格变成不可写 = 界面上那次写会撞第二道写闸，尺必须看不见它').not.toContain('nodeMemoryProtection')
     // 另一头也要看得见：整块 Config 不存在时不是"空清单通过"，是零落点
     expect(volatileConfigFields('export const name = "x"')).toEqual([])
   })

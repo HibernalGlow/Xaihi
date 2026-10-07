@@ -1727,3 +1727,54 @@ check-verbatim: 覆盖 272 份基线源文件（比对 272、绿 32、申报 4�
 ③ **共享清单那一轮**——`@xyflow/react`（marku 的工作流编辑器）与 `csv-parse`（classf 的
 deletion-history 叶子）都只能在并发 lane 重做 lockfile 的那一次一起进；
 在那之前这两个界面按"缺依赖"记红，不自己装、不编一个解析器顶上。
+
+## 节点内存保护那一格接到设置面：三段落地，外加一条"写完必须回读"的错（2026-10-07 04:56）
+
+**改了什么**（三段里的二、三段；第一段 `Config` 那一行早已在 HEAD 的 `packages/core/src/index.ts:110-137`）
+
+- `packages/ui-host/src/backend/localBackendControl.ts`：这一格的读写面。读整份 Config → 只换
+  `nodeMemoryProtection` 那一格 → 带刚读到的 `revision` 写回去；返回形状照上游
+  （`{ supported, settings }`、失败靠抛），所以搬来的组件与搬来的那份 mock
+  （`src/components/views/settings/ThemeSettings.test.tsx:124-133`）调用面一字不改。
+- `src/components/views/settings/NodeMemoryProtectionSettings.tsx`：**逐行搬**上游那 303 行
+  （卡片、`POLICY_FIELDS` 的区间与步进、`StatusMessage`、校验时机、按钮禁用条件），
+  文案走词典里早就存在的 `settings:memoryProtection.*`（`src/i18n/locales/zh.json:720-762`，en 同行号）。
+  中途我写过一版"照类名重写"的，已作废并留了这一行的账。
+- `src/backend/settings-face.ts` 的 `attachSettingsFace()` + `src/document/settings-face.ts` 的
+  `mountSettingsFace()` + `src/document/main.tsx` 四行调用：装配点。握手没落地或没带 `settingsNs`
+  时**什么都不装**，界面因此停在"没有设置面"那条可见退化上（ADR-0011 决定 4）。
+- 两处尺：`tests/core-defaults-parity.spec.ts`（默认数字与 core 那行逐条比对，阳性对照是喂一份
+  改过一个数字的文本副本）与 `tests/settings-face.spec.ts`（假桥按真包法回包，别的动词一律抛错）；
+  `packages/core/tests/settings-row.spec.ts` 的落点清单补上 `nodeMemoryProtection`，阳性对照同样补一条
+  "摘掉 `.volatile()` 就该看不见"。
+
+**为什么**：ADR-0013 说配置只有一个出口。上游那条通路（Xiranite 自己的 HTTP 后端 + 一份 toml）
+整块不接，所以这一格的值只能住在 DSH 的 settings 面上；而界面是搬运来的，不该为它新造一套控件形状。
+
+**与 DSH API 的关系（带出处）**
+
+- 过桥的两条动词在 `packages/node-sdk/src/bridge-shell.ts:187-208`：`config.getUi(ns)` 走
+  `readNamespace`（只回**问的那一格**，因为整份 `describe()` 会带上所有插件的 schema 与值），
+  `config.saveUi(ns, patch, expectedRevision)` 的回包是 `projectWriteAck(...)`，**只有版本号**——
+  同一条注释记着实测"写 `xaihi-core` 时整份视图带着 `nodeState`，200 KiB 的写落盘成功却回 too-large"。
+  我第一版把"回包里读到这一格"当成功判据，于是真桥下面每一次正常写都会抛"写之后没在回包里读到"；
+  现在改成**写完再读一次**确认（`tests/local-backend-control.spec.ts` 里"回包只带版本号也算成功"
+  就是这条的回归）。
+- 命名空间闸 `packages/core/src/host-routes.ts:178-185`（`xaihiNamespaces`）+ `document-host.ts` 的
+  `requireSettingsNs`：不兜底、不拿节点短名，短名会被 DSH 拒成 `No configurable plugin entry`。
+- `Config.nodeMemoryProtection` 的 `.volatile()` 是 DSH 唯一开着的写入口（`isVolatilePath`），
+  没标的那条撞第二道写闸 `Config field "…" is not volatile`。
+
+**读数**：`pnpm --filter @hibernalglow/xaihi-core test:unit` rc=0（93 passed）；
+ui-host 侧三个判据文件 rc=0（17 passed）；`build:document` rc=0 且 `mountSettingsFace`/
+`attachSettingsFace` 在 `dist-ui/main.js` 里；`pnpm run build` rc=0 + `check-client-bundle` 绿；
+两份 tsc 里我这批文件零条错（own 1318 / ported 222 是搬运那侧的账，且我量过加不加我那条判据
+读数逐字相同）。**没跑**：全仓 `pnpm test`（并发 lane 在飞，不可归因）、真宿主起桥后的上屏验证
+（要 `pnpm host:headless` + `/xaihi/ui/<rev>/index.html`，且此前 `pnpm plugin:install` 因别人删了
+`plugins/hello` 而 rc=1，属别人的账）。
+
+**后续扩展**：① 装配点应当挪到"工作台装载 host 的那一层"（`docs/adr/0011-*.md` 路线 (A) 那行），
+届时这一层的空壳 `workspace`/`state` 换成那层给的真份；② 区间只活在界面那份 `POLICY_FIELDS`，
+core 那一格是 `Schema.number().default(…)`，schemastery 这条链上没有区间 ⇒ 服务端不挡越界值，
+要挡就得看 schemastery 给不给 `minimum/maximum`（不给就走提案，不自建第二套校验）；
+③ 逐节点覆盖（`nodePolicies`）现在只回显不编辑，编辑 UI 归界面那一刀。
