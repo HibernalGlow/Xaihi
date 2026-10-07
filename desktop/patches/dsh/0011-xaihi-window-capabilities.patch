@@ -1,4 +1,4 @@
-From e3b76a3e3902492683fd74291847556cb8994f56 Mon Sep 17 00:00:00 2001
+From 45074f2251daca032d557a1f0bcab4f69f530106 Mon Sep 17 00:00:00 2001
 From: HibernalGlow <3090253564@qq.com>
 Date: Wed, 7 Oct 2026 07:24:49 +0800
 Subject: [PATCH] =?utf-8?q?desktop:=20Xaihi=20=E7=AA=97=E7=9A=84=E8=83=BD?=
@@ -9,12 +9,14 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8bit
 
+冷重放复现时这条链是红的：`pnpm run build` 里 `tsc -b tsconfig.client.json` 报 TS6307，说这份纯模块不在客户端面的文件清单里。客户端面把 apps/desktop/src 逐个登记在 include（keyboard / keybindings / browser-guests / ipc / update-overlay），而本 patch 起 ipc.ts 就 `import type` 它，所以登记必须和这条 import 同批。补上后同一条重放绿；上游那五个种子文件的相对 import 现在全部落在清单内（实测违规 1 条 → 0 条）。
 ---
  apps/desktop/src/ipc.ts                 |  8 +++++
  apps/desktop/src/main.ts                | 35 ++++++++++++++++++++--
  apps/desktop/src/preload-app.ts         |  2 ++
  apps/desktop/src/xaihi-window-policy.ts | 39 +++++++++++++++++++++++++
- 4 files changed, 82 insertions(+), 2 deletions(-)
+ tsconfig.client.json                    |  1 +
+ 5 files changed, 83 insertions(+), 2 deletions(-)
 
 diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
 index cdb0b59..14bbe4a 100644
@@ -200,6 +202,18 @@ index d1a626b..2200022 100644
  /** 一条窗的位置与尺寸；`x`/`y` 是屏幕坐标，可以带符号。 */
  export interface XaihiWindowBounds extends XaihiWindowSize {
    readonly x: number
+diff --git a/tsconfig.client.json b/tsconfig.client.json
+index 738ed0c..c45dfed 100644
+--- a/tsconfig.client.json
++++ b/tsconfig.client.json
+@@ -20,6 +20,7 @@
+     "apps/desktop/src/keybindings.ts",
+     "apps/desktop/src/browser-guests.ts",
+     "apps/desktop/src/ipc.ts",
++    "apps/desktop/src/xaihi-window-policy.ts",
+     "apps/desktop/src/update-overlay.ts",
+     "apps/desktop/tests/**/*.client.spec.tsx",
+     // Source-subpath test imports can arrive through workspace links whose
 -- 
 2.55.0
 

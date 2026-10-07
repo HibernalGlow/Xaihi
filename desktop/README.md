@@ -319,6 +319,37 @@ SDK 那侧（`packages/node-sdk/src/desktop-windows.ts`）同步收第二条参�
 （`GIT_COMMITTER_DATE` 钉在 pin 的 committer date 上）与"少跑一步就得到空网关产物"这两件事，
 现在都各自有读数与判据盯着。
 
+## 16 条 patch 的冷重放：第一遍红在构建面，红出一条新尺（2026-10-07 08:0x—08:1x）
+
+同一条顺序（reset ⇒ sync ⇒ 免装的 `pnpm run build` ⇒ `dev-shell check` ⇒ 起壳 ⇒ `dev-shell verify`）。
+**第一遍没绿，而且不是环境抖动**：
+
+| 步 | 读数 |
+|---|---|
+| `--reset --force` ⇒ `sync`（修之前） | `pin=639ed015 head=9d34b2be tree=97192701cd14 patches=16/16 dirty=0`，rc=0 |
+| `pnpm run build`（修之前） | **rc=1** ⇒ `apps/desktop/src/ipc.ts(5,91): error TS6307: File '…/xaihi-window-policy.ts' is not listed within the file list of project 'tsconfig.client.json'` |
+| 定性 | 客户端面把 `apps/desktop/src` 的文件**逐个**登记在 include（keyboard / keybindings / browser-guests / ipc / update-overlay）。0011 起 `ipc.ts` 就 `import type` 那份纯模块，登记漏了。上一条的 7 条 patch 冷重放里同一条 `pnpm run build` 是 rc=0 —— **那时 0011 还不存在**，之后的每一轮只跑 `tsc -b .` 与 `pnpm --filter @deepseek-ai/dsh-desktop run bundle`，都绕得过 `tsc -b tsconfig.client.json`（就是 `build:lib:client` 那条）⇒ 这个红没人踩过。本仓其实记过一次同一个盲点（本文前面"红因是我只建了 host face，没建 client face"那一行），当时当的是启动链的前置，没升级成尺，所以它又回来了一遍。 |
+| 修法 | 登记补进 **0011 自己**（新增源码文件与"把它登记进编译面"必须同批，否则系列的中间态编不动）。新 patch 走 reset ⇒ `am` 0001..0011 ⇒ 改 ⇒ `commit --amend --only tsconfig.client.json` ⇒ `format-patch`；与旧文件逐字对照只差这一条 hunk（`4 files changed, 82 insertions(+)` → `5 files changed, 83 insertions(+)`），提交信息里记着为什么。 |
+| 重放（修之后） | `pin=639ed015 head=64683866 tree=b55efa8c1286 patches=16/16 dirty=0`，rc=0 |
+| `pnpm run build`（修之后） | **rc=0** ⇒ `build: recorded 347 client artifact(s) with 2 public value(s)` |
+| `--verify` | rc=0，新尺读数 `客户端面文件登记 种子=6 未登记=0 control_after_unlist=1` |
+| `dev-shell check` | rc=0 ⇒ `bundles=6`、网关 `lib/index.js`、壳 `lib/main.js`、UI 产物都在场 |
+| 起壳 + `dev-shell verify` | rc=0 ⇒ **89 条 OK、0 条 FAIL**；全屏那格仍是旧读数（本机连不带 vibrancy/hiddenInset 的普通 `BrowserWindow` 也进不去原生全屏，`plainOk=false`）⇒ 仍按"未验"记 |
+
+## 那条新尺：登记清单要能自己抓到漏登记
+
+尺在 `--verify` 里，形状是"清单里每个 `apps/desktop/src` 种子文件的相对 import，目标也必须在清单里"。
+阳性对照做了两层：
+
+- **尺内的减法**：在内存里摘掉 `xaihi-window-policy.ts` 那条登记，同一次扫描必须点得出这个名字，
+  否则 `fail('verify: 文件登记尺是瞎的…')`。
+- **真树上的减法**：手工删掉 `desktop/dsh/tsconfig.client.json` 那一行后跑 `--verify`
+  ⇒ `种子 6→5、未登记=1（ipc.ts -> xaihi-window-policy.ts）`、**rc=1**；把那一行按原字节加回去之后
+  `git status` 读回 `dirty=0`（说明补回的正是 patch 里那份），`--verify` rc=0。
+
+上游那五个种子文件的相对 import 实测违规 **0 条**，所以这把尺不是我给自己加的红线，是把上游已经在执行的
+规矩变成能自己变红的读数。
+
 ## 官方形状的真构建：stock-shell 那一档在屏幕上读得回来（2026-10-07 06:3x）
 
 决定 4 要的是"退化状态在界面上读得回来"。`no-shell-surface`（浏览器／`dsh web`）那一档 F 段的
@@ -427,6 +458,13 @@ J 段量的是"被嵌帧 `window.open`"——**还差一格是实际最容易走
    `close()`）之后，`BrowserWindow.getAllWindows()` 读回**空数组**——那不是"壳神秘坏了"，
    是判据自己在恢复态上按了一下。⇒ live-check 把主窗导航挪到开头复位段（R），收尾只 `show`/`close`
    自己开的窗；这一轮 R 段读到 `navigated="loaded"`，窗口消失没再出现。
+
+那三条之外，16 条 patch 的冷重放又抓出**第四类假绿**，而且它不是尺在说谎，是我构建面挑小了：
+`tsc -b .` 与 desktop 的 `bundle` 都不会走 `tsc -b tsconfig.client.json`（脚本名 `build:lib:client`），
+所以 `tsconfig.client.json` 那份逐个登记的文件清单漏一条，两条命令都照绿 —— 整条 `pnpm run build`
+第一次跑就 TS6307。⇒ 规矩钉两条：冷重放只许跑**整条** `pnpm run build`（本文第 75 行那条顺序本来就写着它，
+是执行时被我换成了两条更窄的）；新增 `apps/desktop/src` 文件必须**同批**登记进 `tsconfig.client.json`，
+漏登记现在由 `--verify` 自己抓（读数与两层阳性对照见"16 条 patch 的冷重放"那一节）。
 
 ## 那条"第一次 30 s 不落地"已经收口：是判据自己选错了窗（2026-10-07 06:4x）
 

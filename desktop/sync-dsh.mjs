@@ -396,6 +396,41 @@ if (flag('verify')) {
     fail(`verify: 0010 的矩形校验与用例不符 ⇒ ${String(boundsWrong.map(([i]) => JSON.stringify(i)).join(', '))}`)
   }
 
+  // 产物判据之前的一条源码尺：客户端面（tsconfig.client.json）把 apps/desktop/src 的文件**逐个**
+  // 登记在 include 里，所以一条新的相对 import 会带来一个未登记的文件 —— 实测就是冷重放里
+  // `pnpm run build` 报 TS6307 的那一条（0011 让 ipc.ts import type 这份纯模块，却没登记它）。
+  // 判据写成一般形式：登记清单里每个 desktop/src 种子文件，其相对 import 的目标也必须在清单里。
+  // 上游五个种子文件实测违规 0 条，所以这条尺不是我给自己加的额外红线，是上游的规矩。
+  const clientProject = join(VENDOR, 'tsconfig.client.json')
+  if (!existsSync(clientProject)) fail('verify: 读不到 tsconfig.client.json ⇒ 上游改了这个面，判据要跟着重写')
+  const listed = JSON.parse(readFileSync(clientProject, 'utf8').replace(/^\s*\/\/.*$/gm, ''))
+    .include.filter((entry) => !entry.includes('*'))
+  // 目标存在才算数（清单里的 glob 与 d.ts 例外）；只比 desktop/src 的种子，别的面的文件由通配覆盖。
+  const unlistedImports = (list) => {
+    const known = new Set(list.map((entry) => resolve(VENDOR, entry)))
+    const seeds = list.filter((entry) => entry.startsWith('apps/desktop/src/'))
+    const offenders = []
+    for (const seed of seeds) {
+      const source = existsSync(resolve(VENDOR, seed)) ? readFileSync(resolve(VENDOR, seed), 'utf8') : ''
+      for (const match of source.matchAll(/from\s+['"](\.[^'"]+)['"]/gu)) {
+        const target = resolve(VENDOR, dirname(seed), match[1])
+        if (!existsSync(target) || known.has(target)) continue
+        offenders.push(`${seed.split('/').pop()} -> ${target.split('/').pop()}`)
+      }
+    }
+    return offenders
+  }
+  const offenders = unlistedImports(listed)
+  // 减法对照：把那份纯模块的登记摘掉，同一条扫描必须点得出它的名字，否则这把尺看不见违规。
+  const control = unlistedImports(listed.filter((entry) => !entry.endsWith('xaihi-window-policy.ts')))
+  if (!control.some((o) => o.includes('xaihi-window-policy.ts'))) fail('verify: 文件登记尺是瞎的（摘掉 xaihi-window-policy.ts 的登记后点不出它）')
+  console.log(`verify: 客户端面文件登记 种子=${String(listed.filter((e) => e.startsWith('apps/desktop/src/')).length)}`
+    + ` 未登记=${String(offenders.length)}${offenders.length > 0 ? `（${offenders.join(', ')}）` : ''}`
+    + ` control_after_unlist=${String(control.length)}`)
+  if (offenders.length > 0) {
+    fail(`verify: 有 desktop/src 文件被 import 却没进 tsconfig.client.json ⇒ pnpm run build 会 TS6307：${offenders.join(', ')}`)
+  }
+
   // 第二阶段：产物判据。lib/ 是上游 tsc 吐出来的，存在就说明这条通道真被编进了壳的
   // 主进程与 preload —— 源码里有定义 ≠ 落进了产物（这是构建绿却跑错代码那一类病的解药）。
   // 新文件要真进 program：tsc -b 的产物在 lib/types/，bundle 的在 lib/ —— 只查后者会漏掉新模块。
