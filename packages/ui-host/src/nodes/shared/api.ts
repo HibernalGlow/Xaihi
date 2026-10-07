@@ -29,8 +29,8 @@ export {
   subscribeNodeOperationUpdates,
 } from "@/lib/nodeOperationTransport"
 
-// Node-scoped configuration (`/config/nodes/...`), including the read-modify-write patch helpers.
-export { nodeConfigApi } from "@/lib/nodeConfigApi"
+// Node-scoped configuration (`/config/nodes/...`) went with the REST backend it served: the settings
+// namespace seam (`NodeSettingsFaceContext`) and the derived history route replaced it on 2026-10-07.
 export { getConfigApiClient, getNodeApiClient, getSourceThumbnailApiClient } from "@/lib/xiraniteApiClient"
 
 /**

@@ -34,6 +34,8 @@ import { LocalFilesProvider } from "@/nodes/shared/useLocalFileDrop"
 import { NodeRuntimeProvider } from "@/nodes/shared/NodeRuntimeContext"
 import { NodeUiConfigProvider } from "@/nodes/shared/NodeUiConfigContext"
 import { createBridgeNodeUiConfigCarrier } from "@/backend/nodeUiConfig"
+import { NodeSettingsFaceProvider } from "@/nodes/shared/NodeSettingsFaceContext"
+import { createBridgeNodeSettingsFace } from "@/backend/nodeSettingsFace"
 import { useDocumentBridge } from "@/document/bridge-context"
 import { startupDebug, startupDebugAsync } from "@/lib/startupDebug"
 import { registerNodeTrays } from "@/desktop/tray/trayCoordinator"
@@ -114,6 +116,17 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
   // disable (§4's second unload step) instead of leaving it on screen until something else renders.
   const bindingsVersion = useSyncExternalStore(subscribeEntryBindings, getEntryBindingsVersion)
   const host = useNodeHostApi(compId, moduleId, entry && isRenderableNodeEntry(entry) ? entry.schemas : undefined)
+  // 节点界面设置（"开机恢复"这类要持久化的 UI 偏好）的载体：落在桥那半边
+  // `xaihi-core.nodeUi[nodeId]`（`src/backend/nodeUiConfig.ts`），由这里按结构递进
+  // context —— nodes/** 不 import src/backend/**，所以经 context 而不是 prop 或直接 import。
+  // 这份文档不在宿主里（bridge === null）时不编一份空载体：消费方读到 undefined，
+  // 走它自己的可见退化（本地遗留键），而不是把"没接线"报成"存好了"。
+  // 这两个 hook 必须在任何提前 return 之前调用，否则 entry 从 undefined 变成已加载
+  // 的那一刻 hook 数量变多，React 直接 #310 崩掉整棵树。
+  const bridge = useDocumentBridge()
+  const nodeUiConfig = useMemo(() => (bridge ? createBridgeNodeUiConfigCarrier(bridge) : undefined), [bridge])
+  // 节点配置（`xaihi-<node>` 命名空间）的读 / 写缝，与上面那份载体同一套递进方式。
+  const nodeSettingsFace = useMemo(() => (bridge ? createBridgeNodeSettingsFace(bridge) : undefined), [bridge])
 
   useEffect(() => {
     let cancelled = false
@@ -175,13 +188,6 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
   }
 
   const nodeHost = grant.host
-  // 节点界面设置（"开机恢复"这类要持久化的 UI 偏好）的载体：落在桥那半边
-  // `xaihi-core.nodeUi[nodeId]`（`src/backend/nodeUiConfig.ts`），由这里按结构递进
-  // context —— nodes/** 不 import src/backend/**，所以经 context 而不是 prop 或直接 import。
-  // 这份文档不在宿主里（bridge === null）时不编一份空载体：消费方读到 undefined，
-  // 走它自己的可见退化（本地遗留键），而不是把"没接线"报成"存好了"。
-  const bridge = useDocumentBridge()
-  const nodeUiConfig = useMemo(() => (bridge ? createBridgeNodeUiConfigCarrier(bridge) : undefined), [bridge])
   // One entry, two props contracts: which cast is used is decided by the same discriminant that
   // decides the host object, so the type and the value handed to the remote always agree.
   const Component = entry.Component as ComponentType<NodeComponentProps>
@@ -191,13 +197,15 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
       <NodeRenderBoundary moduleId={moduleId}>
         <NodeRuntimeProvider nodeId={moduleId}>
           <NodeUiConfigProvider store={nodeUiConfig}>
-            <LocalFilesProvider value={nodeHost.localFiles}>
-              {grant.fullHost ? (
-                <Component compId={compId} host={grant.host} />
-              ) : (
-                <PluginComponent compId={compId} host={grant.host} />
-              )}
-            </LocalFilesProvider>
+            <NodeSettingsFaceProvider face={nodeSettingsFace}>
+              <LocalFilesProvider value={nodeHost.localFiles}>
+                {grant.fullHost ? (
+                  <Component compId={compId} host={grant.host} />
+                ) : (
+                  <PluginComponent compId={compId} host={grant.host} />
+                )}
+              </LocalFilesProvider>
+            </NodeSettingsFaceProvider>
           </NodeUiConfigProvider>
         </NodeRuntimeProvider>
       </NodeRenderBoundary>

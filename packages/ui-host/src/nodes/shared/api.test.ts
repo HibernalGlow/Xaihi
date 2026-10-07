@@ -12,7 +12,6 @@ import type { NodeOperationUpdate } from "@/lib/nodeOperationJournal"
 import { resetApiClientCache, type BackendEndpoint } from "@/lib/xiraniteApiClient"
 import {
   listNexusCaptures,
-  nodeConfigApi,
   refreshNodeOperationEvents,
   removeNexusCapture,
   runNodeOperation,
@@ -134,37 +133,6 @@ describe("node transport seam", () => {
     const tracked = useNodeOperationJournal.getState().operations[0]
     expect(tracked?.nodeId).toBe("classf")
     expect(tracked?.phase).toBe("error")
-  })
-
-  it("shallow-merges a node config patch before the PUT, matching the shell's protocol", async () => {
-    stubFetch((url, init) => {
-      if (init?.method === "PUT" && url.endsWith("/config/nodes/classf")) return json({ config: {}, path: CONFIG_PATH })
-      if (url.endsWith("/config/nodes/classf")) return json({ config: { keep: 1, blacklistKeywords: ["[OgoG]"] }, path: CONFIG_PATH })
-      throw new Error(`Unexpected request: ${url}`)
-    })
-
-    await nodeConfigApi.save("classf", { blacklistKeywords: ["[Artist]"], extra: true })
-
-    const put = calls.find((call) => call.init?.method === "PUT")
-    expect(put?.url).toContain(`${BASE_URL}/config/nodes/classf`)
-    expect(JSON.parse(String(put?.init?.body))).toEqual({
-      config: { keep: 1, blacklistKeywords: ["[Artist]"], extra: true },
-    })
-  })
-
-  it("writes UI config through the node section and clears undefined keys", async () => {
-    stubFetch((url, init) => {
-      if (init?.method === "PUT" && url.endsWith("/config/nodes/classf")) return json({ config: {}, path: CONFIG_PATH })
-      if (url.endsWith("/config/nodes/classf")) return json({ config: { ui: { restoreOnStartup: true, stale: "drop me" }, other: 1 }, path: CONFIG_PATH })
-      throw new Error(`Unexpected request: ${url}`)
-    })
-
-    await nodeConfigApi.saveUi("classf", { restoreOnStartup: false, stale: undefined })
-
-    const put = calls.find((call) => call.init?.method === "PUT")
-    expect(JSON.parse(String(put?.init?.body))).toEqual({
-      config: { other: 1, ui: { restoreOnStartup: false } },
-    })
   })
 
   it("reads and prunes the nexus inbox with the token header and a 404 that is not an error", async () => {

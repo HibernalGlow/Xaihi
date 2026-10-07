@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { DEFAULT_CLASSF_BLACKLIST_KEYWORDS, extractSameaArtistKeywords, mergeClassfBlacklistKeywords, splitSameaArtistAndCircleKeywords, stripOuterKeywordBrackets } from "@xiranite/node-classf/blacklist"
+import { extractSameaArtistKeywords, mergeClassfBlacklistKeywords, splitSameaArtistAndCircleKeywords, stripOuterKeywordBrackets } from "@xiranite/node-classf/blacklist"
 import { Brackets, Copy, ShieldAlert, Split, WandSparkles } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -7,15 +7,17 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { externalNode } from "@/nodes/shared/externalNodeGateway"
+import { useNodeSettingsFace } from "@/nodes/shared/NodeSettingsFaceContext"
+import { DEFAULT_BLACKLIST_KEYWORDS } from "./constants"
 
 interface ClassfNodeConfig {
   blacklistKeywords?: string[]
   blacklist_keywords?: string[]
 }
 
-const classf = externalNode<ClassfNodeConfig>("classf")
-
 export default function ClassfBlacklistQuickAddDialog(props: { sourceName: string; copySourceName?: (name: string) => Promise<void>; onClose: () => void; onSaved: (result: { addedCount: number; totalCount: number }) => void }) {
+  const settingsFace = useNodeSettingsFace()
+  const classf = externalNode<ClassfNodeConfig>("classf", settingsFace)
   const [draft, setDraft] = useState("")
   const [error, setError] = useState<string>()
   const [saving, setSaving] = useState(false)
@@ -89,7 +91,7 @@ function EditorIconButton(props: { disabled?: boolean; icon: LucideIcon; label: 
 
 function configuredKeywords(config: ClassfNodeConfig | undefined): string[] {
   const configured = config?.blacklistKeywords ?? config?.blacklist_keywords
-  return Array.isArray(configured) ? configured : DEFAULT_CLASSF_BLACKLIST_KEYWORDS
+  return Array.isArray(configured) ? configured : DEFAULT_BLACKLIST_KEYWORDS
 }
 
 function splitLines(value: string): string[] {

@@ -13,7 +13,6 @@ import {
   Archive,
   Clock3,
   DatabaseZap,
-  Download,
   Eraser,
   ExternalLink,
   FileJson,
@@ -36,8 +35,10 @@ import type {
   NodeConfigVersion,
   NodeConfigVersionDetail,
 } from "@xiranite/contract"
-// Node configuration reaches the backend only through the node UI seam; `@/backend` is Xiranite's own shell.
-import { nodeConfigApi } from "./api"
+// Node configuration goes through the DSH settings namespace (`xaihi-<node>`) via the injected
+// settings face; history rides Xaihi's own `/xaihi/settings-history.json` route (derived snapshots).
+import { namespaceForNode, useNodeSettingsFace } from "./NodeSettingsFaceContext"
+import { createDerivedConfigAdapters } from "./derivedConfigAdapters"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu"
@@ -93,7 +94,7 @@ export interface NodeConfigPopoverProps {
   autoRestoreKey?: string
   defaults?: Record<string, unknown>
   fallbackDefaults?: Record<string, unknown>
-  tomlSource?: string
+  sourceText?: string
   dirty: boolean
   triggerLabel?: string
   disabled?: boolean
@@ -108,7 +109,7 @@ export interface NodeConfigPopoverProps {
   transfer?: NodeConfigTransferAdapter
   backup?: NodeConfigBackupAdapter
   presentation?: {
-    current?: ComponentType<{ config: Record<string, unknown> | undefined; tomlSource?: string }>
+    current?: ComponentType<{ config: Record<string, unknown> | undefined; sourceText?: string }>
   }
   onOpenChange?: (open: boolean) => Promise<void> | void
   showCurrentActions?: boolean
@@ -146,33 +147,39 @@ export function NodeConfigButton(props: NodeConfigButtonProps) {
     ? { ...(props.defaults ?? {}), ...(props.uiDefaults ?? {}) }
     : undefined
   const [persistedConfig, setPersistedConfig] = useState<Record<string, unknown>>()
-  const [tomlSource, setTomlSource] = useState<string>()
+  const [sourceText, setSourceText] = useState<string>()
   const [loadingConfig, setLoadingConfig] = useState(false)
+  const settingsFace = useNodeSettingsFace()
+  const ns = namespaceForNode(props.nodeKey)
   const loadPersistedConfig = useCallback(async () => {
     setLoadingConfig(true)
     try {
-      const [result, exported] = await Promise.all([
-        nodeConfigApi.get<Record<string, unknown>>(props.nodeKey),
-        nodeConfigApi.exportConfig(props.nodeKey, "toml"),
-      ])
-      setPersistedConfig(result.config)
-      setTomlSource(exported.content)
+      // 没接设置面（独立卡片/无宿主文档）时读不到真值：结构视图回落到 defaults，
+      // 源码面板空着 —— 与旧 REST 版"必抛 not configured"相比，这是读得回的退化。
+      if (!settingsFace) return
+      const view = await settingsFace.read(ns)
+      setPersistedConfig(view.value !== null && typeof view.value === "object" && !Array.isArray(view.value) ? view.value as Record<string, unknown> : undefined)
+      setSourceText(JSON.stringify(view.value ?? {}, null, 2))
     } finally {
       setLoadingConfig(false)
     }
-  }, [props.nodeKey])
+  }, [ns, settingsFace])
   const reload = useCallback(async () => {
     await props.onResetOverride()
     await loadPersistedConfig()
   }, [loadPersistedConfig, props.onResetOverride])
-  const adapters = useMemo(() => createBackendAdapters(props.nodeKey, reload), [props.nodeKey, reload])
+  const adapters = useMemo(() => createDerivedConfigAdapters(props.nodeKey, {
+    read: async (target) => (await settingsFace?.read(target)) ?? {},
+    write: async (target, patch) => { await settingsFace?.write(target, patch) },
+    onReload: reload,
+  }), [ns, props.nodeKey, reload, settingsFace])
 
   return <NodeConfigPopover
     configPath={props.configFilePath}
     autoRestoreKey={props.nodeKey}
     defaults={persistedConfig}
     fallbackDefaults={fallbackDefaults}
-    tomlSource={tomlSource}
+    sourceText={sourceText}
     dirty={props.configDirty}
     triggerLabel={`${props.nodeKey} ${t("config.trigger", "configuration")}`}
     disabled={props.disabled}
@@ -195,36 +202,36 @@ export function NodeConfigButton(props: NodeConfigButtonProps) {
 export function NodeConfigCenterButton({ nodeKey, presentation, onConfigChange }: { nodeKey: string; presentation?: NodeConfigPopoverProps["presentation"]; onConfigChange?: () => Promise<void> | void }) {
   const { t } = useNodeI18n(nodeKey)
   const [config, setConfig] = useState<Record<string, unknown>>()
-  const [tomlSource, setTomlSource] = useState<string>()
-  const [path, setPath] = useState<string>()
+  const [sourceText, setSourceText] = useState<string>()
   const [loading, setLoading] = useState(false)
+  const settingsFace = useNodeSettingsFace()
+  const ns = namespaceForNode(nodeKey)
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      const [result, exported] = await Promise.all([
-        nodeConfigApi.get<Record<string, unknown>>(nodeKey),
-        nodeConfigApi.exportConfig(nodeKey, "toml"),
-      ])
-      setConfig(result.config)
-      setPath(result.path)
-      setTomlSource(exported.content)
+      if (!settingsFace) return
+      const view = await settingsFace.read(ns)
+      setConfig(view.value !== null && typeof view.value === "object" && !Array.isArray(view.value) ? view.value as Record<string, unknown> : undefined)
+      setSourceText(JSON.stringify(view.value ?? {}, null, 2))
       await onConfigChange?.()
     } finally {
       setLoading(false)
     }
-  }, [nodeKey, onConfigChange])
-  const adapters = useMemo(() => createBackendAdapters(nodeKey, reload), [nodeKey, reload])
+  }, [ns, onConfigChange, settingsFace])
+  const adapters = useMemo(() => createDerivedConfigAdapters(nodeKey, {
+    read: async (target) => (await settingsFace?.read(target)) ?? {},
+    write: async (target, patch) => { await settingsFace?.write(target, patch) },
+    onReload: reload,
+  }), [nodeKey, reload, settingsFace])
 
   return <NodeConfigPopover
-    configPath={path}
     defaults={config}
-    tomlSource={tomlSource}
+    sourceText={sourceText}
     dirty={false}
     loading={loading}
     triggerLabel={`${nodeKey} ${t("config.trigger", "Configuration center")}`}
     t={t}
     onOpenChange={(nextOpen) => { if (nextOpen) return reload() }}
-    onOpenFile={nodeConfigApi.openFile}
     onReload={reload}
     onRestore={reload}
     onSave={() => undefined}
@@ -423,16 +430,16 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
           <TabsContent value="current" className="min-h-0 overflow-auto">
             <div className="grid min-h-full gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
               <section className="min-w-0 rounded-md border bg-muted/20">
-                {CurrentView ? <div className="min-w-0"><div className="p-4"><CurrentView config={effectiveDefaults} tomlSource={props.tomlSource} /></div>{props.tomlSource && effectiveDefaults ? <div className="border-t"><Suspense fallback={<PanelMessage>{props.t("config.source.loading", "Loading TOML view...")}</PanelMessage>}><LazyNodeConfigSourceView config={effectiveDefaults} source={props.tomlSource} labels={sourceLabels(props.t)} /></Suspense></div> : null}</div> : props.tomlSource && effectiveDefaults ? <Suspense fallback={<PanelMessage>{props.t("config.source.loading", "Loading TOML view...")}</PanelMessage>}><LazyNodeConfigSourceView config={effectiveDefaults} source={props.tomlSource} labels={sourceLabels(props.t)} /></Suspense> : <StructuredConfigView config={effectiveDefaults} emptyLabel={props.t("config.empty", "No configuration data.")} />}
+                {CurrentView ? <div className="min-w-0"><div className="p-4"><CurrentView config={effectiveDefaults} sourceText={props.sourceText} /></div>{props.sourceText && effectiveDefaults ? <div className="border-t"><Suspense fallback={<PanelMessage>{props.t("config.source.loading", "Loading source view...")}</PanelMessage>}><LazyNodeConfigSourceView config={effectiveDefaults} source={props.sourceText} labels={sourceLabels(props.t)} /></Suspense></div> : null}</div> : props.sourceText && effectiveDefaults ? <Suspense fallback={<PanelMessage>{props.t("config.source.loading", "Loading source view...")}</PanelMessage>}><LazyNodeConfigSourceView config={effectiveDefaults} source={props.sourceText} labels={sourceLabels(props.t)} /></Suspense> : <StructuredConfigView config={effectiveDefaults} emptyLabel={props.t("config.empty", "No configuration data.")} />}
               </section>
               <aside className="flex flex-col gap-2">
                 {autoRestoreNodeId ? <Field orientation="horizontal" className="items-center justify-between rounded-md border px-3 py-2"><FieldLabel className="text-xs">{props.t("config.autoRestore", "Restore on startup")}</FieldLabel><Switch checked={autoRestore} disabled={!autoRestoreLoaded || autoRestoreSaving} onCheckedChange={(enabled) => void setAutoRestoreDefaults(enabled)} /></Field> : null}
                 {showCurrentActions ? <Button disabled={disabled} size="sm" onClick={() => void perform("save", props.onSave)}><Save data-icon="inline-start" />{props.t("config.save", "Save as default")}</Button> : null}
                 {showCurrentActions ? <Button disabled={disabled || !effectiveDefaults} size="sm" variant="outline" onClick={() => void perform("restore", props.onRestore)}><RotateCcw data-icon="inline-start" />{props.t("config.restore", "Restore saved configuration")}</Button> : null}
-                <Button disabled={disabled} size="sm" variant="outline" onClick={() => void perform("reload", props.onReload)}><RefreshCw data-icon="inline-start" />{props.t("config.reload", "Reload from TOML")}</Button>
+                <Button disabled={disabled} size="sm" variant="outline" onClick={() => void perform("reload", props.onReload)}><RefreshCw data-icon="inline-start" />{props.t("config.reload", "Reload from settings")}</Button>
                 {showCurrentActions && props.onClearOverride ? <Button disabled={disabled} size="sm" variant="outline" onClick={() => void perform("restore", props.onClearOverride!)}><Eraser data-icon="inline-start" />{props.t("config.clear", "Clear override")}</Button> : null}
                 <Separator />
-                <Button disabled={disabled || !props.onOpenFile} size="sm" variant="ghost" onClick={() => void perform("open", () => props.onOpenFile?.())}><ExternalLink data-icon="inline-start" />{props.t("config.openFile", "Open TOML file")}</Button>
+                <Button disabled={disabled || !props.onOpenFile} size="sm" variant="ghost" onClick={() => void perform("open", () => props.onOpenFile?.())}><ExternalLink data-icon="inline-start" />{props.t("config.openFile", "Open settings document")}</Button>
                 {props.dirty ? <p className={cn("rounded-md border border-warning/30 bg-warning/5 p-2 text-xs text-muted-foreground")}>{props.t("config.dirty", "Current parameters differ from the saved configuration.")}</p> : null}
               </aside>
             </div>
@@ -474,13 +481,12 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
               <section className="space-y-3">
                 <div><h3 className="text-sm font-semibold">{props.t("config.export.title", "Export configuration")}</h3><p className="text-xs text-muted-foreground">{props.t("config.export.description", "Export only this node's section in a portable format.")}</p></div>
                 <div className="flex flex-wrap gap-2">
-                  <Button disabled={disabled || !props.transfer} variant="outline" onClick={() => void exportConfig("toml")}><Download />TOML</Button>
                   <Button disabled={disabled || !props.transfer} variant="outline" onClick={() => void exportConfig("json")}><FileJson />JSON</Button>
                 </div>
               </section>
               <section className="space-y-3">
-                <div><h3 className="text-sm font-semibold">{props.t("config.import.title", "Import configuration")}</h3><p className="text-xs text-muted-foreground">{props.t("config.import.description", "Paste TOML or JSON. Only this node's section will be updated.")}</p></div>
-                <Textarea className="min-h-64 font-mono text-xs" value={configImportText} onChange={(event) => setConfigImportText(event.currentTarget.value)} placeholder="[nodes.example]" />
+                <div><h3 className="text-sm font-semibold">{props.t("config.import.title", "Import configuration")}</h3><p className="text-xs text-muted-foreground">{props.t("config.import.description", "Paste JSON (the settings document format). Only this node's section will be updated.")}</p></div>
+                <Textarea className="min-h-64 font-mono text-xs" value={configImportText} onChange={(event) => setConfigImportText(event.currentTarget.value)} placeholder="{ &quot;format&quot;: &quot;AVIF&quot; }" />
                 <Button disabled={disabled || !props.transfer || !configImportText.trim()} onClick={() => void perform("import", async () => { await props.transfer?.import(configImportText, "auto"); setConfigImportText(""); await props.onReload() })}><Upload />{props.t("config.import.action", "Import and reload")}</Button>
               </section>
             </div>
@@ -510,8 +516,8 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
         {showCurrentActions ? <ContextMenuItem disabled={disabled || !effectiveDefaults} onSelect={() => void perform("restore", props.onRestore)}><RotateCcw />{props.t("config.restore", "Restore saved configuration")}</ContextMenuItem> : null}
         {showCurrentActions && props.onClearOverride ? <ContextMenuItem disabled={disabled} onSelect={() => void perform("restore", props.onClearOverride!)}><Eraser />{props.t("config.clear", "Clear override")}</ContextMenuItem> : null}
         {showCurrentActions ? <ContextMenuSeparator /> : null}
-        <ContextMenuItem disabled={disabled} onSelect={() => void perform("reload", props.onReload)}><RefreshCw />{props.t("config.reload", "Reload from TOML")}</ContextMenuItem>
-        {props.onOpenFile ? <ContextMenuItem disabled={disabled} onSelect={() => void perform("open", () => props.onOpenFile?.())}><ExternalLink />{props.t("config.openFile", "Open TOML file")}</ContextMenuItem> : null}
+        <ContextMenuItem disabled={disabled} onSelect={() => void perform("reload", props.onReload)}><RefreshCw />{props.t("config.reload", "Reload from settings")}</ContextMenuItem>
+        {props.onOpenFile ? <ContextMenuItem disabled={disabled} onSelect={() => void perform("open", () => props.onOpenFile?.())}><ExternalLink />{props.t("config.openFile", "Open settings document")}</ContextMenuItem> : null}
       </ContextMenuContent>
     </ContextMenu>
   )
@@ -618,30 +624,6 @@ function StructuredConfigView({ config, emptyLabel }: { config: Record<string, u
 
 function PanelMessage({ children }: { children: React.ReactNode }) {
   return <div className="grid min-h-48 place-items-center rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">{children}</div>
-}
-
-export function createBackendAdapters(nodeId: string, onReload: () => Promise<void> | void) {
-  return {
-    history: {
-      list: (options?: { limit?: number }) => nodeConfigApi.versions(nodeId, options),
-      inspect: (revision: string) => nodeConfigApi.inspect(nodeId, revision),
-      restore: async (revision: string) => {
-        const result = await nodeConfigApi.restore(nodeId, revision)
-        await onReload()
-        return result
-      },
-    } satisfies NodeConfigHistoryAdapter,
-    transfer: {
-      export: (format: "json" | "toml") => nodeConfigApi.exportConfig(nodeId, format),
-      import: (content: string, format?: "auto" | "json" | "toml") => nodeConfigApi.importConfig(nodeId, content, format),
-    } satisfies NodeConfigTransferAdapter,
-    backup: {
-      status: nodeConfigApi.historyStatus,
-      create: (label?: string) => nodeConfigApi.createBackup(nodeId, label),
-      setRemote: nodeConfigApi.setHistoryRemote,
-      sync: nodeConfigApi.syncHistory,
-    } satisfies NodeConfigBackupAdapter,
-  }
 }
 
 /** Builds the shared configuration-center features from an injected node host capability. */
@@ -753,7 +735,7 @@ function sourceLabels(t: NodeT) {
     booleans: t("config.source.booleans", "Enabled switches"),
     collectionItems: t("config.source.items", "Collection items"),
     colors: t("config.source.colors", "Colors"),
-    source: t("config.source.title", "TOML source"),
+    source: t("config.source.title", "Settings source"),
     copy: t("config.source.copy", "Copy"),
     copied: t("config.source.copied", "Copied"),
   }

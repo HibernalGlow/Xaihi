@@ -1225,16 +1225,32 @@
     "configCenter": {
       "trigger": "Configuration center",
       "description": "Manage this node's settings, history, backups, and portable configuration.",
-      "tabs": { "current": "Current configuration", "presets": "Presets", "history": "Change history", "transfer": "Import / export", "backup": "Backup / sync" },
+      "tabs": {
+        "current": "Current configuration",
+        "presets": "Presets",
+        "history": "Change history",
+        "transfer": "Import / export",
+        "backup": "Backup / sync"
+      },
       "autoRestore": "Restore on startup",
       "save": "Save as default",
       "restore": "Restore saved configuration",
-      "reload": "Reload from TOML",
+      "reload": "Reload from settings",
       "clear": "Clear override",
-      "openFile": "Open TOML file",
+      "openFile": "Open settings document",
       "dirty": "Current parameters differ from the saved configuration.",
       "empty": "No configuration data.",
-      "source": { "loading": "Loading TOML view...", "sections": "Sections", "fields": "Fields", "booleans": "Enabled switches", "items": "Collection items", "colors": "Colors", "title": "TOML source", "copy": "Copy", "copied": "Copied" },
+      "source": {
+        "loading": "Loading source view...",
+        "sections": "Sections",
+        "fields": "Fields",
+        "booleans": "Enabled switches",
+        "items": "Collection items",
+        "colors": "Colors",
+        "title": "Settings source",
+        "copy": "Copy",
+        "copied": "Copied"
+      },
       "preset": "Preset",
       "presetPlaceholder": "Select preset",
       "presetDescription": "Apply a reusable node configuration.",
@@ -1251,12 +1267,42 @@
       "presetDeleteDescription": "This action cannot be undone.",
       "presetOverwriteTitle": "Overwrite this preset?",
       "presetOverwriteDescription": "The preset values will be replaced by the current configuration.",
-      "presets": { "empty": "This node does not declare presets." },
-      "history": { "loading": "Loading history...", "unavailable": "Version history is unavailable for this node.", "empty": "No configuration changes have been recorded yet.", "detail": "Change detail", "restore": "Restore this version", "select": "Select a version.", "noTextChanges": "No textual changes in this backup." },
-      "export": { "title": "Export configuration", "description": "Export only this node's section in a portable format." },
-      "import": { "title": "Import configuration", "description": "Paste TOML or JSON. Only this node's section will be updated.", "action": "Import and reload" },
-      "backup": { "title": "Local Git backup", "description": "Snapshots are incremental and stored outside the live TOML file.", "loading": "Loading repository...", "create": "Create backup", "unavailable": "Git backup is unavailable for this node." },
-      "sync": { "title": "Remote synchronization", "description": "Pull updates the history repository only; it never overwrites the active configuration.", "remote": "Git remote", "saveRemote": "Save remote", "pull": "Pull history", "push": "Push history" }
+      "presets": {
+        "empty": "This node does not declare presets."
+      },
+      "history": {
+        "loading": "Loading history...",
+        "unavailable": "Version history is unavailable for this node.",
+        "empty": "No configuration changes have been recorded yet.",
+        "detail": "Change detail",
+        "restore": "Restore this version",
+        "select": "Select a version.",
+        "noTextChanges": "No textual changes in this backup."
+      },
+      "export": {
+        "title": "Export configuration",
+        "description": "Export only this node's section in a portable format."
+      },
+      "import": {
+        "title": "Import configuration",
+        "description": "Paste JSON (the settings document format). Only this node's section will be updated.",
+        "action": "Import and reload"
+      },
+      "backup": {
+        "title": "Local Git backup",
+        "description": "Every save automatically leaves a redacted snapshot (derived from settings history).",
+        "loading": "Loading repository...",
+        "create": "Create backup",
+        "unavailable": "Git backup is unavailable for this node."
+      },
+      "sync": {
+        "title": "Remote synchronization",
+        "description": "Pull updates the history repository only; it never overwrites the active configuration.",
+        "remote": "Git remote",
+        "saveRemote": "Save remote",
+        "pull": "Pull history",
+        "push": "Push history"
+      }
     },
     "scratch": {
       "name": "SCRATCH",

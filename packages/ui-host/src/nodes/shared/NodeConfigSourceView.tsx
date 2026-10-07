@@ -9,7 +9,7 @@ import "./NodeConfigSourceView.css"
 
 const highlighterPromise = createHighlighterCore({
   engine: createJavaScriptRegexEngine(),
-  langs: [import("@shikijs/langs/toml")],
+  langs: [import("@shikijs/langs/json")],
   themes: [import("@shikijs/themes/github-light"), import("@shikijs/themes/github-dark")],
 })
 
@@ -32,7 +32,7 @@ export default function NodeConfigSourceView({ config, source, labels }: { confi
   useEffect(() => {
     let active = true
     void highlighterPromise.then((highlighter) => highlighter.codeToHtml(source, {
-      lang: "toml",
+      lang: "json",
       themes: { light: "github-light", dark: "github-dark" },
     })).then((html) => { if (active) setHighlighted(html) })
     return () => { active = false }
@@ -61,7 +61,7 @@ export default function NodeConfigSourceView({ config, source, labels }: { confi
       data-input-interactive="true"
       data-node-config-source-scroll="true"
     >
-      {highlighted ? <div className="node-config-toml text-xs leading-5" dangerouslySetInnerHTML={{ __html: highlighted }} /> : <pre className="overflow-x-auto p-4 text-xs leading-5"><code>{source}</code></pre>}
+      {highlighted ? <div className="node-config-source text-xs leading-5" dangerouslySetInnerHTML={{ __html: highlighted }} /> : <pre className="overflow-x-auto p-4 text-xs leading-5"><code>{source}</code></pre>}
     </ScrollArea>
   </div>
 }

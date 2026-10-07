@@ -30,6 +30,12 @@ import type { UiBundleFace } from '@hibernalglow/xaihi-sdk'
 import { createJournal, operationsSnapshotHandler, operationsStreamHandler } from './operations.ts'
 import { historyHandler, openLedger, type DomainFacilityLike, type RunLedger } from './history.ts'
 import {
+  openSettingsHistoryStore,
+  settingsHistoryHandler,
+  withHistoryCapture,
+  type SettingsHistoryDomainLike,
+} from './settings-history.ts'
+import {
   HISTORY_SNAPSHOT_PATH,
   OPERATIONS_SERVICE,
   OPERATIONS_SNAPSHOT_PATH,
@@ -428,14 +434,32 @@ export function apply(ctx: HostContext, config: Config): void {
   // 桌面壳开出来的顶层窗没有外层可以 postMessage，而宿主凭证只发给主窗那一个 webContents
   // （ADR-0011 的路线行记着这两条实测）。这条路由用同一份桥的线上形状回答"问宿主"的那批动词，
   // 能碰的命名空间只有 Xaihi 自己的行 + `xaihi-core`——闸在 `host-routes.ts` 的 `fenceSettings`。
+  // 设置面套一层"写点即采"（`settings-history.ts`）：桥上的每次成功写都留一份快照。
+  const settingsHistory = openSettingsHistoryStore(ctx.get('storageDomain') as unknown as SettingsHistoryDomainLike | undefined)
+  const bridgeSettings = withHistoryCapture(
+    () => ctx.get('settings' as never) as SettingsServiceLike | undefined,
+    () => settingsHistory,
+  )
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: HOST_PATH,
     handler: hostBridgeHandler({
-      settings: () => ctx.get('settings' as never) as SettingsServiceLike | undefined,
+      settings: () => bridgeSettings,
       allowedNamespaces: () => xaihiNamespaces([...ctx.loader.entries()]),
     }),
   }), 'xaihi-core: host bridge route')
+
+  // 节点设置历史：列表（带对账）/ 单份 / 恢复。与 `/xaihi/history.json` 同一档
+  // 威胁模型（本机可直达、命名空间闸在这里兜），数据纪律是"只存脱敏值"。
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: '/xaihi/settings-history.json',
+    handler: settingsHistoryHandler({
+      settings: () => ctx.get('settings' as never) as SettingsServiceLike | undefined,
+      allowed: () => xaihiNamespaces([...ctx.loader.entries()]),
+      store: () => settingsHistory,
+    }),
+  }), 'xaihi-core: settings history route')
 
   // 事件流的合法性来自宿主文档对 WebRoute.handler 的原话："may hold the response open,
   // e.g. SSE"。快照路由是它的兜底：不是所有宿主形态都允许长连接（桌面壳走 IPC 桥）。

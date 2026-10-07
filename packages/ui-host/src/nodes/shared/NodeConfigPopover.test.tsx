@@ -7,18 +7,6 @@ import { createCapabilityAdapters, NodeConfigPopover } from "./NodeConfigPopover
 import { NodeRuntimeProvider } from "./NodeRuntimeContext"
 import { NodeUiConfigProvider, type NodeUiConfigStore } from "./NodeUiConfigContext"
 
-const configApi = vi.hoisted(() => ({
-  getUi: vi.fn(),
-  saveUi: vi.fn(),
-}))
-
-// Node configuration goes through the node UI seam; the remaining `nodeConfigApi` methods stay real so this
-// test keeps exercising the component's own adapter wiring.
-vi.mock("@/nodes/shared/api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/nodes/shared/api")>()
-  return { ...actual, nodeConfigApi: { ...actual.nodeConfigApi, ...configApi } }
-})
-
 // Restore-on-startup persists through the node UI config store (bridge-backed in production).
 const uiStore = vi.hoisted(() => ({
   read: vi.fn(),
@@ -35,8 +23,6 @@ function storeMock(overrides?: Partial<NodeUiConfigStore>): NodeUiConfigStore {
 
 beforeEach(() => {
   window.localStorage.clear()
-  configApi.getUi.mockResolvedValue({ config: undefined, path: "D:/config/xiranite.config.toml" })
-  configApi.saveUi.mockResolvedValue(undefined)
   uiStore.read.mockResolvedValue(undefined)
   uiStore.write.mockResolvedValue(undefined)
 })
@@ -75,8 +61,8 @@ describe("NodeConfigPopover configuration center", () => {
     expect(await screen.findByRole("menuitem", { name: "Save as default" })).toBeTruthy()
     expect(screen.getByRole("menuitem", { name: "Restore saved configuration" })).toBeTruthy()
     expect(screen.getByRole("menuitem", { name: "Clear override" })).toBeTruthy()
-    expect(screen.getByRole("menuitem", { name: "Reload from TOML" })).toBeTruthy()
-    expect(screen.getByRole("menuitem", { name: "Open TOML file" })).toBeTruthy()
+    expect(screen.getByRole("menuitem", { name: "Reload from settings" })).toBeTruthy()
+    expect(screen.getByRole("menuitem", { name: "Open settings document" })).toBeTruthy()
 
     await user.click(screen.getByRole("menuitem", { name: "Save as default" }))
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
@@ -90,11 +76,11 @@ describe("NodeConfigPopover configuration center", () => {
     await waitFor(() => expect(onClearOverride).toHaveBeenCalledTimes(1))
 
     fireEvent.contextMenu(trigger, { clientX: 48, clientY: 64 })
-    await user.click(await screen.findByRole("menuitem", { name: "Reload from TOML" }))
+    await user.click(await screen.findByRole("menuitem", { name: "Reload from settings" }))
     await waitFor(() => expect(onReload).toHaveBeenCalledTimes(1))
 
     fireEvent.contextMenu(trigger, { clientX: 48, clientY: 64 })
-    await user.click(await screen.findByRole("menuitem", { name: "Open TOML file" }))
+    await user.click(await screen.findByRole("menuitem", { name: "Open settings document" }))
     await waitFor(() => expect(onOpenFile).toHaveBeenCalledTimes(1))
 
     await user.click(trigger)
@@ -244,7 +230,7 @@ describe("NodeConfigPopover configuration center", () => {
     renderWithProviders(<NodeConfigPopover
       dirty={false}
       defaults={{ reader: { columns: 2 } }}
-      tomlSource={'[nodes.neoview]\ncolumns = 2\n'}
+      sourceText={'{ "columns": 2 }'}
       triggerLabel="Configuration center"
       presentation={{ current: () => <div>NeoView configuration summary</div> }}
       t={translate}
@@ -254,7 +240,7 @@ describe("NodeConfigPopover configuration center", () => {
     />)
     await user.click(screen.getByRole("button", { name: "Configuration center" }))
     expect(await screen.findByText("NeoView configuration summary")).toBeTruthy()
-    expect(await screen.findByText("TOML source")).toBeTruthy()
+    expect(await screen.findByText("Settings source")).toBeTruthy()
   })
 
   test("adapts injected node config capabilities for any configuration center", async () => {
@@ -288,12 +274,12 @@ describe("NodeConfigPopover configuration center", () => {
     expect(adapters.backup).toBeTruthy()
   })
 
-  test("renders canonical TOML with lazily loaded Shiki highlighting", async () => {
+  test("renders the settings document with lazily loaded Shiki highlighting", async () => {
     const user = userEvent.setup()
     renderWithProviders(<NodeConfigPopover
       dirty={false}
       defaults={{ accent: "#22c55e", enabled: true }}
-      tomlSource={'[nodes.demo]\naccent = "#22c55e"\nenabled = true\n'}
+      sourceText={'{\n  "accent": "#22c55e",\n  "enabled": true\n}'}
       triggerLabel="Configuration center"
       t={translate}
       onReload={vi.fn()}
@@ -302,9 +288,9 @@ describe("NodeConfigPopover configuration center", () => {
     />)
 
     await user.click(screen.getByRole("button", { name: "Configuration center" }))
-    expect(await screen.findByText("TOML source")).toBeTruthy()
-    await waitFor(() => expect(document.querySelector(".node-config-toml .shiki")).toBeTruthy())
-    expect(screen.queryByText('"accent": "#22c55e"')).toBeNull()
+    expect(await screen.findByText("Settings source")).toBeTruthy()
+    await waitFor(() => expect(document.querySelector(".node-config-source .shiki")).toBeTruthy())
+    expect(screen.getAllByText('#22c55e').length).toBeGreaterThan(0)
     expect(screen.getAllByText("#22c55e").length).toBeGreaterThan(0)
     const sourceScroll = document.querySelector('[data-node-config-source-scroll="true"]')
     expect(sourceScroll?.className).toContain("h-[min(30rem,calc(100dvh-12rem))]")

@@ -1225,16 +1225,32 @@
     "configCenter": {
       "trigger": "配置中心",
       "description": "管理此节点的当前配置、变更历史、备份与可移植配置。",
-      "tabs": { "current": "当前配置", "presets": "预设", "history": "变更历史", "transfer": "导入 / 导出", "backup": "备份 / 同步" },
+      "tabs": {
+        "current": "当前配置",
+        "presets": "预设",
+        "history": "变更历史",
+        "transfer": "导入 / 导出",
+        "backup": "备份 / 同步"
+      },
       "autoRestore": "启动时恢复",
       "save": "保存为默认配置",
       "restore": "恢复已保存配置",
-      "reload": "从 TOML 重新读取",
+      "reload": "从设置重新读取",
       "clear": "清除覆盖",
-      "openFile": "打开 TOML 文件",
+      "openFile": "打开设置文档",
       "dirty": "当前参数与已保存配置不同。",
       "empty": "暂无配置数据。",
-      "source": { "loading": "正在加载 TOML 视图…", "sections": "配置分区", "fields": "字段", "booleans": "启用开关", "items": "集合项目", "colors": "颜色", "title": "TOML 源码", "copy": "复制", "copied": "已复制" },
+      "source": {
+        "loading": "正在加载源码视图…",
+        "sections": "配置分区",
+        "fields": "字段",
+        "booleans": "启用开关",
+        "items": "集合项目",
+        "colors": "颜色",
+        "title": "设置源码",
+        "copy": "复制",
+        "copied": "已复制"
+      },
       "preset": "预设",
       "presetPlaceholder": "选择预设",
       "presetDescription": "应用可复用的节点配置。",
@@ -1251,12 +1267,42 @@
       "presetDeleteDescription": "此操作无法撤销。",
       "presetOverwriteTitle": "覆盖此预设？",
       "presetOverwriteDescription": "当前配置将替换此预设保存的值。",
-      "presets": { "empty": "此节点未声明预设。" },
-      "history": { "loading": "正在加载历史…", "unavailable": "此节点暂不支持版本历史。", "empty": "尚未记录配置变更。", "detail": "变更详情", "restore": "恢复此版本", "select": "请选择一个版本。", "noTextChanges": "此备份没有文本变更。" },
-      "export": { "title": "导出配置", "description": "仅导出此节点的配置分区，便于迁移和分享。" },
-      "import": { "title": "导入配置", "description": "粘贴 TOML 或 JSON；只会更新此节点的配置分区。", "action": "导入并重新读取" },
-      "backup": { "title": "本地 Git 备份", "description": "快照按增量保存，并与当前使用的 TOML 文件隔离。", "loading": "正在加载仓库…", "create": "创建备份", "unavailable": "此节点暂不支持 Git 备份。" },
-      "sync": { "title": "远端同步", "description": "拉取只更新历史仓库，不会覆盖当前生效的配置。", "remote": "Git 远端地址", "saveRemote": "保存远端", "pull": "拉取历史", "push": "推送历史" }
+      "presets": {
+        "empty": "此节点未声明预设。"
+      },
+      "history": {
+        "loading": "正在加载历史…",
+        "unavailable": "此节点暂不支持版本历史。",
+        "empty": "尚未记录配置变更。",
+        "detail": "变更详情",
+        "restore": "恢复此版本",
+        "select": "请选择一个版本。",
+        "noTextChanges": "此备份没有文本变更。"
+      },
+      "export": {
+        "title": "导出配置",
+        "description": "仅导出此节点的配置分区，便于迁移和分享。"
+      },
+      "import": {
+        "title": "导入配置",
+        "description": "粘贴 JSON（设置文档格式）；只会更新此节点的配置分区。",
+        "action": "导入并重新读取"
+      },
+      "backup": {
+        "title": "设置历史",
+        "description": "每次保存都会自动留一份脱敏快照（派生自设置历史）。",
+        "loading": "正在加载仓库…",
+        "create": "创建备份",
+        "unavailable": "此节点暂不支持 Git 备份。"
+      },
+      "sync": {
+        "title": "远端同步",
+        "description": "拉取只更新历史仓库，不会覆盖当前生效的配置。",
+        "remote": "Git 远端地址",
+        "saveRemote": "保存远端",
+        "pull": "拉取历史",
+        "push": "推送历史"
+      }
     },
     "scratch": {
       "name": "SCRATCH",
