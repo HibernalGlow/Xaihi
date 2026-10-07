@@ -49,7 +49,7 @@ export function toNodeHostApi(host: XaihiNodeHost): NodeHostApi {
     patchData: (_compId: string, patch: Record<string, unknown>): void => {
       host.state.patchData(patch)
     },
-    listComponents: () => host.workspace.listComponents() as HostComponentRef[],
+    listComponents: () => host.workspace.listComponents(),
     updateComponent: (compId: string, patch: Partial<HostComponentRef>): void => {
       host.workspace.updateComponent(compId, patch)
     },

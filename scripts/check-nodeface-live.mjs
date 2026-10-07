@@ -133,8 +133,6 @@ async function gather () {
     return reply.result?.result?.value
   }
 
-  const granted = await evaluate("(() => { const pack = globalThis.__XAIHI_NODEFACE__; return pack ? pack.bridge.ready().granted.slice() : null })()")
-
   const marker = `nodeface-gate-${String(Date.now())}`
   /**
    * 装载一趟，并等到**预取落地**为止。
@@ -164,6 +162,13 @@ async function gather () {
   }
 
   const firstLoad = await load()
+  /**
+   * 授权集要在**文档装载之后**读。
+   * 原来这一句写在第一次 `load()` 之前，那时标签页里还是上一次留下的页面（或者 about:blank），
+   * `__XAIHI_NODEFACE__` 还不存在 ⇒ 判据 ⑧ 读到 `(没读到 granted)` 而红。宿主刚重启、产物还没进过
+   * 这一页的时候必红，之前几轮只是撞上了标签页里的旧页面——同一条"端口一通就开跑"的时序错。
+   */
+  const granted = await evaluate("(() => { const pack = globalThis.__XAIHI_NODEFACE__; return pack ? pack.bridge.ready().granted.slice() : null })()")
   if (!firstLoad.booted) {
     const why = await evaluate("(() => { const el = document.querySelector('[data-xaihi-nodeface]'); return el ? String(el.getAttribute('data-xaihi-nodeface')) : '(页面上没有那一格)' })()")
     throw new Error(`文档装载不上（等 45 秒没等到 __XAIHI_NODEFACE__）；板上读到的是 ${String(why)}`)

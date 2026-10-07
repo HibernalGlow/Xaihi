@@ -79,20 +79,23 @@ const build = (options: {
   if (options.handshake !== false) doc.hello(options.node ?? 'sleept')
 
   const state = { mode: 'block' as string, hits: 0 }
-  const host = createDocumentHost({
-    bridge: doc,
-    state: {
-      getData: () => {
-        state.hits += 1
-        return { ...state }
-      },
-      patchData: (patch) => Object.assign(state, patch),
+  const localState = {
+    getData: () => {
+      state.hits += 1
+      return { ...state }
     },
-    // 工作台那一格按**接线**判：`noWorkspace` 那份就是顶层单节点文档的形状（没有组件清单可问）。
-    ...(options.noWorkspace === undefined
-      ? { workspace: { listComponents: () => [{ id: 'c1' }], updateComponent: () => undefined } }
-      : {}),
-  })
+    patchData: (patch: Record<string, unknown>) => Object.assign(state, patch),
+  }
+  // 工作台那一格按**接线**判：`noWorkspace` 那份就是顶层单节点文档的形状（没有组件清单可问）。
+  // 分两支写而不是条件展开：exactOptionalPropertyTypes 下"没接线"必须是**这个键不出现**，
+  // 展开成 `workspace: undefined` 是另一种形状，会被装配当成接了线又给了个空值。
+  const host = options.noWorkspace === undefined
+    ? createDocumentHost({
+      bridge: doc,
+      state: localState,
+      workspace: { listComponents: () => [{ id: 'c1', moduleId: 'xaihi-linedup' }], updateComponent: () => undefined },
+    })
+    : createDocumentHost({ bridge: doc, state: localState })
   return { host, bridge: doc, shellCalls, sent }
 }
 
@@ -153,7 +156,7 @@ describe('本地的事不过桥', () => {
 
     const wired = build()
     const beforeWired = wired.sent.length
-    expect(wired.host.workspace.listComponents()).toEqual([{ id: 'c1' }])
+    expect(wired.host.workspace.listComponents()).toEqual([{ id: 'c1', moduleId: 'xaihi-linedup' }])
     expect(wired.sent).toHaveLength(beforeWired)
   })
 

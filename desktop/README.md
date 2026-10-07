@@ -927,3 +927,15 @@ node desktop/forward-check.mjs --self-check # 三份坏转发器，各须红在�
 **这条 CDP 时序上的坑记下来，下次别当成"路由不通"**：`chrome-headless-shell … about:blank` 起来之后 `/json/version` 是通的，但 `/json/list` 回**空数组**（0 个 page target），于是任何"连到现有页面"的脚本都会停在"9339 上没有可连的页面"。开一个 target 要有显式一步：`curl -X PUT 'http://127.0.0.1:9339/json/new?url=about:blank'`。这把尺遇到空 list 时报的是这句提示，不是假装通过。
 
 **读数**：`rspack build -c rspack.realm.mjs` rc=0（`工作台清单 →` 那个串在 `dist-realm/main.js` 里命中 1 处）· `check-doc-bridge --dist packages/ui-host/dist-realm` rc=0（`hostMount=present`）· `vitest run` 四个 spec rc=0（32 条，`host-probe.spec.ts` 里两条：接线的读数逐字 `{ wired: true, count: 0, reason: null }`，没接线的那条 `reason` 含"没有工作台可问"）· `check-realm-live.mjs --self-check` rc=0（5 份对照）· `check-realm-live.mjs` rc=0。
+
+## 折叠层现在在仓级严格度下被检：六条类型账修掉，四条停在两处真缺口（2026-10-07 16:0x）
+
+**先修检查本身**。`packages/ui-host/tsconfig.json` 没有 `@xiranite/contract` 的 `paths`（只有 `tsconfig.ported.json:472` 有），所以 strict 项目对这层报的是 `TS2307 找不到模块`——不是"我这批 0 条"，是**根本没检**。补上映射（照 ported 那份指同仓 `../contract/src/index.ts`）之后，`toNodeHostApi` 的不保真第一次全暴露出来：9 条。
+
+**六条按契约收紧**（都在 `document-host.ts`，运行时字节不变）：`LocalState`/`LocalWorkspace` 改成上游 `NodeStateCapability`/`NodeWorkspaceCapability` 的别名，清单条目于是是真 `HostComponentRef`，折叠层那句 `as HostComponentRef[]` 删掉；`runner` 并上 `Required<Pick<…, 'getInfo'|'cancelCurrent'>>`（桥上有这三行，本仓比上游那份接口更确定），`onEvent` 接住但不转——`BRIDGE_METHODS` 里没有事件那一条，而这一组今天整组被拒（P1），所以不是静默丢事件；`clipboard: Required<NodeClipboardCapability>`；`localFiles: Required<Pick<… 七条>>`，上游的 `stageFiles`/`subscribeDrops` 不接（一个只能在文档侧处理，一个对面没有动词）。
+
+**四条留在原处，因为没有第三条路**：一行是 `NodeContractCapability.name` 的字面量 `"xiranite.node-host"`（ADR-0010 的自称 vs 契约身份），三行是 `NodeConfigCapability.get`/`getUi` 要的 `path`（对面只回 `{ ns, value, revision }`，DSH 的标准面没有"配置文件路径"这一说，ADR-0013 正是把它拿掉的那条）。这两处不许靠 `as` 或假字符串变绿，`XaihiConfigFace` 就单列成一个带说明的类型。
+
+**自家尺的一条时序错也被这轮抓出来**：`check-nodeface-live.mjs` 在第一次 `load()` **之前**读 `granted`，读到的是标签页里上一轮留下的页面。宿主重启后第一次跑就红在 ⑧ `(没读到 granted)` ⇒ GATE_RC=1，而前几轮的"绿"是撞上了残留页面。**教训：判据读 `globalThis` 之前必须已经把这轮的文档装进这一页**——`/json/list` 里那个 page target 是跨装载活的，它不会替你把状态清掉。
+
+**读数**：`check-types` own=10（我这批 4 条=上面两处缺口，另 2 条在搬运 lane 的 `src/client/workspace.tsx:262` 与 `tests/workspace-app-render.spec.tsx:2`；`tsconfig.ported.json` 侧那 4 条是同一批文件被两个项目各检一遍）· `vitest run` 四个 spec rc=0（32 条）· `rspack realm` 与 `rspack nodeface` 各 rc=0 · `check-nodeface-live.mjs --self-check` rc=0（9 份对照）· 活体 rc=0（rev `041170836e0f`）· `check-realm-live.mjs` rc=0（rev `7fad11afaf7b`，`工作台清单 → 已接线（0 个）`、`roundtrip=crossed`）。

@@ -4,7 +4,8 @@
     "types": ["node"],
     "resolveJsonModule": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@xiranite/contract": ["../contract/src/index.ts"]
     }
   },
   "include": ["src/client", "tests"]

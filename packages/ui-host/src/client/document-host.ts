@@ -26,18 +26,53 @@
 
 import type { NodeCapabilityId } from '@hibernalglow/xaihi-sdk/bridge'
 import { BridgeError, type DocumentBridge } from '@hibernalglow/xaihi-sdk/bridge'
+import type {
+  NodeClipboardCapability,
+  NodeEnvCapability,
+  NodeFileClipboardContents,
+  NodeLocalFilesCapability,
+  NodeRunEvent,
+  NodeRunResult,
+  NodeRunnerCapability,
+  NodeStateCapability,
+  NodeWorkspaceCapability,
+} from '@xiranite/contract'
 
-/** 文档本地的组件状态面（上游 `NodeStateCapability` 的三个成员）。 */
-export interface LocalState<TData extends object = Record<string, unknown>> {
-  getData: () => TData | undefined
-  patchData: (patch: Partial<TData>) => void
-  replaceData?: (next: TData) => void
-}
+/** 上游 `NodeLocalFilesCapability.list` 那条回的单条目形状（不自己重写一遍字段表）。 */
+type LocalFileEntry = Awaited<ReturnType<NonNullable<NodeLocalFilesCapability['list']>>>[number]
 
-/** 文档本地的工作台面（上游 `NodeWorkspaceCapability` 的两个成员）。 */
-export interface LocalWorkspace {
-  listComponents: () => readonly Record<string, unknown>[]
-  updateComponent: (compId: string, patch: Record<string, unknown>) => void
+/** 文档本地的组件状态面：逐字就是上游 `NodeStateCapability`，本仓不再描一遍字段表。 */
+export type LocalState<TData extends Record<string, unknown> = Record<string, unknown>> = NodeStateCapability<TData>
+
+/** 文档本地的工作台面：逐字就是上游 `NodeWorkspaceCapability`（清单条目是 `HostComponentRef`）。 */
+export type LocalWorkspace = NodeWorkspaceCapability
+
+/**
+ * 设置那一组的形状今天**不与上游 `NodeConfigCapability` 对齐**，而且这不是疏忽：
+ * 上游的 `get`/`getUi` 回 `{ config, path }`，而路线 (A) 的对面只回 `{ ns, value, revision }`——
+ * DSH 的标准面里没有"配置文件路径"这个东西（ADR-0013 正是把它拿掉的那条），
+ * 编一个 toml 路径就是伪造宿主没给的数据。这一格等一个定位符口径：
+ * 要么给出真定位符（设置命名空间／设置文档），要么改上游那两处把 `path` 显示出去的调用点。
+ */
+export interface XaihiConfigFace {
+  get: () => Promise<unknown>
+  save: (config: unknown, expectedRevision?: number) => Promise<unknown>
+  getPresets: () => Promise<unknown>
+  createPreset: (input: unknown) => Promise<unknown>
+  updatePreset: (presetId: string, input: unknown) => Promise<unknown>
+  deletePreset: (presetId: string) => Promise<unknown>
+  getVersions: (options?: unknown) => Promise<unknown>
+  inspectVersion: (revision: string) => Promise<unknown>
+  restoreVersion: (revision: string) => Promise<unknown>
+  exportConfig: (format?: string) => Promise<unknown>
+  importConfig: (content: string, format?: string) => Promise<unknown>
+  createBackup: (label?: string) => Promise<unknown>
+  getHistoryRepository: () => Promise<unknown>
+  setHistoryRemote: (url: string | null) => Promise<unknown>
+  syncHistory: (direction: 'pull' | 'push') => Promise<unknown>
+  getUi: () => Promise<unknown>
+  saveUi: (config: unknown, expectedRevision?: number) => Promise<unknown>
+  openFile: () => Promise<void>
 }
 
 export interface DocumentHostDeps {
@@ -61,51 +96,21 @@ export interface XaihiNodeHost {
   }
   state: LocalState
   workspace: LocalWorkspace
-  env: { theme: 'light' | 'dark'; platform: string }
-  runner: {
-    run: (nodeId: string, input?: unknown) => Promise<{ runId: string }>
-    getInfo: (nodeId: string) => Promise<unknown>
-    cancelCurrent: () => Promise<boolean>
-  }
-  clipboard: {
-    readText: () => Promise<string>
-    writeText: (text: string) => Promise<void>
-    readFiles: () => Promise<unknown>
-    writeFiles: (paths: readonly string[], effect?: 'copy' | 'move') => Promise<void>
-    clearFiles: () => Promise<boolean>
-    readImage: () => Promise<unknown>
-    writeImage: (image: { base64: string; mimeType: string }) => Promise<void>
-  }
+  env: NodeEnvCapability
+  // 桥上有 runner.run / runner.getInfo / runner.cancelCurrent 三条动词（`BRIDGE_METHODS` 现读），
+  // 所以这一格比上游那份接口**更确定**：上游把后两条标成可选，这里两条一定在。
+  runner: NodeRunnerCapability & Required<Pick<NodeRunnerCapability, 'getInfo' | 'cancelCurrent'>>
+  // 上游把 clipboard 七条成员全标成可选（同 realm 的宿主可以只接其中几条）；这一格七条桥上都有一行
+  // （`BRIDGE_METHODS` 里的 clipboard.*），所以声明为 Required，调用点不必每条都判存在。
+  clipboard: Required<NodeClipboardCapability>
   downloads: { text: (filename: string, content: string) => void }
-  localFiles: {
-    getUrl: (path: string) => string
-    openPath: (path: string) => Promise<void>
-    revealPath: (path: string) => Promise<void>
-    pickFiles: (options?: unknown) => Promise<string[]>
-    pickDirectory: () => Promise<string | undefined>
-    pickDirectories: () => Promise<string[]>
-    list: (path: string, options?: unknown) => Promise<readonly unknown[]>
-  }
-  config: {
-    get: () => Promise<unknown>
-    save: (config: unknown, expectedRevision?: number) => Promise<unknown>
-    getPresets: () => Promise<unknown>
-    createPreset: (input: unknown) => Promise<unknown>
-    updatePreset: (presetId: string, input: unknown) => Promise<unknown>
-    deletePreset: (presetId: string) => Promise<unknown>
-    getVersions: (options?: unknown) => Promise<unknown>
-    inspectVersion: (revision: string) => Promise<unknown>
-    restoreVersion: (revision: string) => Promise<unknown>
-    exportConfig: (format?: string) => Promise<unknown>
-    importConfig: (content: string, format?: string) => Promise<unknown>
-    createBackup: (label?: string) => Promise<unknown>
-    getHistoryRepository: () => Promise<unknown>
-    setHistoryRemote: (url: string | null) => Promise<unknown>
-    syncHistory: (direction: 'pull' | 'push') => Promise<unknown>
-    getUi: () => Promise<unknown>
-    saveUi: (config: unknown, expectedRevision?: number) => Promise<unknown>
-    openFile: () => Promise<void>
-  }
+  /**
+   * `localFiles` 里桥有动词的那七条；上游另有的 `stageFiles`（收浏览器 `File[]`）与 `subscribeDrops`
+   * **不接**：前者只能在文档侧就地处理（`host-bridge.ts:65` 记过），后者要的拖放事件对面没有对应动词，
+   * 这里不编一条假的。所以这一格是 `Pick` 而不是整份接口。
+   */
+  localFiles: Required<Pick<NodeLocalFilesCapability, 'getUrl' | 'openPath' | 'revealPath' | 'pickFiles' | 'pickDirectory' | 'pickDirectories' | 'list'>>
+  config: XaihiConfigFace
 }
 
 /** 取握手结果；没有就抛，而不是先画一屏再纠正。 */
@@ -189,8 +194,13 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
       return env
     },
     runner: {
-      run: (nodeId, input) => call('runner.run', nodeId, input) as Promise<{ runId: string }>,
-      getInfo: (nodeId) => call('runner.getInfo', nodeId),
+      // 整组 runner 今天在对面就被拒（提案 P1：命令要跑在一个 Agent 上），所以这三条没有对面的读数可对照。
+      // 声明按上游接口给，是为了让折叠层在类型上就是它声称的那件事。`onEvent` **没有对应的桥动词**
+      // （`BRIDGE_METHODS` 里没有 runner.event），这里接住但不转出去：今天不静默丢事件，因为这条调用整组被拒；
+      // P1 落地时要连桥的动词一起补。
+      run: <TInput = unknown, TData = unknown>(nodeId: string, input: TInput, _onEvent?: NodeRunEvent): Promise<NodeRunResult<TData>> =>
+        call('runner.run', nodeId, input) as Promise<NodeRunResult<TData>>,
+      getInfo: <TInfo = unknown>(nodeId: string): Promise<TInfo> => call('runner.getInfo', nodeId) as Promise<TInfo>,
       cancelCurrent: () => call('runner.cancelCurrent') as Promise<boolean>,
     },
     clipboard: {
@@ -198,12 +208,13 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
       writeText: async (text) => {
         await call('clipboard.writeText', text)
       },
-      readFiles: () => call('clipboard.readFiles'),
-      writeFiles: async (paths, effect) => {
-        await call('clipboard.writeFiles', paths, effect === undefined ? {} : { effect })
+      readFiles: () => call('clipboard.readFiles') as Promise<NodeFileClipboardContents>,
+      writeFiles: async (paths, options) => {
+        // 上游给的是 `(paths, options)`，桥上那一格收的是 `{ effect }`——照上游的形状转一手，不另发明参数。
+        await call('clipboard.writeFiles', paths, options ?? {})
       },
       clearFiles: () => call('clipboard.clearFiles') as Promise<boolean>,
-      readImage: () => call('clipboard.readImage'),
+      readImage: () => call('clipboard.readImage') as Promise<{ base64: string; mimeType: string } | undefined>,
       writeImage: async (image) => {
         await call('clipboard.writeImage', image)
       },
@@ -232,7 +243,7 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
       pickFiles: (options) => call('localFiles.pickFiles', options ?? {}) as Promise<string[]>,
       pickDirectory: () => call('localFiles.pickDirectory') as Promise<string | undefined>,
       pickDirectories: () => call('localFiles.pickDirectories') as Promise<string[]>,
-      list: (path, options) => call('localFiles.list', path, options ?? {}) as Promise<readonly unknown[]>,
+      list: (path, options) => call('localFiles.list', path, options ?? {}) as Promise<LocalFileEntry[]>,
     },
     config: {
       // 上游的 save(config) 只有一个参数：同 realm 时"这是哪个节点的配置"由宿主自己知道。
@@ -267,7 +278,7 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
 }
 
 /** 持久化后的状态面：同步那三条照上游，另外三条是这一层自己的记账口子。 */
-export interface PersistedState<TData extends object = Record<string, unknown>> extends LocalState<TData> {
+export interface PersistedState<TData extends Record<string, unknown> = Record<string, unknown>> extends LocalState<TData> {
   /**
    * 从外壳预取本节点的快照。必须在挂载 `createRoot(...)` **之前** await 完，
    * 因为同步的 `getData()` 没有"值晚点到"这一说——晚到的那份读不到。
@@ -289,7 +300,7 @@ export interface PersistedState<TData extends object = Record<string, unknown>> 
  * @param deps - 桥与这份界面属于哪个节点。
  * @returns 给 `createDocumentHost({ state })` 的那一面。
  */
-export function createPersistedState<TData extends object = Record<string, unknown>>(deps: {
+export function createPersistedState<TData extends Record<string, unknown> = Record<string, unknown>>(deps: {
   bridge: DocumentBridge
   node: string
 }): PersistedState<TData> {
