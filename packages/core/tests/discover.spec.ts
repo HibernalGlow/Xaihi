@@ -117,6 +117,9 @@ describe('discover', () => {
       commands: false,
       // `/xaihi/host` 要用它答 config/state；没挂载时必须被读成 false 而不是"能用"。
       settings: false,
+      // `runner` 那一格能不能兑现要看有没有可编程的 agent 面（`commands.execute` 第一参数是 Agent），
+      // 所以这条必须读得回来，而不是等有人去猜"宿主应该有"。
+      agents: false,
       xaihiOperations: false,
     })
     const withStorage = discover(fakeContext(rows, { storageDomain: { open: () => {} } }))
@@ -125,6 +128,8 @@ describe('discover', () => {
     const withSettings = discover(fakeContext(rows, { settings: { describe: () => [] } }))
     expect(withSettings.services.settings).toBe(true)
     expect(withSettings.services.storageDomain).toBe(false)
+    const withAgents = discover(fakeContext(rows, { agents: { createAgent: () => {} } }))
+    expect(withAgents.services.agents).toBe(true)
   })
 
   it('collect 是 discover 的登记表投影', () => {

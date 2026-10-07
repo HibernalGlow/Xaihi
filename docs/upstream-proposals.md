@@ -63,6 +63,30 @@
 3. 或者允许业务包挂自己的 `@Remote` 命名空间（现状是 `dsh-api-remotes` 的构建期显式
    import 列表决定，第三方进不去）。
 
+4. 或者给一个**非持久的执行上下文**：`commands.execute` 的 `agent` 参数只要能是"一次调用的作用域"，
+   而不必是注册过的 Agent。今天程序化那侧唯一的路是造一个真 Agent（见下面"服务端那一侧"），
+   代价是在使用者的会话库里留下记录——那不是我们要的形状。
+
+**服务端那一侧也量过了（2026-10-07，路线 (A) 的 `runner` 那一格）**：换到 Host 进程里也不存在一条干净的路。
+
+- `@deepseek-ai/dsh-commands/lib/types/index.d.ts`：`list(agent: Agent)` 与
+  `execute(agent: Agent, line: string, submittedAttachments: readonly CommandSubmitAttachment[], signal: AbortSignal)`——
+  **服务端同样要 Agent**，而且那句注释写明调用方是"human-facing UI surface dispatching a human-typed line"。
+- 程序化拿 Agent 只有 `@deepseek-ai/dsh-agent/lib/types/index.d.ts` 的
+  `createAgent(ownerCtx: Context, options: CreateAgentOptions): Promise<AgentHandle>`（注册表上是 `agents.create`），
+  而 `CreateAgentOptions.meta` 的注释自己写着 **"This is durable session data"**：创建序列会建 session 与 agent、
+  发 `agent/created` 监听、失败时靠 `session/disposed` 回滚。也就是说**界面上每按一次"运行"就在使用者的
+  会话库里落一条真会话**（本机实测过：会话按 cwd 落在 `$DSH_HOME/sessions/<cwd-slug>/`，换 profile 不换库）。
+- 这两条现在都能从宿主读回来，不靠猜：`/xaihi/debug.json` 的 `services` 里多了 `agents` 这一格，
+  `verbose` 那行打印真实成员——本次隔离宿主读到
+  `commands=…,execute,find,list,register,…`、`agents=create,ctx,currentInitiator,disposeInitiators,enter,…`。
+  列在 `OPTIONAL_SERVICES` 里并由 `packages/core/tests/discover.spec.ts` 钉住（缺席必须读成 `false`，不许伪装成可用）。
+
+**所以本仓今天怎么做**：`/xaihi/host` 的 `runner` 保持 **refused**，而拒绝的理由句写的就是上面这个
+（`packages/core/src/host-routes.ts` 的 `HOST_REFUSAL_REASONS.runner`，界面上念得出来；
+`packages/core/tests/host-routes.spec.ts` 里一条用例钉住"这句必须指 P1 与会话，不许退回'还没来得及接'"）。
+不自开那条口：留真会话进使用者的库，比少一个按钮更贵。
+
 **我们现在的绕法**：`PanelHost.runCommand` 在拿不到身份时**如实失败**，错误文案直接指向
 这一条（`packages/ui-host/src/client/index.ts`）。不自建 `/xaihi` 执行路由，因为那会绕开
 宿主的分派语义与危险闸门。

@@ -171,8 +171,13 @@ type HostContext = DiscoverContext & { webServer: WebServerLike }
  * 为什么单独列出来：`inject` 是硬要求，缺席就不装载；这几件缺席时我们只是少个能力
  * （没 storage domain 就只在内存里记账），但"少了吗"必须有一个地方能读到，
  * 否则症状会是"检查点没存"而没人知道是装配问题还是代码问题。
+ *
+ * `agents` 在这一列的理由是**要被读回来的判断**，不是已经被用到的能力：
+ * `/xaihi/host` 的 `runner` 那一格能不能兑现，取决于宿主有没有一个可编程的 agent 面
+ * （`commands.execute(agent, line, …)` 的第一参数就是 Agent）。列在这里，
+ * `verbose` 那行就会把它真实暴露的成员打出来，"能不能接"于是是量出来的而不是猜的。
  */
-export const OPTIONAL_SERVICES = ['storageDomain', 'approval', 'commands', 'settings', OPERATIONS_SERVICE] as const
+export const OPTIONAL_SERVICES = ['storageDomain', 'approval', 'commands', 'settings', 'agents', OPERATIONS_SERVICE] as const
 
 /**
  * 现读一次可选服务的可用性。

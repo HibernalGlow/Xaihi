@@ -141,7 +141,12 @@ export function fenceSettings(service: SettingsServiceLike, allowed: ReadonlySet
 
 /** 这条载体今天给不了的组，逐条给一句使用者读得懂的话（`ready.degraded` 就靠它）。 */
 export const HOST_REFUSAL_REASONS: Partial<Record<NodeCapabilityId, string>> = {
-  runner: '命令执行面（commands）今天没接到这条路由上；要它得单独接，不在这里顺手开一个能跑命令的口',
+  // 这一句是**量出来的**，不是"还没来得及接"：宿主的执行面是
+  // `commands.execute(agent, line, attachments, signal)`（0.2.0-rc.2 的 `dsh-commands/lib/types/index.d.ts`），
+  // 第一参数就是 Agent；程序化那侧只有 `agents.create(...)`，而它的 `CreateAgentOptions.meta`
+  // 自己写着"This is durable session data"⇒ 每按一次钮就在使用者的会话库里落一条真会话。
+  // 缺的是上游那个口子（提案 P1：在"当前 Agent"上执行），不是我们少写了几行。
+  runner: '命令要跑在一个 Agent 上：宿主只给了"程序化造一个 Agent"这条路，而那会在你的会话库里留下真会话。这一格等上游那个在现有 Agent 上执行的口子（提案 P1），不自开。',
   clipboard: '剪贴板是宿主/系统侧能力，顶层窗里没有外层可问（提案账上）',
   downloads: '下载走宿主那侧，这条路由不代发（提案账上）',
   localFiles: '文件选择与拖放是原生侧能力，顶层窗里没有外层可问（提案账上）',

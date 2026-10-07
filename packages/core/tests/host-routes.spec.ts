@@ -145,6 +145,19 @@ describe('/xaihi/host 的协商', () => {
     for (const row of ready.degraded) expect(typeof row.reason).toBe('string')
   })
 
+  it('runner 那句要说的是量出来的拦路（上游 P1），不是"还没来得及接"', async () => {
+    // 这条钉的是措辞背后的**事实**：宿主的执行面是 `commands.execute(agent, line, attachments, signal)`，
+    // 程序化那侧只有 `agents.create(...)`，而其 `CreateAgentOptions.meta` 自己写着是 durable session data
+    // ⇒ 每按一次钮就在使用者的会话库里留一条真会话。谁把这行改回"今天没接到这条路由上"，
+    // 就等于把上游的缺口记成我们的进度，所以这里连旧措辞一起挡掉。
+    const handler = hostBridgeHandler({ settings: () => fakeSettings(), allowedNamespaces: () => ALLOWED })
+    const ready = (await ask(handler, hello())).body
+    const reason = String(ready.degraded.find((row: { capability: string }) => row.capability === 'runner').reason)
+    expect(reason).toContain('P1')
+    expect(reason).toContain('会话')
+    expect(reason).not.toContain('没接到这条路由上')
+  })
+
   it('设置面缺席时 granted 不含 config/state，并说清是没挂载', async () => {
     const handler = hostBridgeHandler({ settings: () => undefined, allowedNamespaces: () => ALLOWED })
     const ready = (await ask(handler, hello())).body
