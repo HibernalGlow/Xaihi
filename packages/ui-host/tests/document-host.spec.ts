@@ -34,6 +34,8 @@ const build = (options: {
   handshake?: boolean
   node?: string
   settingsNs?: string
+  /** 不注入工作台那一格（顶层单节点文档的真实形状：没有组件清单可问）。 */
+  noWorkspace?: boolean
 } = {}): Harness => {
   const shellCalls: string[] = []
   const sent: BridgeMessage[] = []
@@ -86,10 +88,10 @@ const build = (options: {
       },
       patchData: (patch) => Object.assign(state, patch),
     },
-    workspace: {
-      listComponents: () => [{ id: 'c1' }],
-      updateComponent: () => undefined,
-    },
+    // 工作台那一格按**接线**判：`noWorkspace` 那份就是顶层单节点文档的形状（没有组件清单可问）。
+    ...(options.noWorkspace === undefined
+      ? { workspace: { listComponents: () => [{ id: 'c1' }], updateComponent: () => undefined } }
+      : {}),
   })
   return { host, bridge: doc, shellCalls, sent }
 }
@@ -131,14 +133,28 @@ describe('形状', () => {
 })
 
 describe('本地的事不过桥', () => {
-  it('state 与 workspace 读本地，一条消息都不发（把它们过桥就是把同一份状态放两个 realm）', () => {
+  it('state 读本地，一条消息都不发（把它过桥就是把同一份状态放两个 realm）', () => {
     const { host, sent } = build()
     const before = sent.length
     expect(host.state.getData()).toMatchObject({ mode: 'block' })
     host.state.patchData({ mode: 'prevent' })
     expect(host.state.getData()).toMatchObject({ mode: 'prevent' })
-    expect(host.workspace.listComponents()).toEqual([{ id: 'c1' }])
     expect(sent).toHaveLength(before)
+  })
+
+  it('workspace 按接线判：没注入时抛有名字的 refused，注入了才读到那一份，两者都不发桥消息', () => {
+    // 2026-10-07 早先那一刀是按协商闸的（granted 里有没有 workspace），错在 `workspace` 归文档自己
+    // （`host-bridge.ts:163` 的 `DOCUMENT_OWNED_GROUPS`）——外壳永远不会 grant 它，
+    // 那条闸会把工作台里真实的组件清单一起闸没。想防的静默错答案不变，但防的是"塞空壳假装接了线"。
+    const unwired = build({ noWorkspace: true })
+    const beforeUnwired = unwired.sent.length
+    expect(() => unwired.host.workspace.listComponents()).toThrowError(/没有工作台可问/)
+    expect(unwired.sent).toHaveLength(beforeUnwired)
+
+    const wired = build()
+    const beforeWired = wired.sent.length
+    expect(wired.host.workspace.listComponents()).toEqual([{ id: 'c1' }])
+    expect(wired.sent).toHaveLength(beforeWired)
   })
 
   it('downloads.text 在文档里造 Blob 就完事，不占一次往返', () => {

@@ -64,6 +64,29 @@ export function judge (r) {
   need('⑤ 另一条新会话读得到这一条写进去的标记（落到底下，不是窗内缓存）',
     r.secondPageHasMarker === true,
     String(r.secondPageData ?? '(第二趟没读到东西)').slice(0, 140))
+  // ⑥ 覆盖表不许有第三种答案：每条要么是**真回东西**，要么是**带原因的 refused**。
+  // 挂住（timeout）或抛出一个没有 reason 的错，症状都会是"点了没反应"，那正是决定 4 禁止的形态。
+  const odd = (r.coverage ?? []).filter((row) => row.outcome !== 'resolved' && (row.outcome !== 'refused' || row.reason === ''))
+  need('⑥ 节点界面会调的每一个成员都有个说得出的答案（不许静默/挂住）',
+    Array.isArray(r.coverage) && r.coverage.length > 0 && odd.length === 0,
+    odd.length === 0 ? `${String((r.coverage ?? []).length)} 条逐个有下落` : odd.map((row) => `${row.name}=${row.outcome}`).join(', '))
+  // ⑦ `config.openFile` 今天是被 21 个节点用在"打开配置文件"那个按钮上的；答不了就必须**点名答不了**，
+  // 因为这条路由只给了 describe/update/mutate 三片，壳那半边的 openDocument 分支拿不到提供者。
+  // ⑧ 覆盖表里**没有人兑现得了的那一组不许回成 resolved**。这条防的是一种看起来很像真话的错答案：
+  // `workspace` 那一格原本由装配侧注入一份空壳，`listComponents()` 因此回了 `[]`，
+  // 界面念出来是"工作台里没有组件"，实际发生的是"这份文档里根本没有工作台"。
+  // 判的是"这一组有没有下落"（对面授予的 + 文档自己接线兑现的），不是"协商里给了谁"：
+  // `workspace`/`env`/`contract` 按 `host-bridge.ts:163` 本来就归文档，外壳永远不 grant 它们。
+  const groupOf = (name) => name === 'env' ? 'env' : name === 'actions.run' || name === 'actions.cancelCurrent' ? 'runner' : name.split('.')[0]
+  const grantedSet = Array.isArray(r.granted) ? new Set(r.granted) : new Set()
+  const lying = (r.coverage ?? []).filter((row) => row.outcome === 'resolved' && !grantedSet.has(groupOf(row.name)) && row.name !== 'localFiles.getUrl')
+  need('⑧ 没人兑现的那一组不许在覆盖表里回成 resolved（注入面不替缺勤作答）',
+    Array.isArray(r.granted) && lying.length === 0,
+    Array.isArray(r.granted) ? (lying.length === 0 ? `granted=[${[...grantedSet].join(',')}]，没有一条越权回答` : lying.map((row) => row.name).join(', ')) : '(没读到 granted)')
+  const openFile = (r.coverage ?? []).find((row) => row.name === 'config.openFile')
+  need('⑦ config.openFile 的现状是有名字的失败（no-provider 一类），不是成功也不是静默',
+    openFile?.outcome === 'refused' && openFile.reason.length > 3,
+    `${String(openFile?.outcome ?? '(没探到)')} ${String(openFile?.reason ?? '')} ${String(openFile?.detail ?? '').slice(0, 60)}`)
   return checks
 }
 
@@ -109,6 +132,8 @@ async function gather () {
     }
     return reply.result?.result?.value
   }
+
+  const granted = await evaluate("(() => { const pack = globalThis.__XAIHI_NODEFACE__; return pack ? pack.bridge.ready().granted.slice() : null })()")
 
   const marker = `nodeface-gate-${String(Date.now())}`
   /**
@@ -174,9 +199,42 @@ async function gather () {
     return v === undefined || v === null ? null : JSON.stringify(v);
   })()`)
 
+  // 覆盖表：节点界面实际会调的那些成员，逐个**照组件的调用形状**问一遍，看对面到底怎么答。
+  // 为什么要表而不是推断：21 个节点在用 `host.openConfigFile()`、25 个在用 `host.actions.run`，
+  // 而"这条路由答不答得了"是三份不同的答案（真回东西 / 带原因的 refused / 根本没这条方法），
+  // 数出来的才是接线依据。这里只读不写（唯一的写是 ⑤ 那一发 state 标记）。
+  const coverage = await evaluate(`(async () => {
+    const pack = globalThis.__XAIHI_NODEFACE__;
+    const probes = [
+      ['config.get', () => pack.host.config.get()],
+      ['config.getUi', () => pack.host.config.getUi()],
+      ['config.openFile', () => pack.host.config.openFile()],
+      ['actions.run', () => pack.host.actions.run('xaihi-linedup', {})],
+      ['runner.getInfo', () => pack.host.runner.getInfo('xaihi-linedup')],
+      ['runner.cancelCurrent', () => pack.host.runner.cancelCurrent()],
+      ['clipboard.readText', () => pack.host.clipboard.readText()],
+      ['localFiles.pickFiles', () => pack.host.localFiles.pickFiles({})],
+      ['localFiles.getUrl', () => pack.host.localFiles.getUrl('/tmp/x.png')],
+      ['workspace.listComponents', () => pack.host.workspace.listComponents()],
+      ['env', () => pack.host.env],
+    ];
+    const out = [];
+    for (const [name, fn] of probes) {
+      const one = await Promise.race([
+        Promise.resolve().then(fn).then((v) => ({ outcome: 'resolved', value: JSON.stringify(v).slice(0, 60) }),
+          (e) => ({ outcome: 'refused', reason: String((e && e.reason) || ''), detail: String((e && e.detail) || e && e.message || e).slice(0, 70) })),
+        new Promise((r) => setTimeout(() => r({ outcome: 'timeout', reason: '', detail: '' }), 5000)),
+      ]);
+      out.push({ name, ...one });
+    }
+    return out;
+  })()`)
+
   ws.close()
 
   return {
+    coverage,
+    granted,
     carrierLine: face?.carrierLine,
     nodefaceAttr: face?.nodefaceAttr,
     bodyLen: face?.bodyLen ?? 0,
@@ -203,6 +261,13 @@ function selfCheck () {
     downloads: { ok: true, value: '"called"' },
     secondPageHasMarker: true,
     secondPageData: '{"gateMarker":"nodeface-gate-1"}',
+    granted: ['contract', 'state', 'config'],
+    coverage: [
+      { name: 'config.get', outcome: 'resolved', value: '{"namespaces":[]}' },
+      { name: 'localFiles.getUrl', outcome: 'resolved', value: '"/xaihi/files/x"' },
+      { name: 'config.openFile', outcome: 'refused', reason: 'no-provider', detail: '外壳那半边没有 openDocument' },
+      { name: 'actions.run', outcome: 'refused', reason: 'capability-refused', detail: '命令执行面等提案 P1' },
+    ],
   }
   const cases = [
     { name: '现场全对 = 全绿', reading: good, expectFail: 0 },
@@ -211,6 +276,9 @@ function selfCheck () {
     { name: 'clipboard 悄悄成功（那就是在猜） = ③ 红', reading: { ...good, clipboard: { ok: true, value: '"x"' } }, expectFail: 1 },
     { name: 'downloads 失败 = ④ 红（自兑现那一格不能凭空消失）', reading: { ...good, downloads: { ok: false, reason: 'refused', detail: 'x' } }, expectFail: 1 },
     { name: '新会话读不到标记 = ⑤ 红（写在窗内而不是对面）', reading: { ...good, secondPageHasMarker: false, secondPageData: '{"marks":["旧"]}' }, expectFail: 1 },
+    { name: '没人兑现的一组回成 resolved = ⑧ 红（注入面替缺勤作答）', reading: { ...good, coverage: [...good.coverage, { name: 'workspace.listComponents', outcome: 'resolved', value: '[]' }] }, expectFail: 1 },
+    { name: '覆盖表里冒出一条挂住的 = ⑥ 红', reading: { ...good, coverage: [...good.coverage, { name: 'runner.getInfo', outcome: 'timeout', reason: '', detail: '' }] }, expectFail: 1 },
+    { name: 'config.openFile 静默成功（那是假绿）= ⑦ 红', reading: { ...good, coverage: good.coverage.map((c) => c.name === 'config.openFile' ? { ...c, outcome: 'resolved', value: 'null' } : c) }, expectFail: 1 },
   ]
   let failures = 0
   for (const testCase of cases) {
@@ -233,6 +301,15 @@ try {
   process.exit(1)
 }
 console.log('现场读数 ⇒ ' + JSON.stringify({ stateKey: reading.stateKey, nodeface: reading.nodefaceAttr, flushError: reading.flushError, buttons: reading.componentButtons.length, secondPageData: reading.secondPageData }, null, 1))
+console.log('覆盖表（节点界面实际会调的成员，逐个照组件的调用形状问一遍）：')
+const describeRow = (row) => {
+  const bits = [row.outcome]
+  if (typeof row.reason === 'string' && row.reason !== '') bits.push(row.reason)
+  if (typeof row.detail === 'string' && row.detail !== '') bits.push(row.detail.slice(0, 76))
+  if (typeof row.value === 'string' && row.value !== '') bits.push(row.value.slice(0, 50))
+  return `  ${row.name.padEnd(24)} ${bits.join(' · ')}`
+}
+for (const row of reading.coverage ?? []) console.log(describeRow(row))
 let failed = 0
 for (const row of judge(reading)) {
   console.log(`${row.pass ? 'OK  ' : 'FAIL'} ${row.label}｜${row.detail}`)

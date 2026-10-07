@@ -43,7 +43,12 @@ export interface LocalWorkspace {
 export interface DocumentHostDeps {
   bridge: DocumentBridge
   state: LocalState
-  workspace: LocalWorkspace
+  /**
+   * 工作台那一组（组件清单与布局）。**可选**：只有"这份文档本身就是一块工作台"时才有得接
+   * （顶层单节点窗里没有组件清单可问）。不接线时 `host.workspace` 抛一条点名原因的 `refused`，
+   * 而不是由装配侧塞一份空壳进去。
+   */
+  workspace?: LocalWorkspace
 }
 
 /** 上游 `NodeHostApi` 的本仓对应形状（九组，方法名逐字对齐）。 */
@@ -163,7 +168,21 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
       hasCapability: (capability) => granted().includes(capability),
     },
     state: deps.state,
-    workspace: deps.workspace,
+    get workspace() {
+      /**
+       * 按**装配里有没有接线**判，不按协商判。
+       *
+       * 2026-10-07 上一版这里想用"握手 granted 里有没有 workspace"来闸这一格，那是错的：
+       * `workspace` 归文档自己（`packages/node-sdk/src/host-bridge.ts:163` 的 `DOCUMENT_OWNED_GROUPS`），
+       * 外壳永远不会把它写进 granted，于是那条闸在工作台里也会把**真实存在的组件清单**一起闸没。
+       * 想防的那个静默错答案仍然成立——但要防的是"塞一份空壳假装接好了线"，所以交给装配：
+       * 没有工作台的文档就不注入这一格，读到的是有名字的 `refused`，不是 `[]`。
+       */
+      if (deps.workspace === undefined) {
+        throw new BridgeError('refused', '这份界面没有工作台可问（组件清单与布局住在装载 host 的那一层）：这里没接线，空壳也不替它作答，那会把"没接线"报成"没有组件"')
+      }
+      return deps.workspace
+    },
     get env() {
       const env = requireReady(bridge).env
       if (env === undefined) throw new BridgeError('refused', '宿主没随握手带环境快照（暗/亮与平台未知）')

@@ -20,7 +20,7 @@ import {
   type BridgeMessage,
   type SettingsFace,
 } from '@hibernalglow/xaihi-sdk/bridge'
-import { createDocumentHost, createPersistedState, type XaihiNodeHost } from '../src/client/document-host.ts'
+import { createDocumentHost, createPersistedState, type PersistedState, type XaihiNodeHost } from '../src/client/document-host.ts'
 import { toNodeHostApi } from '../src/client/node-host-bridge.ts'
 
 const ORIGIN = 'dsh-app://app'
@@ -75,7 +75,7 @@ async function handshake (docBridge: ReturnType<typeof createDocumentBridge>): P
 }
 
 /** 界面那一层拿到的东西：一份桥背书的分组面，折成扁表面之前的形状。 */
-function grouped (settings: ReturnType<typeof fakeSettings> | null): { docBridge: ReturnType<typeof createDocumentBridge>; host: XaihiNodeHost; state: ReturnType<typeof createPersistedState> } {
+function grouped (settings: ReturnType<typeof fakeSettings> | null): { docBridge: ReturnType<typeof createDocumentBridge>; host: XaihiNodeHost; state: PersistedState } {
   const { docBridge } = wired(settings === null ? {} : { settings, settingsNs: STATE_SETTINGS_NS })
   const state = createPersistedState({ bridge: docBridge, node: NODE })
   return {

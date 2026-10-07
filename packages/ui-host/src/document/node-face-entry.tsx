@@ -51,10 +51,11 @@ if (root === null || realm === null) {
   const { bridge } = realm
   const node = STATE_NODE
   const state = createPersistedState({ bridge, node })
+  // `workspace` 这一格**不注入**：顶层单节点文档里没有组件清单可问，
+  // 塞一份空壳会让 `host.workspace.listComponents()` 回 `[]`——那是把"没人兑现"念成"没有组件"。
   const host = toNodeHostApi(createDocumentHost({
     bridge,
     state,
-    workspace: { listComponents: () => [], updateComponent: () => {} },
   }))
   // 握手之前不渲染组件：`createDocumentHost` 的每个动词都先 `requireReady`，
   // 早渲染的那一帧会把"还没握手"显示成组件自己的错，那是装配层的错账到界面头上。
