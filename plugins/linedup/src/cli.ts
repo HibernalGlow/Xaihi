@@ -18,6 +18,8 @@
  * @module xaihi-linedup/cli
  */
 
+import { realpathSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { readFile, writeFile } from 'node:fs/promises'
 import { filterLines, splitLines } from './core.ts'
 import {
@@ -196,14 +198,27 @@ async function readInput (inline?: string, filePath?: string): Promise<string> {
   return (inline ?? '').replace(/\\n/g, '\n')
 }
 
+/** argv[1] 与本模块经 realpath 后是否同指一个文件：npm 装出的 bin 软链（`…/bin/<id>`）
+ * 解析到真身后点亮；聚合 CLI 引本模块时 argv[1] 是它自己的入口，比对失败不点亮。 */
+function sameRealpathAsSelf (entry: string): boolean {
+  try {
+    return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+
 /**
- * 自执行闸门：上游两个写法不一（sleept 比 `pathToFileURL(argv[1]).href`，
- * linedup/dissolvef 用 `cli.[jt]s$` 正则）。取正则那条——`.bin` 软链下 argv[1]
- * 未必等于 `import.meta.url`，而聚合 CLI 引本模块时 argv[1] 是它自己的入口，
- * 两条都不该点亮。
+ * 自执行闸门：`argv[1]` 经 realpath 后与本模块同指一个文件才点亮。
+ * 2026-10-07 之前这里用的是 `/\bcli\.[cm]?[jt]s$/` 正则匹配裸 `argv[1]`——而 npm
+ * 装出的 bin 是以节点 id 命名的软链（`…/bin/<id>`），正则不匹配，实机
+ * `npm i -g file:` 后 `bin/<id> --help` 静默 rc=0（阳性对照：真路径
+ * `node lib/cli.js --help` 正常）。上游 sleept 原用 `pathToFileURL(argv[1]).href`
+ * 比较，本仓按同一条比较形状补上 realpath：bin 软链直跑点亮；聚合 CLI 引本模块
+ * 时 argv[1] 是它自己的入口，不点亮。
  */
-const entry = process.argv[1] ?? ''
-if (/\bcli\.[cm]?[jt]s$/.test(entry.replace(/\\/g, '/'))) {
+const entry = process.argv[1]
+if (entry !== undefined && sameRealpathAsSelf(entry)) {
   try {
     await runProgram()
   } catch (error) {
