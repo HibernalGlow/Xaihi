@@ -46,13 +46,16 @@ function fail (message) {
   process.exit(1)
 }
 
-function git (args, { allowFail = false, env = {} } = {}) {
+function git (args, { allowFail = false, env = {}, muteStderr = false } = {}) {
   try {
     return execFileSync('git', args, {
       cwd: REPO_ROOT,
       encoding: 'utf8',
       maxBuffer: 64 << 20,
       env: { ...process.env, ...env },
+      // exec* 默认把子进程的 stderr 直接接到父进程，于是"本来就没在 am"这类
+      // 预期内的失败会把 git 的 致命错误 打进用户看到的输出里。
+      ...(muteStderr ? { stdio: ['ignore', 'pipe', 'pipe'] } : {}),
     }) ?? ''
   } catch (error) {
     const detail = `${String(error.stderr ?? '').trim() || String(error.message)}`
@@ -190,7 +193,7 @@ function applyPatches (pinSha) {
     const name = file.split('/').pop()
     const result = git(['-C', VENDOR, 'am', file], { allowFail: true, env: { GIT_COMMITTER_DATE: pinDate } })
     if (typeof result === 'object' && result.failed) {
-      git(['-C', VENDOR, 'am', '--abort'], { allowFail: true })
+      git(['-C', VENDOR, 'am', '--abort'], { allowFail: true, muteStderr: true })
       fail(`patch ${name} 打不进 ${headSha().slice(0, 8)}（已 git am --abort）`
         + `\n  看被拒的段：git -C desktop/dsh apply --check desktop/patches/dsh/${name}`
         + '\n  规矩是"打不进就是红"，不许用 --3way 蒙掉别人的行（desktop/patches/dsh/README.md）')
@@ -529,7 +532,7 @@ if (flag('check')) {
 if (flag('reset')) {
   if (!existsSync(join(VENDOR, '.git'))) { console.log('sync-dsh: 没有 desktop/dsh，无需 reset'); process.exit(0) }
   if (dirtyCount() > 0 && !flag('force')) fail(`工作树有 ${String(dirtyCount())} 个脏文件（可能含手工实验），要丢弃就加 --force`)
-  git(['-C', VENDOR, 'am', '--abort'], { allowFail: true })
+  git(['-C', VENDOR, 'am', '--abort'], { allowFail: true, muteStderr: true })
   git(['-C', VENDOR, 'sparse-checkout', 'disable'], { allowFail: true })
   git(['-C', VENDOR, 'checkout', '--force', '--quiet', pin.sha])
   console.log(`sync-dsh: reset 到 ${pin.sha.slice(0, 8)}（sparse 已关）`)
