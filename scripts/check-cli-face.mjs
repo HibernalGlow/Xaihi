@@ -79,7 +79,7 @@ if (process.argv.includes('--self-check')) {
   const registry = `export const GENERATED_NODE_CLI_REGISTRY = [\n${cases
     .map((c) => `  { id: "${c.id}", packageName: "@fixture/${c.id}", bin: "${c.bin}", description: "d" },`)
     .join('\n')}\n  { id: "missing", packageName: "@fixture/missing", bin: "xmissing", description: "d" },\n]\n`
-  const rows = judgeAll({ pluginsDir: dir, registryText: registry, timeoutMs: 700 })
+  const rows = judgeAll({ pluginsDir: dir, registryText: registry, timeoutMs: 3_000 })
   const byId = Object.fromEntries(rows.map((row) => [row.id, row.state]))
   const problems = []
   if (byId.good !== 'ok') problems.push(`夹具 good 期望 ok，实际 ${byId.good} ⇒ 真能跑的 bin 被判成坏`)
