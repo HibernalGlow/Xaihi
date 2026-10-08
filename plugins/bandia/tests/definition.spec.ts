@@ -13,7 +13,7 @@
  *    统一剥掉，与 `crashu` / `rawfilter` / `samea` 同批处理；
  * 4. `help` 只剩 `whenToUse` + `safety`：上游的 `workflows[]` / `commands[]` 是
  *    `NodeHelp`（`node-sdk/src/node.ts:156-159`）装不下的形状，且 `commands[].command`
- *    写的是旧壳的 `xiranite bandia`（本仓 bin 是 `xbandia`）；`whenToUse` 上游是**单元素数组**，
+ *    写的是旧壳的 `xiranite bandia`（本仓 bin 是 `bandia`）；`whenToUse` 上游是**单元素数组**，
  *    我们是 `LocalizedText` ⇒ 取那一条原文，不加不减。
  *
  * 另外钉住两处上游自带的分歧，不在这里统一：
@@ -306,11 +306,11 @@ describe('bandia 清单的 SDK 侧形状', () => {
   })
 
   it('工具名是 <nodeId>_<actionId>，帮助页由清单推导', () => {
-    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'xbandia' })
+    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'bandia' })
     expect(help.title).toBe('Bandia')
-    expect(help.commands.map((command) => command.command)).toEqual(['xbandia', '/bandia'])
+    expect(help.commands.map((command) => command.command)).toEqual(['bandia', '/bandia'])
     const examples = help.commands[0]!.examples.map((example) => example.command)
-    expect(examples).toEqual(['xbandia --help', 'xbandia extract', 'xbandia compress', 'xbandia repack', 'xbandia export_efu'])
+    expect(examples).toEqual(['bandia --help', 'bandia extract', 'bandia compress', 'bandia repack', 'bandia export_efu'])
     // G7 没修完的那一半：本包不 `inject` `commands`、也没传 `command`，而推导器在
     // `options.command === undefined` 时仍按 `/${nodeId}` 兜一个默认值（node-sdk/src/help.ts:107）。
     // 本包能做的只有"不传"（见 src/help.ts 头部），这一条钉的是**现状**，不是认可。
@@ -324,6 +324,8 @@ describe('bandia 宿主接线（apply → defineNode → 真内核）', () => {
     const listeners: Array<(exec: { name: string; arguments: unknown }, next: () => Promise<PreDecision>) => Promise<PreDecision>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, listener: unknown) => {
         listeners.push(listener as (typeof listeners)[number])
         return () => {}
@@ -358,6 +360,8 @@ describe('bandia 宿主接线（apply → defineNode → 真内核）', () => {
     const tools: Array<Record<string, unknown>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { tools.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, _listener: unknown) => () => {},
       get: (service: string) => (service === 'subprocess'
         ? { spawn: () => { spawned += 1; throw new Error('不该 spawn') } }

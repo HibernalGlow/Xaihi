@@ -6,7 +6,7 @@
 - `cordis.patch.yml`：自带一行（插件即 bundle）
 - `src/index.ts`：`defineNode` 接线，危险闸门交给 DSH 的 approval 缝
 - `frontend/`：自带 UI 产物（`dist/remoteEntry.js`），React 由宿主提供
-- `src/cli.ts` + `src/help.ts` + `src/cli-support.ts`：终端面（`bin` = `xbitv`），四条动作
+- `src/cli.ts` + `src/help.ts` + `src/cli-support.ts`：终端面（`bin` = `bitv`），四条动作
   `status` / `analyze` / `classify` / `report` 都在面上，但**一律拒绝执行**（退出码 2）：
   内核要跑的 ffprobe 一律经 DSH 的 `ctx.subprocess`（`src/platform.ts`），独立 bin 不在宿主
   进程里、够不到那条缝（缺口 G1/G6 那一类）。真跑用宿主侧的 `bitv_*` 四个工具。

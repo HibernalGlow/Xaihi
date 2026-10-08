@@ -12,7 +12,7 @@ Xaihi 节点 SmartZip：TypeScript 写的归档工作流，自己找 7-Zip（不
 - `src/index.ts`：`defineNode` 接线。危险动作（`extract` / `extract_codepage` / `open` / `archive`
   且预演没开）由清单变成 DSH 的 `ask`，进度与预览走 xaihi-core 的 `OPERATIONS_SERVICE` 账本。
   上游 `[nodes.smartzip]` 那六个默认值在这里声明成 `Config`（ADR-0013），值由 DSH 的 patch 层给。
-- `src/cli.ts` + `src/help.ts` + `src/cli-support.ts`：终端面，`bin` = `xsmartzip`。
+- `src/cli.ts` + `src/help.ts` + `src/cli-support.ts`：终端面，`bin` = `smartzip`。
   这一面**不在宿主进程里**，够不到 `ctx.subprocess`，于是：`status` 与四条执行动作的
   `--dryRun` 计划是真跑的；要碰 7-Zip 的那几条一律退出码 1 并点名缺的那条服务
   （`ui` / `gd` / `guided` 三条交互腿未接，退出码 2）。

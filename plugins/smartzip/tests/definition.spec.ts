@@ -238,7 +238,7 @@ describe('smartzip 的 G7 与终端面一致性', () => {
     const passesCommand = /nodeHelpFromManifest\([^)]*\bcommand\s*:/.test(source)
     expect(passesCommand).toBe(false)
     // 阳性对照：同一把尺必须看得见"传了 command"的那一份写法。
-    expect(/nodeHelpFromManifest\([^)]*\bcommand\s*:/.test("nodeHelpFromManifest(node, { bin: 'xsmartzip', command: '/smartzip' })")).toBe(true)
+    expect(/nodeHelpFromManifest\([^)]*\bcommand\s*:/.test("nodeHelpFromManifest(node, { bin: 'smartzip', command: '/smartzip' })")).toBe(true)
   })
 
   it('两句可见拒绝不许把使用者指向本包没注册的 /smartzip', () => {
@@ -252,18 +252,18 @@ describe('smartzip 的 G7 与终端面一致性', () => {
   })
 
   it('帮助页由清单推导：bin 名与六个动作都在里面', () => {
-    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'xsmartzip' })
+    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'smartzip' })
     expect(help.title).toBe('SmartZip')
     expect(help.short).toBe('TypeScript archive workflows with automatic 7-Zip discovery.')
-    const examples = help.commands.find((command) => command.command === 'xsmartzip')!.examples.map((example) => example.command)
+    const examples = help.commands.find((command) => command.command === 'smartzip')!.examples.map((example) => example.command)
     expect(examples).toEqual([
-      'xsmartzip --help',
-      'xsmartzip status',
-      'xsmartzip inspect_codepage',
-      'xsmartzip extract',
-      'xsmartzip extract_codepage',
-      'xsmartzip open',
-      'xsmartzip archive',
+      'smartzip --help',
+      'smartzip status',
+      'smartzip inspect_codepage',
+      'smartzip extract',
+      'smartzip extract_codepage',
+      'smartzip open',
+      'smartzip archive',
     ])
   })
 })
@@ -275,6 +275,8 @@ describe('smartzip 宿主接线（apply → defineNode → 真内核）', () => 
     const listeners: Array<(exec: { name: string; arguments: unknown }, next: () => Promise<PreDecision>) => Promise<PreDecision>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, listener: unknown) => {
         listeners.push(listener as (typeof listeners)[number])
         return () => {}
@@ -298,6 +300,8 @@ describe('smartzip 宿主接线（apply → defineNode → 真内核）', () => 
     const listeners: Array<(exec: { name: string; arguments: unknown }, next: () => Promise<PreDecision>) => Promise<PreDecision>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, listener: unknown) => {
         listeners.push(listener as (typeof listeners)[number])
         return () => {}
@@ -321,6 +325,8 @@ describe('smartzip 宿主接线（apply → defineNode → 真内核）', () => 
     const registered: Array<Record<string, unknown>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: () => () => {},
       get: (key: string) => (key === 'subprocess' ? fakeSubprocess(1) : undefined),
     }
@@ -337,6 +343,8 @@ describe('smartzip 宿主接线（apply → defineNode → 真内核）', () => 
     const registered: Array<Record<string, unknown>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: () => () => {},
       get: (key: string) => (key === 'subprocess' ? fakeSubprocess(1) : undefined),
     }

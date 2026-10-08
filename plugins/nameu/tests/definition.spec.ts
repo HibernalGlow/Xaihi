@@ -224,6 +224,8 @@ describe('nameu 宿主接线（apply → defineNode → 真内核）', () => {
     const listeners: Array<(exec: { name: string; arguments: unknown }, next: () => Promise<PreDecision>) => Promise<PreDecision>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, listener: unknown) => {
         listeners.push(listener as (typeof listeners)[number])
         return () => {}

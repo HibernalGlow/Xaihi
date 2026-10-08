@@ -333,11 +333,11 @@ describe('cleanf 清单的 SDK 侧形状', () => {
   })
 
   it('帮助页只印 bin，不印宿主斜杠命令（缺口 G7 的这一侧）', () => {
-    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'xcleanf' })
+    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'cleanf' })
     expect(help.title).toBe('Cleanf')
-    expect(help.commands[0]!.command).toBe('xcleanf')
+    expect(help.commands[0]!.command).toBe('cleanf')
     expect(help.commands[0]!.examples.map((example) => example.command))
-      .toEqual(['xcleanf --help', 'xcleanf clean', 'xcleanf undo'])
+      .toEqual(['cleanf --help', 'cleanf clean', 'cleanf undo'])
     // 现实披露：本包没传 `command`，推导器仍然按 `/cleanf` 兜底（node-sdk/src/help.ts:108）。
     expect(help.commands[1]!.command).toBe('/cleanf')
   })
@@ -349,6 +349,8 @@ describe('cleanf 宿主接线（apply → defineNode → 真内核 + 真文件�
     const listeners: Array<(exec: { name: string; arguments: unknown }, next: () => Promise<PreDecision>) => Promise<PreDecision>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, listener: unknown) => {
         listeners.push(listener as (typeof listeners)[number])
         return () => {}

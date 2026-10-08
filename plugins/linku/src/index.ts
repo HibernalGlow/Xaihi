@@ -21,7 +21,7 @@
  * 2. **`import` 动作没有宿主侧的工具**：它在上游的 `xaihi.node/v1` 清单里就**不是**一个动作
  *    （`node-definitions/linku.json` 的 `actions` 只有 info / create / move_link / list /
  *    recover / restore，尽管内核与终端面都有 import）。清单是词表真源，这里不替它补一条
- *    上游没声明的动作；`import` 仍然只能从 `xlinku import --path …` 那条腿走（`src/cli.ts`），
+ *    上游没声明的动作；`import` 仍然只能从 `linku import --path …` 那条腿走（`src/cli.ts`），
  *    与上游一致。这条落差是**上游清单自己的缺口**，记在这里而不是偷偷修掉。
  *
  * 上游的 `interaction.ts`（153 行）**不随本包发布**：它引

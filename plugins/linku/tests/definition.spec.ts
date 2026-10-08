@@ -223,7 +223,7 @@ describe('linku 清单词表（逐条对上游 linku.json）', () => {
     const { help } = await import('../src/help.ts')
     expect(help.title).toBe('Linku')
     expect(help.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xlinku --help', 'xlinku info', 'xlinku create', 'xlinku move_link', 'xlinku list', 'xlinku recover', 'xlinku restore',
+      'linku --help', 'linku info', 'linku create', 'linku move_link', 'linku list', 'linku recover', 'linku restore',
     ])
   })
 })

@@ -18,7 +18,7 @@
  * 2. `groups[].title` 改叫 `label`：本仓 `NodeGroup` 的词表用的是 `label`。
  * 3. `help` 只留 `whenToUse`（每种语言一条字符串）与 `safety`：上游那两大块
  *    `workflows` / `commands` 说的是旧壳的 `xiranite encodeb …` 命令名，本仓的 bin 是
- *    `xencodeb`（ADR-0010），照抄等于把"按帮助页敲一条不存在的命令"写进发布物。
+ *    `encodeb`（ADR-0010），照抄等于把"按帮助页敲一条不存在的命令"写进发布物。
  *    终端那一屏由 `src/help.ts` 从清单推导。
  * 4. `inputBindings` 里三条 `defaultExport`（`effective_src_encoding` /
  *    `effective_dst_encoding` / `preset_transform`）剥掉：那是上游 runner 往运行结果里
@@ -76,6 +76,8 @@ function fakeContext(): { ctx: never; registered: RegisteredTool[] } {
   const registered: RegisteredTool[] = []
   const ctx = {
     tools: { register: (tool: RegisteredTool) => { registered.push(tool); return () => undefined } },
+    // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+    effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     on: () => () => undefined,
     get: () => undefined,
   }
@@ -266,16 +268,16 @@ describe('encodb 的清单与定义', () => {
     expect(validateNodeDefinition(broken).ok).toBe(false)
   })
 
-  it('bin / exports / help 的接线形状：`xencodeb` 指向 lib/cli.js，帮助页从清单推导', async () => {
-    expect(pkg.bin).toEqual({ xencodeb: './lib/cli.js' })
+  it('bin / exports / help 的接线形状：`encodeb` 指向 lib/cli.js，帮助页从清单推导', async () => {
+    expect(pkg.bin).toEqual({ encodeb: './lib/cli.js' })
     expect(Object.keys(pkg.exports ?? {})).toEqual(['.', './cli', './help', './locale/*.json', './cordis.patch.yml', './package.json'])
 
     const { help } = await import('../src/help.ts')
-    // 期望值手抄推导器的规则：bin 是 xencodeb、示例行按动作列。
+    // 期望值手抄推导器的规则：bin 是 encodeb、示例行按动作列。
     expect(help.title).toBe('Encodeb')
-    expect(help.commands[0]?.command).toBe('xencodeb')
+    expect(help.commands[0]?.command).toBe('encodeb')
     expect(help.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xencodeb --help', 'xencodeb find', 'xencodeb preview', 'xencodeb recover',
+      'encodeb --help', 'encodeb find', 'encodeb preview', 'encodeb recover',
     ])
 
     // 台账 G7：本包不 inject `commands`，所以 `help.ts` **不传** `command`。
@@ -291,8 +293,8 @@ describe('encodb 的清单与定义', () => {
     const cloned = JSON.parse(JSON.stringify(pkg.xaihi?.node)) as { actions: unknown[] }
     cloned.actions.pop()
     const { nodeHelpFromManifest } = await import('@hibernalglow/xaihi-sdk')
-    const shrunk = nodeHelpFromManifest(cloned, { bin: 'xencodeb' })
+    const shrunk = nodeHelpFromManifest(cloned, { bin: 'encodeb' })
     expect(shrunk.commands[0]?.examples.map((example) => example.command))
-      .toEqual(['xencodeb --help', 'xencodeb find', 'xencodeb preview'])
+      .toEqual(['encodeb --help', 'encodeb find', 'encodeb preview'])
   })
 })

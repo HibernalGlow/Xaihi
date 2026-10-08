@@ -13,7 +13,7 @@
  *    （同批的 bandia 有，钉在那边）；
  * 4. `help` 只剩 `whenToUse` + `safety`：上游的 `workflows[]` / `commands[]` 是
  *    `NodeHelp`（`node-sdk/src/node.ts:156-159`）装不下的形状，且 `commands[].command`
- *    写的是旧壳的 `xiranite enginev`（本仓 bin 是 `xenginev`）；`whenToUse` 上游是
+ *    写的是旧壳的 `xiranite enginev`（本仓 bin 是 `enginev`）；`whenToUse` 上游是
  *    **单元素数组**，我们是 `LocalizedText` ⇒ 取那一条原文。
  *
  * 一处上游自带的**一致**也要钉住，免得被"顺手统一"错方向：`dryRun` 在内核
@@ -297,11 +297,11 @@ describe('enginev 清单的 SDK 侧形状', () => {
   })
 
   it('工具名是 <nodeId>_<actionId>，帮助页由清单推导', () => {
-    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'xenginev' })
+    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'enginev' })
     expect(help.title).toBe('EngineV')
-    expect(help.commands.map((command) => command.command)).toEqual(['xenginev', '/enginev'])
+    expect(help.commands.map((command) => command.command)).toEqual(['enginev', '/enginev'])
     const examples = help.commands[0]!.examples.map((example) => example.command)
-    expect(examples).toEqual(['xenginev --help', 'xenginev scan', 'xenginev filter', 'xenginev rename', 'xenginev delete', 'xenginev export'])
+    expect(examples).toEqual(['enginev --help', 'enginev scan', 'enginev filter', 'enginev rename', 'enginev delete', 'enginev export'])
     // G7 没修完的那一半：本包不 `inject` `commands`、也没传 `command`，而推导器在
     // `options.command === undefined` 时仍按 `/${nodeId}` 兜一个默认值（node-sdk/src/help.ts:107）。
     // 本包能做的只有"不传"（见 src/help.ts 头部），这一条钉的是**现状**，不是认可。
@@ -315,6 +315,8 @@ describe('enginev 宿主接线（apply → defineNode → 真内核 + 真盘）'
     const listeners: Array<(exec: { name: string; arguments: unknown }, next: () => Promise<PreDecision>) => Promise<PreDecision>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, listener: unknown) => {
         listeners.push(listener as (typeof listeners)[number])
         return () => {}
@@ -359,6 +361,8 @@ describe('enginev 宿主接线（apply → defineNode → 真内核 + 真盘）'
     const registered: Array<Record<string, unknown>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, _listener: unknown) => () => {},
       get: () => undefined,
     }

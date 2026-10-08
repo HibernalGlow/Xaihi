@@ -21,7 +21,7 @@
  * 四处偏离，都写在能看见的地方：
  * 1. **路径走 flag 不走位置参**：本包的终端支撑是 vendored 的 citty 子集
  *    （`src/cli-support.ts`），子命令之后不接受裸位置参（`Unknown argument: <token>.`，退出码 2），
- *    上游的 `xbitv analyze D:/videos` 在这里是 `xbitv analyze --path D:/videos`
+ *    上游的 `bitv analyze D:/videos` 在这里是 `bitv analyze --path D:/videos`
  *    （上游 `:306` 本来也收 `--path`）。与 `crashu` / `timeu` 是同一处理由。
  * 2. **重复 flag 后者赢**：上游 `--path` 可以写多次、每条都进队列（`:287` 的
  *    `result.paths.push(value)`），vendored 支撑把同名 flag 折成一个值 ⇒ 这里只拿到最后一条。

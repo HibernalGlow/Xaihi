@@ -19,7 +19,7 @@
  *    同一些值（`ini_path` / `passwords` / `code_page` / `database_path` / `record_run` /
  *    `dry_run`）在 Xaihi 是 `src/index.ts` 的 `Config`，独立 bin 读不到 ⇒ 这里的 defaults
  *    是空的，缺省落回内核自己那一套。**连带后果**：内核的 `dryRun` 默认是 **false**
- *    （`core.ts:233`），所以 `xsmartzip extract` 不带 `--dryRun` 走的是"真执行"那一条——
+ *    （`core.ts:233`），所以 `smartzip extract` 不带 `--dryRun` 走的是"真执行"那一条——
  *    而那条在本 bin 里必然被第 2 条拦下，不会动到任何文件。
  * 2. **7-Zip 起不来：这一面只出计划**。`ctx.subprocess` 活在宿主进程里（缺口 G1/G6 那一族：
  *    DSH 的服务缝在插件进程内，能装进 `$PATH` 的那一面在外面），所以 bin 里构造的运行时

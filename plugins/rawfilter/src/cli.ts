@@ -29,7 +29,7 @@
  *    `min_similarity` / `dry_run` 当缺省。按 `docs/adr/0013-config-goes-through-dsh-settings.md`
  *    同一些值在 Xaihi 是 `src/index.ts` 的 `Config`，独立 bin 读不到 ⇒ 这里的 defaults 是空的，
  *    缺省落回内核自己那一套（`core.ts:156-166`）。**连带后果**：内核的 `dryRun` 默认是
- *    **false**，所以 `xrawfilter execute` 不带 `--dryRun` 就是真搬——与上游 bin 一致，
+ *    **false**，所以 `rawfilter execute` 不带 `--dryRun` 就是真搬——与上游 bin 一致，
  *    不在这儿偷偷替它加一道上游没有的闸门。
  * 3. **`defaults.dry_run ?? ` 那一路径不存在**：上游用配置文件把 dry-run 兜住，这里只剩
  *    `--dryRun` / `--no-dryRun` 两种显式写法（flag 名与上游 `commonArgs` 逐字相同）。

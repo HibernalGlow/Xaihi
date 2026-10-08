@@ -3,7 +3,7 @@
  *
  * 上游这里是一份手写 `help.ts`（`<Xiranite>` tag `noxide` 的
  * `packages/nodes/crashu/src/help.ts`，120 行），内容是把手边的标题、描述与
- * `xiranite crashu …` 那套命令再誊一遍英文样板。本仓的 bin 是 `xcrashu`、
+ * `xiranite crashu …` 那套命令再誊一遍英文样板。本仓的 bin 是 `crashu`、
  * 无模型入口是 `/crashu`，那份手抄件说的是旧壳的命令名；照抄就会让使用者按帮助页
  * 敲一条不存在的命令。推导器与它为什么叫 `Terminal*` 的说明在
  * `@hibernalglow/xaihi-sdk` 的 `help.ts`。

@@ -196,11 +196,11 @@ describe('rawfilter 清单的 SDK 侧形状', () => {
   })
 
   it('工具名是 <nodeId>_<actionId>，帮助页由清单推导', () => {
-    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'xrawfilter', command: '/rawfilter' })
+    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'rawfilter', command: '/rawfilter' })
     expect(help.title).toBe('Rawfilter')
-    expect(help.commands.map((command) => command.command)).toEqual(['xrawfilter', '/rawfilter'])
+    expect(help.commands.map((command) => command.command)).toEqual(['rawfilter', '/rawfilter'])
     const examples = help.commands[0]!.examples.map((example) => example.command)
-    expect(examples).toEqual(['xrawfilter --help', 'xrawfilter scan', 'xrawfilter plan', 'xrawfilter execute'])
+    expect(examples).toEqual(['rawfilter --help', 'rawfilter scan', 'rawfilter plan', 'rawfilter execute'])
   })
 })
 
@@ -210,6 +210,8 @@ describe('rawfilter 宿主接线（apply → defineNode → 真内核）', () =>
     const listeners: Array<(exec: { name: string; arguments: unknown }, next: () => Promise<PreDecision>) => Promise<PreDecision>> = []
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as Record<string, unknown>); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, listener: unknown) => {
         listeners.push(listener as (typeof listeners)[number])
         return () => {}

@@ -16,7 +16,7 @@
  *    **空数组**，这里不替它造一个分组（造了就是往清单里加上游没有的东西）。
  * 3. `help` 只留 `whenToUse`（每种语言一条字符串）与 `safety`；上游那两大块
  *    `workflows` / `commands` 说的是旧壳的 `xiranite formatv …` 命令名（bin 是
- *    `xformatv`、无模型入口是 `/formatv`，ADR-0010）。
+ *    `formatv`、无模型入口是 `/formatv`，ADR-0010）。
  * 4. `danger` 的 `actionIs` 谓词去掉 `actionField: "action"`（理由见 crashu 同名说明，
  *    本包用例里带"放回去就永不亮"的对照）。
  * 5. 上游那份多出来的 `resultTable`（来源/目标/状态三列）与 `pathsText.placeholder`
@@ -65,6 +65,8 @@ function fakeContext(): { ctx: never; registered: RegisteredTool[] } {
   const registered: RegisteredTool[] = []
   const ctx = {
     tools: { register: (tool: RegisteredTool) => { registered.push(tool); return () => undefined } },
+    // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+    effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     on: () => () => undefined,
     get: () => undefined,
   }
@@ -220,24 +222,24 @@ describe('formatv 的清单与定义', () => {
     }).toThrow(/must be a guarded rule object/)
   })
 
-  it('bin / exports 的接线形状：`xformatv` 指向 lib/cli.js，help 从清单推导', async () => {
-    expect(pkg.bin).toEqual({ xformatv: './lib/cli.js' })
+  it('bin / exports 的接线形状：`formatv` 指向 lib/cli.js，help 从清单推导', async () => {
+    expect(pkg.bin).toEqual({ formatv: './lib/cli.js' })
     expect(Object.keys(pkg.exports ?? {})).toEqual(['.', './cli', './help', './locale/*.json', './cordis.patch.yml', './package.json'])
 
     const { help } = await import('../src/help.ts')
     expect(help.title).toBe('FormatV')
-    expect(help.commands[0]?.command).toBe('xformatv')
+    expect(help.commands[0]?.command).toBe('formatv')
     expect(help.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xformatv --help', 'xformatv scan', 'xformatv add_nov', 'xformatv remove_nov', 'xformatv check_duplicates',
+      'formatv --help', 'formatv scan', 'formatv add_nov', 'formatv remove_nov', 'formatv check_duplicates',
     ])
     expect(help.commands[1]?.command).toBe('/formatv')
 
     // 阳性对照：清单少一条动作，示例行就少一条 ⇒ 这把尺读的是清单，不是手写文案。
     const cloned = JSON.parse(JSON.stringify(pkg.xaihi?.node)) as { actions: unknown[] }
     cloned.actions.pop()
-    const shrunk = nodeHelpFromManifest(cloned, { bin: 'xformatv', command: '/formatv' })
+    const shrunk = nodeHelpFromManifest(cloned, { bin: 'formatv', command: '/formatv' })
     expect(shrunk.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xformatv --help', 'xformatv scan', 'xformatv add_nov', 'xformatv remove_nov',
+      'formatv --help', 'formatv scan', 'formatv add_nov', 'formatv remove_nov',
     ])
   })
 })

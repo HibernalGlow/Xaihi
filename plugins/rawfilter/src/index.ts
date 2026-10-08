@@ -14,7 +14,7 @@
  * - `core.ts:164`（上游 `:164`）是 `input.dryRun ?? false` ⇒ 内核默认**执行**；
  * - `node-definitions/rawfilter.json` 给 `dryRun` 字段声明的默认是 **true** ⇒ 界面默认**预演**。
  * 界面上默认预演靠清单那个 default，宿主面靠 `Config.dryRun`（默认 true）补模型没给参数那一格；
- * 真执行要么显式传 `dryRun: false`，要么走 `xrawfilter execute --no-dryRun`。
+ * 真执行要么显式传 `dryRun: false`，要么走 `rawfilter execute --no-dryRun`。
  * 两种形状下"没被批准就不动文件"这件事都由 `danger.all` + DSH 的 `ask` 兜住。
  *
  * DI 缝 → DSH 服务的对应（`docs/service-mapping.md`）：

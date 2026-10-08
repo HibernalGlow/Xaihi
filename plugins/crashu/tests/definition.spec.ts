@@ -16,7 +16,7 @@
  * 2. `groups[].title` 改叫 `label`：本仓 `NodeGroup` 的词表用的是 `label`。
  * 3. `help` 只留 `whenToUse`（每种语言一条字符串）与 `safety`：上游那两大块
  *    `workflows` / `commands` 说的是旧壳的 `xiranite crashu …` 命令名，本仓的 bin 是
- *    `xcrashu`、无模型入口是 `/crashu`（ADR-0010），照抄等于把"按帮助页敲一条不存在的命令"
+ *    `crashu`、无模型入口是 `/crashu`（ADR-0010），照抄等于把"按帮助页敲一条不存在的命令"
  *    写进发布物。终端那一屏由 `src/help.ts` 从清单推导。
  * 4. `danger` 的 `actionIs` 谓词**去掉** `actionField: "action"`：`defineNode` 的参数表里
  *    没有动作选择器（`parametersFor` 明令跳过 `isActionSelector`），而 `dangerFor` 的
@@ -66,6 +66,8 @@ function fakeContext(): { ctx: never; registered: RegisteredTool[] } {
   const registered: RegisteredTool[] = []
   const ctx = {
     tools: { register: (tool: RegisteredTool) => { registered.push(tool); return () => undefined } },
+    // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+    effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     on: () => () => undefined,
     get: () => undefined,
   }
@@ -221,16 +223,16 @@ describe('crashu 的清单与定义', () => {
     expect(validateNodeDefinition(broken).ok).toBe(false)
   })
 
-  it('bin / exports / cli-support 的接线形状：`xcrashu` 指向 lib/cli.js，help 从清单推导', async () => {
-    expect(pkg.bin).toEqual({ xcrashu: './lib/cli.js' })
+  it('bin / exports / cli-support 的接线形状：`crashu` 指向 lib/cli.js，help 从清单推导', async () => {
+    expect(pkg.bin).toEqual({ crashu: './lib/cli.js' })
     expect(Object.keys(pkg.exports ?? {})).toEqual(['.', './cli', './help', './locale/*.json', './cordis.patch.yml', './package.json'])
 
     const { help } = await import('../src/help.ts')
-    // 期望值手抄推导器的规则：bin 是 xcrashu、无模型入口是 /crashu、示例行按动作列。
+    // 期望值手抄推导器的规则：bin 是 crashu、无模型入口是 /crashu、示例行按动作列。
     expect(help.title).toBe('Crashu')
-    expect(help.commands[0]?.command).toBe('xcrashu')
+    expect(help.commands[0]?.command).toBe('crashu')
     expect(help.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xcrashu --help', 'xcrashu scan', 'xcrashu plan', 'xcrashu move',
+      'crashu --help', 'crashu scan', 'crashu plan', 'crashu move',
     ])
     expect(help.commands[1]?.command).toBe('/crashu')
 
@@ -238,7 +240,7 @@ describe('crashu 的清单与定义', () => {
     const cloned = JSON.parse(JSON.stringify(pkg.xaihi?.node)) as { actions: unknown[] }
     cloned.actions.pop()
     const { nodeHelpFromManifest } = await import('@hibernalglow/xaihi-sdk')
-    const shrunk = nodeHelpFromManifest(cloned, { bin: 'xcrashu', command: '/crashu' })
-    expect(shrunk.commands[0]?.examples.map((example) => example.command)).toEqual(['xcrashu --help', 'xcrashu scan', 'xcrashu plan'])
+    const shrunk = nodeHelpFromManifest(cloned, { bin: 'crashu', command: '/crashu' })
+    expect(shrunk.commands[0]?.examples.map((example) => example.command)).toEqual(['crashu --help', 'crashu scan', 'crashu plan'])
   })
 })

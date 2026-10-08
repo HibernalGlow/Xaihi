@@ -2,13 +2,13 @@
  * linku 的终端帮助载荷：**由 `package.json#xaihi.node` 推导**，不抄第二份。
  *
  * 上游这里是一份手写 `help.ts`（tag `noxide` 的 `packages/nodes/linku/src/help.ts`，140 行），
- * 把标题/描述/命令再誊一遍，命令名还写着旧壳的 `xiranite linku`（本仓的 bin 是 `xlinku`、
+ * 把标题/描述/命令再誊一遍，命令名还写着旧壳的 `xiranite linku`（本仓的 bin 是 `linku`、
  * 无模型入口是 `/linku`）。手抄的第二真源迟早骗人，所以这里只从清单推。
  * 推导器与它为什么叫 `Terminal*` 的说明在 `@hibernalglow/xaihi-sdk` 的 `help.ts`。
  *
  * 上游清单 `help.commands` 里那两条"引导模式"的例子（`xiranite linku` 直接进 guided）
  * 随 guided 腿一起不随本包发布，推导器因此只会给出**脚本化**的两条
- * （`xlinku --help` 与每个动作一行）——这不是漏，是那条腿本就没搬。
+ * （`linku --help` 与每个动作一行）——这不是漏，是那条腿本就没搬。
  *
  * 导出名 `help` 是聚合 CLI 定的：`packages/cli/src/index.ts` 里
  * `interface NodeHelpModule { help?: NodeHelp }`，按 `{packageName}/help` 动态装载。

@@ -3,13 +3,13 @@
  *
  * 上游这里是一份手写 `help.ts`（`<Xiranite>` tag `noxide` 的
  * `packages/nodes/formatv/src/help.ts`，120 行），内容是把手边的标题、描述与
- * `xiranite formatv …` 那套命令再誊一遍英文样板。本仓的 bin 是 `xformatv`、
+ * `xiranite formatv …` 那套命令再誊一遍英文样板。本仓的 bin 是 `formatv`、
  * 无模型入口是 `/formatv`，那份手抄件说的是旧壳的命令名；照抄就会让使用者按帮助页
  * 敲一条不存在的命令。推导器与它为什么叫 `Terminal*` 的说明在
  * `@hibernalglow/xaihi-sdk` 的 `help.ts`。
  *
  * 四个动作 `scan` / `add_nov` / `remove_nov` / `check_duplicates` 在推导结果里
- * 同时出现在两处：`commands[].examples` 用 `xformatv <action>`，而终端面的子命令名是
+ * 同时出现在两处：`commands[].examples` 用 `formatv <action>`，而终端面的子命令名是
  * `add-nov` / `remove-nov` / `duplicates`（上游 `cli.ts:194-214` 的 kebab 拼法）。
  * 这条落差是上游本来就有的（帮助页与子命令名不是一套字），这里不替它统一，
  * 也不在推导器之外补一份"真实命令表"。

@@ -18,8 +18,8 @@
  *    字段 `visible` / `rules[].when` 里那条 `actionField` 反而要留：可见性求值自己会造
  *    `{[selector.id]: actionId}` 喂给它。
  * 4. `help` 只留 `whenToUse`（每种语言一条字符串，上游是每种语言一个数组）与 `safety`：
- *    上游的 `workflows` / `commands` 那一整块在教使用者敲 `xbitv ui` / `xbitv gd` /
- *    `xbitv analyze <路径>` —— 这三条腿在本包**一条都跑不了**（终端面整表拒绝，见
+ *    上游的 `workflows` / `commands` 那一整块在教使用者敲 `bitv ui` / `bitv gd` /
+ *    `bitv analyze <路径>` —— 这三条腿在本包**一条都跑不了**（终端面整表拒绝，见
  *    `src/cli.ts`），照抄就是把缺口台账 G4 那一类"清单在宣传包自己会拒的腿"写进发布物。
  *
  * 一处上游自带的**默认值分叉**两头都钉住、不在这里统一（G8：模型省略布尔时 `bindInputs`
@@ -156,7 +156,7 @@ describe('bitv 清单合法', () => {
   })
 
   it('清单的三条导出面齐（bin + ./cli + ./help），否则聚合 CLI 少一条腿', () => {
-    expect(Object.keys(pkg.bin ?? {})).toEqual(['xbitv'])
+    expect(Object.keys(pkg.bin ?? {})).toEqual(['bitv'])
     expect(pkg.exports?.['./cli']).toBeDefined()
     expect(pkg.exports?.['./help']).toBeDefined()
   })
@@ -344,13 +344,13 @@ describe('bitv 清单的 SDK 侧形状', () => {
     expect(dangerFor(node, undefined, 'analyze', { dryRun: false })).toBeUndefined()
   })
 
-  it('帮助页由清单推导：bin 是 xbitv，`src/help.ts` 不声明 /bitv（本包 inject 里没有 commands）', () => {
-    const help = nodeHelpFromManifest(raw(), { bin: 'xbitv' })
+  it('帮助页由清单推导：bin 是 bitv，`src/help.ts` 不声明 /bitv（本包 inject 里没有 commands）', () => {
+    const help = nodeHelpFromManifest(raw(), { bin: 'bitv' })
     expect(help.title).toBe('BitV')
     expect(help.short).toBe('Analyze video bitrate with ffprobe and classify files safely.')
-    expect(help.commands[0]!.command).toBe('xbitv')
+    expect(help.commands[0]!.command).toBe('bitv')
     expect(help.commands[0]!.examples.map((example) => example.command)).toEqual([
-      'xbitv --help', 'xbitv status', 'xbitv analyze', 'xbitv classify', 'xbitv report',
+      'bitv --help', 'bitv status', 'bitv analyze', 'bitv classify', 'bitv report',
     ])
     // 正控走源码扫描：`src/help.ts` 若把 `command` 传回来，本包就多宣传一条不存在的入口
     //（缺口 G7）。推导器那一侧仍会按 nodeId 兜出 `/bitv` 那一格
@@ -358,7 +358,7 @@ describe('bitv 清单的 SDK 侧形状', () => {
     // **不能**拿"commands 数组少一条"当判据——那一刀在 SDK 侧，不在本包顺手改。
     const helpSource = readFileSync(fileURLToPath(new URL('../src/help.ts', import.meta.url)), 'utf8')
     expect(helpSource).not.toContain(`command: '/bitv'`)
-    expect(helpSource).toContain(`nodeHelpFromManifest(node, { bin: 'xbitv' })`)
+    expect(helpSource).toContain(`nodeHelpFromManifest(node, { bin: 'bitv' })`)
     // 阳性对照：本包没注册命令，`src/index.ts` 的 inject 里就不许出现 commands。
     const indexSource = readFileSync(fileURLToPath(new URL('../src/index.ts', import.meta.url)), 'utf8')
     expect(indexSource).not.toContain(`inject = ['tools', 'subprocess', 'commands']`)
@@ -375,6 +375,8 @@ describe('bitv 宿主接线（apply → defineNode → 真内核 + ctx.subproces
     const seam = fakeSeam()
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as RegisteredTool); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, listener: unknown) => {
         listeners.push(listener as (typeof listeners)[number])
         return () => {}
@@ -435,6 +437,8 @@ describe('bitv 宿主接线（apply → defineNode → 真内核 + ctx.subproces
     const seam = fakeSeam()
     const ctx = {
       tools: { register: (tool: unknown) => { registered.push(tool as RegisteredTool); return () => {} } },
+      // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+      effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: () => () => {},
       get: (name: string) => (name === 'subprocess' ? seam.seam : undefined),
     }

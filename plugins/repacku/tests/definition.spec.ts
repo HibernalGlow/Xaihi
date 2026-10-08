@@ -69,6 +69,8 @@ function fakeContext (): { ctx: never; registered: RegisteredTool[] } {
   const registered: RegisteredTool[] = []
   const ctx = {
     tools: { register: (tool: RegisteredTool) => { registered.push(tool); return () => undefined } },
+    // cordis 的 ctx.effect：回调立即执行，它返回的函数被收作注销器（正典形状见 packages/node-sdk/tests/define-node.spec.ts:67）。
+    effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     on: () => () => undefined,
     get: () => undefined,
     subprocess: {},
