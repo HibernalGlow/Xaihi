@@ -45,7 +45,7 @@ export function Component({ compId, host }: NodeComponentProps) {
   const logs = data.logs ?? []
   const mappings = data.mappings ?? []
   const matches = data.matches ?? []
-  const preset = data.preset ?? "auto"
+  const preset = data.preset ?? "cn"
   const presetMeta = PRESETS.find((item) => item.value === preset) ?? PRESETS[0]!
   const srcEncoding = data.srcEncoding ?? presetMeta.srcEncoding ?? "cp437"
   const dstEncoding = data.dstEncoding ?? presetMeta.dstEncoding ?? "cp936"

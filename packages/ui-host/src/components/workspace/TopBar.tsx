@@ -3,23 +3,22 @@ import { AnimatePresence, motion } from "motion/react"
 import { useTranslation } from "react-i18next"
 import { getRuntime } from "@/backend/client"
 import { getRuntimeConnectionInfo } from "@/backend/runtimeConnectionInfo"
-import { DesignLanguagePicker } from "./DesignLanguagePicker"
 import { countHazardAffectedNodes, disableAllNodeDryRuns } from "@/lib/hazardMode"
 import { cn } from "@/lib/utils"
-import { translateLabel } from "@/lib/i18nLabel"
 import { useWorkspaceActions, useWorkspaceShallowSelector } from "@/store/workspaceStore"
 import { activeNodeOperationCount, useNodeOperations } from "@/store/nodeOperations"
 import { useWindowControls } from "@/hooks/useWindowControls"
 import { useTheme } from "@/components/use-theme"
 import { getActiveCustomTheme, resolveThemeScheme, THEME_PRESET_OPTIONS } from "@/lib/appearance"
-import type { ViewMode, CardLayout, AppCustomTheme, AppTheme } from "@/types/workspace"
-import { WorkspaceIcon, IconPicker } from "@/components/workspace/WorkspaceIcon"
+import type { AppDesignThemeId } from "@/lib/design-theme/contract"
+import { DESIGN_THEME_ENTRIES } from "@/lib/design-theme/registry"
+import type { ViewMode, CardLayout, AppCustomTheme } from "@/types/workspace"
 import { AppMenuRoot, AppMenuRow, type AppMenuPage } from "@/components/workspace/AppMenuRoot"
 import {
   Settings, Grid, SplitSquareVertical, AlignJustify, Target,
-  Gauge, LayoutDashboard, Workflow, Share2, Plus, ChevronDown, Check,
+  Gauge, LayoutDashboard, Workflow, Share2, ChevronDown, Check,
   Sun, Moon, Monitor, Palette,
-  LayoutTemplate, Trash2, Edit3, Smile,
+  LayoutTemplate,
   ArrowLeft, ShieldAlert, Flame,
 } from "lucide-react"
 import { WindowControlIcon } from "./WindowControlIcon"
@@ -41,16 +40,11 @@ import {
 } from "@/components/ui/alert-dialog"
 import { SlingButton } from "@/components/ui/sling-button"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Popover,
   PopoverContent,
-  PopoverDescription,
-  PopoverHeader,
-  PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -105,7 +99,6 @@ const CARD_LAYOUT_OPTIONS: { key: CardLayout; labelKey: string; hintKey: string;
 ]
 
 const THEME_PRESETS = THEME_PRESET_OPTIONS
-const CUSTOM_THEME_ACTIVE_VALUE = "__custom_theme_active__"
 function CustomThemeSwatch({ theme }: { theme: AppCustomTheme }) {
   const colors = theme.cssVars.light
   const swatches = [colors.background, colors.primary, colors.secondary, colors.accent].filter(Boolean)
@@ -129,8 +122,6 @@ export function TopBar() {
   const state = useWorkspaceShallowSelector((workspace) => ({
     viewMode: workspace.viewMode,
     cardLayout: workspace.cardLayout,
-    workspaces: workspace.workspaces,
-    activeWorkspaceId: workspace.activeWorkspaceId,
     theme: workspace.theme,
     themeSelections: workspace.themeSelections,
     customThemes: workspace.customThemes,
@@ -146,9 +137,6 @@ export function TopBar() {
   const [hazardConfirmOpen, setHazardConfirmOpen] = useState(false)
   const [themeMenuOpen, setThemeMenuOpen] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
-  const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [renameValue, setRenameValue] = useState("")
-  const [iconPickerWsId, setIconPickerWsId] = useState<string | null>(null)
   const runtimeInfo = getRuntimeConnectionInfo()
   const activeOperations = useNodeOperations((store) => activeNodeOperationCount(store.operations))
   // 动作上下文由渲染器推进注册表：动作自己不认识 store，只读这份快照（ADR-0081）。
@@ -168,7 +156,6 @@ export function TopBar() {
   const systemOwnsCaption = capabilities?.captionOwner === "system"
   const showWindowControls = canControlMainWindow && !systemOwnsCaption
 
-  const activeWorkspace = state.workspaces.find((w) => w.id === state.activeWorkspaceId)
   const activeScheme = resolveThemeScheme((colorMode ?? "system") as ColorMode, window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? document.documentElement.classList.contains("dark"))
   const activeSelection = state.themeSelections[activeScheme]
   const activePresetKey = activeSelection.kind === "preset" ? activeSelection.name : state.theme
@@ -183,11 +170,6 @@ export function TopBar() {
       (activeScheme === "dark" ? activeCustomTheme.cssVars.dark : activeCustomTheme.cssVars.light)?.accent ?? activeCustomTheme.cssVars.light.accent,
     ].filter(Boolean)
     : activePreset.palette
-
-  // 切换预设时自动同步颜色模式
-  function selectPreset(key: AppTheme) {
-    workspaceActions.setThemeSelection(activeScheme, { kind: "preset", name: key })
-  }
 
   function selectCustomThemeName(value: string) {
     workspaceActions.setThemeSelection(activeScheme, value === "none" ? { kind: "preset", name: state.theme } : { kind: "custom", name: value })
@@ -238,8 +220,8 @@ export function TopBar() {
       onDoubleClick={handleTitleBarDoubleClick}
       data-topbar-caption={systemOwnsCaption ? "system" : "renderer"}
       // With the OS owning the buttons their band replaces this bar's leading padding; the trailing 1rem
-      // still comes from `px-4`.
-      style={systemOwnsCaption ? { paddingLeft: captionBandInlinePx(capabilities?.captionInset) } : undefined}
+      // still comes from `px-4`. In pure web or without inset, no extra padding is reserved.
+      style={systemOwnsCaption && capabilities?.captionInset ? { paddingLeft: captionBandInlinePx(capabilities.captionInset) } : undefined}
       className={cn(
         "xiranite-app-region-drag",
         "xiranite-topbar",
@@ -252,18 +234,13 @@ export function TopBar() {
         onOpenChange={(open) => {
           setWsMenuOpen(open)
           if (open) setAppMenuPage("root")
-          if (!open) setRenamingId(null)
         }}
       >
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
             className="xiranite-app-region-no-drag h-10 shrink-0 gap-2 px-2 text-left hover:bg-muted/50"
-            title={activeWorkspace ? `${t("topbar:workspace.current")}: ${translateLabel(activeWorkspace.label, t)}` : t("topbar:workspace.new")}
           >
-          {activeWorkspace?.icon ? (
-            <WorkspaceIcon icon={activeWorkspace.icon} size="sm" />
-          ) : null}
             <span className="min-w-0 flex-1">
               <span className="block font-mono text-sm font-bold leading-none tracking-tight text-primary">{t("common:appName")}</span>
               <span className="mt-0.5 block font-mono text-[9px] leading-none text-muted-foreground/60">{t("common:version", { version: "0.5.0" })}</span>
@@ -328,126 +305,6 @@ export function TopBar() {
                 t={t}
                 value={state.cardLayout}
               />
-            ) : null}
-              {/* 当前工作区 */}
-            {appMenuPage === "workspaces" ? (
-              <>
-                <AppMenuBack label="工作空间" onBack={() => setAppMenuPage("root")} />
-              {activeWorkspace ? (
-                <PopoverHeader className="border-b border-border/60 bg-muted/20 px-3 py-2">
-                  <PopoverTitle className="font-mono text-[10px] tracking-widest text-muted-foreground">
-                    {t("topbar:workspace.current")}
-                  </PopoverTitle>
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className="grid w-6 shrink-0 place-items-center">
-                      {activeWorkspace.icon ? <WorkspaceIcon icon={activeWorkspace.icon} size="sm" /> : null}
-                    </div>
-                    {renamingId === activeWorkspace.id ? (
-                      <Input
-                        autoFocus
-                        value={renameValue}
-                        onChange={(e) => setRenameValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && renameValue.trim()) {
-                            workspaceActions.renameWorkspace(activeWorkspace.id, renameValue.trim())
-                            setRenamingId(null)
-                          }
-                          if (e.key === "Escape") setRenamingId(null)
-                        }}
-                        onBlur={() => setRenamingId(null)}
-                        className="h-7 flex-1 font-mono text-xs"
-                      />
-                    ) : (
-                      <PopoverDescription className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
-                        {translateLabel(activeWorkspace.label, t)}
-                      </PopoverDescription>
-                    )}
-                  </div>
-                </PopoverHeader>
-              ) : null}
-
-              {/* 工作区列表 */}
-              <ScrollArea className="h-[min(16rem,calc(100vh-12rem))]">
-                <div className="flex flex-col gap-1 p-1.5">
-                {state.workspaces.map(ws => (
-                  <div
-                    key={ws.id}
-                    data-workspace-id={ws.id}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 w-full text-left text-xs font-mono hover:bg-muted/60 transition-colors group",
-                      ws.id === state.activeWorkspaceId && "bg-primary/5 text-primary"
-                    )}
-                  >
-                    <button
-                      onClick={() => {
-                        workspaceActions.setActiveWorkspace(ws.id)
-                        setWsMenuOpen(false)
-                      }}
-                      className="flex flex-1 items-center gap-2 min-w-0"
-                    >
-                      <div className="w-5 flex-shrink-0 grid place-items-center">
-                        {ws.icon ? <WorkspaceIcon icon={ws.icon} size="sm" /> : null}
-                      </div>
-                      <span className="flex-1 truncate">{translateLabel(ws.label, t)}</span>
-                      {ws.id === state.activeWorkspaceId && <Check className="h-3 w-3 flex-shrink-0" />}
-                    </button>
-                    {/* 操作按钮（hover 显示） */}
-                    <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        title={t("topbar:workspace.setIcon")}
-                        onClick={(e) => { e.stopPropagation(); setIconPickerWsId(ws.id) }}
-                        className="grid h-5 w-5 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        <Smile className="h-3 w-3" />
-                      </button>
-                      <button
-                        title={t("topbar:workspace.rename")}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setRenamingId(ws.id)
-                          setRenameValue(translateLabel(ws.label, t))
-                        }}
-                        className="grid h-5 w-5 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-                      >
-                        <Edit3 className="h-3 w-3" />
-                      </button>
-                      {state.workspaces.length > 1 ? (
-                        <button
-                          title={t("topbar:workspace.delete")}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (ws.id === state.activeWorkspaceId) {
-                              const rest = state.workspaces.filter(w => w.id !== ws.id)
-                              if (rest.length > 0) workspaceActions.setActiveWorkspace(rest[0].id)
-                            }
-                            workspaceActions.removeWorkspace(ws.id)
-                          }}
-                          className="grid h-5 w-5 place-items-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-                </div>
-              </ScrollArea>
-
-              {/* 操作区 */}
-              <Separator />
-              <div className="p-1.5">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { workspaceActions.addWorkspace(); setWsMenuOpen(false) }}
-                  className="w-full justify-start font-mono text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <Plus />
-                  {t("topbar:workspace.new")}
-                </Button>
-              </div>
-              </>
             ) : null}
           </PopoverContent>
         )}
@@ -598,14 +455,13 @@ export function TopBar() {
 
               <div className="grid gap-3 p-3">
                 <div className="grid gap-1.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[9px] font-mono tracking-widest text-muted-foreground">{t("topbar:theme.preset")}</p>
-                    {!activeCustomTheme && <Check className="h-3 w-3 text-primary" />}
-                  </div>
+                  {/* 设计语言直接占原本「主题预设」的位置（用户 2026-10-07：统一，用同一个 select 切换）。
+                      词表只有一份——条目来自 `DESIGN_THEME_ENTRIES`，不在这里再枚举一遍 id。 */}
+                  <p className="text-[9px] font-mono tracking-widest text-muted-foreground">{t("settings:timeline.steps.designLanguage")}</p>
                   <Select
-                    value={activeCustomTheme ? CUSTOM_THEME_ACTIVE_VALUE : activePresetKey}
+                    value={state.designTheme.id}
                     onValueChange={(value) => {
-                      if (value !== CUSTOM_THEME_ACTIVE_VALUE) selectPreset(value as AppTheme)
+                      if (value) workspaceActions.setDesignTheme({ ...state.designTheme, id: value as AppDesignThemeId })
                     }}
                   >
                     <SelectTrigger className="w-full bg-background/65 font-mono text-xs" size="sm">
@@ -613,19 +469,9 @@ export function TopBar() {
                     </SelectTrigger>
                     <SelectContent className="max-h-72">
                       <SelectGroup>
-                        {activeCustomTheme && (
-                          <SelectItem value={CUSTOM_THEME_ACTIVE_VALUE}>
-                            <Palette className="text-primary" />
-                            <span className="min-w-0 truncate">Imported theme active</span>
-                          </SelectItem>
-                        )}
-                        {THEME_PRESETS.map((preset) => (
-                          <SelectItem key={preset.key} value={preset.key}>
-                            <span
-                              className="h-3 w-3 shrink-0 rounded-sm border border-border/60"
-                              style={{ background: preset.swatch }}
-                            />
-                            <span className="min-w-0 truncate">{t(preset.labelKey)}</span>
+                        {DESIGN_THEME_ENTRIES.map((option) => (
+                          <SelectItem key={option.id} value={option.id} title={t(option.descriptionKey)}>
+                            <span className="min-w-0 truncate">{t(option.labelKey)}</span>
                           </SelectItem>
                         ))}
                       </SelectGroup>
@@ -692,8 +538,6 @@ export function TopBar() {
                     })}
                   </ToggleGroup>
                 </div>
-
-                <DesignLanguagePicker value={state.designTheme} onChange={workspaceActions.setDesignTheme} />
               </div>
 
               <Separator />
@@ -748,14 +592,6 @@ export function TopBar() {
           </button>
         </div>
       )}
-
-      {iconPickerWsId ? (
-        <IconPicker
-          currentIcon={state.workspaces.find(w => w.id === iconPickerWsId)?.icon}
-          onSet={(icon) => workspaceActions.setWorkspaceIcon(iconPickerWsId, icon)}
-          onClose={() => setIconPickerWsId(null)}
-        />
-      ) : null}
 
     </header>
   )

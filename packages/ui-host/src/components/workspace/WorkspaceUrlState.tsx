@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useRef } from "react"
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs"
 import { parseSettingsSectionId } from "@/components/views/settings/settingsNavigation"
 import { getWorkspaceState, useWorkspaceActions, useWorkspaceShallowSelector } from "@/store/workspaceStore"
@@ -8,37 +8,32 @@ const VIEW_MODES = ["dashboard", "cards", "dockview", "flow", "lane", "bento"] a
 
 const workspaceUrlParsers = {
   view: parseAsStringLiteral(VIEW_MODES).withDefault("cards"),
-  workspace: parseAsString,
   /** Global settings deep link: `?settings=workspace` opens the settings overlay on that stage. */
   settings: parseAsString,
 }
 
+/**
+ * ADR-0019：多工作空间退役后 URL 只承载视图与设置深链；
+ * 原来的 `?workspace=<id>` 参数随多空间概念一并删除。
+ */
 export function WorkspaceUrlState() {
-  const [{ view, workspace, settings }, setUrlState] = useQueryStates(workspaceUrlParsers, {
+  const [{ view, settings }, setUrlState] = useQueryStates(workspaceUrlParsers, {
     history: "replace",
     shallow: true,
     clearOnDefault: false,
   })
   const state = useWorkspaceShallowSelector((workspaceState) => ({
     viewMode: workspaceState.viewMode,
-    activeWorkspaceId: workspaceState.activeWorkspaceId,
-    backendReady: workspaceState.backendReady,
-    workspaces: workspaceState.workspaces,
     overlay: workspaceState.overlay,
   }))
   const workspaceActions = useWorkspaceActions()
-  const lastUrlStateRef = useRef<{ view: ViewMode; workspace: string | null } | null>(null)
+  const lastUrlStateRef = useRef<ViewMode | null>(null)
   const suppressStoreToUrlRef = useRef(false)
-  const workspaceIds = useMemo(() => new Set(state.workspaces.map((item) => item.id)), [state.workspaces])
   const settingsSection = parseSettingsSectionId(settings)
 
   useEffect(() => {
-    const currentUrlState = { view, workspace }
-    const lastUrlState = lastUrlStateRef.current
-    const urlChanged = !lastUrlState
-      || lastUrlState.view !== currentUrlState.view
-      || lastUrlState.workspace !== currentUrlState.workspace
-    if (urlChanged) lastUrlStateRef.current = currentUrlState
+    const urlChanged = lastUrlStateRef.current !== view
+    if (urlChanged) lastUrlStateRef.current = view
 
     let appliedUrlState = false
     const currentStoreState = getWorkspaceState()
@@ -48,20 +43,10 @@ export function WorkspaceUrlState() {
       appliedUrlState = true
     }
 
-    if (
-      state.backendReady
-      && workspace
-      && workspaceIds.has(workspace)
-      && workspace !== currentStoreState.activeWorkspaceId
-    ) {
-      workspaceActions.setActiveWorkspace(workspace)
-      appliedUrlState = true
-    }
-
     if (appliedUrlState) {
       suppressStoreToUrlRef.current = true
     }
-  }, [workspaceActions, state.backendReady, view, workspace, workspaceIds])
+  }, [workspaceActions, view])
 
   // Deep link: valid ?settings=<sectionId> opens the global settings overlay.
   useEffect(() => {
@@ -83,20 +68,11 @@ export function WorkspaceUrlState() {
       return
     }
 
-    const nextUrlState: Partial<{ view: ViewMode; workspace: string }> = {}
-    if (view !== state.viewMode) nextUrlState.view = state.viewMode
-    if (state.backendReady && state.activeWorkspaceId && workspace !== state.activeWorkspaceId) {
-      nextUrlState.workspace = state.activeWorkspaceId
+    if (view !== state.viewMode) {
+      lastUrlStateRef.current = state.viewMode
+      void setUrlState({ view: state.viewMode })
     }
-
-    if (Object.keys(nextUrlState).length > 0) {
-      lastUrlStateRef.current = {
-        view: nextUrlState.view ?? view,
-        workspace: nextUrlState.workspace ?? workspace,
-      }
-      void setUrlState(nextUrlState)
-    }
-  }, [setUrlState, state.activeWorkspaceId, state.backendReady, state.viewMode, view, workspace])
+  }, [setUrlState, state.viewMode, view])
 
   return null
 }

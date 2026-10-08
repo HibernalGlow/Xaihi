@@ -32,7 +32,7 @@ import {
 import type { RuntimeHistoryItemDTO, RuntimeHistoryStatusDTO } from "@xiranite/shared"
 import type { LocalBackendStatusKind } from "@/backend/localBackendStatus"
 import { MODULE_REGISTRY, getModule } from "@/components/modules/registry"
-import { useLocalBackendStatus } from "@/hooks/useLocalBackendStatus"
+import { useHostConnection } from "@/hooks/useHostConnection"
 import { useNodeRunHistory } from "@/hooks/useNodeRunHistory"
 import { useRuntimeHistory } from "@/hooks/useRuntimeHistory"
 import { isTerminalPhase, useNodeOperations, type TrackedNodeOperation } from "@/store/nodeOperations"
@@ -151,9 +151,13 @@ type DashboardBackendStatus = LocalBackendStatusKind | "checking" | "unknown"
 export function UsageDashboard() {
   const { t } = useTranslation()
   const [rangeDays, setRangeDays] = useState<RangeDays>(14)
-  const runtimeHistory = useRuntimeHistory({ limit: 200 })
-  const nodeHistory = useNodeRunHistory({ limit: 200 })
-  const backendStatus = useLocalBackendStatus()
+  // 两条 REST 历史 hook 永久停用（`enabled: false` ⇒ 一条请求都不发）：运行历史的真源是
+  // runner 组，而 runner 现在没有提供者（提案 P1：命令要跑在一个 Agent 上）。界面上
+  // 因此按"无数据"渲染 —— 这比继续打一条作废的 REST 后端诚实。
+  const runtimeHistory = useRuntimeHistory({ limit: 200 }, { enabled: false })
+  const nodeHistory = useNodeRunHistory({ limit: 200 }, { enabled: false })
+  // 连接状态读桥握手（无轮询），不再轮询那个已作废的 REST 后端。
+  const host = useHostConnection()
   const operations = useNodeOperations((store) => store.operations)
   const workspace = useWorkspaceShallowSelector((state) => ({
     activeWorkspaceId: state.activeWorkspaceId,
@@ -171,8 +175,8 @@ export function UsageDashboard() {
     const operationCounts = countOperations(operations)
     const totalTerminal = statusCounts.success + statusCounts.error + statusCounts.cancelled
     const successRate = totalTerminal > 0 ? statusCounts.success / totalTerminal : 0
-    const backendKind: DashboardBackendStatus = backendStatus.data?.status ?? (backendStatus.isLoading ? "checking" : "unknown")
-    const backendScore = backendKind === "ready" ? 1 : backendKind === "missing-config" ? 0.45 : backendKind === "checking" ? 0.65 : 0.25
+    const backendKind: DashboardBackendStatus = host.ready ? "ready" : "unreachable"
+    const backendScore = backendKind === "ready" ? 1 : 0.25
     const stabilityScore = clampPercent(Math.round((successRate || backendScore) * 76 + backendScore * 24 - operationCounts.error * 3))
     const averageDurationMs = average(nodeItems.map((item) => item.durationMs))
     const p95DurationMs = percentile(nodeItems.map((item) => item.durationMs), 0.95)
@@ -205,8 +209,7 @@ export function UsageDashboard() {
       successRate,
     }
   }, [
-    backendStatus.data?.status,
-    backendStatus.isLoading,
+    host.ready,
     nodeHistory.data?.items,
     operations,
     rangeDays,

@@ -67,7 +67,7 @@ describe("app-owned encodeb Component", () => {
 
       expect(screen.getByLabelText("encodeb source paths")).toBeTruthy()
       expect(screen.getAllByText(/输入/).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/auto/i).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/中文|CN/i).length).toBeGreaterThan(0)
 
       if (mode === "compact" || mode === "regular") {
         expect(screen.getByTestId("encodeb-compact-view")).toBeTruthy()
@@ -119,7 +119,7 @@ describe("app-owned encodeb Component", () => {
     render(<Component compId="comp-encodeb" host={host} />)
     const user = userEvent.setup()
 
-    expect(screen.getByText(/ã‚» → セ/)).toBeTruthy()
+    expect(screen.getByText(/╓╨╬─.*中文/)).toBeTruthy()
     await user.selectOptions(screen.getByRole("combobox", { name: "快速选择编码预设" }), "hash_u")
 
     expect(host.state.preset).toBe("hash_u")
@@ -140,9 +140,9 @@ describe("app-owned encodeb Component", () => {
       input: {
         action: "find",
         paths: ["D:/gallery"],
-        srcEncoding: "auto",
-        dstEncoding: "auto",
-        transform: "auto",
+        srcEncoding: "cp437",
+        dstEncoding: "cp936",
+        transform: "recode",
         strategy: "replace",
       },
     })

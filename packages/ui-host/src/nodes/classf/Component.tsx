@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { NodeComponentProps, NodeRunEvent, NodeRunResult } from "@xiranite/contract"
 import { FloatingWindowNodeHeader } from "@/components/workspace/FloatingWindowFrame"
-import { DEFAULT_CLASSF_BLACKLIST_KEYWORDS } from "@xiranite/node-classf/blacklist"
+import { DEFAULT_BLACKLIST_KEYWORDS } from "./constants"
 import type { ClassfAction, ClassfData, ClassfInput, ClassfPlacementMode, ClassfProgressData, ClassfTransferMode, ClassfWorkItemMode } from "@xiranite/node-classf/core"
 import type { LucideIcon } from "lucide-react"
 import { AlertTriangle, Archive, BarChart3, Clipboard, Copy, Folder, FolderInput, FolderTree, Layers3, Play, RotateCcw, ShieldAlert, Terminal, Trash2 } from "lucide-react"
@@ -636,12 +636,12 @@ function buildInput(action: ClassfAction, data: ClassfCardState): ClassfInput {
     existingPolicy: data.existingPolicy ?? "merge",
     dryRun: data.dryRun ?? true,
     workItemMode: data.workItemMode ?? "files",
-    blacklistKeywords: data.blacklistKeywords ?? DEFAULT_CLASSF_BLACKLIST_KEYWORDS,
-    sameaGroupEnabled: data.sameaGroupEnabled ?? false,
+    blacklistKeywords: data.blacklistKeywords ?? DEFAULT_BLACKLIST_KEYWORDS,
+    sameaGroupEnabled: data.sameaGroupEnabled ?? true,
     sameaGroupAlreadyEnabled: data.sameaGroupAlreadyEnabled,
     sameaGroupWaitEnabled: data.sameaGroupWaitEnabled,
     sameaGroupDelEnabled: data.sameaGroupDelEnabled,
-    sameaGroupMinOccurrences: data.sameaGroupMinOccurrences ?? 1,
+    sameaGroupMinOccurrences: data.sameaGroupMinOccurrences ?? 2,
     sameaGroupCentralize: data.sameaGroupCentralize ?? false,
   }
 }
@@ -659,12 +659,12 @@ function planFingerprint(data: ClassfCardState): string {
     placementMode: data.placementMode ?? "local",
     existingPolicy: data.existingPolicy ?? "merge",
     workItemMode: data.workItemMode ?? "files",
-    blacklistKeywords: data.blacklistKeywords ?? DEFAULT_CLASSF_BLACKLIST_KEYWORDS,
-    sameaGroupEnabled: data.sameaGroupEnabled ?? false,
+    blacklistKeywords: data.blacklistKeywords ?? DEFAULT_BLACKLIST_KEYWORDS,
+    sameaGroupEnabled: data.sameaGroupEnabled ?? true,
     sameaGroupAlreadyEnabled: data.sameaGroupAlreadyEnabled,
     sameaGroupWaitEnabled: data.sameaGroupWaitEnabled,
     sameaGroupDelEnabled: data.sameaGroupDelEnabled,
-    sameaGroupMinOccurrences: data.sameaGroupMinOccurrences ?? 1,
+    sameaGroupMinOccurrences: data.sameaGroupMinOccurrences ?? 2,
     sameaGroupCentralize: data.sameaGroupCentralize ?? false,
   })
 }

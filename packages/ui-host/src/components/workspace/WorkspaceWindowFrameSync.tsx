@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { getBackend } from "@/backend/client"
-import { persistComponentWindowSize } from "@/backend/workspaceRpcClient"
+import { persistComponentWindowSize } from "./componentWindowSizeStore"
 import { createLogger } from "@/lib/logger"
 import { useWorkspaceStore } from "@/store/workspaceStore"
 import { updateComponentWindowSize } from "./componentWindowSize"
@@ -24,14 +24,17 @@ export function WorkspaceWindowFrameSync() {
           useWorkspaceStore.setState((current) => ({
             components: updateComponentWindowSize(current.components, event.componentId, size),
           }))
-          void persistComponentWindowSize({
-            componentId: event.componentId,
-            moduleId: event.moduleId,
-            workspaceId,
-            size,
-          }).catch((error) => {
+          // 落文档侧 localStorage（过去打 REST 后端，那条通路作废——见 componentWindowSizeStore 头注释）。
+          try {
+            persistComponentWindowSize({
+              componentId: event.componentId,
+              moduleId: event.moduleId,
+              workspaceId,
+              size,
+            })
+          } catch (error) {
             logger.error("Failed to persist component window size", { componentId: event.componentId, workspaceId, size }, error)
-          })
+          }
         })
         if (cancelled) stop()
         else unsubscribe = stop

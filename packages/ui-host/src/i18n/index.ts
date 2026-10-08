@@ -34,17 +34,18 @@ let initPromise: Promise<typeof i18n> | null = null
 /**
  * 探测初始语言。
  *
- * 优先级：localStorage > navigator.language > "en"。
- * SSR 环境直接返回 "en"。
+ * 优先级：localStorage > navigator.language > "zh"
+ * （默认语言对齐迁移配置 [app.ui.i18n] language = "zh"）。
+ * SSR 环境直接返回 "zh"。
  */
 function detectInitialLanguage(): Language {
-  if (typeof window === "undefined") return "en"
+  if (typeof window === "undefined") return "zh"
 
   const stored = window.localStorage.getItem(STORAGE_KEY)
   if (stored === "en" || stored === "zh") return stored
 
   const nav = window.navigator.language?.toLowerCase() ?? ""
-  return nav.startsWith("zh") ? "zh" : "en"
+  return nav.startsWith("en") ? "en" : "zh"
 }
 
 /**

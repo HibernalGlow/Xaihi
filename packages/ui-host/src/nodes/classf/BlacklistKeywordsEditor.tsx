@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from "react"
-import { DEFAULT_CLASSF_BLACKLIST_KEYWORDS, extractSameaArtistKeywords, mergeClassfBlacklistKeywords, splitSameaArtistAndCircleKeywords, stripOuterKeywordBrackets } from "@xiranite/node-classf/blacklist"
+import { extractSameaArtistKeywords, mergeClassfBlacklistKeywords, splitSameaArtistAndCircleKeywords, stripOuterKeywordBrackets } from "@xiranite/node-classf/blacklist"
 import { Brackets, FileUp, ShieldAlert, Split, WandSparkles } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -8,12 +8,13 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ClassfCardState } from "./types"
+import { DEFAULT_BLACKLIST_KEYWORDS } from "./constants"
 import type { ClassfDeletionHistoryImport } from "./ClassfDeletionHistoryDialog"
 
 const ClassfDeletionHistoryDialog = lazy(() => import("./ClassfDeletionHistoryDialog"))
 
 export function BlacklistKeywordsEditor(props: { data: ClassfCardState; disabled?: boolean; t: Translate; onImportDeletionHistory?: () => Promise<ClassfDeletionHistoryImport | undefined>; onPatch: (patch: Partial<ClassfCardState>) => void }) {
-  const keywords = props.data.blacklistKeywords ?? DEFAULT_CLASSF_BLACKLIST_KEYWORDS
+  const keywords = props.data.blacklistKeywords ?? DEFAULT_BLACKLIST_KEYWORDS
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState("")
   const [historyOpen, setHistoryOpen] = useState(false)

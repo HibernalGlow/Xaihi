@@ -8,6 +8,7 @@ import { NODE_SURFACE_TEST_MODES, NODE_SURFACE_TEST_SPECS } from "@/nodes/shared
 import type { NodeSurfaceMode } from "@/nodes/shared/useNodeSurface"
 import { useWorkspaceStore } from "@/store/workspaceStore"
 import { Component } from "./Component"
+import { DEFAULT_BLACKLIST_KEYWORDS } from "./constants"
 import type { ClassfCardState } from "./types"
 
 const surfaceState = vi.hoisted(() => ({ height: 420, width: 720 }))
@@ -104,8 +105,9 @@ describe("app-owned classf Component", () => {
         existingPolicy: "merge",
         dryRun: true,
         workItemMode: "files",
-        sameaGroupEnabled: false,
-        sameaGroupMinOccurrences: 1,
+        blacklistKeywords: DEFAULT_BLACKLIST_KEYWORDS,
+        sameaGroupEnabled: true,
+        sameaGroupMinOccurrences: 2,
         sameaGroupCentralize: false,
       },
     })
@@ -133,8 +135,23 @@ describe("app-owned classf Component", () => {
       transferMode: "move",
       classifyMode: "auto",
       existingPolicy: "merge",
+      // 本用例测的是文件树预览本身；画师分组（现在是默认开）会改变树形渲染，显式关掉。
+      sameaGroupEnabled: false,
       result: classfData,
-      planFingerprint: "{\"paths\":[\"D:/set/a.zip\"],\"crashuSources\":[\"D:/library\"],\"transferMode\":\"move\",\"classifyMode\":\"auto\",\"placementMode\":\"local\",\"existingPolicy\":\"merge\"}",
+      // 与 Component 的 planFingerprint 同形（undefined 字段会被 JSON.stringify 丢掉）。
+      planFingerprint: JSON.stringify({
+        paths: ["D:/set/a.zip"],
+        crashuSources: ["D:/library"],
+        transferMode: "move",
+        classifyMode: "auto",
+        placementMode: "local",
+        existingPolicy: "merge",
+        workItemMode: "files",
+        blacklistKeywords: DEFAULT_BLACKLIST_KEYWORDS,
+        sameaGroupEnabled: false,
+        sameaGroupMinOccurrences: 2,
+        sameaGroupCentralize: false,
+      }),
     })
     render(<Component compId="comp-classf" host={host} />)
 

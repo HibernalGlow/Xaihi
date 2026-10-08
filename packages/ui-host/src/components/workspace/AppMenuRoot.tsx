@@ -4,7 +4,6 @@ import {
   BookOpen,
   ChevronRight,
   Database,
-  Grid,
   History,
   LayoutDashboard,
   LogOut,
@@ -59,7 +58,6 @@ export function AppMenuRoot({
       <div className="grid gap-0.5">
         <AppMenuRow icon={Settings} label="设置" shortcut="Alt+P" onSelect={onOpenSettings} />
         <AppMenuRow icon={LayoutDashboard} label="面板" hasSubmenu onSelect={() => onNavigate("views")} />
-        <AppMenuRow icon={Grid} label="工作空间" hasSubmenu onSelect={() => onNavigate("workspaces")} />
         <AppMenuRow icon={SplitSquareVertical} label="布局" hasSubmenu onSelect={() => onNavigate("layouts")} />
       </div>
 

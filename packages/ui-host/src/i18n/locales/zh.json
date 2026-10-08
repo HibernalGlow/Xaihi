@@ -92,27 +92,15 @@
     },
     "theme": {
       "label": "主题",
-      "preset": "主题预设",
       "colorMode": "颜色模式",
       "system": "跟随系统",
       "light": "浅色",
       "dark": "深色",
-      "openSettings": "打开主题设置",
-      "wuling": "Wuling"
+      "openSettings": "打开主题设置"
     },
     "workspace": {
-      "new": "新建工作区",
-      "select": "选择工作区",
-      "current": "当前工作区",
-      "rename": "重命名",
-      "delete": "删除工作区",
-      "setIcon": "设置图标",
       "defaults": {
-        "alpha": "工作区 ALPHA",
-        "grid": "分析网格",
-        "kern": "系统内核",
-        "net": "网络节点",
-        "arch": "归档"
+        "alpha": "工作区 ALPHA"
       }
     },
     "registry": "模块库",
@@ -150,103 +138,6 @@
     "workspace": {
       "startupRestore": "启动时恢复节点",
       "startupRestoreDesc": "应用启动时恢复上次工作区中已保存的节点实例。"
-    },
-    "view": {
-      "swimlane": {
-        "soloOnFocus": "聚焦时独占泳道",
-        "showNavigatorInSolo": "独占模式显示泳道导航栏",
-        "edgeRevealDelay": "边缘泳道展开延迟",
-        "focusOnHover": "悬停时重新聚焦泳道",
-        "focusDelay": "悬停重新聚焦延迟"
-      }
-    },
-    "timeline": {
-      "navLabel": "设置时间线",
-      "railTitle": "设置时间线",
-      "stepsLabel": "子分类",
-      "advanced": "高级",
-      "advShort": "高级",
-      "stageDesc": {
-        "appearance": "主题、配色、字体语言与氛围效果。",
-        "workspace": "画布背景、操作栏与字母索引。",
-        "view": "泳道交互、组件皮肤与卡片点击行为。",
-        "runtime": "本地后端连接、节点内存保护、热刷新与 WebView2 实验项。",
-        "data": "工作区持久化与数据库归属信息。"
-      },
-      "steps": {
-        "theme": "主题",
-        "designLanguage": "设计语言",
-        "color": "颜色模式",
-        "typography": "字体与语言",
-        "atmosphere": "氛围效果",
-        "themeImport": "导入主题 JSON",
-        "background": "背景画布",
-        "chrome": "操作栏",
-        "alphabet": "字母索引",
-        "swimlane": "泳道交互",
-        "components": "组件皮肤",
-        "cardInteraction": "卡片交互",
-        "connection": "运行时连接",
-        "memoryProtection": "节点内存保护",
-        "webview2": "WebView2",
-        "storage": "本地数据"
-      },
-      "stepDesc": {
-        "theme": "选择内置主题预设，查看调色板与来源。",
-        "typography": "全局 UI 字体与界面语言。",
-        "atmosphere": "晕影、颗粒与环境光开关。",
-        "background": "网格 / 圆点 / 图片背景与纹理预览。",
-        "swimlane": "主泳道独占、悬停聚焦与导航栏行为。"
-      },
-      "fieldsTitle": "字段与互斥选项组",
-      "fieldsDesc": "标题样式同步到节点中的 Select、输入框、滑条等标准字段，以及压缩模式、输出位置等互斥组选项；不改变控件的键盘与表单语义。",
-      "controlStyle": "控件样式",
-      "fieldTitleStyle": "全局字段标题",
-      "choice": {
-        "segmented": "分段",
-        "pills": "胶囊",
-        "tabs": "标签",
-        "tiles": "卡片",
-        "none": "不接管"
-      },
-      "fieldTitle": {
-        "stacked": "上置",
-        "legend": "悬浮图例",
-        "inline": "左侧",
-        "hidden": "隐藏",
-        "none": "不接管"
-      },
-      "compressionPreview": "压缩模式",
-      "lossless": "无损",
-      "lossy": "有损",
-      "modulePanelTitle": "模块面板",
-      "modulePanelDesc": "统一节点内分区的标题、面板表面与拖拽手柄；已接入公共组件的节点会立即同步。",
-      "moduleTitleStyle": "标题样式",
-      "modulePanelStyle": "面板样式",
-      "resizableHandle": "拖拽手柄",
-      "moduleTitle": {
-        "legend": "悬浮角标",
-        "inline": "内嵌",
-        "bar": "顶部栏",
-        "minimal": "极简"
-      },
-      "modulePanel": {
-        "soft": "柔和",
-        "solid": "实色",
-        "outline": "描边",
-        "flat": "无框"
-      },
-      "handle": {
-        "grip": "握把",
-        "dots": "点阵",
-        "line": "强调线",
-        "minimal": "极简"
-      },
-      "previewModule": "预览模块",
-      "previewBadge": "12 项",
-      "previewModuleDesc": "标题和面板会使用全局样式；分隔线由公共 ResizableHandle 同步。",
-      "nodeHotReload": "节点后端源码自动刷新",
-      "nodeHotReloadDesc": "保存已使用节点的后端源码后，下一次运行该节点自动加载新代码；不会重启桌面端或其他节点。"
     },
     "view": {
       "cardInteraction": "卡片交互",
@@ -339,16 +230,112 @@
         }
       }
     },
+    "timeline": {
+      "navLabel": "设置时间线",
+      "railTitle": "设置时间线",
+      "stepsLabel": "子分类",
+      "advanced": "高级",
+      "advShort": "高级",
+      "stageDesc": {
+        "appearance": "主题、配色、字体语言与氛围效果。",
+        "workspace": "画布背景、操作栏与字母索引。",
+        "view": "泳道交互、组件皮肤与卡片点击行为。",
+        "runtime": "本地后端连接、节点内存保护、热刷新与 WebView2 实验项。",
+        "data": "工作区持久化与数据库归属信息。"
+      },
+      "steps": {
+        "theme": "主题",
+        "designLanguage": "设计语言",
+        "color": "颜色模式",
+        "typography": "字体与语言",
+        "atmosphere": "氛围效果",
+        "themeImport": "导入主题 JSON",
+        "background": "背景画布",
+        "chrome": "操作栏",
+        "alphabet": "字母索引",
+        "swimlane": "泳道交互",
+        "components": "组件皮肤",
+        "cardInteraction": "卡片交互",
+        "connection": "运行时连接",
+        "memoryProtection": "节点内存保护",
+        "webview2": "WebView2",
+        "storage": "本地数据"
+      },
+      "stepDesc": {
+        "theme": "选择内置主题预设，查看调色板与来源。",
+        "typography": "全局 UI 字体与界面语言。",
+        "atmosphere": "晕影、颗粒与环境光开关。",
+        "background": "网格 / 圆点 / 图片背景与纹理预览。",
+        "swimlane": "主泳道独占、悬停聚焦与导航栏行为。"
+      },
+      "fieldsTitle": "字段与互斥选项组",
+      "fieldsDesc": "标题样式同步到节点中的 Select、输入框、滑条等标准字段，以及压缩模式、输出位置等互斥组选项；不改变控件的键盘与表单语义。",
+      "controlStyle": "控件样式",
+      "fieldTitleStyle": "全局字段标题",
+      "choice": {
+        "segmented": "分段",
+        "pills": "胶囊",
+        "tabs": "标签",
+        "tiles": "卡片",
+        "none": "不接管"
+      },
+      "fieldTitle": {
+        "stacked": "上置",
+        "legend": "悬浮图例",
+        "inline": "左侧",
+        "hidden": "隐藏",
+        "none": "不接管"
+      },
+      "compressionPreview": "压缩模式",
+      "lossless": "无损",
+      "lossy": "有损",
+      "modulePanelTitle": "模块面板",
+      "modulePanelDesc": "统一节点内分区的标题、面板表面与拖拽手柄；已接入公共组件的节点会立即同步。",
+      "moduleTitleStyle": "标题样式",
+      "modulePanelStyle": "面板样式",
+      "resizableHandle": "拖拽手柄",
+      "moduleTitle": {
+        "legend": "悬浮角标",
+        "inline": "内嵌",
+        "bar": "顶部栏",
+        "minimal": "极简"
+      },
+      "modulePanel": {
+        "soft": "柔和",
+        "solid": "实色",
+        "outline": "描边",
+        "flat": "无框"
+      },
+      "handle": {
+        "grip": "握把",
+        "dots": "点阵",
+        "line": "强调线",
+        "minimal": "极简"
+      },
+      "previewModule": "预览模块",
+      "previewBadge": "12 项",
+      "previewModuleDesc": "标题和面板会使用全局样式；分隔线由公共 ResizableHandle 同步。",
+      "nodeHotReload": "节点后端源码自动刷新",
+      "nodeHotReloadDesc": "保存已使用节点的后端源码后，下一次运行该节点自动加载新代码；不会重启桌面端或其他节点。"
+    },
     "data": {
       "title": "本地数据",
-      "description": "工作区持久化与数据库配置归属本地后端服务管理。",
+      "description": "工作区快照与配置都走 DSH 插件标准：由宿主插件的设置面（xaihi-core）承载，本地不再有独立后端。",
       "backendEndpoint": "后端",
       "backendStatus": "状态",
       "token": "令牌",
       "databasePath": "数据库",
       "databasePathManaged": "由 Local Backend 配置管理",
       "nextTitle": "数据库路径选择器",
-      "nextDescription": "前端已经有独立的数据设置区；等 Elysia 后端暴露当前数据库路径和更新 API 后，再接入真正的路径选择器。"
+      "nextDescription": "前端已经有独立的数据设置区；等 Elysia 后端暴露当前数据库路径和更新 API 后，再接入真正的路径选择器。",
+      "bridgeStatus": "宿主连接",
+      "bridgeReady": "已接通（DSH 桥）",
+      "bridgeNegotiating": "握手进行中",
+      "bridgeDetached": "不在宿主里",
+      "configHome": "配置落点",
+      "configHomeValue": "DSH 设置面（xaihi-core 命名空间，写带乐观锁）",
+      "snapshotHome": "快照落点",
+      "snapshotHomeValue": "同一命名空间的 nodeState（volatile 格）"
     },
     "activePreset": "当前预设",
     "selectPreset": "选择主题预设",
@@ -691,7 +678,7 @@
     },
     "developerRuntime": {
       "title": "开发运行时",
-      "description": "查看桌面壳当前连接的前端来源与本地后端。回环通道在启动时确定，不支持运行中热切换。",
+      "description": "查看桌面壳当前连接的前端来源与宿主桥的握手状态。文档与宿主之间只有一条 DSH 标准的桥。",
       "hostRuntime": "宿主",
       "frontend": "前端",
       "backend": "后端",
@@ -715,7 +702,14 @@
       "copyAttach": "复制附着命令",
       "copyStart": "复制一键命令",
       "copied": "已复制",
-      "openFrontend": "打开前端"
+      "openFrontend": "打开前端",
+      "bridgeStatus": "宿主连接",
+      "bridgeReady": "已接通（DSH 桥）",
+      "bridgeNegotiating": "握手进行中",
+      "bridgeDetached": "不在宿主里",
+      "bridgeGroups": "授予能力组",
+      "bridgeGroupsNone": "（无）",
+      "bridgeHint": "文档与宿主之间只走 DSH 插件标准的桥（xaihi.bridge/1）：能力组在握手时协商，被拒的组按提案账退化显示，不再有独立后端可连。"
     },
     "memoryProtection": {
       "title": "节点内存保护",
@@ -837,6 +831,7 @@
       }
     },
     "backendBanner": {
+      "noHost": "这份文档不在宿主里：要问对面的能力（配置、状态持久、环境）暂时不可用。",
       "missingConfig": "Local Backend 未配置，工作区和节点运行已暂停。",
       "hostReason": "Local Backend 未能启动：{{reason}}",
       "unreachable": "Local Backend 无法连接：{{url}}。工作区和节点运行已暂停。",
@@ -1200,9 +1195,6 @@
     "viewMode": "视图模式",
     "appearance": "外观",
     "background": "背景",
-    "workspace": "工作区",
-    "newWorkspace": "新建工作区",
-    "copyWorkspaceId": "复制工作区 ID",
     "deleteLane": "删除泳道",
     "deleteLaneConfirmTitle": "删除泳道？",
     "deleteLaneConfirmDescription": "这将移除该泳道及其中的组件排序，无法撤销。",
@@ -1682,13 +1674,34 @@
         }
       },
       "presets": {
-        "emptyFolders": { "label": "空文件夹", "description": "递归删除所有空文件夹。" },
-        "backupFiles": { "label": "备份文件", "description": "删除 .bak 备份文件。" },
-        "tempFolders": { "label": "临时文件夹", "description": "删除 temp_ 开头的文件夹。" },
-        "trashFiles": { "label": "垃圾文件", "description": "删除 .trash 文件和文件夹。" },
-        "hbTxtFiles": { "label": "[#hb] 文本", "description": "删除 [#hb] 开头的 txt 文件。" },
-        "logFiles": { "label": "日志文件", "description": "删除 .log 和轮转日志文件。" },
-        "upscale": { "label": "Upscale 缓存", "description": "删除 .upbak 文件。" }
+        "emptyFolders": {
+          "label": "空文件夹",
+          "description": "递归删除所有空文件夹。"
+        },
+        "backupFiles": {
+          "label": "备份文件",
+          "description": "删除 .bak 备份文件。"
+        },
+        "tempFolders": {
+          "label": "临时文件夹",
+          "description": "删除 temp_ 开头的文件夹。"
+        },
+        "trashFiles": {
+          "label": "垃圾文件",
+          "description": "删除 .trash 文件和文件夹。"
+        },
+        "hbTxtFiles": {
+          "label": "[#hb] 文本",
+          "description": "删除 [#hb] 开头的 txt 文件。"
+        },
+        "logFiles": {
+          "label": "日志文件",
+          "description": "删除 .log 和轮转日志文件。"
+        },
+        "upscale": {
+          "label": "Upscale 缓存",
+          "description": "删除 .upbak 文件。"
+        }
       },
       "advanced": {
         "title": "高级选项",
@@ -2293,10 +2306,18 @@
         "historyPlaceholder": "留空则使用默认历史文件"
       },
       "conflictModes": {
-        "auto": { "label": "自动" },
-        "skip": { "label": "跳过" },
-        "overwrite": { "label": "覆盖" },
-        "rename": { "label": "改名" }
+        "auto": {
+          "label": "自动"
+        },
+        "skip": {
+          "label": "跳过"
+        },
+        "overwrite": {
+          "label": "覆盖"
+        },
+        "rename": {
+          "label": "改名"
+        }
       },
       "boards": {
         "itemCount": "{{count}} 项",
@@ -2666,14 +2687,32 @@
           "pauseTask": "暂停任务",
           "cancelTask": "取消任务"
         },
-        "taskKinds": { "scan": "扫描", "analysis": "分析" },
-        "taskStatus": { "running": "运行中", "paused": "已暂停", "completed": "完成", "completed_with_warnings": "完成但有警告", "cancelled": "已取消", "failed": "失败" },
+        "taskKinds": {
+          "scan": "扫描",
+          "analysis": "分析"
+        },
+        "taskStatus": {
+          "running": "运行中",
+          "paused": "已暂停",
+          "completed": "完成",
+          "completed_with_warnings": "完成但有警告",
+          "cancelled": "已取消",
+          "failed": "失败"
+        },
         "table": {
           "indexedSummary": "{{visible}} / {{total}} 个已索引归档",
           "previousPage": "上一页归档",
           "nextPage": "下一页归档",
           "expandArchive": "展开归档",
-          "columns": { "archive": "归档", "size": "大小", "images": "图像", "analyzed": "已分析", "density": "密度", "anomalies": "异常", "savings": "节省" },
+          "columns": {
+            "archive": "归档",
+            "size": "大小",
+            "images": "图像",
+            "analyzed": "已分析",
+            "density": "密度",
+            "anomalies": "异常",
+            "savings": "节省"
+          },
           "empty": "打开库后运行 ZIP 扫描以填充索引。",
           "folderArchiveCount": "{{count}} 个归档",
           "loadingMembers": "正在加载归档成员……",
@@ -2694,7 +2733,11 @@
           },
           "ascending": "升序",
           "descending": "降序",
-          "scanStates": { "corrupt": "归档损坏", "unsupported": "不支持的归档", "rejected": "已拒绝的归档" }
+          "scanStates": {
+            "corrupt": "归档损坏",
+            "unsupported": "不支持的归档",
+            "rejected": "已拒绝的归档"
+          }
         },
         "treemap": "矩形图",
         "treemapPanel": {
@@ -2741,11 +2784,59 @@
         "notTitle": "反转此分组",
         "all": "全部满足",
         "any": "任一满足",
-        "operators": { "equal": "是", "notEqual": "不是", "contains": "包含", "doesNotContain": "不包含", "startsWith": "以……开头", "endsWith": "以……结尾", "in": "属于其中之一", "notIn": "不属于其中之一", "lessThan": "小于", "lessThanInclusive": "不大于", "greaterThan": "大于", "greaterThanInclusive": "不小于", "isEmpty": "为空", "isNotEmpty": "不为空" },
-        "fields": {
-          "relativePath": "归档路径", "scanState": "索引状态", "archiveSize": "归档大小", "memberCount": "成员数", "imageCount": "图像候选", "memberPath": "成员路径", "memberSize": "成员大小", "extension": "成员扩展名", "actualFormat": "实际格式", "width": "图像宽度", "height": "图像高度", "pixels": "像素数", "bytesPerMegapixel": "字节 / MP", "analysisStatus": "分析状态", "anomalyKind": "异常类型", "anomalyScore": "异常分数", "memberEstimatedSavings": "成员预计节省", "analysisCoverage": "已分析图像", "totalImageSize": "图像总大小", "averageBytesPerMegapixel": "平均字节 / MP", "anomalyCount": "异常数", "estimatedSavings": "预计节省"
+        "operators": {
+          "equal": "是",
+          "notEqual": "不是",
+          "contains": "包含",
+          "doesNotContain": "不包含",
+          "startsWith": "以……开头",
+          "endsWith": "以……结尾",
+          "in": "属于其中之一",
+          "notIn": "不属于其中之一",
+          "lessThan": "小于",
+          "lessThanInclusive": "不大于",
+          "greaterThan": "大于",
+          "greaterThanInclusive": "不小于",
+          "isEmpty": "为空",
+          "isNotEmpty": "不为空"
         },
-        "options": { "indexed": "已索引", "corrupt": "损坏", "unsupported": "不支持", "rejected": "已拒绝", "complete": "完成", "budgetExceeded": "超出预算", "unsupportedFormat": "不支持的格式", "parserFailure": "解析器失败", "encrypted": "已加密", "highBytesPerMegapixel": "高字节 / MP", "largeMember": "成员过大" }
+        "fields": {
+          "relativePath": "归档路径",
+          "scanState": "索引状态",
+          "archiveSize": "归档大小",
+          "memberCount": "成员数",
+          "imageCount": "图像候选",
+          "memberPath": "成员路径",
+          "memberSize": "成员大小",
+          "extension": "成员扩展名",
+          "actualFormat": "实际格式",
+          "width": "图像宽度",
+          "height": "图像高度",
+          "pixels": "像素数",
+          "bytesPerMegapixel": "字节 / MP",
+          "analysisStatus": "分析状态",
+          "anomalyKind": "异常类型",
+          "anomalyScore": "异常分数",
+          "memberEstimatedSavings": "成员预计节省",
+          "analysisCoverage": "已分析图像",
+          "totalImageSize": "图像总大小",
+          "averageBytesPerMegapixel": "平均字节 / MP",
+          "anomalyCount": "异常数",
+          "estimatedSavings": "预计节省"
+        },
+        "options": {
+          "indexed": "已索引",
+          "corrupt": "损坏",
+          "unsupported": "不支持",
+          "rejected": "已拒绝",
+          "complete": "完成",
+          "budgetExceeded": "超出预算",
+          "unsupportedFormat": "不支持的格式",
+          "parserFailure": "解析器失败",
+          "encrypted": "已加密",
+          "highBytesPerMegapixel": "高字节 / MP",
+          "largeMember": "成员过大"
+        }
       },
       "errors": {
         "libraryMissing": "Findz 未返回库信息。",
@@ -3476,10 +3567,30 @@
         "clear": "清空状态",
         "clearPaths": "清空路径"
       },
-      "classifyModes": { "auto": "自动分类", "only": "仅 already", "del": "仅 Del", "off": "指定目标" },
-      "queues": { "title": "分类队列", "already": "already", "wait": "wait", "del": "del", "enable": "启用 {{stage}}", "group": "{{stage}} 画师分组" },
-      "transferModes": { "move": "移动", "copy": "复制" },
-      "fields": { "sameaRoots": "SameA 归档来源", "target": "目标目录", "dryRun": "预演模式", "blacklistKeywords": "黑名单作者" },
+      "classifyModes": {
+        "auto": "自动分类",
+        "only": "仅 already",
+        "del": "仅 Del",
+        "off": "指定目标"
+      },
+      "queues": {
+        "title": "分类队列",
+        "already": "already",
+        "wait": "wait",
+        "del": "del",
+        "enable": "启用 {{stage}}",
+        "group": "{{stage}} 画师分组"
+      },
+      "transferModes": {
+        "move": "移动",
+        "copy": "复制"
+      },
+      "fields": {
+        "sameaRoots": "SameA 归档来源",
+        "target": "目标目录",
+        "dryRun": "预演模式",
+        "blacklistKeywords": "黑名单作者"
+      },
       "blacklist": {
         "extractSamea": "提取 SameA 标签",
         "stripOuterBrackets": "去除最外层括号",
@@ -3506,30 +3617,100 @@
         "targetOptional": "可选；默认使用 already",
         "blacklistKeywords": "每行一个 SameA 作者标签，例如 [画师] 或 [社团 (画师)]"
       },
-      "tabs": { "plan": "计划", "matrix": "分类矩阵", "tree": "文件树", "issues": "问题", "logs": "日志" },
-      "tree": { "empty": "等待分类计划", "emptyDescription": "生成计划后，这里会按目标目录预演具体分类结构。", "targetRoot": "目标目录", "source": "来源", "toggle": "展开/收起" },
-      "table": { "source": "来源", "status": "状态", "target": "执行后位置", "queue": "分类队列", "mapping": "来源 → 执行后位置" },
-      "stages": { "samea": "来源整理", "crashu": "目录匹配", "del": "del 队列", "already": "already 队列", "wait": "wait 队列" },
-      "itemStatus": { "running": "执行中", "moved": "已移动", "copied": "已复制", "ready": "待执行", "conflict": "冲突", "error": "错误", "skipped": "已跳过" },
-      "stats": { "selected": "已选择", "ready": "待执行", "del": "黑名单", "wait": "待处理", "completed": "已完成", "conflicts": "冲突", "progress": "进度" },
+      "tabs": {
+        "plan": "计划",
+        "matrix": "分类矩阵",
+        "tree": "文件树",
+        "issues": "问题",
+        "logs": "日志"
+      },
+      "tree": {
+        "empty": "等待分类计划",
+        "emptyDescription": "生成计划后，这里会按目标目录预演具体分类结构。",
+        "targetRoot": "目标目录",
+        "source": "来源",
+        "toggle": "展开/收起"
+      },
+      "table": {
+        "source": "来源",
+        "status": "状态",
+        "target": "执行后位置",
+        "queue": "分类队列",
+        "mapping": "来源 → 执行后位置"
+      },
+      "stages": {
+        "samea": "来源整理",
+        "crashu": "目录匹配",
+        "del": "del 队列",
+        "already": "already 队列",
+        "wait": "wait 队列"
+      },
+      "itemStatus": {
+        "running": "执行中",
+        "moved": "已移动",
+        "copied": "已复制",
+        "ready": "待执行",
+        "conflict": "冲突",
+        "error": "错误",
+        "skipped": "已跳过"
+      },
+      "stats": {
+        "selected": "已选择",
+        "ready": "待执行",
+        "del": "黑名单",
+        "wait": "待处理",
+        "completed": "已完成",
+        "conflicts": "冲突",
+        "progress": "进度"
+      },
       "status": {
-        "running": "正在运行", "failed": "失败", "done": "完成", "ready": "就绪", "stale": "计划已失效",
-        "runningDescription": "正在生成或执行分类计划。", "failedDescription": "上次运行失败，请检查问题列表。",
-        "doneDescription": "上次 ClassF 运行已完成。", "readyDescription": "添加来源并先预览 already / wait 的目标结果。"
+        "running": "正在运行",
+        "failed": "失败",
+        "done": "完成",
+        "ready": "就绪",
+        "stale": "计划已失效",
+        "runningDescription": "正在生成或执行分类计划。",
+        "failedDescription": "上次运行失败，请检查问题列表。",
+        "doneDescription": "上次 ClassF 运行已完成。",
+        "readyDescription": "添加来源并先预览 already / wait 的目标结果。"
       },
       "empty": {
-        "ready": "生成计划后，这里会在执行前列出每个来源及其目标位置。", "noSources": "添加来源路径，即可预览完整分类结果。",
-        "noIssues": "暂无问题。", "logs": "运行日志会显示在这里。", "waitingPlan": "等待生成计划"
+        "ready": "生成计划后，这里会在执行前列出每个来源及其目标位置。",
+        "noSources": "添加来源路径，即可预览完整分类结果。",
+        "noIssues": "暂无问题。",
+        "logs": "运行日志会显示在这里。",
+        "waitingPlan": "等待生成计划"
       },
-      "summary": { "items": "{{count}} 项", "result": "{{count}} 项 / 待执行 {{ready}} / del {{del}} / wait {{wait}}", "selected": "已选择 {{count}} 项" },
+      "summary": {
+        "items": "{{count}} 项",
+        "result": "{{count}} 项 / 待执行 {{ready}} / del {{del}} / wait {{wait}}",
+        "selected": "已选择 {{count}} 项"
+      },
       "progress": {
-        "buildingPlan": "正在生成完整分类计划…", "executing": "正在执行已确认的分类计划…",
-        "planReady": "计划已生成：{{count}} 项可执行。", "completed": "执行完成：{{count}} 项已处理。",
-        "planVisible": "完整计划已生成，请在矩阵中确认执行结果。", "itemRunning": "正在处理：{{name}}", "itemCompleted": "已更新：{{name}}",
-        "stage": { "samea": "正在分析并整理来源…", "crashu": "正在匹配分类目录…", "del": "正在生成 del 队列…", "already": "正在生成 already 队列…", "wait": "正在生成 wait 队列…" }
+        "buildingPlan": "正在生成完整分类计划…",
+        "executing": "正在执行已确认的分类计划…",
+        "planReady": "计划已生成：{{count}} 项可执行。",
+        "completed": "执行完成：{{count}} 项已处理。",
+        "planVisible": "完整计划已生成，请在矩阵中确认执行结果。",
+        "itemRunning": "正在处理：{{name}}",
+        "itemCompleted": "已更新：{{name}}",
+        "stage": {
+          "samea": "正在分析并整理来源…",
+          "crashu": "正在匹配分类目录…",
+          "del": "正在生成 del 队列…",
+          "already": "正在生成 already 队列…",
+          "wait": "正在生成 wait 队列…"
+        }
       },
-      "confirm": { "title": "确认执行已预览的分类计划？", "description": "ClassF 将按中央矩阵中已确认的目标移动或复制文件；黑名单项目会进入 del，冲突项会跳过。", "action": "确认执行" },
-      "common": { "cancel": "取消", "done": "完成" },
+      "confirm": {
+        "title": "确认执行已预览的分类计划？",
+        "description": "ClassF 将按中央矩阵中已确认的目标移动或复制文件；黑名单项目会进入 del，冲突项会跳过。",
+        "action": "确认执行"
+      },
+      "common": {
+        "cancel": "取消",
+        "done": "完成"
+      },
       "config": {
         "trigger": "配置管理",
         "title": "配置管理",

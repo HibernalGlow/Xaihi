@@ -86,3 +86,24 @@ export const PLACEMENT_MODES: ClassfPlacementMeta[] = [
 
 export const NODE_ICON = Workflow
 export const PLAN_ICON = ArrowRightLeft
+
+/**
+ * 黑名单作者默认表：对齐迁移配置 [nodes.classf] blacklistKeywords
+ * （2026-10-05 从 Xiranite 使用者配置带来的那份，替代上游节点包的内置默认）。
+ */
+export const DEFAULT_BLACKLIST_KEYWORDS: string[] = [
+  "[OgoG]",
+  "[ぶたコマ300g]",
+  "[すいせいむし]",
+  "[ダツマ69]",
+  "[ヤキカルビー]",
+  "[龙裔小金鱼 (野狗版)]",
+  "[ArlanMi]",
+  "[EZNTR]",
+  "[龍裔小金魚 (野狗版)]",
+  "[AI小松鸟]",
+  "[RayAI]",
+  "[狗百代]",
+  "[Renbocloud]",
+  "[EchicalH]",
+]

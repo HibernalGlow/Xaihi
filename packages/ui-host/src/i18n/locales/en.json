@@ -92,13 +92,11 @@
     },
     "theme": {
       "label": "Theme",
-      "preset": "THEME PRESET",
       "colorMode": "COLOR MODE",
       "system": "System",
       "light": "Light",
       "dark": "Dark",
-      "openSettings": "OPEN THEME SETTINGS",
-      "wuling": "Wuling"
+      "openSettings": "OPEN THEME SETTINGS"
     },
     "workspace": {
       "new": "NEW WORKSPACE",
@@ -150,103 +148,6 @@
     "workspace": {
       "startupRestore": "Restore nodes on startup",
       "startupRestoreDesc": "Restore the previous workspace's saved node instances when the app starts."
-    },
-    "view": {
-      "swimlane": {
-        "soloOnFocus": "Solo lane on focus",
-        "showNavigatorInSolo": "Show the lane navigator in solo mode",
-        "edgeRevealDelay": "Edge lane reveal delay",
-        "focusOnHover": "Refocus lane on hover",
-        "focusDelay": "Hover refocus delay"
-      }
-    },
-    "timeline": {
-      "navLabel": "Settings timeline",
-      "railTitle": "Timeline",
-      "stepsLabel": "Sub-section",
-      "advanced": "Advanced",
-      "advShort": "Adv",
-      "stageDesc": {
-        "appearance": "Theme, color mode, typeface, language, and atmosphere.",
-        "workspace": "Canvas background, operation bar, and alphabet index.",
-        "view": "Swimlane interaction, component skins, and card clicks.",
-        "runtime": "Local backend connection, node memory protection, hot reload, and WebView2 flags.",
-        "data": "Workspace persistence and database ownership."
-      },
-      "steps": {
-        "theme": "Theme",
-        "designLanguage": "Design language",
-        "color": "Color mode",
-        "typography": "Font & language",
-        "atmosphere": "Atmosphere",
-        "themeImport": "Import theme JSON",
-        "background": "Background canvas",
-        "chrome": "Operation bar",
-        "alphabet": "Alphabet index",
-        "swimlane": "Swimlane",
-        "components": "Component skins",
-        "cardInteraction": "Card interaction",
-        "connection": "Runtime connection",
-        "memoryProtection": "Node memory protection",
-        "webview2": "WebView2",
-        "storage": "Local data"
-      },
-      "stepDesc": {
-        "theme": "Pick a built-in preset and inspect its palette and source.",
-        "typography": "Global UI font and interface language.",
-        "atmosphere": "Vignette, grain, and ambient lighting toggles.",
-        "background": "Grid / dots / image background and texture preview.",
-        "swimlane": "Solo focus, hover re-focus, and navigator behavior."
-      },
-      "fieldsTitle": "Fields & exclusive option groups",
-      "fieldsDesc": "Title styles apply to shared Select, input, and slider fields, plus exclusive groups such as compression mode and output location. Keyboard and form semantics stay unchanged.",
-      "controlStyle": "Control style",
-      "fieldTitleStyle": "Global field title",
-      "choice": {
-        "segmented": "Segmented",
-        "pills": "Pills",
-        "tabs": "Tabs",
-        "tiles": "Tiles",
-        "none": "None"
-      },
-      "fieldTitle": {
-        "stacked": "Stacked",
-        "legend": "Floating legend",
-        "inline": "Inline",
-        "hidden": "Hidden",
-        "none": "None"
-      },
-      "compressionPreview": "Compression mode",
-      "lossless": "Lossless",
-      "lossy": "Lossy",
-      "modulePanelTitle": "Module panels",
-      "modulePanelDesc": "Unify node section titles, panel surfaces, and resize handles. Nodes on shared components update immediately.",
-      "moduleTitleStyle": "Title style",
-      "modulePanelStyle": "Panel style",
-      "resizableHandle": "Resize handle",
-      "moduleTitle": {
-        "legend": "Floating badge",
-        "inline": "Inline",
-        "bar": "Top bar",
-        "minimal": "Minimal"
-      },
-      "modulePanel": {
-        "soft": "Soft",
-        "solid": "Solid",
-        "outline": "Outline",
-        "flat": "Flat"
-      },
-      "handle": {
-        "grip": "Grip",
-        "dots": "Dots",
-        "line": "Accent line",
-        "minimal": "Minimal"
-      },
-      "previewModule": "Preview module",
-      "previewBadge": "12 items",
-      "previewModuleDesc": "Title and panel use global styles; shared ResizableHandle keeps the divider in sync.",
-      "nodeHotReload": "Node backend source hot reload",
-      "nodeHotReloadDesc": "After saving backend source for a used node, the next run loads the new code without restarting the desktop shell or other nodes."
     },
     "view": {
       "cardInteraction": "Card Interaction",
@@ -339,16 +240,112 @@
         }
       }
     },
+    "timeline": {
+      "navLabel": "Settings timeline",
+      "railTitle": "Timeline",
+      "stepsLabel": "Sub-section",
+      "advanced": "Advanced",
+      "advShort": "Adv",
+      "stageDesc": {
+        "appearance": "Theme, color mode, typeface, language, and atmosphere.",
+        "workspace": "Canvas background, operation bar, and alphabet index.",
+        "view": "Swimlane interaction, component skins, and card clicks.",
+        "runtime": "Local backend connection, node memory protection, hot reload, and WebView2 flags.",
+        "data": "Workspace persistence and database ownership."
+      },
+      "steps": {
+        "theme": "Theme",
+        "designLanguage": "Design language",
+        "color": "Color mode",
+        "typography": "Font & language",
+        "atmosphere": "Atmosphere",
+        "themeImport": "Import theme JSON",
+        "background": "Background canvas",
+        "chrome": "Operation bar",
+        "alphabet": "Alphabet index",
+        "swimlane": "Swimlane",
+        "components": "Component skins",
+        "cardInteraction": "Card interaction",
+        "connection": "Runtime connection",
+        "memoryProtection": "Node memory protection",
+        "webview2": "WebView2",
+        "storage": "Local data"
+      },
+      "stepDesc": {
+        "theme": "Pick a built-in preset and inspect its palette and source.",
+        "typography": "Global UI font and interface language.",
+        "atmosphere": "Vignette, grain, and ambient lighting toggles.",
+        "background": "Grid / dots / image background and texture preview.",
+        "swimlane": "Solo focus, hover re-focus, and navigator behavior."
+      },
+      "fieldsTitle": "Fields & exclusive option groups",
+      "fieldsDesc": "Title styles apply to shared Select, input, and slider fields, plus exclusive groups such as compression mode and output location. Keyboard and form semantics stay unchanged.",
+      "controlStyle": "Control style",
+      "fieldTitleStyle": "Global field title",
+      "choice": {
+        "segmented": "Segmented",
+        "pills": "Pills",
+        "tabs": "Tabs",
+        "tiles": "Tiles",
+        "none": "None"
+      },
+      "fieldTitle": {
+        "stacked": "Stacked",
+        "legend": "Floating legend",
+        "inline": "Inline",
+        "hidden": "Hidden",
+        "none": "None"
+      },
+      "compressionPreview": "Compression mode",
+      "lossless": "Lossless",
+      "lossy": "Lossy",
+      "modulePanelTitle": "Module panels",
+      "modulePanelDesc": "Unify node section titles, panel surfaces, and resize handles. Nodes on shared components update immediately.",
+      "moduleTitleStyle": "Title style",
+      "modulePanelStyle": "Panel style",
+      "resizableHandle": "Resize handle",
+      "moduleTitle": {
+        "legend": "Floating badge",
+        "inline": "Inline",
+        "bar": "Top bar",
+        "minimal": "Minimal"
+      },
+      "modulePanel": {
+        "soft": "Soft",
+        "solid": "Solid",
+        "outline": "Outline",
+        "flat": "Flat"
+      },
+      "handle": {
+        "grip": "Grip",
+        "dots": "Dots",
+        "line": "Accent line",
+        "minimal": "Minimal"
+      },
+      "previewModule": "Preview module",
+      "previewBadge": "12 items",
+      "previewModuleDesc": "Title and panel use global styles; shared ResizableHandle keeps the divider in sync.",
+      "nodeHotReload": "Node backend source hot reload",
+      "nodeHotReloadDesc": "After saving backend source for a used node, the next run loads the new code without restarting the desktop shell or other nodes."
+    },
     "data": {
       "title": "Local data",
-      "description": "Workspace persistence and database configuration belong to the local backend service.",
+      "description": "Workspace snapshots and config both follow the DSH plugin standard: they live in the host plugin's settings face (xaihi-core); there is no separate local backend anymore.",
       "backendEndpoint": "BACKEND",
       "backendStatus": "STATUS",
       "token": "TOKEN",
       "databasePath": "DATABASE",
       "databasePathManaged": "Managed by Local Backend config",
       "nextTitle": "Database path selector",
-      "nextDescription": "The frontend now has a dedicated data section. A real path picker should be wired after the Elysia backend exposes current database path and update APIs."
+      "nextDescription": "The frontend now has a dedicated data section. A real path picker should be wired after the Elysia backend exposes current database path and update APIs.",
+      "bridgeStatus": "Host connection",
+      "bridgeReady": "Connected (DSH bridge)",
+      "bridgeNegotiating": "Handshake in progress",
+      "bridgeDetached": "Not inside a host",
+      "configHome": "Config home",
+      "configHomeValue": "DSH settings face (xaihi-core namespace, optimistic-lock writes)",
+      "snapshotHome": "Snapshot home",
+      "snapshotHomeValue": "nodeState in the same namespace (volatile field)"
     },
     "activePreset": "ACTIVE PRESET",
     "selectPreset": "SELECT THEME PRESET",
@@ -691,7 +688,7 @@
     },
     "developerRuntime": {
       "title": "Developer Runtime",
-      "description": "Inspect the frontend source and local backend used by the desktop shell. The loopback channel is resolved at startup, so it is not a hot runtime toggle.",
+      "description": "Inspect the desktop shell's frontend source and the host bridge handshake. One DSH-standard bridge is the only path between the document and its host.",
       "hostRuntime": "HOST",
       "frontend": "FRONTEND",
       "backend": "BACKEND",
@@ -715,7 +712,14 @@
       "copyAttach": "Copy attach command",
       "copyStart": "Copy one-shot command",
       "copied": "Copied",
-      "openFrontend": "Open frontend"
+      "openFrontend": "Open frontend",
+      "bridgeStatus": "Host connection",
+      "bridgeReady": "Connected (DSH bridge)",
+      "bridgeNegotiating": "Handshake in progress",
+      "bridgeDetached": "Not inside a host",
+      "bridgeGroups": "Granted groups",
+      "bridgeGroupsNone": "(none)",
+      "bridgeHint": "The document talks to its host only through the DSH-standard bridge (xaihi.bridge/1): capability groups are negotiated at handshake and refused ones degrade per the proposal ledger — there is no separate backend to connect to anymore."
     },
     "memoryProtection": {
       "title": "Node memory protection",
@@ -837,6 +841,7 @@
       }
     },
     "backendBanner": {
+      "noHost": "This document is not running inside a host, so the capabilities that need one (config, persisted state, environment) are unavailable.",
       "missingConfig": "Local Backend is not configured, so workspace and node execution are paused.",
       "hostReason": "Local Backend could not start: {{reason}}",
       "unreachable": "Local Backend is unreachable: {{url}}. Workspace and node execution are paused.",
@@ -1682,13 +1687,34 @@
         }
       },
       "presets": {
-        "emptyFolders": { "label": "Empty folders", "description": "Recursively remove empty folders." },
-        "backupFiles": { "label": "Backup files", "description": "Remove .bak backup files." },
-        "tempFolders": { "label": "Temporary folders", "description": "Remove folders beginning with temp_." },
-        "trashFiles": { "label": "Trash files", "description": "Remove .trash files and folders." },
-        "hbTxtFiles": { "label": "[#hb] text", "description": "Remove txt files beginning with [#hb]." },
-        "logFiles": { "label": "Log files", "description": "Remove .log and rotated log files." },
-        "upscale": { "label": "Upscale cache", "description": "Remove .upbak files." }
+        "emptyFolders": {
+          "label": "Empty folders",
+          "description": "Recursively remove empty folders."
+        },
+        "backupFiles": {
+          "label": "Backup files",
+          "description": "Remove .bak backup files."
+        },
+        "tempFolders": {
+          "label": "Temporary folders",
+          "description": "Remove folders beginning with temp_."
+        },
+        "trashFiles": {
+          "label": "Trash files",
+          "description": "Remove .trash files and folders."
+        },
+        "hbTxtFiles": {
+          "label": "[#hb] text",
+          "description": "Remove txt files beginning with [#hb]."
+        },
+        "logFiles": {
+          "label": "Log files",
+          "description": "Remove .log and rotated log files."
+        },
+        "upscale": {
+          "label": "Upscale cache",
+          "description": "Remove .upbak files."
+        }
       },
       "advanced": {
         "title": "Advanced options",
@@ -2293,10 +2319,18 @@
         "historyPlaceholder": "Leave blank to use the default history file"
       },
       "conflictModes": {
-        "auto": { "label": "Auto" },
-        "skip": { "label": "Skip" },
-        "overwrite": { "label": "Overwrite" },
-        "rename": { "label": "Rename" }
+        "auto": {
+          "label": "Auto"
+        },
+        "skip": {
+          "label": "Skip"
+        },
+        "overwrite": {
+          "label": "Overwrite"
+        },
+        "rename": {
+          "label": "Rename"
+        }
       },
       "boards": {
         "itemCount": "{{count}} items",
@@ -2666,14 +2700,32 @@
           "pauseTask": "Pause task",
           "cancelTask": "Cancel task"
         },
-        "taskKinds": { "scan": "Scan", "analysis": "Analysis" },
-        "taskStatus": { "running": "Running", "paused": "Paused", "completed": "Done", "completed_with_warnings": "Done with warnings", "cancelled": "Cancelled", "failed": "Failed" },
+        "taskKinds": {
+          "scan": "Scan",
+          "analysis": "Analysis"
+        },
+        "taskStatus": {
+          "running": "Running",
+          "paused": "Paused",
+          "completed": "Done",
+          "completed_with_warnings": "Done with warnings",
+          "cancelled": "Cancelled",
+          "failed": "Failed"
+        },
         "table": {
           "indexedSummary": "{{visible}} of {{total}} indexed archives",
           "previousPage": "Previous archive page",
           "nextPage": "Next archive page",
           "expandArchive": "Expand archive",
-          "columns": { "archive": "Archive", "size": "Size", "images": "Images", "analyzed": "Analyzed", "density": "Density", "anomalies": "Anomalies", "savings": "Savings" },
+          "columns": {
+            "archive": "Archive",
+            "size": "Size",
+            "images": "Images",
+            "analyzed": "Analyzed",
+            "density": "Density",
+            "anomalies": "Anomalies",
+            "savings": "Savings"
+          },
           "empty": "Open a library, then run a ZIP scan to populate the index.",
           "folderArchiveCount": "{{count}} archives",
           "loadingMembers": "Loading archive members...",
@@ -2694,7 +2746,11 @@
           },
           "ascending": "ascending",
           "descending": "descending",
-          "scanStates": { "corrupt": "Corrupt archive", "unsupported": "Unsupported archive", "rejected": "Rejected archive" }
+          "scanStates": {
+            "corrupt": "Corrupt archive",
+            "unsupported": "Unsupported archive",
+            "rejected": "Rejected archive"
+          }
         },
         "treemap": "Treemap",
         "treemapPanel": {
@@ -2741,11 +2797,59 @@
         "notTitle": "Invert this group",
         "all": "All",
         "any": "Any",
-        "operators": { "equal": "is", "notEqual": "is not", "contains": "contains", "doesNotContain": "does not contain", "startsWith": "starts with", "endsWith": "ends with", "in": "is one of", "notIn": "is not one of", "lessThan": "is less than", "lessThanInclusive": "is at most", "greaterThan": "is greater than", "greaterThanInclusive": "is at least", "isEmpty": "is empty", "isNotEmpty": "is not empty" },
-        "fields": {
-          "relativePath": "Archive path", "scanState": "Index state", "archiveSize": "Archive size", "memberCount": "Members", "imageCount": "Image candidates", "memberPath": "Member path", "memberSize": "Member size", "extension": "Member extension", "actualFormat": "Actual format", "width": "Image width", "height": "Image height", "pixels": "Pixels", "bytesPerMegapixel": "Bytes / MP", "analysisStatus": "Analysis status", "anomalyKind": "Anomaly kind", "anomalyScore": "Anomaly score", "memberEstimatedSavings": "Member estimated savings", "analysisCoverage": "Analyzed images", "totalImageSize": "Total image size", "averageBytesPerMegapixel": "Average bytes / MP", "anomalyCount": "Anomalies", "estimatedSavings": "Estimated savings"
+        "operators": {
+          "equal": "is",
+          "notEqual": "is not",
+          "contains": "contains",
+          "doesNotContain": "does not contain",
+          "startsWith": "starts with",
+          "endsWith": "ends with",
+          "in": "is one of",
+          "notIn": "is not one of",
+          "lessThan": "is less than",
+          "lessThanInclusive": "is at most",
+          "greaterThan": "is greater than",
+          "greaterThanInclusive": "is at least",
+          "isEmpty": "is empty",
+          "isNotEmpty": "is not empty"
         },
-        "options": { "indexed": "Indexed", "corrupt": "Corrupt", "unsupported": "Unsupported", "rejected": "Rejected", "complete": "Complete", "budgetExceeded": "Budget exceeded", "unsupportedFormat": "Unsupported format", "parserFailure": "Parser failure", "encrypted": "Encrypted", "highBytesPerMegapixel": "High bytes / MP", "largeMember": "Large member" }
+        "fields": {
+          "relativePath": "Archive path",
+          "scanState": "Index state",
+          "archiveSize": "Archive size",
+          "memberCount": "Members",
+          "imageCount": "Image candidates",
+          "memberPath": "Member path",
+          "memberSize": "Member size",
+          "extension": "Member extension",
+          "actualFormat": "Actual format",
+          "width": "Image width",
+          "height": "Image height",
+          "pixels": "Pixels",
+          "bytesPerMegapixel": "Bytes / MP",
+          "analysisStatus": "Analysis status",
+          "anomalyKind": "Anomaly kind",
+          "anomalyScore": "Anomaly score",
+          "memberEstimatedSavings": "Member estimated savings",
+          "analysisCoverage": "Analyzed images",
+          "totalImageSize": "Total image size",
+          "averageBytesPerMegapixel": "Average bytes / MP",
+          "anomalyCount": "Anomalies",
+          "estimatedSavings": "Estimated savings"
+        },
+        "options": {
+          "indexed": "Indexed",
+          "corrupt": "Corrupt",
+          "unsupported": "Unsupported",
+          "rejected": "Rejected",
+          "complete": "Complete",
+          "budgetExceeded": "Budget exceeded",
+          "unsupportedFormat": "Unsupported format",
+          "parserFailure": "Parser failure",
+          "encrypted": "Encrypted",
+          "highBytesPerMegapixel": "High bytes / MP",
+          "largeMember": "Large member"
+        }
       },
       "errors": {
         "libraryMissing": "Findz did not return a library.",
@@ -3465,11 +3569,41 @@
         "reviewed": "Plan reviewed",
         "stale": "Plan required"
       },
-      "actions": { "plan": "Plan", "classify": "Classify", "planRun": "Build plan", "classifyRun": "Classify items", "prepareClassify": "Build execution plan first", "copy": "Copy", "paste": "Paste paths", "clear": "Clear state", "clearPaths": "Clear paths" },
-      "classifyModes": { "auto": "Auto", "only": "Already only", "del": "Del only", "off": "Target" },
-      "queues": { "title": "Classification queues", "already": "already", "wait": "wait", "del": "del", "enable": "Enable {{stage}}", "group": "Group {{stage}} artists" },
-      "transferModes": { "move": "Move", "copy": "Copy" },
-      "fields": { "sameaRoots": "SameA archive roots", "target": "Target folder", "dryRun": "Preview mode", "blacklistKeywords": "Blacklisted authors" },
+      "actions": {
+        "plan": "Plan",
+        "classify": "Classify",
+        "planRun": "Build plan",
+        "classifyRun": "Classify items",
+        "prepareClassify": "Build execution plan first",
+        "copy": "Copy",
+        "paste": "Paste paths",
+        "clear": "Clear state",
+        "clearPaths": "Clear paths"
+      },
+      "classifyModes": {
+        "auto": "Auto",
+        "only": "Already only",
+        "del": "Del only",
+        "off": "Target"
+      },
+      "queues": {
+        "title": "Classification queues",
+        "already": "already",
+        "wait": "wait",
+        "del": "del",
+        "enable": "Enable {{stage}}",
+        "group": "Group {{stage}} artists"
+      },
+      "transferModes": {
+        "move": "Move",
+        "copy": "Copy"
+      },
+      "fields": {
+        "sameaRoots": "SameA archive roots",
+        "target": "Target folder",
+        "dryRun": "Preview mode",
+        "blacklistKeywords": "Blacklisted authors"
+      },
       "blacklist": {
         "extractSamea": "Extract SameA tag",
         "stripOuterBrackets": "Remove outer brackets",
@@ -3489,19 +3623,107 @@
         "historyImportUnsupported": "This host cannot select local CSV files.",
         "historyReadFailed": "Could not read {{path}}: HTTP {{status}}"
       },
-      "placeholders": { "sameaRoots": "Example: D:/set/reviewed.zip", "crashuSources": "One CrashU source directory per line; blank uses the default library", "targetRequired": "Required in target mode", "targetOptional": "Optional; defaults to already", "blacklistKeywords": "One SameA artist label per line, for example [artist] or [circle (artist)]" },
-      "tabs": { "plan": "Plan", "matrix": "Classification matrix", "tree": "File tree", "issues": "Issues", "logs": "Logs" },
-      "tree": { "empty": "Waiting for a classification plan", "emptyDescription": "Build a plan to preview the exact target directory structure here.", "targetRoot": "Target folder", "source": "Source", "toggle": "Expand/collapse" },
-      "table": { "source": "Source", "status": "Status", "target": "Location after execution", "queue": "Classification queue", "mapping": "Source → location after execution" },
-      "stages": { "samea": "Source organization", "crashu": "Directory matching", "del": "Del queue", "already": "Already queue", "wait": "Wait queue" },
-      "itemStatus": { "running": "Running", "moved": "Moved", "copied": "Copied", "ready": "Ready", "conflict": "Conflict", "error": "Error", "skipped": "Skipped" },
-      "stats": { "selected": "Selected", "ready": "Ready", "del": "Blacklist", "wait": "Wait", "completed": "Completed", "conflicts": "Conflicts", "progress": "Progress" },
-      "status": { "running": "Running", "failed": "Failed", "done": "Done", "ready": "Ready", "stale": "Plan stale", "runningDescription": "Building or applying the classification plan.", "failedDescription": "The last run failed. Check Issues.", "doneDescription": "The last ClassF run completed.", "readyDescription": "Add sources and preview every already / wait target first." },
-      "empty": { "ready": "Build a plan to list every source and target before execution.", "noSources": "Add source paths to preview the full classification result.", "noIssues": "No issues yet.", "logs": "Run logs will appear here.", "waitingPlan": "Waiting for plan" },
-      "summary": { "items": "{{count}} items", "result": "{{count}} items / ready {{ready}} / del {{del}} / wait {{wait}}", "selected": "{{count}} selected" },
-      "progress": { "buildingPlan": "Building the complete classification plan…", "executing": "Applying the reviewed classification plan…", "planReady": "Plan ready: {{count}} executable items.", "completed": "Execution complete: {{count}} items processed.", "planVisible": "The complete plan is ready. Review every target in the matrix.", "itemRunning": "Processing: {{name}}", "itemCompleted": "Updated: {{name}}", "stage": { "samea": "Analyzing and organizing sources…", "crashu": "Matching classification directories…", "del": "Building the del queue…", "already": "Building the already queue…", "wait": "Building the wait queue…" } },
-      "confirm": { "title": "Apply the reviewed classification plan?", "description": "ClassF moves or copies items to their reviewed targets; blacklisted items go to del and conflicts are skipped.", "action": "Confirm execution" },
-      "common": { "cancel": "Cancel", "done": "Done" },
+      "placeholders": {
+        "sameaRoots": "Example: D:/set/reviewed.zip",
+        "crashuSources": "One CrashU source directory per line; blank uses the default library",
+        "targetRequired": "Required in target mode",
+        "targetOptional": "Optional; defaults to already",
+        "blacklistKeywords": "One SameA artist label per line, for example [artist] or [circle (artist)]"
+      },
+      "tabs": {
+        "plan": "Plan",
+        "matrix": "Classification matrix",
+        "tree": "File tree",
+        "issues": "Issues",
+        "logs": "Logs"
+      },
+      "tree": {
+        "empty": "Waiting for a classification plan",
+        "emptyDescription": "Build a plan to preview the exact target directory structure here.",
+        "targetRoot": "Target folder",
+        "source": "Source",
+        "toggle": "Expand/collapse"
+      },
+      "table": {
+        "source": "Source",
+        "status": "Status",
+        "target": "Location after execution",
+        "queue": "Classification queue",
+        "mapping": "Source → location after execution"
+      },
+      "stages": {
+        "samea": "Source organization",
+        "crashu": "Directory matching",
+        "del": "Del queue",
+        "already": "Already queue",
+        "wait": "Wait queue"
+      },
+      "itemStatus": {
+        "running": "Running",
+        "moved": "Moved",
+        "copied": "Copied",
+        "ready": "Ready",
+        "conflict": "Conflict",
+        "error": "Error",
+        "skipped": "Skipped"
+      },
+      "stats": {
+        "selected": "Selected",
+        "ready": "Ready",
+        "del": "Blacklist",
+        "wait": "Wait",
+        "completed": "Completed",
+        "conflicts": "Conflicts",
+        "progress": "Progress"
+      },
+      "status": {
+        "running": "Running",
+        "failed": "Failed",
+        "done": "Done",
+        "ready": "Ready",
+        "stale": "Plan stale",
+        "runningDescription": "Building or applying the classification plan.",
+        "failedDescription": "The last run failed. Check Issues.",
+        "doneDescription": "The last ClassF run completed.",
+        "readyDescription": "Add sources and preview every already / wait target first."
+      },
+      "empty": {
+        "ready": "Build a plan to list every source and target before execution.",
+        "noSources": "Add source paths to preview the full classification result.",
+        "noIssues": "No issues yet.",
+        "logs": "Run logs will appear here.",
+        "waitingPlan": "Waiting for plan"
+      },
+      "summary": {
+        "items": "{{count}} items",
+        "result": "{{count}} items / ready {{ready}} / del {{del}} / wait {{wait}}",
+        "selected": "{{count}} selected"
+      },
+      "progress": {
+        "buildingPlan": "Building the complete classification plan…",
+        "executing": "Applying the reviewed classification plan…",
+        "planReady": "Plan ready: {{count}} executable items.",
+        "completed": "Execution complete: {{count}} items processed.",
+        "planVisible": "The complete plan is ready. Review every target in the matrix.",
+        "itemRunning": "Processing: {{name}}",
+        "itemCompleted": "Updated: {{name}}",
+        "stage": {
+          "samea": "Analyzing and organizing sources…",
+          "crashu": "Matching classification directories…",
+          "del": "Building the del queue…",
+          "already": "Building the already queue…",
+          "wait": "Building the wait queue…"
+        }
+      },
+      "confirm": {
+        "title": "Apply the reviewed classification plan?",
+        "description": "ClassF moves or copies items to their reviewed targets; blacklisted items go to del and conflicts are skipped.",
+        "action": "Confirm execution"
+      },
+      "common": {
+        "cancel": "Cancel",
+        "done": "Done"
+      },
       "config": {
         "trigger": "Configuration",
         "title": "Configuration",

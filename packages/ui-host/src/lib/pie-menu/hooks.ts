@@ -43,11 +43,17 @@ export function useControllableState<T>(options: {
 
 export function composeRefs<T>(...refs: Array<Ref<T> | undefined>) {
   return (node: T | null) => {
+    let hasCleanup = false
     const cleanups = refs.map((ref) => {
-      if (typeof ref === "function") return ref(node)
+      if (typeof ref === "function") {
+        const res = ref(node)
+        if (typeof res === "function") hasCleanup = true
+        return res
+      }
       if (ref) ref.current = node
       return undefined
     })
+    if (!hasCleanup) return undefined
     return () => {
       cleanups.forEach((cleanup, index) => {
         const ref = refs[index]

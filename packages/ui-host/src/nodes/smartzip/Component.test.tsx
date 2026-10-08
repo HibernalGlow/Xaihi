@@ -199,7 +199,7 @@ describe("app-owned smartzip Component", () => {
 
   test("adds per-archive failures to the visible log", async () => {
     setSurface("regular")
-    const host = createHost({ pathsText: "D:/archives/a.zip", logs: [] })
+    const host = createHost({ pathsText: "D:/archives/a.zip", logs: [], dryRun: true })
     host.runner!.run = async <TInput, TData>(nodeId: string, input: TInput) => {
       host.runCalls.push({ nodeId, input: input as SmartZipInput })
       return {
@@ -250,7 +250,7 @@ describe("app-owned smartzip Component", () => {
 
   test("marks the card as error when extract has no paths", async () => {
     setSurface("regular")
-    const host = createHost({ action: "extract", logs: [] })
+    const host = createHost({ action: "extract", logs: [], dryRun: true })
     render(<Component compId="comp-smartzip" host={host} />)
     const user = userEvent.setup()
 

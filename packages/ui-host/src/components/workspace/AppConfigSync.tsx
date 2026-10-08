@@ -1,8 +1,35 @@
+/**
+ * 工作台自身设置的同步器（无渲染）。
+ *
+ * 三段各一条通路，**都只走这一份文档的桥**（2026-10-07 使用者口径"不再使用 rest 架构通信，
+ * 一切都走 DSH 插件标准"）：
+ *
+ * | 段 | 内容 | 落点 |
+ * |---|---|---|
+ * | `ui` | `AppUiConfig`（布局偏好 / 明暗 / 语言 / 迁移来源） | `xaihi-core.appUi.ui` |
+ * | `themes` | 自定义主题表 | `xaihi-core.appUi.themes` |
+ * | `bgImage` | 背景图 URL（data: 那种大对象由体积闸拦下） | `xaihi-core.appUi.bgImage` |
+ *
+ * 过去这三段打在 Xiranite 自己的 HTTP 后端上（`/config/app/*`、`/config/themes`、
+ * `/config/bg-image`），而那份后端在本仓不存在：门（`useLocalBackendStatus()`）永远是
+ * "没有配置"，于是**设置改了刷新就没了，界面上还一句话读不到**。今天门换成"桥接通了没有"
+ * （`useBridgeReady`），落在 `src/backend/appConfigSections.ts` 那一条载体上。
+ *
+ * 每段的纪律原样保留：先加载 → `loadedRef` 置位 → 之后的变化才回写（防抖 600ms），
+ * 迁移与补齐的写都**不许**吃掉已经落好的设置（各自 catch 并 warn）。
+ *
+ * @module xaihi-ui/components/workspace/AppConfigSync
+ */
+
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { getAppConfigFromBackend, getBackgroundImageFromBackend, getCustomThemesFromBackend, saveAppConfigToBackend, saveBackgroundImageToBackend, saveCustomThemesToBackend } from "@/backend/configRpcClient"
-import { localBackendConnectionKey } from "@/backend/localBackendConfig"
-import { useLocalBackendStatus } from "@/hooks/useLocalBackendStatus"
+import {
+  APP_CONFIG_BG_IMAGE_SECTION,
+  APP_CONFIG_THEMES_SECTION,
+  APP_CONFIG_UI_SECTION,
+  createBridgeAppConfigCarrier,
+} from "@/backend/appConfigSections"
+import { useBridgeReady, useDocumentBridge } from "@/document/bridge-context"
 import { getActiveCustomTheme, mirrorAestivusThemeStorage, parseImportedThemeJson, type ThemeMode } from "@/lib/appearance"
 import { FONT_PRESETS } from "@/lib/appearance-fonts"
 import { normalizeDesignThemeConfig } from "@/lib/design-theme/contract"
@@ -19,8 +46,7 @@ import { clampWheelPitch, clampWheelRadius } from "@/actions/wheelPreferences"
 
 const logger = createLogger("config.sync")
 
-const APP_UI_SECTION = "ui"
-const APP_UI_CONFIG_VERSION = 3
+const APP_UI_CONFIG_VERSION = 4
 const WORKSPACE_UI_STORAGE_KEY = "xiranite-workspace-ui"
 const THEME_STORAGE_KEY = "theme"
 const AESTIVUS_THEME_NAME_STORAGE_KEY = "theme-name"
@@ -77,7 +103,8 @@ const LANGUAGES = new Set<Language>(["en", "zh"])
 const OVERLAY_MODES = new Set<WorkspaceUiPreferences["overlayMode"]>(["docked", "floating"])
 
 export function AppConfigSync() {
-  const backendStatus = useLocalBackendStatus()
+  const bridge = useDocumentBridge()
+  const bridgeReady = useBridgeReady(bridge)
   const workspaceActions = useWorkspaceActions()
   const workspace = useWorkspaceShallowSelector(selectWorkspaceUiPreferences)
   const { theme, setTheme } = useTheme()
@@ -101,12 +128,22 @@ export function AppConfigSync() {
   currentRef.current = { workspace, colorMode, language }
   syncActionsRef.current = { workspaceActions, setTheme }
 
-  const backendKey = backendStatus.data?.status === "ready"
-    ? localBackendConnectionKey(backendStatus.data.config)
-    : ""
+  /**
+   * 这三段的对面只有一条桥，所以门就是"桥接通了没有"。
+   *
+   * 值过去是"后端地址指纹"（`localBackendConnectionKey`），后端换了就整段重载一遍；
+   * 一条桥在文档的一生里只建一次，这个门能取的值因此就是"有 / 没有"。
+   * 下面四处 effect 都拿它当门与依赖：`null` 时不读也不写，界面上那几段保持 store 里的现值。
+   */
+  const carrier = useMemo(
+    () => (bridge === null || !bridgeReady ? null : createBridgeAppConfigCarrier(bridge)),
+    [bridge, bridgeReady],
+  )
 
   useEffect(() => {
-    if (!backendKey) return
+    if (carrier === null) return
+    // 收窄后取一份局部的：嵌在 effect 里的函数闭包读不到 `carrier` 上的收窄（CFA 不跨函数边界）。
+    const host = carrier
 
     let cancelled = false
     loadedRef.current = false
@@ -117,10 +154,10 @@ export function AppConfigSync() {
       try {
         startupDebug("config:app-ui:load:begin")
         if (cancelled) return
-        const response = await startupDebugAsync("config:app-ui:request", () => getAppConfigFromBackend<AppUiConfig>(APP_UI_SECTION))
+        const stored = await startupDebugAsync("config:app-ui:request", () => host.read(APP_CONFIG_UI_SECTION))
         if (cancelled) return
 
-        const normalizedResponse = normalizeAppUiConfig(response.config)
+        const normalizedResponse = normalizeAppUiConfig(stored)
         if (isEmptyAppUiConfig(normalizedResponse)) {
           const legacy = readBrowserLegacyConfig()
           const workspace = legacy.hasWorkspaceStore
@@ -150,10 +187,11 @@ export function AppConfigSync() {
           queueMicrotask(() => {
             applyingRef.current = false
           })
-          // 回写在应用之后，并且不许决定应用有没有发生过：Tauri 宿主的 /config 家族只注册了 GET
-          // （crates/xiranite-api/src/config_routes.rs 的「Writes are deliberately absent」），
-          // 在这里 await 一个必然失败的 PUT，会把整份 app.ui（含 fontPreset）挡在 store 外面。
-          void saveAppConfigToBackend(APP_UI_SECTION, migrated).catch((error) => {
+          // 回写在应用之后，并且不许决定应用有没有发生过 —— 这也是那份 `void` 的理由：
+          // 这次写只是把刚迁移出来的那份**顺手存回去**，界面上的设置已经生效了。
+          // 一条写不回去的迁移（`config` 组没被授予、超预算、设置面缺席）只该在控制台留一句，
+          // 不该把整份 app.ui（含 fontPreset）挡在 store 外面。
+          void host.write(APP_CONFIG_UI_SECTION, migrated).catch((error) => {
             logger.warn("App UI migration save failed", error)
           })
           return
@@ -194,7 +232,7 @@ export function AppConfigSync() {
         })
         if (needsBackfillSave) {
           // 补齐缺失字段只是顺手把文件写全，它失败也不许吃掉上面已经落好的设置。
-          void saveAppConfigToBackend(APP_UI_SECTION, existing).catch((error) => {
+          void host.write(APP_CONFIG_UI_SECTION, existing).catch((error) => {
             logger.warn("App UI backfill save failed", error)
           })
         }
@@ -208,11 +246,13 @@ export function AppConfigSync() {
     return () => {
       cancelled = true
     }
-  }, [backendKey])
+  }, [carrier])
 
-  // customThemes 独立加载（走 /config/themes，不进 TOML）
+  // 自定义主题是同一格里的另一段（`xaihi-core.appUi.themes`），单独加载 / 单独回写
   useEffect(() => {
-    if (!backendKey) return
+    if (carrier === null) return
+    // 收窄后取一份局部的：嵌在 effect 里的函数闭包读不到 `carrier` 上的收窄（CFA 不跨函数边界）。
+    const host = carrier
 
     let cancelled = false
     themesLoadedRef.current = false
@@ -222,9 +262,9 @@ export function AppConfigSync() {
     async function loadCustomThemes() {
       try {
         startupDebug("config:themes:load:begin")
-        const response = await startupDebugAsync("config:themes:request", () => getCustomThemesFromBackend<AppCustomTheme>())
+        const stored = await startupDebugAsync("config:themes:request", () => host.read(APP_CONFIG_THEMES_SECTION))
         if (cancelled) return
-        const themes = Array.isArray(response.themes) ? response.themes.filter(isCustomTheme) : []
+        const themes = Array.isArray(stored) ? stored.filter(isCustomTheme) : []
         themesApplyingRef.current = true
         syncActionsRef.current.workspaceActions.setCustomThemes(themes)
         lastSavedThemesKeyRef.current = stableStringify(themes)
@@ -243,16 +283,17 @@ export function AppConfigSync() {
     return () => {
       cancelled = true
     }
-  }, [backendKey])
+  }, [carrier])
 
-  // customThemes 独立保存（走 /config/themes，不进 TOML）
+  // 自定义主题的回写（同上一段的落点；两段各自防抖，互不牵连）
   const customThemesKey = useMemo(
     () => stableStringify(workspace.customThemes),
     [workspace.customThemes],
   )
 
   useEffect(() => {
-    if (!backendKey || !themesLoadedRef.current || themesApplyingRef.current) return
+    if (carrier === null || !themesLoadedRef.current || themesApplyingRef.current) return
+    const host = carrier
     if (customThemesKey === lastSavedThemesKeyRef.current) return
 
     const timer = window.setTimeout(() => {
@@ -260,7 +301,7 @@ export function AppConfigSync() {
       const nextKey = stableStringify(themes)
       if (nextKey === lastSavedThemesKeyRef.current) return
 
-      saveCustomThemesToBackend(themes)
+      host.write(APP_CONFIG_THEMES_SECTION, themes)
         .then(() => {
           lastSavedThemesKeyRef.current = nextKey
         })
@@ -272,11 +313,13 @@ export function AppConfigSync() {
     return () => {
       window.clearTimeout(timer)
     }
-  }, [backendKey, customThemesKey])
+  }, [carrier, customThemesKey])
 
-  // bg-image data: URL 独立加载（走 /config/bg-image，不进 TOML）
+  // 背景图是同一格里第三段（`xaihi-core.appUi.bgImage`）；data: URL 不写进 `ui` 那一段
   useEffect(() => {
-    if (!backendKey) return
+    if (carrier === null) return
+    // 收窄后取一份局部的：嵌在 effect 里的函数闭包读不到 `carrier` 上的收窄（CFA 不跨函数边界）。
+    const host = carrier
 
     let cancelled = false
     bgImageLoadedRef.current = false
@@ -286,11 +329,11 @@ export function AppConfigSync() {
     async function loadBgImage() {
       try {
         startupDebug("config:bg-image:load:begin")
-        const response = await startupDebugAsync("config:bg-image:request", getBackgroundImageFromBackend)
+        const stored = await startupDebugAsync("config:bg-image:request", () => host.read(APP_CONFIG_BG_IMAGE_SECTION))
         if (cancelled) return
-        const storedUrl = typeof response.url === "string" ? response.url : ""
+        const storedUrl = typeof stored === "string" ? stored : ""
         if (storedUrl) {
-          // 库里可能存着一张未压缩的超大 data URL：原样灌进 store 与 CSS 就是爆内存那条路，
+          // 存的那一格可能放着一张未压缩的超大 data URL：原样灌进 store 与 CSS 就是爆内存那条路，
           // 先压回体积上限以内再应用，并把压缩结果写回去。
           const safeUrl = await startupDebugAsync("config:bg-image:shrink", () => shrinkStoredBackgroundImageUrl(storedUrl))
           if (cancelled) return
@@ -301,7 +344,7 @@ export function AppConfigSync() {
             bgImageApplyingRef.current = false
           })
           if (safeUrl !== storedUrl) {
-            await saveBackgroundImageToBackend(safeUrl).catch((error) => {
+            await host.write(APP_CONFIG_BG_IMAGE_SECTION, safeUrl).catch((error) => {
               logger.warn("Background image shrink write-back failed", error)
             })
           }
@@ -319,25 +362,26 @@ export function AppConfigSync() {
     return () => {
       cancelled = true
     }
-  }, [backendKey])
+  }, [carrier])
 
-  // bg-image data: URL 独立保存（走 /config/bg-image，不进 TOML）
+  // 背景图的回写（data: URL 那一支会被 `appConfigSections.ts` 的体积闸拦下，见那个文件的头注释）
   const bgImageUrl = workspace.bgImageUrl
   const isBgImageDataUrl = bgImageUrl.startsWith("data:")
   const bgImageSyncKey = isBgImageDataUrl ? bgImageUrl : ""
 
   useEffect(() => {
-    if (!backendKey || !bgImageLoadedRef.current || bgImageApplyingRef.current) return
+    if (carrier === null || !bgImageLoadedRef.current || bgImageApplyingRef.current) return
+    const host = carrier
     if (bgImageSyncKey === lastSavedBgImageKeyRef.current) return
 
     const timer = window.setTimeout(() => {
       const currentUrl = currentRef.current.workspace.bgImageUrl
       const currentIsDataUrl = currentUrl.startsWith("data:")
 
-      // data: URL → 存数据库
+      // data: URL → 存进这一格
       if (currentIsDataUrl) {
         if (currentUrl === lastSavedBgImageKeyRef.current) return
-        saveBackgroundImageToBackend(currentUrl)
+        host.write(APP_CONFIG_BG_IMAGE_SECTION, currentUrl)
           .then(() => {
             lastSavedBgImageKeyRef.current = currentUrl
           })
@@ -347,9 +391,9 @@ export function AppConfigSync() {
         return
       }
 
-      // 非 data: URL → 清空数据库中的旧 data: URL
+      // 非 data: URL → 清空这一格里旧的 data: URL
       if (lastSavedBgImageKeyRef.current) {
-        saveBackgroundImageToBackend(null)
+        host.write(APP_CONFIG_BG_IMAGE_SECTION, null)
           .then(() => {
             lastSavedBgImageKeyRef.current = ""
           })
@@ -362,7 +406,7 @@ export function AppConfigSync() {
     return () => {
       window.clearTimeout(timer)
     }
-  }, [backendKey, bgImageSyncKey, isBgImageDataUrl])
+  }, [carrier, bgImageSyncKey, isBgImageDataUrl])
 
   useEffect(() => {
     const refreshLegacyConfig = () => {
@@ -394,7 +438,8 @@ export function AppConfigSync() {
   )
 
   useEffect(() => {
-    if (!backendKey || !loadedRef.current || applyingRef.current) return
+    if (carrier === null || !loadedRef.current || applyingRef.current) return
+    const host = carrier
     if (configKey === lastSavedKeyRef.current) return
 
     const timer = window.setTimeout(() => {
@@ -408,7 +453,7 @@ export function AppConfigSync() {
       const nextKey = stableStringify(nextConfig)
       if (nextKey === lastSavedKeyRef.current) return
 
-      saveAppConfigToBackend(APP_UI_SECTION, nextConfig)
+      host.write(APP_CONFIG_UI_SECTION, nextConfig)
         .then(() => {
           lastSavedKeyRef.current = nextKey
         })
@@ -420,7 +465,7 @@ export function AppConfigSync() {
     return () => {
       window.clearTimeout(timer)
     }
-  }, [backendKey, configKey])
+  }, [carrier, configKey])
 
   return null
 }
@@ -609,10 +654,15 @@ function normalizeWorkspacePreferences(value: unknown): Partial<WorkspaceUiPrefe
 
 function mergeMissingWorkspacePreferences(config: AppUiConfig, fallback: WorkspaceUiPreferences): AppUiConfig {
   const normalized = normalizeAppUiConfig(config)
-  const existing = (normalized.version ?? 0) < APP_UI_CONFIG_VERSION
-    && normalized.workspace?.floatingWindowCaptionStyle === "capsule"
-    ? { ...normalized.workspace, floatingWindowCaptionStyle: "windows" as const }
-    : normalized.workspace ?? {}
+  // v4（2026-10-07，Xiranite 配置迁移为默认值）一次性重定基：v3 及更早的快照里存的是
+  // **旧代码默认**派生的值（chromePosition: "right"、island scale 90/110/45/-3 等），
+  // 「只补缺」规则会让它们永远盖过迁移进 INITIAL_STATE 的新默认——表现为操作栏钉在
+  // 右上角、灵动岛不生效。这里把旧 workspace 段整体丢弃，让迁移默认落地，随后照常
+  // 回写成 v4；v3 的 capsule→windows 特例随整段丢弃被覆盖，不再单列。
+  if ((normalized.version ?? 0) < 4) {
+    return { version: APP_UI_CONFIG_VERSION, migratedFrom: normalized.migratedFrom }
+  }
+  const existing = normalized.workspace ?? {}
   const missing = Object.fromEntries(
     Object.entries(sanitizeWorkspaceConfig(fallback))
       .filter(([key]) => existing[key as keyof WorkspaceUiPreferences] === undefined),

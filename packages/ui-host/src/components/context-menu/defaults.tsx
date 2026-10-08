@@ -13,7 +13,6 @@ import {
   BringToFront,
   Eye,
   EyeOff,
-  Plus,
   Image as ImageIcon,
   Layout as LayoutIcon,
   Palette,
@@ -518,26 +517,7 @@ export function DefaultContextMenuItems() {
         ],
       })
 
-      // Workspace submenu
-      items.push({
-        id: "workspace",
-        label: t("contextMenu:workspace"),
-        icon: <Plus />,
-        children: [
-          {
-            id: "new-workspace",
-            label: t("contextMenu:newWorkspace"),
-            onSelect: () => actions.addWorkspace(),
-          },
-          { type: "separator" },
-          {
-            id: "copy-workspace-id",
-            label: t("contextMenu:copyWorkspaceId"),
-            onSelect: () => void copyToClipboard(state.activeWorkspaceId ?? "", t("common:copyFailed")),
-          },
-        ],
-      })
-
+      // ADR-0019：多工作空间退役，右键菜单的"工作空间"子菜单（新建/复制 id）整块删除。
       return items
     },
     [actions, t],

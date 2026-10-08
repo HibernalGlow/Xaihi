@@ -126,7 +126,7 @@ export function TimerSettings(props: {
 
   return (
     <div className="grid grid-cols-3 gap-2" data-testid="sleept-countdown-fields">
-      <NumberField label="时" value={props.data.hours ?? 0} min={0} max={23} disabled={props.disabled} onChange={(hours) => props.onPatch({ hours })} />
+      <NumberField label="时" value={props.data.hours ?? 2} min={0} max={23} disabled={props.disabled} onChange={(hours) => props.onPatch({ hours })} />
       <NumberField label="分" value={props.data.minutes ?? 0} min={0} max={59} disabled={props.disabled} onChange={(minutes) => props.onPatch({ minutes })} />
       <NumberField label="秒" value={props.data.seconds ?? 5} min={0} max={59} disabled={props.disabled} onChange={(seconds) => props.onPatch({ seconds })} />
     </div>

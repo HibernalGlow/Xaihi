@@ -423,7 +423,7 @@ function DirectActionButton({ action, compact, props }: {
   const meta = ACTIONS.find((item) => item.value === action) ?? ACTIONS[0]!
   const label = actionLabel(action)
   const shortLabel = t(`actions.${actionI18nKey(action)}.shortLabel`, meta.shortLabel)
-  const destructive = isDestructiveAction(action) && !(props.data.dryRun ?? true)
+  const destructive = isDestructiveAction(action) && !(props.data.dryRun ?? false)
   const activeRunning = props.running && props.action === action
   const Icon = activeRunning ? LoaderCircle : meta.icon
 
@@ -480,7 +480,7 @@ function RunActionButton({ compact, props }: { compact?: boolean; props: ViewPro
   return (
     <ExecuteButton
       compact={compact}
-      dangerous={isDestructiveAction(props.action) && !(props.data.dryRun ?? true)}
+      dangerous={isDestructiveAction(props.action) && !(props.data.dryRun ?? false)}
       disabled={props.running}
       idleIcon={<Play />}
       label={label}
@@ -525,7 +525,7 @@ function buildInput(action: SmartZipAction, data: SmartZipCardState, defaults?: 
     passwords: resolved.passwords ?? [],
     codePage: resolved.codePage ?? 0,
     databasePath: clean(resolved.databasePath),
-    dryRun: resolved.dryRun ?? true,
+    dryRun: resolved.dryRun ?? false,
     recordRun: resolved.recordRun ?? false,
   }
 }

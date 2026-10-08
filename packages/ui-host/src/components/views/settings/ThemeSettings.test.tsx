@@ -109,15 +109,11 @@ vi.mock("@/hooks/useLocalBackendStatus", () => ({
 }))
 
 vi.mock("@/backend/runtimeConnectionInfo", () => ({
+  // 形状随 2026-10-07 那刀收窄：REST 后端地址 / token / dev 命令不再报告（那通路作废）。
   getRuntimeConnectionInfo: () => ({
     hostRuntime: "test",
     frontendSource: "vite-dev",
     frontendOrigin: "http://127.0.0.1:5173",
-    frontendDevUrl: "http://127.0.0.1:5173",
-    backendUrl: "http://127.0.0.1:41000",
-    backendTokenConfigured: true,
-    devAttachCommand: "bun run dev:desktop:attach",
-    devStartCommand: "bun run dev:desktop",
   }),
 }))
 

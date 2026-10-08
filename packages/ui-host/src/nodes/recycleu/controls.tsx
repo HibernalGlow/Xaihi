@@ -44,7 +44,7 @@ export function CleanupFields({ compact = false, data, disabled, onPatch, t }: P
         max={3600}
         min={5}
         suffix={t("units.secondsShort", "秒")}
-        value={data.interval ?? 10}
+        value={data.interval ?? 5}
         onChange={(interval) => onPatch({ interval })}
       />
       <NumberField
@@ -58,7 +58,7 @@ export function CleanupFields({ compact = false, data, disabled, onPatch, t }: P
         label={t("fields.cycles", "循环次数")}
         max={360}
         min={0}
-        value={data.maxCycles ?? 360}
+        value={data.maxCycles ?? 0}
         zeroBadge={t("common.unlimited", "无限")}
         onChange={(maxCycles) => onPatch({ maxCycles })}
       />
@@ -185,7 +185,7 @@ export function SettingsPopover({ data, disabled, onPatch, t }: PatchProps) {
         </div>
         <div className="flex flex-col gap-4">
           <CleanupFields data={data} disabled={disabled} onPatch={onPatch} t={t} />
-          <IntervalPresets disabled={disabled} value={data.interval ?? 10} t={t} onChange={(interval) => onPatch({ interval })} />
+          <IntervalPresets disabled={disabled} value={data.interval ?? 5} t={t} onChange={(interval) => onPatch({ interval })} />
         </div>
       </PopoverContent>
     </Popover>

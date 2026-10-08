@@ -30,7 +30,7 @@ export function ClassfQueueControls(props: { data: ClassfCardState; disabled?: b
     </div>
     {groupingEnabled ? <div className="flex items-center justify-between gap-2 rounded-md border bg-card px-2 py-1.5">
       <Label htmlFor="classf-samea-group-min" className="text-xs text-muted-foreground">{props.t("fields.sameaGroupMin", "画师最少文件数")}</Label>
-      <Input id="classf-samea-group-min" aria-label="classf samea group minimum" type="number" min={1} max={100} className="h-7 w-20 text-xs" disabled={props.disabled} value={props.data.sameaGroupMinOccurrences ?? 1} onChange={(event) => props.onPatch({ sameaGroupMinOccurrences: Math.max(1, Number(event.currentTarget.value) || 1) })} />
+      <Input id="classf-samea-group-min" aria-label="classf samea group minimum" type="number" min={1} max={100} className="h-7 w-20 text-xs" disabled={props.disabled} value={props.data.sameaGroupMinOccurrences ?? 2} onChange={(event) => props.onPatch({ sameaGroupMinOccurrences: Math.max(1, Number(event.currentTarget.value) || 1) })} />
     </div> : null}
   </div>
 }
@@ -57,5 +57,5 @@ function isQueueEnabled(data: ClassfCardState, stage: ClassfQueueStage): boolean
 function isGroupingEnabled(data: ClassfCardState, stage: ClassfQueueStage): boolean {
   const enabled = data[groupingField(stage)]
   if (enabled !== undefined) return enabled
-  return stage !== "del" && (data.sameaGroupEnabled ?? false)
+  return stage !== "del" && (data.sameaGroupEnabled ?? true)
 }

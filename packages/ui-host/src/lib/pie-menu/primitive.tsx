@@ -14,8 +14,8 @@
 
 import {
   createContext,
-  use,
   useCallback,
+  useContext,
   useEffect,
   useId,
   useLayoutEffect,
@@ -101,7 +101,7 @@ interface RootContextValue {
 const RootContext = createContext<RootContextValue | null>(null)
 
 function useRootContext(consumer: string) {
-  const context = use(RootContext)
+  const context = useContext(RootContext)
   if (!context) throw new Error(`<${consumer}> must be used inside <PieMenu>.`)
   return context
 }
@@ -164,7 +164,7 @@ export function Root({
     [open, request, openAt, close, triggerId, contentId]
   )
 
-  return <RootContext value={value}>{children}</RootContext>
+  return <RootContext.Provider value={value}>{children}</RootContext.Provider>
 }
 
 /* -------------------------------------------------------------------------------------------------
@@ -350,7 +350,7 @@ interface ContentContextValue {
 const ContentContext = createContext<ContentContextValue | null>(null)
 
 function useContentContext(consumer: string) {
-  const context = use(ContentContext)
+  const context = useContext(ContentContext)
   if (!context)
     throw new Error(`<${consumer}> must be used inside <PieMenuContent>.`)
   return context
@@ -879,7 +879,7 @@ function ContentImpl({
           } as CSSProperties
         }
       >
-        <ContentContext value={contentContext}>{children}</ContentContext>
+        <ContentContext.Provider value={contentContext}>{children}</ContentContext.Provider>
       </div>
     </div>
   )
