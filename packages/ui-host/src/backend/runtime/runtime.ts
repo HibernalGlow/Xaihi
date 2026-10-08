@@ -88,9 +88,9 @@ export interface WindowCapabilities {
   nativeWindowControls: boolean
   frameless: boolean
   /**
-   * Who paints the caption buttons. `system` means the OS title bar owns them — on macOS the
-   * `tauri.macos.conf.json` Overlay flavor — so the app must not draw a second set over the traffic
-   * lights. Defaults to `renderer`, i.e. `TopBar` and `FloatingWindowFrame` paint them as before.
+   * Who paints the caption buttons. `system` means the OS title bar owns them — a shell reports this from
+   * the window's own `titleBarStyle` (`hiddenInset` on macOS), so the app must not draw a second set over
+   * the traffic lights. Defaults to `renderer`, i.e. `TopBar` and `FloatingWindowFrame` paint them as before.
    */
   captionOwner: "system" | "renderer"
   /** Where AppKit puts the traffic lights in CSS pixels; only reported when {@link captionOwner} is `system`. */
@@ -142,9 +142,9 @@ export interface WindowRuntime {
   getFrame(id?: string): Promise<WindowFrame | null>
   setFrame(frame: WindowFrame, id?: string): Promise<WindowCommandResult>
   /**
-   * Begin an OS-level move of a frameless window from a drag region. The retired Wails bridge read
-   * `-webkit-app-region` itself; a Tauri WebView ignores that property, so dragging is an explicit
-   * capability and `supported: false` means the region simply does nothing.
+   * Begin an OS-level move of a frameless window from a drag region. `-webkit-app-region` only works when
+   * the renderer owns the frame, so a shell that owns the window answers this explicitly instead; a
+   * `supported: false` result means the region simply does nothing.
    */
   startDragging(id?: string): Promise<WindowCommandResult>
   subscribeFrameChanges(handler: (event: ComponentWindowFrameEvent) => void): Promise<() => void>
@@ -217,12 +217,12 @@ export interface ShellRuntime {
 
 export interface RuntimeInterface {
   /**
-   * `web` is the browser face (`adapters/web.ts`): the loopback channel plus DOM fallbacks. `tauri`
-   * (`adapters/tauri.ts`) overlays only the native surface the shell really serves — `windows`, `trays`,
-   * `fileDrops`, `shell` — and delegates the rest, because the channel stays HTTP (ADR-0065). The `wails`
-   * and `deno-desktop` members went with the bridges that returned them.
+   * `web` is the browser face (`adapters/web.ts`): the loopback channel plus DOM fallbacks. `electron`
+   * (`adapters/dshDesktop.ts`) overlays only the native surface the shipped shell really serves — `windows` —
+   * and delegates the rest, because the channel stays HTTP (ADR-0065). The `wails`, `deno-desktop` and `tauri`
+   * members went with the bridges that returned them.
    */
-  readonly kind: "web" | "tauri" | "electron"
+  readonly kind: "web" | "electron"
   storage: StorageRuntime
   fs: FileSystemRuntime
   fileDrops: NativeFileDropRuntime

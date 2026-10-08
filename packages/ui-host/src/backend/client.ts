@@ -1,4 +1,4 @@
-import { createTauriRuntime, detectTauriRuntime } from "./adapters/tauri"
+import { createDshDesktopRuntime, detectDshDesktopRuntime } from "./adapters/dshDesktop"
 import { createWebRuntime } from "./adapters/web"
 import type { RuntimeAdapterRegistration, RuntimeInterface } from "./runtime/runtime"
 import { createBackend, type Backend } from "./services"
@@ -8,17 +8,14 @@ import { createLogger } from "@/lib/logger"
 const logger = createLogger("backend.runtime")
 
 /**
- * Detection order is native first, browser last: inside a Tauri host the window manager is real, and a
- * popup fallback would silently swallow the frameless caption's controls.
- *
- * The desktop loopback channel is *not* an adapter: the host publishes it through `xiranite_bootstrap`,
- * which `localBackendConfig.ts` hydrates into `window.__XIRANITE_BACKEND__` before any of this runs, so
- * the WebView and the browser share the HTTP transport. `tauri` therefore overlays only the native
- * surface it actually has — windows — and delegates storage/fs/subprocess/nodeRunner to `web`. The
- * retired Wails and Deno Desktop bridges used to sit in front of all of it.
+ * Detection order is the native desktop shell first (DSH Desktop / Electron, exposing
+ * `window.dshDesktop.xaihiWindow` per ADR-0011), and the browser fallback last. The Tauri member was
+ * retired with the shell that used to publish `window.__TAURI__`; anything only a native host could
+ * answer now degrades through `web.ts`, which reports `supported: false` with a reason instead of
+ * pretending (ADR-0011 decision 4).
  */
 const RUNTIME_FACTORIES: RuntimeAdapterRegistration[] = [
-  { kind: "tauri", detect: detectTauriRuntime, factory: createTauriRuntime },
+  { kind: "electron", detect: detectDshDesktopRuntime, factory: createDshDesktopRuntime },
   { kind: "web", detect: () => true, factory: createWebRuntime },
 ]
 

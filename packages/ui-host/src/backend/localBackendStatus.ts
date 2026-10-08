@@ -21,9 +21,8 @@ export async function checkLocalBackendStatus(timeoutMs = DEFAULT_HEALTH_TIMEOUT
   try {
     config = resolveLocalBackendConfig()
   } catch (error) {
-    // Nothing hydrated the endpoint. A Tauri host that fails to answer `xiranite_bootstrap` already logged its
-    // own reason during hydration, and the retired Wails bridge was the only thing that could hand that reason
-    // to this window, so the local message naming the missing global/env is what the banner can show.
+    // Nothing hydrated the endpoint. Every host channel that could have answered for it (Wails, Tauri) is
+    // retired, so the local message naming the missing global/env is the whole diagnosis the banner can show.
     return {
       status: "missing-config",
       runtime,

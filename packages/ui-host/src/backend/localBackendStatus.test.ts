@@ -72,21 +72,23 @@ describe("checkLocalBackendStatus", () => {
     expect(status.error).toContain("VITE_XIRANITE_BACKEND_URL")
   })
 
-  test("hydrates the loopback channel from the Tauri host before probing it", async () => {
+  test("ignores a leftover Tauri global: the retired channel is not a config source any more", async () => {
     vi.stubEnv("VITE_XIRANITE_BACKEND_URL", "")
     vi.stubEnv("VITE_XIRANITE_BACKEND_TOKEN", "")
     vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })))
     ;(window as { __TAURI__?: unknown }).__TAURI__ = {
       core: { invoke: vi.fn(async () => ({ baseUrl: "http://127.0.0.1:41500", token: "tauri-token", instanceId: "host-1" })) },
     }
-    healthMock.mockResolvedValueOnce({ ok: true, instanceId: "host-1" })
 
     const status = await checkLocalBackendStatus()
 
-    expect(status.status).toBe("ready")
-    expect(status.runtime.hostRuntime).toBe("tauri")
-    expect(status.config).toEqual({ baseUrl: "http://127.0.0.1:41500", token: "tauri-token", instanceId: "host-1" })
-    expect(createXiraniteSystemClient).toHaveBeenCalledWith("http://127.0.0.1:41500", { token: "tauri-token" })
+    // Positive control for the retirement: if the Tauri bootstrap channel were still consulted, this would
+    // report `ready` on a baseUrl it was handed over `__TAURI__`. It must instead fall back to the browser face
+    // and say the endpoint was never injected.
+    expect(status.status).toBe("missing-config")
+    expect(status.runtime.hostRuntime).toBe("web")
+    await expect(hydrateLocalBackendConfig()).resolves.toBeUndefined()
+    expect(window.__XIRANITE_BACKEND__).toBeUndefined()
   })
 
   test("reports ready when /health succeeds", async () => {
@@ -167,18 +169,5 @@ describe("hydrateLocalBackendConfig", () => {
     await expect(hydrateLocalBackendConfig()).resolves.toBeUndefined()
 
     expect(fetchMock).not.toHaveBeenCalled()
-  })
-
-  test("caches the Tauri channel for every later reader", async () => {
-    vi.stubEnv("VITE_XIRANITE_BACKEND_URL", "")
-    vi.stubEnv("VITE_XIRANITE_BACKEND_TOKEN", "")
-    ;(window as { __TAURI__?: unknown }).__TAURI__ = {
-      core: { invoke: vi.fn(async () => ({ baseUrl: "http://127.0.0.1:41500", token: "tauri-token" })) },
-    }
-
-    const config = await hydrateLocalBackendConfig()
-
-    expect(config).toEqual({ baseUrl: "http://127.0.0.1:41500", token: "tauri-token" })
-    expect(window.__XIRANITE_BACKEND__).toEqual(config)
   })
 })

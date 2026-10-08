@@ -201,8 +201,9 @@ class WebWindowRuntime implements WindowRuntime {
       supported: true,
       nativeWindowControls: false,
       frameless: false,
-      // The browser tab owns the window buttons, so the app must not draw a set of its own here either.
-      captionOwner: "system",
+      // In a browser tab, window controls live in the browser chrome outside the page viewport.
+      // The page itself does not have AppKit/OS caption buttons overlaying its corners.
+      captionOwner: "renderer",
       componentWindows: "browser-popup",
       message: "Browser runtime can open component popups, but cannot control native windows.",
     }
