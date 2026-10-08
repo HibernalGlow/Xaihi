@@ -172,6 +172,7 @@ export function FuseButton({
       go(l.settle === "stay" ? "settled" : "idle")
     }
     anim.current = a
+    a.finished?.catch?.(() => {})
     syncPlayState()
   }
 
@@ -210,7 +211,9 @@ export function FuseButton({
     document.addEventListener("visibilitychange", onVisibility)
     return () => {
       document.removeEventListener("visibilitychange", onVisibility)
-      anim.current?.cancel()
+      try {
+        anim.current?.cancel()
+      } catch {}
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

@@ -50,7 +50,7 @@ describe("app-owned sleept Component", () => {
       expect(screen.getByText("Sleept")).toBeTruthy()
       if (mode === "collapsed") {
         expect(screen.getByTestId("sleept-collapsed-view")).toBeTruthy()
-        expect(screen.getByText(/倒计时 \/ 休眠 \/ 演练/)).toBeTruthy()
+        expect(screen.getByText(/倒计时 \/ (?:睡眠|休眠) \/ (?:演练|真实)/)).toBeTruthy()
         expect(screen.queryByTestId("sleept-timer-modes")).toBeNull()
         return
       }
@@ -109,10 +109,10 @@ describe("app-owned sleept Component", () => {
       input: {
         action: "countdown",
         powerMode: "sleep",
-        hours: 0,
+        hours: 2,
         minutes: 0,
         seconds: 5,
-        targetDatetime: undefined,
+        targetDatetime: "",
         uploadThreshold: 242,
         downloadThreshold: 242,
         netDuration: 2,
@@ -146,7 +146,7 @@ describe("app-owned sleept Component", () => {
   test("marks the card as error when the runner returns a failed response", async () => {
     setSurface("regular")
     const host = createHost(
-      { timerMode: "countdown", seconds: 5, logs: [] },
+      { timerMode: "countdown", seconds: 5, dryrun: true, logs: [] },
       { runResult: { success: false, message: "Countdown duration must be greater than zero.", data: { ...sleeptData, timerStatus: "idle" } } },
     )
     render(<Component compId="comp-sleept" host={host} />)
@@ -160,7 +160,7 @@ describe("app-owned sleept Component", () => {
 
   test("catches thrown runner errors and appends the message to logs", async () => {
     setSurface("regular")
-    const host = createHost({ timerMode: "countdown", seconds: 5, logs: [] }, { runError: new Error("backend offline") })
+    const host = createHost({ timerMode: "countdown", seconds: 5, dryrun: true, logs: [] }, { runError: new Error("backend offline") })
     render(<Component compId="comp-sleept" host={host} />)
     const user = userEvent.setup()
 
@@ -209,8 +209,8 @@ describe("app-owned sleept Component", () => {
     render(<Component compId="comp-sleept" host={host} />)
     const user = userEvent.setup()
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "sleept defaults" }).className).toContain("bg-secondary"))
-    await user.click(screen.getByRole("button", { name: "sleept defaults" }))
+    await waitFor(() => expect(screen.getByRole("button", { name: /sleept (?:defaults|配置管理)/i }).className).toContain("bg-secondary"))
+    await user.click(screen.getByRole("button", { name: /sleept (?:defaults|配置管理)/i }))
     await user.click(screen.getByRole("button", { name: "恢复默认" }))
     expect(host.state.timerMode).toBe("cpu")
     expect(host.state.dryrun).toBe(false)

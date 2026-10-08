@@ -27,15 +27,32 @@ export function tNode(nodeId: string, key: string, fallback: string, vars?: Reco
  *
  * 支持插值变量：`t("summary.stats", "{{count}} 项", { count: 5 })`
  */
+const DEFAULT_ZH_CONFIG: Record<string, string> = {
+  "config.trigger": "配置管理",
+  "config.title": "配置管理",
+  "config.description": "保存可复用默认值，或恢复本节点的已保存配置。",
+  "config.save": "保存为默认",
+  "config.restore": "恢复默认",
+  "config.reload": "重新读取",
+  "config.openFile": "打开文件",
+}
+
 export function useNodeI18n(nodeId: string) {
   const { t, i18n } = useTranslation("module")
   const prefix = nodeId
+  const isZh = i18n.resolvedLanguage?.toLowerCase().startsWith("zh")
   const translate = (key: string, fallback: string, vars?: Record<string, unknown>) => {
     if (key.includes(":")) return t(key, { defaultValue: fallback, ...(vars ?? {}) })
-    const sharedFallback = key.startsWith("config.")
-      ? t(`configCenter.${key.slice("config.".length)}`, { defaultValue: fallback, ...(vars ?? {}) })
-      : fallback
-    return t(`${prefix}.${key}`, { defaultValue: sharedFallback, ...(vars ?? {}) })
+    const nodeValue = t(`${prefix}.${key}`, { defaultValue: "__MISSING__", ...(vars ?? {}) })
+    if (nodeValue !== "__MISSING__") return nodeValue
+
+    if (key.startsWith("config.")) {
+      if (isZh && DEFAULT_ZH_CONFIG[key]) {
+        return DEFAULT_ZH_CONFIG[key]
+      }
+      return t(`configCenter.${key.slice("config.".length)}`, { defaultValue: fallback, ...(vars ?? {}) })
+    }
+    return fallback
   }
   return {
     t: translate,

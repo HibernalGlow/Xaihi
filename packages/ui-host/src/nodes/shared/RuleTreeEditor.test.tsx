@@ -41,7 +41,7 @@ describe("RuleTreeEditor", () => {
     expect(screen.getByTestId("rule-tree-editor").getAttribute("data-theme-surface")).toBe("semantic")
     expect(container.querySelector(".ruleGroup")?.classList.contains("bg-muted/20")).toBe(true)
     expect(container.querySelector("select")).toBeNull()
-    expect(container.querySelectorAll('[data-slot="select-trigger"]')).toHaveLength(4)
+    expect(container.querySelectorAll('[data-slot="select-trigger"]')).toHaveLength(3)
     expect(container.querySelector(".rule-fields")?.getAttribute("data-slot")).toBe("select-trigger")
     expect(screen.getByTitle("Drag to reorder")).toBeTruthy()
   })

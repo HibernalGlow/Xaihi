@@ -47,7 +47,7 @@ export function Component({ compId, host }: NodeComponentProps) {
 
   const timerMode = data.timerMode ?? "countdown"
   const powerMode = data.powerMode ?? "sleep"
-  const dryrun = data.dryrun ?? true
+  const dryrun = data.dryrun ?? false
   const logs = data.logs ?? []
   const result = data.result ?? null
   const phase = phaseFromState(data, running)
@@ -602,7 +602,7 @@ function buildInput(action: SleeptInput["action"], data: SleeptCardState): Sleep
   return sleeptInputFromInteractionValues({
     action: interactionAction,
     powerMode: data.powerMode ?? "sleep",
-    hours: data.hours ?? 0,
+    hours: data.hours ?? 2,
     minutes: data.minutes ?? 0,
     seconds: data.seconds ?? 5,
     targetDatetime: data.targetDatetime,
@@ -612,7 +612,7 @@ function buildInput(action: SleeptInput["action"], data: SleeptCardState): Sleep
     netTriggerMode: data.netTriggerMode ?? "both",
     cpuThreshold: data.cpuThreshold ?? 10,
     cpuDuration: data.cpuDuration ?? 2,
-    dryrun: data.dryrun ?? true,
+    dryrun: data.dryrun ?? false,
     maxWaitSeconds: data.maxWaitSeconds ?? 3600,
   })
 }

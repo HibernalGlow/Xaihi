@@ -87,7 +87,7 @@ describe("app-owned enginev Component", () => {
 
   test("docks the action tray between execution switches and filter tabs", async () => {
     surfaceState.mode = "workspace"
-    const host = createHost({ workshopPath: "D:/workshop", wallpapers: [wallpaper] })
+    const host = createHost({ workshopPath: "D:/workshop", wallpapers: [wallpaper], actionTrayPinned: false })
     const view = render(<Component compId="comp-enginev" host={host} />)
     const user = userEvent.setup()
 
@@ -338,8 +338,8 @@ describe("app-owned enginev Component", () => {
     render(<Component compId="comp-enginev" host={host} />)
     const user = userEvent.setup()
 
-    await user.click(screen.getByRole("button", { name: "enginev 配置中心" }))
-    await user.click(screen.getByRole("button", { name: "保存为默认配置" }))
+    await user.click(screen.getByRole("button", { name: /enginev (?:配置中心|配置管理)/i }))
+    await user.click(screen.getByRole("button", { name: /保存为默认(?:配置)?/i }))
 
     await waitFor(() => expect(host.savedConfig).toEqual({
       workshopPath: "D:/workshop",

@@ -56,7 +56,7 @@ function buildPlanTree(result: ClassfData | null, runningItem: RunningItem, t: T
     const mappingLabel = item.kind === "folder" ? `${t("tree.source", "Source")}: ${item.sourceName}` : item.sourceName === targetName ? targetName : `${item.sourceName} to ${targetName}`
     const revealPath = item.status === "moved" || item.status === "copied" ? item.targetPath || item.sourcePath : item.sourcePath || item.targetPath
     parent.children ??= []
-    parent.children.push({ id: `classf-plan:item:${item.stage}:${item.sourcePath}:${itemIndex}`, name: `${mappingLabel} - ${itemStatusMeta(running ? "running" : item.status, t).label}`, type: "file", isSelectable: true, onOpen: revealPath && onRevealPath ? () => void onRevealPath(revealPath) : undefined })
+    parent.children.push({ id: `classf-plan:item:${item.stage}:${item.sourcePath}:${itemIndex}`, name: `${mappingLabel} · ${itemStatusMeta(running ? "running" : item.status, t).label}`, type: "file", isSelectable: true, onOpen: revealPath && onRevealPath ? () => void onRevealPath(revealPath) : undefined })
   }
   return root.children?.length ? [root] : []
 }

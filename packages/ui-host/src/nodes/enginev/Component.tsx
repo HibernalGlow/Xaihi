@@ -48,7 +48,7 @@ export function Component({ host }: EngineVProps) {
   dataRef.current = data
 
   const [running, setRunning] = useState(false)
-  const [actionTrayPinned, setActionTrayPinned] = useState(data.actionTrayPinned ?? false)
+  const [actionTrayPinned, setActionTrayPinned] = useState(data.actionTrayPinned ?? true)
   const [defaults, setDefaults] = useState<Partial<EngineVCardState> | undefined>(undefined)
   const [uiDefaults, setUiDefaults] = useState<EngineVUiConfig | undefined>(undefined)
   const [configFilePath, setConfigFilePath] = useState<string | undefined>(undefined)
@@ -1059,7 +1059,7 @@ function pickEngineVUiConfig(data: Partial<EngineVCardState>): EngineVUiConfig {
 function resolveEngineVUiConfigForSave(data: Partial<EngineVCardState>): EngineVUiConfig {
   const value = data.galleryColumns
   return {
-    actionTrayPinned: data.actionTrayPinned ?? false,
+    actionTrayPinned: data.actionTrayPinned ?? true,
     galleryColumns: typeof value === "number" && Number.isFinite(value)
       ? Math.min(6, Math.max(1, Math.round(value)))
       : undefined,
