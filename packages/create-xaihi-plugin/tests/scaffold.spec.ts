@@ -225,12 +225,14 @@ describe('终端面', () => {
     const tsdown = files['tsdown.config.ts'] as string
     const pkg = JSON.parse(files['package.json'] as string) as FacePkg
     expect(terminalFaceGaps(pkg, tsdown)).toEqual([])
-    expect(pkg.bin).toEqual({ xdemonode: './lib/cli.js' })
+    // 期望值写死裸名（ADR-0017 决定 3）：这里不许回头去调 binNameOf，否则生产侧再把前缀加回来，
+    // 这条断言会跟着一起改口，就再也看不见那次回归。
+    expect(pkg.bin).toEqual({ demonode: './lib/cli.js' })
 
     // 阳性对照三条：删 bin、删 ./help subpath、把 tsdown 退回单入口，尺都必须红。
     const noBin = structuredClone(pkg)
     delete noBin.bin
-    expect(terminalFaceGaps(noBin, tsdown)).toContain('bin["xdemonode"] 不是 ./lib/cli.js')
+    expect(terminalFaceGaps(noBin, tsdown)).toContain('bin["demonode"] 不是 ./lib/cli.js')
     const noHelpSubpath = structuredClone(pkg)
     if (noHelpSubpath.exports) delete noHelpSubpath.exports['./help']
     expect(terminalFaceGaps(noHelpSubpath, tsdown)).toContain('exports["./help"] 缺或指错')
