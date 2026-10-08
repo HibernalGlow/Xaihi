@@ -6,7 +6,7 @@
  * 缺内核包必须报出那句可读的失败——每一条都有一个"输入翻过来就该通过"的邻居。
  *
  * 这里**不**调用工具的 `execute`：那会真的去起内核进程。动作到内核的实机对齐在
- * `native/findz-go/probe/probe-host.py` 里读回。
+ * `plugins/findz/native/probe/probe-host.py` 里读回。
  */
 
 import { readFileSync } from 'node:fs'

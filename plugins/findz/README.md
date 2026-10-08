@@ -2,7 +2,7 @@
 
 归档检索节点：索引 ZIP/CBZ 库、按条件查归档与成员、按需读图像头、投影矩形图。
 
-**索引内核是进程外的 Go 可执行文件**（`native/findz-go/`）。本节点不把 native 拉进
+**索引内核是进程外的 Go 可执行文件**（`plugins/findz/native/`）。本节点不把 native 拉进
 宿主进程 —— 这是 `docs/adr/0004-non-js-core-delivery.md` 定下的形状，也是批次 D 的
 前置门禁。理解这个包的关键就是那条进程边界。
 
@@ -17,7 +17,7 @@
 
 ## 移植差异（相对 Xiranite `noxide` 基线）
 
-内核 `native/findz-go/` 是**逐字**搬过来的，只有下面这几处不同。差异越少，"行为没变"
+内核 `plugins/findz/native/` 是**逐字**搬过来的，只有下面这几处不同。差异越少，"行为没变"
 越是可以被检查的，而不是被相信的：
 
 | 文件 | 改了什么 | 为什么 |
@@ -69,7 +69,7 @@ in-process `Worker` 的 `runFindz` 包装 —— 换成 `runFindzWithGateway(inp
 内核要 Go 工具链：
 
 ```sh
-cd native/findz-go
+cd plugins/findz/native
 go build -o dist/findz-host .          # 帧协议宿主（插件用这个）
 go build -buildmode=c-shared -o dist/libfindz-probe.dylib -tags cshared .   # 只用于探针
 ```
@@ -101,12 +101,12 @@ pnpm --filter @hibernalglow/xaihi-findz run test:unit
 - `tests/gateway.spec.ts` —— 真进程 + 真管道的假宿主，钉握手与失败面（死讯带退出码与
   stderr 诊断、非 JSON 帧、不握手、结构化拒绝、requestId 序号、dispose 后不再收）。
 - `tests/kernel.integration.spec.ts` —— **真 Go 内核**走本节点的 gateway + core 翻译层。
-  需要 `native/findz-go/dist/findz-host`；没有就跳过并打印原因。
+  需要 `plugins/findz/native/dist/findz-host`；没有就跳过并打印原因。
 - `tests/core.spec.ts` / `tests/watcher-service.spec.ts` —— 从基线逐字带过来的判据。
 - `tests/definition.spec.ts` / `tests/command.spec.ts` —— 定义合法性、工具参数按动作收窄、
   表单值映射、命令解析与危险闸门。
 
-内核那一侧另有 `native/findz-go/probe/probe-host.py`（17 项）与 `probe-bench.py`。
+内核那一侧另有 `plugins/findz/native/probe/probe-host.py`（17 项）与 `probe-bench.py`。
 
 ## 实测（本机 darwin-arm64，走节点这条路）
 

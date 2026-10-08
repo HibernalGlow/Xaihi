@@ -142,3 +142,44 @@ storage domain `xaihi_kisaki` 即可，**没有新品牌落盘，也不需要白
 `DuplicateScanOptions.use_cache` 还能整次扫描不带缓存。
 **所以开批只剩一件事**：`trashPath` / `listTrashItems` / `restoreTrashItem` / `getTrashCapabilities`
 这四条导出与已迁的 `recycleu` 是同一件事的两个实现，归谁是用者的产品裁定。
+
+## 修订 · 2026-10-08 · 决定 1 的落点换成「源码归插件 ＋ 仓根构建编排」
+
+使用者裁定：`一切皆插件` 这条理念优先，机器半边的**源码所有权**要跟着节点走，构建复用另算一层。
+原决定 1 那句「落点 `native/czkawka/`→改名 `native/kisaki/`」作废，改为：
+
+| 项 | 现值（实测） |
+|---|---|
+| Rust 源码 | `plugins/kisaki/native/core`（17 个 `.rs` + `Cargo.toml` + `test-fixtures/`）与 `plugins/kisaki/native/node`（6 个 `.rs` + `build.rs`），共 27 个文件 / 4963 行，逐字来自基线 `Xiranite/native/czkawka-{core,node}` |
+| crate 名 | `xaihi-kisaki-core` / `xaihi-kisaki-node`（决定 6 那批改名里除落盘数据外全部落地） |
+| 构建编排 | 仓根 `Cargo.toml`：`members = ["plugins/kisaki/native/core", "plugins/kisaki/native/node"]`、`resolver = "3"`、`[profile.release]` 逐字沿用基线（`lto = true`、`codegen-units = 1`、`strip = true`） |
+| 共享构建目录 | `<仓根>/target`（`Cargo.lock` 5112 行 / 528 包随源码一起进仓，不重解版本） |
+| 重编入口 | `node scripts/build-kisaki-native.mjs`（决定 4「不许是 bun」的那条等价物） |
+| Go 那一侧 | `native/findz-go/` → `plugins/findz/native/`（同一条所有权规则），**不进** Cargo workspace：`go env GOCACHE` 回的是机器级 `~/Library/Caches/go-build`，跨模块天然共享，没有 target 要合并 |
+
+三条必须留住的实测依据，防止下一个人再走一遍弯路：
+
+1. **「薄 `native/Cargo.toml` 指 `../plugins/...` 当编排层」是 Cargo 硬禁的**，不是风格问题：
+   `error: workspace member .../plugins/x/native/core/Cargo.toml is not hierarchically below the workspace root .../native/Cargo.toml`。
+   编排清单必须在源码的子树**之上**，所以它是仓根那一份。
+2. **不接 workspace 就会各长一个 target**：把 crate 单独放着、从 crate 目录里 `cargo metadata`，
+   实读 `workspace_root = <crate 自己>`、`target_dir = <crate>/target`。接上仓根那份之后，
+   同一命令从 crate 目录里读回 `workspace_root = <仓根>`、`target = <仓根>/target` ⇒ 「源码归插件」与「构建共用一份」这两件事第一次同时成立。
+3. **产物缓存 1.2 GB 量级要显式忽略**：`.gitignore` 补 `/target/`（基线实测见本 ADR 引用的那份测量文档），
+   同时 `/native/*/dist/` 那条跟着 Go 的归位改成 `/plugins/*/native/dist/`。
+
+没跟着动的两处，理由各不同，都不是疏忽：
+
+- `set_config_cache_path("xiranite", "xiranite")`（`core/src/upstream/common.rs:36` 与 `core/src/lib.rs:708` 那份 `#[cfg(any())]` 关掉的副本）
+  是 czkawka_core 的 **config/cache 落盘目录名**，改它等于把使用者已有缓存目录变成孤儿 ⇒ 按 AGENTS.md 属「改名 = 数据迁移」，
+  已在 `docs/adr/0010-brand-is-xaihi.md` 逐地点名（带 reason/unlock），并由 `scripts/check-brand.mjs` 的对账盯着：在场则放行且点名，申报过期则红。
+- `native/artifacts/<triple>/` 里那两份预编 `.node` 暂时不动。品牌兼容靠符号链接
+  （`xaihi-kisaki.<triple>.node` → `xiranite-czkawka.<triple>.node`，`lstat` 记 34 / 31 字节），
+  真货字节仍带旧名。这批第一次有了 sha256 账：`native/artifacts/manifest.json` + `scripts/check-native-manifest.mjs`
+  （换货／记错尺寸／多文件／缺货／链接变实体五种扰动各红一条，`--self-check` 实跑）。
+  顺带消掉一笔对不上的旧账：`docs/stages/kisaki-engine-measurements.md:84` 记的 mac 那发是 `a7762936…` / 21,443,856 字节，
+  而仓里在用的货现读是 `c57e7b64…` / 21,319,296 字节 —— 两者不是同一发（后者逐字节等于基线 `Xiranite/native/artifacts/` 那份），
+  本 ADR 修订后以「自己按源码重编的那一发」为准，读数由构建入口打印。
+
+决定 2（子进程那条腿）与「把 `kisakiNative` 作为 cordis 服务提供出去」这条新边排在下一批；
+本修订只挪源码与账，**没改运行时**：装载路径仍是 `plugins/kisaki/src/native/*`，仍在宿主进程内 `require` 那份 `.node`。

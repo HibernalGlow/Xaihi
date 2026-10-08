@@ -1,0 +1,42 @@
+{
+  "schema": "xaihi.native-manifest/1",
+  "note": "这些是**预编原生内核**（ADR-0015 决定 3 的平台包形状）。Rust 源码在 plugins/kisaki/native/{core,node}，仓根 Cargo.toml 是构建编排；重编入口 node scripts/build-kisaki-native.mjs。xaihi-kisaki.*.node 是改名兼容的符号链接，真货仍叫 xiranite-czkawka.*.node（落盘文件名改名＝数据迁移，见 ADR-0010）。",
+  "entries": [
+    {
+      "path": "darwin-arm64/libdav1d.7.dylib",
+      "kind": "file",
+      "size": 825360,
+      "sha256": "c8ba0cd990d9cff2a87be337d3fae06e2642d3843efa758e0963e5aab966adf5"
+    },
+    {
+      "path": "darwin-arm64/xaihi-kisaki.darwin-arm64.node",
+      "kind": "link",
+      "size": 34,
+      "link": "xiranite-czkawka.darwin-arm64.node"
+    },
+    {
+      "path": "darwin-arm64/xiranite-czkawka.darwin-arm64.node",
+      "kind": "file",
+      "size": 21319296,
+      "sha256": "c57e7b6482791f4216dd94e1b306376bd1b2bb9ed9af4c03e048d27db3cba281"
+    },
+    {
+      "path": "win32-x64/dav1d.dll",
+      "kind": "file",
+      "size": 1785856,
+      "sha256": "786b7e348adc4e84594e5c4abac3f7320d5f5c82d4a76dcbb639c42071e872fd"
+    },
+    {
+      "path": "win32-x64/xaihi-kisaki.win32-x64.node",
+      "kind": "link",
+      "size": 31,
+      "link": "xiranite-czkawka.win32-x64.node"
+    },
+    {
+      "path": "win32-x64/xiranite-czkawka.win32-x64.node",
+      "kind": "file",
+      "size": 37593088,
+      "sha256": "f093b7f95b87007780949e82e32de5c395eecb8163ca30ae3943984d05873274"
+    }
+  ]
+}

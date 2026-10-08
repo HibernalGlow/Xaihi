@@ -97,3 +97,23 @@ ADR-0006 把动词定成"搬运"之后，搬运产物里必然带着上游的自
   按 hunk 提交会把别人在飞的文字算进我的提交信息名下。等那一侧提交路线图时一起落地。
 - 这条规则和 ADR-0006 不冲突：0006 说的是**设计与实现去别人的仓库拿**，0010 说的是**拿过来之后
   它自称谁**。搬运保真 ≠ 保留旧品牌的自我称呼；保真的判据落在布局、交互、词表语义上，不落在包名上。
+
+## 修订 · 2026-10-08 · C 类那一条的路径跟着内核归位改读
+
+上面第 6 项与 C 类「不许改」里写的 `native/findz-go/**` 是**当时的住址**，作为账本保留。
+Go 内核现在住在 `plugins/findz/native/**`（`docs/adr/0004-non-js-core-delivery.md` 的 2026-10-08 修订），
+C 类的范围照原文逐条平移：那份树里从上游逐字移植的部分连同署名**照旧不许改**，
+`xiranite-rule-tree/v1` 那把跨语言判别符的两端（TS 侧 `plugins/findz/src/contract.ts:130`
+与 Go 侧比对、夹具）也照旧——**搬家没动内容**：25 个文件移动前后 sha256 集合相等。
+
+### 逐地点名的旧标识符（尺读这一段；机器行，三条规矩见 `scripts/check-brand.mjs` 文件头）
+
+搬进来的 Rust 引擎里有一处旧品牌**不能跟着改名一起动**，因为它是引擎落盘缓存的目录名，
+改它等于把使用者已有的缓存目录变成孤儿（AGENTS.md：落盘文件名属于「改名 = 数据迁移」，动之前先问）：
+
+BRAND-EXCEPTION: plugins/kisaki/native/core/src/upstream/common.rs:36 reason=czkawka_core 的 config/cache 目录名，改名要配迁移 unlock=使用者批准迁移方案之后再换 xaihi
+BRAND-EXCEPTION: plugins/kisaki/native/core/src/lib.rs:708 reason=同一条的第二份（`#[cfg(any())]` 关掉的那份副本，删掉它也要对账） unlock=与上一行同批处理
+
+其余 2026-10-08 那一批**没有留在账上**：crate 名（`xiranite-czkawka-*` → `xaihi-kisaki-*`）、
+`temp_dir()` 前缀（`xiranite-czkawka-exif` / `-video-optimizer` / `xiranite-trash-directory-pair-*` → `xaihi-kisaki-*`）
+当场改完，与消费者同批。

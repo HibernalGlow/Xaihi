@@ -1,7 +1,7 @@
 # findz-go · 索引内核（从 Xiranite 基线逐字移植）
 
 这份 Go 内核是从 Xiranite 基线 tag **`noxide`**（提交 `ccf465fe`）的
-`native/findz-go/` 原样搬来的。它是批次 D `findz` 的**非 JS 内核**，
+`plugins/findz/native/` 原样搬来的。它是批次 D `findz` 的**非 JS 内核**，
 交付形状由 `docs/adr/0004-non-js-core-delivery.md` 决定：**进程外子进程，不走 FFI**。
 
 ## 移植差异（全部，可 diff 核对）

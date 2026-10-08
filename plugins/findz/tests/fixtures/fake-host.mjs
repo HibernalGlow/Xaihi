@@ -2,7 +2,7 @@
  * 一个会说话的假内核宿主：只为把 `gateway.ts` 的握手、FIFO 与失败面钉住。
  *
  * 它不是内核的替代品，也没有实现任何 findz 语义 —— 真内核的实机对齐由
- * `native/findz-go/probe/probe-host.py`（17 项判据）承担，因为那需要 Go 工具链，
+ * `plugins/findz/native/probe/probe-host.py`（17 项判据）承担，因为那需要 Go 工具链，
  * 不该进 `pnpm test`。这里测的是**我们这一侧**的进程边界代码。
  *
  * 模式由 argv[2] 给：

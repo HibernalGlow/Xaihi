@@ -4,7 +4,7 @@
  * 假宿主是 `tests/fixtures/fake-host.mjs`：它不实现任何 findz 语义，只负责让各种
  * 失败面真的发生（版本不认识、能力集缺项、不握手、非 JSON 帧、握手后立刻退出、
  * 带着 stderr 诊断崩掉、每个请求都拒绝）。真内核的实机对齐在
- * `native/findz-go/probe/probe-host.py`，那一步要 Go 工具链，不该也不能进 `pnpm test`。
+ * `plugins/findz/native/probe/probe-host.py`，那一步要 Go 工具链，不该也不能进 `pnpm test`。
  *
  * 每一条判据都配了阳性对照：`ok` 模式下同样的一次调用必须成功，
  * 否则"它拒绝了"可能只是因为它从来没成功过。

@@ -1,0 +1,19 @@
+[package]
+name = "xaihi-kisaki-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+czkawka_core = { version = "=12.0.0", default-features = false, features = ["libavif"] }
+image_hasher = { version = "3.0", features = ["fast_resize_unstable"] }
+thiserror = "2"
+crossbeam-channel = "0.5"
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,0 +1,18 @@
+# Rust 侧的构建编排层：源码归各个插件自己（`plugins/<id>/native/**`），这里只把它们的
+# crate 编进同一个 workspace ⇒ 共用一份 `Cargo.lock` 与一个 `<仓根>/target`。
+# 判据（2026-10-08 实测）：workspace 成员必须在根的子树里，把编排清单放 `native/Cargo.toml`
+# 再指 `../plugins/...` 会被 Cargo 直接拒（"is not hierarchically below the workspace root"）；
+# 而根清单这份，从 crate 目录里 `cargo metadata` 也回 workspace_root=<仓根>，不会各长一个 target。
+[workspace]
+members = ["plugins/kisaki/native/core", "plugins/kisaki/native/node"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

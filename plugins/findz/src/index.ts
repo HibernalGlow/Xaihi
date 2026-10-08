@@ -57,7 +57,7 @@ export interface Config {
   /**
    * `findz-host` 可执行文件的绝对路径。留空则按平台可选依赖包解析
    * （`@hibernalglow/xaihi-findz-<platform>-<arch>`）。本仓开发期指向
-   * `native/findz-go/dist/findz-host`（见 `README.md`）。
+   * `plugins/findz/native/dist/findz-host`（见 `README.md`）。
    */
   hostBinary: Volatile<string>
 }

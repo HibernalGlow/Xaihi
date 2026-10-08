@@ -1,12 +1,12 @@
 /**
  * 实机对齐：真 Go 内核 → 本节点的 `gateway.ts` → 本节点的 `core.ts` 翻译层。
  *
- * 这是 `gateway.spec.ts` 与 `native/findz-go/probe/probe-*.py` 都量不到的那一段：
+ * 这是 `gateway.spec.ts` 与 `plugins/findz/native/probe/probe-*.py` 都量不到的那一段：
  * 前者用假宿主演失败面，后者直接对裸管道说话。这里量的是**本节点自己那条路**——
  * `toFindzInput` 拼出来的入参、`runFindzWithGateway` 的派发、进度事件、以及
  * `resolveHostBinary` 那条缝，全部对着真内核跑一遍。
  *
- * 需要 `native/findz-go/dist/findz-host`（Go 工具链产出，见 `../../README.md`）。
+ * 需要 `plugins/findz/native/dist/findz-host`（Go 工具链产出，见 `../../README.md`）。
  * 没有就**跳过**并说清楚为什么 —— 一个静默永远不跑的判据比没有判据更坏，所以
  * 跳过时会在输出里留一行，而不是让 `pnpm test` 看起来好像验过了。
  *
@@ -26,13 +26,13 @@ import type { FindzArchiveRow, FindzMemberRow, FindzTask } from '../src/contract
 import { buildArchiveLibrary } from './fixtures/archives.ts'
 import { localSubprocess } from './fixtures/local-subprocess.ts'
 
-const KERNEL = fileURLToPath(new URL('../../../native/findz-go/dist/findz-host', import.meta.url))
+const KERNEL = fileURLToPath(new URL('../../../plugins/findz/native/dist/findz-host', import.meta.url))
 const HAVE_KERNEL = existsSync(KERNEL)
 
 if (!HAVE_KERNEL) {
   console.warn(
     `findz kernel integration SKIPPED: ${KERNEL} not found.\n` +
-    'Build it with: cd native/findz-go && go build -o dist/findz-host .',
+    'Build it with: cd plugins/findz/native && go build -o dist/findz-host .',
   )
 }
 

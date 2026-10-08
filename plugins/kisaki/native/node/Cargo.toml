@@ -1,0 +1,32 @@
+[package]
+name = "xaihi-kisaki-node"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "3", features = ["napi8", "async"] }
+napi-derive = "3"
+trash = "=5.2.6"
+xaihi-kisaki-core = { path = "../core" }
+
+[target.'cfg(windows)'.dependencies]
+rayon = "1.11"
+trash-core = { version = "=0.3.1", default-features = false, features = ["windows"] }
+windows = { version = "=0.56.0", features = [
+    "implement",
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Com",
+    "Win32_System_WindowsProgramming",
+    "Win32_UI_Shell",
+] }
+windows-core = "=0.56.0"
+
+[build-dependencies]
+napi-build = "2"

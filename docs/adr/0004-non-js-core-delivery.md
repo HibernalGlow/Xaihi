@@ -62,3 +62,17 @@
   2. 进程启动与序列化的开销没测；批次 D 的验收必须带一次真实目录的搜索耗时对比（与上游 benchmark 文档对齐口径）。
   3. watch 语义跨进程后要重新设计（订阅、失效通知、进程重启后索引怎么恢复），这部分**尚未设计**，属批次 D 的实施内容而不是本 ADR 已经解决的。
   4. `no-host-free-answer` 这条宿主需求仍然在：索引要能回答"这台机器上有什么"，所以内核必须能读真实文件系统——按 ADR-0003 的同一条理由，进程内由 Go 自己读，不经 `ctx.fs`。
+
+## 修订 · 2026-10-08 · 内核源码的住址换成「归插件」
+
+- 决定 3 那份「每平台一个可选依赖包」的交付形状**没变**，变的是源码住址：`native/findz-go/` →
+  `plugins/findz/native/`。上面正文里按旧路径写的引用（含 `ffi.go:17,22,27,36` 那几条）指的是
+  **同一批文件在基线 worktree 里的位置**，作为出处账本保留不改。
+- 判据：搬动逐字未改——25 个文件移动前后 sha256 集合相等（`/tmp/findz-before.txt` 对 `/tmp/findz-after.txt`），
+  与基线 `<Xiranite>/native/findz-go` 的差异仍是原有那 6 条（本地新增 README/host/probe/singleton
+  与 `ffi.go`、`go.mod` 两处已申报的改动）。
+- Go 侧**没有** Rust 那层「共用 target」要解决：`go env GOCACHE` 回的是机器级
+  `~/Library/Caches/go-build`，跨模块天然共享，所以这条不与根 `Cargo.toml` 拼成一个 workspace。
+- 消费方同批改动：`CONTEXT.md` 词条、`plugins/findz/{README.md,src/index.ts,tests/*}`、
+  `.gitignore` 的产物落点（`/plugins/*/native/dist/`），以及隔离宿主那份
+  `../.scratch/dsh-xaihi-home/profiles/xaihi/cordis.patch.yml` 里的 `hostBinary` 绝对路径。
