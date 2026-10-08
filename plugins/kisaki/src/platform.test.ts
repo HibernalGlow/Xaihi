@@ -4,6 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { KISAKI_TOOLS, normalizeKisakiInput, type KisakiTool } from "./core.js"
+import { createFakeEngine } from "../tests/fixtures/fake-engine.ts"
 import { createNodeKisakiRuntime, toBasicScanOptions, toDuplicateScanOptions, toExifScanOptions, toMediaScanOptions, toVideoOptimizerScanOptions } from "./platform.js"
 import { createKisakiScanInput } from "./tool-options.js"
 
@@ -227,7 +228,7 @@ describe("Kisaki native DTO mapping", () => {
 
   test("executes copy, move, existence, and permanent-delete primitives", async () => {
     const root = await mkdtemp(join(tmpdir(), "xiranite-czkawka-"))
-    const runtime = createNodeKisakiRuntime()
+    const runtime = await createNodeKisakiRuntime({ engine: async () => createFakeEngine() })
     try {
       const source = join(root, "source.txt")
       const copied = join(root, "nested", "copied.txt")
@@ -260,7 +261,7 @@ describe("Kisaki native DTO mapping", () => {
       cancelled: 0,
       undoable: 0,
     }))
-    const runtime = createNodeKisakiRuntime({ fileOperations: { execute } })
+    const runtime = await createNodeKisakiRuntime({ engine: async () => createFakeEngine(), fileOperations: { execute } })
 
     await runtime.removePath("D:/library/duplicate.jpg", { trash: true })
     await runtime.removePath("D:/library/permanent.tmp", { trash: false })
@@ -283,7 +284,7 @@ describe("Kisaki native DTO mapping", () => {
       cancelled: 0,
       undoable: 1,
     }))
-    const runtime = createNodeKisakiRuntime({ fileOperations: { execute } })
+    const runtime = await createNodeKisakiRuntime({ engine: async () => createFakeEngine(), fileOperations: { execute } })
 
     await runtime.replaceWithCandidate("D:/temp/photo-cleaned.jpg", "D:/photos/photo.jpg")
 

@@ -1,17 +1,43 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { realpathSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { getCzkawkaInfo } from '../src/native/index.js'
 import { createNodeKisakiRuntime } from '../src/platform.js'
+import { createLocalSubprocessRuntime } from '../src/local-subprocess.js'
+import { resolveEngineHostEntry, startKisakiEngineHost, type KisakiEngineClient } from '../src/engine-gateway.js'
+
+/*
+ * 这一份是**真往返**判据：引擎跑在子进程里，测的是帧协议 + 真 `.node` + 真 Rust 内核。
+ *
+ * 入口取装机形态那份 `lib/engine-host.js`（不拿 `src/*.ts` 起子进程：Node 的类型剥离
+ * 解不了 `./native/index.js` 那类"给打包器看的"说明符，症状是子进程一进门就报模块找不到，
+ * 而那份红会被念成"引擎坏了"）。`lib/` 是产物目录，没建过就**跳过并打印原因**——
+ * 与 `tests/kernel.integration.spec.ts` 对 findz 可执行文件的处理同一条纪律。
+ */
+const hostEntry = resolveEngineHostEntry(new URL('../lib/index.js', import.meta.url).href)
+const gate = hostEntry === null ? describe.skip : describe
+if (hostEntry === null) {
+  process.stderr.write('kisaki engine e2e: 跳过——没有 lib/engine-host.js，先跑 pnpm --filter @hibernalglow/xaihi-kisaki build\n')
+}
+
+let engineHost: KisakiEngineClient | undefined
+const engineProvider = async (): Promise<KisakiEngineClient> => {
+  if (engineHost === undefined) {
+    engineHost = await startKisakiEngineHost(createLocalSubprocessRuntime(), { entryPath: hostEntry as string, cwd: process.cwd() })
+  }
+  return engineHost
+}
+afterAll(() => { engineHost?.dispose(); engineHost = undefined })
 import { runKisaki } from '../src/core.js'
 import { runProgram } from '../src/cli.js'
 import type { CliHost } from '../src/cli-support.js'
 
-describe('Kisaki Rust Core (Node-API) End-to-End Test', () => {
-  it('1. loads native binding and reports Czkawka 12.0.0 info', () => {
-    const info = getCzkawkaInfo()
+gate('Kisaki Rust Core (Node-API) End-to-End Test（引擎在子进程里）', () => {
+  it('1. loads native binding and reports Czkawka 12.0.0 info', async () => {
+    const host = await engineProvider()
+    const info = host.greeting.info
+    expect(host.greeting.binding).toContain('.node')
     expect(info.apiVersion).toBe(5)
     expect(info.sourceVersion).toBe('12.0.0')
     expect(info.capabilities).toContain('scan.duplicate')
@@ -33,7 +59,7 @@ describe('Kisaki Rust Core (Node-API) End-to-End Test', () => {
       await writeFile(fileB, duplicateContent, 'utf8')
       await writeFile(fileC, 'unique-file-content-different-payload', 'utf8')
 
-      const runtime = createNodeKisakiRuntime()
+      const runtime = await createNodeKisakiRuntime({ engine: engineProvider })
       const result = await runKisaki(
         {
           action: 'scan',
@@ -71,7 +97,7 @@ describe('Kisaki Rust Core (Node-API) End-to-End Test', () => {
       await writeFile(emptyFile, '', 'utf8')
       await writeFile(nonEmptyFile, 'content', 'utf8')
 
-      const runtime = createNodeKisakiRuntime()
+      const runtime = await createNodeKisakiRuntime({ engine: engineProvider })
       const result = await runKisaki(
         {
           action: 'scan',

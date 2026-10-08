@@ -2,27 +2,19 @@ import { cp, link, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 
 import { basename, dirname, join, parse, relative } from "node:path"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
-import {
-  createExifCandidate,
-  createVideoOptimizerCandidate,
-  getCzkawkaInfo,
-  scanBasicFiles,
-  scanDuplicateFiles,
-  scanExifFiles,
-  scanMediaFiles,
-  scanVideoOptimizer,
-  trashPath,
-  type BasicScanOptions,
-  type CzkawkaScanControls,
-  type CzkawkaScanProgress,
-  type DuplicateScanOptions,
-  type ExifScanOptions,
-  type MediaScanOptions,
-  type VideoOptimizerCandidateOptions,
-  type VideoOptimizerScanOptions,
+import type {
+  BasicScanOptions,
+  CzkawkaScanProgress,
+  DuplicateScanOptions,
+  ExifScanOptions,
+  MediaScanOptions,
+  VideoOptimizerCandidateOptions,
+  VideoOptimizerScanOptions,
 } from "./native/index.js"
+import type { KisakiEngineClient } from "./engine-gateway.js"
+import type { KisakiEngineMethod } from "@hibernalglow/xaihi-sdk"
 import { toNativeVideoCropDetect } from "./similar-video-crop.js"
-import type { KisakiNativeProgress, KisakiNormalizedInput, KisakiRuntime, KisakiRuntimeInfo } from "./core.js"
+import type { KisakiNativeProgress, KisakiNormalizedInput, KisakiRuntime, KisakiRuntimeInfo, NativeExifCandidate, NativeVideoOptimizerCandidate } from "./core.js"
 
 const execFileAsync = promisify(execFile)
 
@@ -284,11 +276,14 @@ export function toMediaScanOptions(input: NormalizedInput): MediaScanOptions {
 
 export interface KisakiRuntimeContext {
   fileOperations?: FileOperationExecutor
-}
-
-export function getNodeRuntimeInfo(): KisakiRuntimeInfo {
-  const info = getCzkawkaInfo()
-  return { apiVersion: info.apiVersion, sourceVersion: info.sourceVersion, capabilities: [...info.capabilities] }
+  /**
+   * 引擎宿主（子进程）的取用器。
+   *
+   * 它是个**函数**而不是值：起进程有代价，而一次 apply 里可能一次都不扫。
+   * 缺席时不许回落成宿主进程内装载——那条边界是 ADR-0015 决定 2 判死的，
+   * 回落等于把 napi 的 async/rayon 风险搬回使用者的会话里。
+   */
+  engine?: () => Promise<KisakiEngineClient>
 }
 
 /**
@@ -298,21 +293,26 @@ export function getNodeRuntimeInfo(): KisakiRuntimeInfo {
  * mutations stay in the scoped `@xiranite/file-operations` executor, because those are host services the node
  * declares rather than `node:*` calls this file may reach for.
  */
-export function createNodeKisakiRuntime(context: KisakiRuntimeContext = {}): KisakiRuntime {
-  const nativeInfo = getNodeRuntimeInfo()
+export async function createNodeKisakiRuntime(context: KisakiRuntimeContext = {}): Promise<KisakiRuntime> {
+  if (context.engine === undefined) {
+    throw new Error('refused no-engine-provider: 这次装配没给引擎取用器（ctx.subprocess 不在，或 kisaki 的 apply 没接上）；不退回宿主进程内装载')
+  }
+  const engine = await context.engine()
+  // 能力集来自**真正要服务这一次扫描的那个进程**的问候，不是宿主里另读一份。
+  const nativeInfo = await engine.info()
   const runtime: KisakiRuntime = {
     capabilities: nativeInfo.capabilities,
-    scanDuplicates: (input, onProgress) => { configureKisakiCacheEnvironment(input); return runNativeScan(toDuplicateScanOptions(input), input.threadCount, runtime, onProgress, scanDuplicateFiles) },
-    scanBasic: (input, onProgress) => { configureKisakiCacheEnvironment(input); return runNativeScan(toBasicScanOptions(input), input.threadCount, runtime, onProgress, scanBasicFiles) },
-    scanExif: (input, onProgress) => { configureKisakiCacheEnvironment(input); return runNativeScan(toExifScanOptions(input), input.threadCount, runtime, onProgress, scanExifFiles) },
-    scanVideoOptimizer: (input, onProgress) => { configureKisakiCacheEnvironment(input); return runNativeScan(toVideoOptimizerScanOptions(input), input.threadCount, runtime, onProgress, scanVideoOptimizer) },
-    scanMedia: (input, onProgress) => { configureKisakiCacheEnvironment(input); return runNativeScan(toMediaScanOptions(input), input.threadCount, runtime, onProgress, scanMediaFiles) },
-    createExifCandidate: (sourcePath, tags) => createExifCandidate({ sourcePath, tags }),
-    createVideoOptimizerCandidate: (item, input) => runNativeVideoOptimizerCandidate(item, input, runtime),
-    replaceWithCandidate: (candidatePath, sourcePath) => replaceWithCandidate(candidatePath, sourcePath, context.fileOperations),
+    scanDuplicates: (input, onProgress) => { configureKisakiCacheEnvironment(input); return runEngineScan(engine, "scan.duplicate", toDuplicateScanOptions(input), input.threadCount, runtime, onProgress) },
+    scanBasic: (input, onProgress) => { configureKisakiCacheEnvironment(input); return runEngineScan(engine, "scan.basic", toBasicScanOptions(input), input.threadCount, runtime, onProgress) },
+    scanExif: (input, onProgress) => { configureKisakiCacheEnvironment(input); return runEngineScan(engine, "scan.exif", toExifScanOptions(input), input.threadCount, runtime, onProgress) },
+    scanVideoOptimizer: (input, onProgress) => { configureKisakiCacheEnvironment(input); return runEngineScan(engine, "scan.video-optimizer", toVideoOptimizerScanOptions(input), input.threadCount, runtime, onProgress) },
+    scanMedia: (input, onProgress) => { configureKisakiCacheEnvironment(input); return runEngineScan(engine, "scan.media", toMediaScanOptions(input), input.threadCount, runtime, onProgress) },
+    createExifCandidate: (sourcePath, tags) => engine.call<NativeExifCandidate>("candidate.exif", { sourcePath, tags }),
+    createVideoOptimizerCandidate: (item, input) => runNativeVideoOptimizerCandidate(item, input, engine),
+    replaceWithCandidate: (candidatePath, sourcePath) => replaceWithCandidate(candidatePath, sourcePath, context.fileOperations, (target) => engine.call("operation.trash", { path: target })),
     pathExists,
     listDirectory,
-    removePath: (path, options) => removePath(path, options, context.fileOperations),
+    removePath: (path, options) => removePath(path, options, context.fileOperations, (target) => engine.call("operation.trash", { path: target })),
     copyPath,
     movePath,
     linkPath,
@@ -371,22 +371,49 @@ async function runOrThrow(program: string, args: string[]): Promise<void> {
  * realm) and this function only hands the two controls down. The progress *wording* stays here, in
  * `normalizeProgress` and the node's own event text — one vocabulary, whichever runtime runs it.
  */
-async function runNativeScan<TOptions extends object, TResult>(options: TOptions, threadCount: number, runtime: KisakiRuntime, onProgress: ((progress: KisakiNativeProgress) => void) | undefined, scan: (options: TOptions & { scanId: string; threadCount: number }, controls: CzkawkaScanControls) => Promise<TResult>): Promise<TResult> {
+/**
+ * 一次引擎扫描过帧：`scanId` 由父侧生成，进度是子进程推来的**事件帧**，
+ * 取消是父侧看到 `runtime.isCancelled()` 之后发的一帧 `cancel`。
+ *
+ * 与基线那份轮询包装（`native/index.ts:118-139`）语义一致，但两条分工换了位置：
+ * 在宿主进程里时"轮询进度＋问要不要取消"都在同一进程；出进程后进度靠事件、取消靠请求，
+ * 因为帧协议里没有"父侧可以插话"这种东西。
+ */
+async function runEngineScan<TResult>(
+  engine: KisakiEngineClient,
+  method: KisakiEngineMethod,
+  options: object,
+  threadCount: number,
+  runtime: KisakiRuntime,
+  onProgress: ((progress: KisakiNativeProgress) => void) | undefined,
+): Promise<TResult> {
   const scanId = await hostCapabilities.crypto.uuid()
-  let lastProgress = ""
-  return scan({ ...options, scanId, threadCount }, {
-    onProgress: (progress: CzkawkaScanProgress) => {
-      const signature = `${progress.stage}:${progress.stageIndex}:${progress.entriesChecked}:${progress.bytesChecked}`
-      if (signature === lastProgress) return
-      lastProgress = signature
-      onProgress?.(normalizeProgress(progress))
-    },
-    shouldCancel: () => runtime.isCancelled?.() ?? false,
-  })
+  let lastProgress = ''
+  let cancelling = false
+  const watcher = setInterval(() => {
+    if (cancelling || !(runtime.isCancelled?.() ?? false)) return
+    cancelling = true
+    clearInterval(watcher)
+    // 取消失败不改写扫描本身的结果：那一趟该回什么由原来的请求决定，这里只把意图送出去。
+    void engine.cancel(scanId).catch(() => undefined)
+  }, 200)
+  watcher.unref?.()
+  try {
+    return await engine.call<TResult, CzkawkaScanProgress>(method, { ...options, threadCount }, {
+      scanId,
+      onProgress: (progress) => {
+        const signature = `${progress.stage}:${progress.stageIndex}:${progress.entriesChecked}:${progress.bytesChecked}`
+        if (signature === lastProgress) return
+        lastProgress = signature
+        onProgress?.(normalizeProgress(progress))
+      },
+    })
+  } finally {
+    clearInterval(watcher)
+  }
 }
 
-async function runNativeVideoOptimizerCandidate(item: Parameters<KisakiRuntime["createVideoOptimizerCandidate"]>[0], input: NormalizedInput, runtime: KisakiRuntime) {
-  const scanId = await hostCapabilities.crypto.uuid()
+async function runNativeVideoOptimizerCandidate(item: Parameters<KisakiRuntime["createVideoOptimizerCandidate"]>[0], input: NormalizedInput, engine: KisakiEngineClient): Promise<NativeVideoOptimizerCandidate> {
   const options: VideoOptimizerCandidateOptions = {
     sourcePath: item.path,
     mode: input.videoOptimizerMode,
@@ -402,11 +429,9 @@ async function runNativeVideoOptimizerCandidate(item: Parameters<KisakiRuntime["
     cropTop: item.cropRect?.top,
     cropRight: item.cropRect?.right,
     cropBottom: item.cropRect?.bottom,
-    cropTranscode: input.videoOptimizerCropTranscode,
-    currentCodec: item.codec,
-    scanId,
   }
-  return createVideoOptimizerCandidate(options, { shouldCancel: () => runtime.isCancelled?.() ?? false })
+  // 这一格本来就是单次调用（装载器那儿没有轮询），所以不过 runEngineScan，也不接进度。
+  return await engine.call<NativeVideoOptimizerCandidate>("candidate.video-optimizer", options)
 }
 
 /**
@@ -449,6 +474,7 @@ async function removePath(
   path: string,
   options?: { trash?: boolean; emptyFoldersOnly?: boolean },
   fileOperations?: KisakiRuntimeContext["fileOperations"],
+  trash?: (path: string) => Promise<unknown>,
 ): Promise<void> {
   if (options?.emptyFoldersOnly && !await containsOnlyDirectories(path)) throw new Error("Folder contains files and is no longer empty.")
   if (fileOperations) {
@@ -456,7 +482,8 @@ async function removePath(
     return
   }
   if (options?.trash) {
-    await trashPath(path)
+    if (trash === undefined) throw new Error("refused no-trash-verb: 要走回收站就得让引擎那一格服务（宿主进程里不该有第二条删除通路）")
+    await trash(path)
     return
   }
   await hostCapabilities.fs.remove(path, { recursive: true })
@@ -504,9 +531,10 @@ async function linkPath(source: string, target: string): Promise<void> {
   await fs.hardLink(source, target)
 }
 
-async function replaceWithCandidate(candidatePath: string, sourcePath: string, fileOperations?: KisakiRuntimeContext["fileOperations"]): Promise<void> {
+async function replaceWithCandidate(candidatePath: string, sourcePath: string, fileOperations?: KisakiRuntimeContext["fileOperations"], trash?: (path: string) => Promise<unknown>): Promise<void> {
   if (!fileOperations) {
-    await trashPath(sourcePath)
+    if (trash === undefined) throw new Error("refused no-trash-verb: 覆盖候选结果要先扔掉原文件，那一条在引擎那一格里")
+    await trash(sourcePath)
     await movePath(candidatePath, sourcePath)
     return
   }

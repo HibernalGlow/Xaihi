@@ -15,6 +15,8 @@ import type { TerminalInteractionDefinition } from "@hibernalglow/xaihi-cli-runt
 import type { KisakiData, KisakiInput, KisakiResult, KisakiTerminalTool, KisakiTool } from "./core.js"
 import { runKisaki } from "./core.js"
 import { createNodeKisakiRuntime, openKisakiPath } from "./platform.js"
+import { ENGINE_ENTRY_SEARCHED, resolveEngineHostEntry, startKisakiEngineHost, type KisakiEngineClient } from "./engine-gateway.js"
+import { createLocalSubprocessRuntime } from "./local-subprocess.js"
 import { createKisakiInteractionSchema, kisakiTerminalTools } from "./interaction.js"
 import { help } from "./help.js"
 import { createKisakiOperationInput, KISAKI_CLI_VALUE_FLAGS, parseKisakiCliOptions } from "./tool-options.js"
@@ -153,7 +155,7 @@ async function runPipe(args: string[], host: CliHost): Promise<void> {
     return
   }
 
-  const runtime = createNodeKisakiRuntime()
+  const runtime = await createNodeKisakiRuntime({ engine: cliEngine() })
   const result = await runKisaki(input, runtime, json ? undefined : (event) => {
     writeLine(host, formatKisakiActivityMessage("info", event.message, event.progress))
   })
@@ -191,10 +193,12 @@ export function createKisakiHostDefinition(host: CliHost, defaults: KisakiConfig
     },
     language,
   )
-  const runtime = createNodeKisakiRuntime()
   return {
     schema,
     run: async (input, onEvent) => {
+      // 引擎进程在**真要跑这一次**时才起：`createKisakiHostDefinition` 是同步导出面
+      // （TUI 与 CLI 共用），把 await 提到它头上等于为一个签名去改一圈调用方。
+      const runtime = await createNodeKisakiRuntime({ engine: cliEngine() })
       return runKisaki(input, runtime, onEvent ? (e) => onEvent({ type: e.type, message: e.message, progress: e.progress }) : undefined)
     },
     pause: async () => {},
@@ -347,3 +351,20 @@ const defaultHost = (): CliHost => ({
 })
 
 if (process.argv[1] && /\bcli\.[jt]s$/.test(process.argv[1].replace(/\\/g, "/"))) await runProgram()
+
+/**
+ * CLI 这一侧的引擎取用器：起的是**同一个** `engine-host` 入口，走的是同一套帧。
+ * 不在终端里退回宿主进程内装载——那样两条腿会各自长出一套引擎语义，
+ * 而"宿主进程里不该有 napi/rayon"这条判断（ADR-0015 决定 2）不会因为换了个入口就失效。
+ */
+let cliEngineHost: KisakiEngineClient | undefined
+function cliEngine(): () => Promise<KisakiEngineClient> {
+  return async () => {
+    if (cliEngineHost !== undefined) return cliEngineHost
+    const entryPath = resolveEngineHostEntry(import.meta.url)
+    if (entryPath === null) throw new Error(`refused entry-missing: ${ENGINE_ENTRY_SEARCHED}，都不在`)
+    cliEngineHost = await startKisakiEngineHost(createLocalSubprocessRuntime(), { entryPath, cwd: process.cwd() })
+    process.once('exit', () => { cliEngineHost?.dispose() })
+    return cliEngineHost
+  }
+}
