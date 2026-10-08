@@ -1,0 +1,62 @@
+From 5f9133fec482ae91dd8e52b6f9bd6576ca1e9c41 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Thu, 8 Oct 2026 19:35:10 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E8=BF=9B=E5=85=A5=E5=B7=A5=E4=BD=9C?=
+ =?utf-8?q?=E5=8C=BA=E6=97=B6=E4=BC=98=E5=85=88=E5=AF=BC=E8=88=AA=E8=87=B3?=
+ =?utf-8?q?=20Xaihi=20=E5=B7=A5=E4=BD=9C=E5=8F=B0=E4=B8=BB=E8=A7=86?=
+ =?utf-8?q?=E5=9B=BE=EF=BC=88Xaihi=20patch=200017=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/src/main.ts | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index 298db1e..63e630d 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -536,6 +536,21 @@ async function main(): Promise<void> {
+     navigation = next
+     return next.promise
+   }
++  const resolveTargetWorkspaceUrl = async (): Promise<string> => {
++    if (hostUrl !== undefined && hostCookie !== undefined) {
++      try {
++        const manifestTarget = new URL('/xaihi/manifest.json', hostUrl)
++        const manifestRes = await fetch(manifestTarget, { headers: { cookie: hostCookie } })
++        if (manifestRes.ok) {
++          const manifest = (await manifestRes.json()) as { ui?: { documentUrl?: string } }
++          if (typeof manifest?.ui?.documentUrl === 'string' && manifest.ui.documentUrl.startsWith('/xaihi/ui/')) {
++            return `${SCHEME}://app${manifest.ui.documentUrl}`
++          }
++        }
++      } catch {}
++    }
++    return applicationUrl
++  }
+   const platformView = new DesktopPlatformView(join(app.getAppPath(), 'lib', 'preload-platform-account.cjs'),
+     () => locale.id === 'zh-CN' ? 'zh_CN' : 'en_US', process.platform === 'win32' ? 'win32' : 'darwin')
+   const backend = new DesktopBackendController((onFailure) => {
+@@ -643,7 +658,7 @@ async function main(): Promise<void> {
+           if (quitting) return
+           // A replacement Host can have a new port, cookie, or boot injections even at the same URL.
+           navigation = undefined
+-          await navigateMain(applicationUrl)
++          await navigateMain(await resolveTargetWorkspaceUrl())
+           if (backend.host !== undefined) updateJournal?.action('workspace-ready')
+         })
+         workspaceRecovery = recovery
+@@ -1414,7 +1429,7 @@ async function main(): Promise<void> {
+   const enterWorkspace = async ({ activate = true }: { activate?: boolean } = {}): Promise<void> => {
+     if (quitting) return
+     const window = mainWindow ?? createMainWindow()
+-    await navigateMain(applicationUrl)
++    await navigateMain(await resolveTargetWorkspaceUrl())
+     if (isQuitting() || recovery.active || window.isDestroyed()) return
+     if (activate) window.show()
+     else window.showInactive()
+-- 
+2.55.0
+

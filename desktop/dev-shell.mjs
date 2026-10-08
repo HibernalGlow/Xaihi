@@ -26,12 +26,13 @@ const PINNED = '0.2.0-rc.2'
 /** 装配清单：顺序有讲究（core 第一个建 profile，其余跟上）。 */
 const SOURCES = [
   { spec: './packages/core', label: 'xaihi-core' },
+  { spec: './packages/ui-host', label: 'xaihi-ui' },
   { spec: `@deepseek-ai/dsh-web-app@${PINNED}`, label: 'web-app（网关与宿主装配；点名版本，latest 标签撒谎）' },
   { spec: './plugins/linedup', label: 'linedup' },
   { spec: './plugins/sleept', label: 'sleept' },
   { spec: './plugins/dissolvef', label: 'dissolvef' },
 ]
-const UI_BUNDLE_DIR = join(REPO, 'packages', 'ui-host', 'dist-realm')
+const UI_BUNDLE_DIR = join(REPO, 'packages', 'ui-host', 'dist-ui')
 
 const argv = process.argv.slice(3)
 const valueOf = (name) => {
@@ -247,4 +248,6 @@ if (mode === 'profile') {
   process.exit(0)
 }
 
-console.log('用法：node desktop/dev-shell.mjs <profile|check|launch|stop|verify> [--home <目录>] [--profile <名字>]')
+if (!['check', 'launch', 'stop', 'verify', 'profile'].includes(mode)) {
+  console.log('用法：node desktop/dev-shell.mjs <profile|check|launch|stop|verify> [--home <目录>] [--profile <名字>]')
+}

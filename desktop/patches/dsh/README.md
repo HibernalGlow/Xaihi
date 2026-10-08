@@ -34,8 +34,9 @@
 | 0014 | **已落地**：窗控四条 `controlMain / controlComponent / openDevTools / startDragging`；动作词与结果形状照基线，`state` 是做完之后量的，主窗 `close` 明说"隐藏不是销毁"，做不到的（拖拽）回 `supported:false` 不装成功 | `xaihi-window-policy.ts` 的 `normalizeXaihiWindowAction` / `xaihiWindowState` + `main.ts` 的 `applyXaihiWindowAction` / `waitFlag` / 四个 handler + `ipc.ts` 四条通道 + preload | 基线 `WindowRuntime:136-149` |
 | 0015 | **已落地**：全屏前先解除最大化，等不到位就回 `success:false`（P 段第一天抓到的假成功） | `main.ts` 的 `toggle-fullscreen` 分支 | 0014 的修正 |
 | 0016 | **已落地**：全屏的等待放宽到一次真正的 Space 切换（8 s），本机仍进不了 ⇒ 记为环境限制、判据只钉"要么生效要么如实报" | `main.ts` 的 `waitFlag` 超时 | 0015 的配套 |
+| 0017 | **已落地**：桌面端进入工作区时，若宿主启用了 Xaihi 则优先将主窗口导航至 Xaihi 工作台文档（`dsh-app://app/xaihi/ui/...`），非 Xaihi 环境优雅降级退回官方主视图 | `main.ts` 的 `resolveTargetWorkspaceUrl` 与 `enterWorkspace` / `workspaceRecovery` | 桌面端工作台主视图 |
 
-0001–0016 已落地；活体判据在 `desktop/live-check.mjs`（**89 条全绿**：R 段复位、A 段产品文档面与拒绝分支、
+0001–0017 已落地；活体判据在 `desktop/live-check.mjs`（**89 条全绿**：R 段复位、A 段产品文档面与拒绝分支、
 B 段真 Xaihi 文档进第二窗、C 段按 node 去重与标题、D 段"主窗只是隐藏时节点窗仍能继续开"加守卫没跟着放宽、
 E 段页面自己 `window.open` 走原生窗且弹出窗没长出来、F 段决定 4 的退化读回真上屏（含 iframe 反向对照）、
 H 段产品文档转达开窗 + 三条边界对照、I 段"注入冒充不了官方形状"、J 段面板形态下那一下真能开窗 + 两条对照、K 段窗到窗（节点窗自己 window.open 另一个 node）、L 段尺寸只作用在新建那一次、M 段寻址四条 + 两条登记表边界对照、N 段能力协商键集与取值、O 段尺寸推送真到达且退订真断、P 段窗控四条含"假成功必须被抓住"的一致性判据）。判据都在 `node desktop/sync-dsh.mjs --verify`：
