@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
+import { rspack } from '@rspack/core'
 import { assertAliasTargets, BROWSER_GRAPH_ALIASES } from './build-aliases.mjs'
 
 /**
@@ -48,6 +49,8 @@ function aliasesFromTsconfig() {
   return out
 }
 
+export const tsconfigAliases = aliasesFromTsconfig
+
 /**
  * 只在这份浏览器产物里生效的收窄边（判据与实测都写在 `build-aliases.mjs` 的
  * `BROWSER_GRAPH_ALIASES` 注释里，这里不重述理由，只做接线）。
@@ -65,18 +68,59 @@ function browserGraphAliases() {
 }
 
 /** 两份文档产物共用的解析与规则；只有 entry 与输出目录不同。 */
+
+/**
+ * React Compiler 挂在 swc 之前（enforce: 'pre'，babel 先剥类型并把 memo 化的
+ * 代码注进去，JSX 转换仍由下面的 builtin:swc-loader 完成）。默认 'infer'——
+ * 2026-10-07 使用者拍的口径：dev（vite.config.ts，serve 默认 off）要快，
+ * **最终产物必须带编译器优化**。`XAIHI_REACT_COMPILER_MODE=off` 是减法跑测的
+ * 入口：关掉重建，产物里必须不再出现 `compiler-runtime`（正控判据）。
+ */
+function reactCompilerRule() {
+  const mode = process.env.XAIHI_REACT_COMPILER_MODE ?? 'infer'
+  if (mode !== 'annotation' && mode !== 'infer' && mode !== 'off') {
+    throw new Error(`XAIHI_REACT_COMPILER_MODE must be annotation, infer, or off, got: ${mode}`)
+  }
+  if (mode === 'off') return []
+  // 两条 rule 而不是一条：syntax-jsx 若对 .ts 也开，`<TInfo = unknown>(x) => …`
+  // 这类泛型箭头会被当成 JSX 起始标签解析（实测 document-host.ts:203 就这么炸的）。
+  const ruleFor = (test, withJsx) => ({
+    test,
+    include: path.join(here, 'src'),
+    enforce: 'pre',
+    use: [{
+      loader: 'babel-loader',
+      options: {
+        babelrc: false,
+        configFile: false,
+        sourceType: 'module',
+        presets: [["@babel/preset-typescript", { ignoreExtensions: true }]],
+        // babel 8 的 preset-typescript 移除了 isTSX/allExtensions：按扩展名探测
+        // JSX 的老路没了，.tsx 显式挂 syntax-jsx，.ts 不挂。
+        plugins: [
+          ...(withJsx ? ["@babel/plugin-syntax-jsx"] : []),
+          ["babel-plugin-react-compiler", { compilationMode: mode }],
+        ],
+        cacheDirectory: true,
+        cacheCompression: false,
+      },
+    }],
+  })
+  return [ruleFor(/\.tsx$/, true), ruleFor(/\.ts$/, false)]
+}
+
 export const documentBase = {
   mode: 'production',
   context: here,
   output: {
     path: path.join(here, 'dist-ui'),
     clean: true,
-    publicPath: 'auto',
+    publicPath: '',
     filename: '[name].js',
     assetModuleFilename: 'assets/[name][ext]',
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', '.jsx'],
+    extensions: ['.tsx', '.ts', '.js', '.jsx', '.json'],
     /**
      * `@xiranite/{shared,logging,…}` 的类型检查与构建能指到源码（靠 tsconfig paths / 别名表），
      * 但那些包**不在 pnpm workspace 里**（`pnpm-workspace.yaml` 顶部的负向条目），
@@ -103,12 +147,16 @@ export const documentBase = {
       // 所以子路径逐条给绝对文件，不指望前缀匹配。
       'react-dom/client': require.resolve('react-dom-19/client'),
       'react-dom/server': require.resolve('react-dom-19/server'),
+      '@xyflow/react/dist/style.css': path.join(here, 'src/vendor/xyflow-stub.css'),
+      '@xyflow/react$': path.join(here, 'src/vendor/xyflow-stub.tsx'),
+      '@xyflow/react': path.join(here, 'src/vendor/xyflow-stub.tsx'),
       ...aliasesFromTsconfig(),
       ...browserGraphAliases(),
     },
   },
   module: {
     rules: [
+      ...reactCompilerRule(),
       {
         test: /\.tsx?$/,
         use: [{
@@ -135,6 +183,18 @@ export const documentBase = {
     ],
   },
   experiments: { css: true },
+  plugins: [
+    new rspack.DefinePlugin({
+      'import.meta.env': '({ DEV: false, PROD: true, MODE: "production", VITE_APP_VERSION: "0.0.0", VITE_XIRANITE_FRONTEND_DEV_URL: "", VITE_XIRANITE_BACKEND_URL: "", VITE_XIRANITE_BACKEND_TOKEN: "" })',
+      'import.meta.env.DEV': JSON.stringify(false),
+      'import.meta.env.PROD': JSON.stringify(true),
+      'import.meta.env.MODE': JSON.stringify('production'),
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify('0.0.0'),
+      'import.meta.env.VITE_XIRANITE_FRONTEND_DEV_URL': JSON.stringify(''),
+      'import.meta.env.VITE_XIRANITE_BACKEND_URL': JSON.stringify(''),
+      'import.meta.env.VITE_XIRANITE_BACKEND_TOKEN': JSON.stringify(''),
+    }),
+  ],
   stats: { preset: 'errors-warnings' },
   infrastructureLogging: { level: 'error' },
 }

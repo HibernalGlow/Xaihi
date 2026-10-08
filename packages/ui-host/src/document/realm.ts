@@ -13,6 +13,7 @@
 import { version as reactVersion } from 'react'
 import { NODE_CAPABILITY_IDS, REQUIRED_CAPABILITIES } from '@hibernalglow/xaihi-sdk/bridge'
 import { createDocumentBridge, createHttpDocumentBridge, type DocumentBridge } from '@hibernalglow/xaihi-sdk/bridge'
+import { createLogger } from '../lib/logger.ts'
 import { createPersistedState } from '../client/document-host.ts'
 
 /** 把上一次跑留下的标记读出来（形状不认识时按空处理，不让取证页因为一份旧数据就画不出来）。 */
@@ -33,23 +34,35 @@ export interface XaihiUiBoot {
 export interface Realm {
   boot: XaihiUiBoot
   bridge: DocumentBridge
-  /** 递给上层界面的 host 形状暂时由调用方自己接（桥的 caps 未授予时每条都会抛可读回的错）。 */
+  /** 协商读数的口子：进日志模块（`xiranite:realm`）并记进 `__XAIHI_REALM__.lines`，不再画在页面上。 */
   report: (line: string) => void
 }
 
-/** 把结果显示在页面上：这条路径的判据要**不打开控制台**也能读回来。 */
-function makeReport(): (line: string) => void {
-  const box = document.createElement('pre')
-  box.dataset.xaihiBridge = 'negotiation'
-  box.style.cssText = 'position:fixed;left:8px;bottom:8px;margin:0;padding:6px 8px;font:11px/1.5 ui-monospace,monospace;background:rgba(0,0,0,.72);color:#fff;max-width:70%;white-space:pre-wrap'
-  document.body.appendChild(box)
-  // 追加而不是覆盖：协商那行（granted/refused）是判据本身，被后面那次往返顶掉就只剩结果、
-  // 读不回"外壳当时到底给了哪几组"。留最后 6 行，够看一次装载的整条因果。
-  const lines: string[] = []
+/**
+ * 协商读数去哪儿了（使用者 2026-10-07 拍板：左下角那块黑框日志不再保留）：
+ * - 每行走**日志模块**（`createLogger('realm')` ⇒ consola `xiranite:realm`，配置了后端时
+ *   同一份结构化 envelope 也会进 `/logs` 传输）；
+ * - 同时留在 `reportLines`（随 `__XAIHI_REALM__.lines` 读回）：活体取证脚本与现场诊断
+ *   要的是**结构化读数**，不是 console 排版解析。
+ * 原先那块 `position:fixed` 黑底协商板（`data-xaihi-bridge="negotiation"`）随这条决定撤掉；
+ * "不打开控制台也读得回来"的那部分职责由 `BackendStatusBanner`（bridge === null 的可见退化）
+ * 与 `realm-entry` 探针板（专门的取证页）继续承担。
+ */
+
+/** 读数留最后多少行：握手那行（granted/refused）是判据本身，不能被后面的往返读数顶掉。 */
+const MAX_REPORT_LINES = 12
+
+/** 协商读数的现场账本；`__XAIHI_REALM__.lines` 暴露的就是这一份（同一个数组引用）。 */
+const reportLines: string[] = []
+
+function makeReport (): (line: string) => void {
+  const logger = createLogger('realm')
   return (line: string) => {
-    if (lines[lines.length - 1] === line) return
-    lines.push(line)
-    box.textContent = lines.slice(-6).join('\n')
+    // 轮询期间同一行每 200ms 重发一次：去重让日志与账本都只记一次变化。
+    if (reportLines[reportLines.length - 1] === line) return
+    reportLines.push(line)
+    if (reportLines.length > MAX_REPORT_LINES) reportLines.shift()
+    logger.info(line)
   }
 }
 
@@ -62,7 +75,7 @@ function hostSessionId(): string {
 
 /**
  * 起好这一份文档的 realm。
- * @returns 启动信息、桥，以及一个往页面上写字的口子。
+ * @returns 启动信息、桥，以及协商读数的口子（进日志模块，不再画在页面上）。
  */
 export function startRealm(): Realm | null {
   const boot = (globalThis as { __XAIHI_UI__?: XaihiUiBoot }).__XAIHI_UI__
@@ -134,10 +147,17 @@ export function startRealm(): Realm | null {
       report(`state 半边没走通：reason=${reason}（这条是文档侧的预取失败，不是外壳没答）`)
     }
   }
-  const timer = setInterval(() => {
+  let timer: ReturnType<typeof setInterval> | null = null
+  const stopPolling = (): void => {
+    if (timer !== null) {
+      clearInterval(timer)
+      timer = null
+    }
+  }
+  const poll = (): void => {
     const ready = bridge.ready()
     if (ready !== null) {
-      clearInterval(timer)
+      stopPolling()
       // degraded 要分两行念：必给的三组（contract/state/env）里任何一条被拒，文档里的节点表面就跑不
       // 起来；其余那几组是"今天外壳确实没有对应物"。混成一句"必给却没兑现"会把没接的东西说成缺勤，
       // 而 workspace/runner/clipboard 这些本来就在提案账上（P1 等）。
@@ -156,13 +176,24 @@ export function startRealm(): Realm | null {
       return
     }
     report(`xaihi realm: rev=${boot.rev} React=${reactVersion} · 等宿主握手（没应答=这条桥还没人接）`)
-  }, 200)
-  setTimeout(() => clearInterval(timer), 8000)
+  }
+  timer = setInterval(poll, 200)
+  // 8 秒后降频但**不停**：宿主冷启动可能让握手晚于这扇窗才落地。实测形状（2026-10-07 壳内）：
+  // 界面自己（`useBridgeReady` 的独立轮询）早已拿到 ready、工作台照常挂出，而协商读数冻在
+  // 「等宿主握手」——硬停让 ready 落地时再也没人补 granted/refused，账本与界面各说各话。
+  // 读数要"在界面上读得回来"（决定 4），轮询必须活得比宿主的慢启动久。
+  setTimeout(() => {
+    if (timer === null) return
+    clearInterval(timer)
+    timer = setInterval(poll, 1000)
+  }, 8000)
   // 句柄留在 window 上：现场读数（真宿主里那次）需要能从外层按同源 iframe 打一次调用。
-  ;(globalThis as { __XAIHI_REALM__?: { boot: XaihiUiBoot; bridge: DocumentBridge; probe: () => Promise<void> } }).__XAIHI_REALM__ = {
+  // `lines` 是协商读数账本（与 `reportLines` 同一引用），取证脚本从这里结构化读回。
+  ;(globalThis as { __XAIHI_REALM__?: { boot: XaihiUiBoot; bridge: DocumentBridge; probe: () => Promise<void>; lines: readonly string[] } }).__XAIHI_REALM__ = {
     boot,
     bridge,
     probe: probeRoundTrip,
+    lines: reportLines,
   }
   return { boot, bridge, report }
 }

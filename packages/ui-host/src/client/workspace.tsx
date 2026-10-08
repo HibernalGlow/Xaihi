@@ -25,6 +25,7 @@ import { Button } from '../components/ui/button.tsx'
 import { NodeChromeActionButton } from '../components/workspace/NodeChromePrimitives.tsx'
 import { Separator } from '../components/ui/separator.tsx'
 import { createRemoteLoader } from './loader/remote-modules.ts'
+import { collisionNotice, mergePanelEntries, NodeModuleSurface } from './node-mount.tsx'
 import { RunFeed } from './run-feed.tsx'
 
 /** 外壳需要的宿主面。 */
@@ -37,9 +38,14 @@ export interface RootProps {
   runCommand: (line: string) => Promise<CommandOutcome>
 }
 
-interface PanelEntry {
+/** 一条面板贡献的出处：插件清单给的远端，或本包注册表里的第一方界面。 */
+export type PanelSource = 'remote' | 'in-realm'
+
+export interface PanelEntry {
   contribution: PanelContribution
   package: string
+  /** 装载走哪条路；`in-realm` 不碰 `remote`/`export` 那两个地址。 */
+  source: PanelSource
 }
 
 interface WorkspaceProps extends RootProps {
@@ -52,7 +58,7 @@ const flatten = (document: WorkspaceDocument): PanelEntry[] => {
   for (const plugin of document.plugins) {
     for (const contribution of plugin.manifest.panels ?? []) {
       if (contribution.area !== 'workspace') continue
-      entries.push({ contribution, package: plugin.package })
+      entries.push({ contribution, package: plugin.package, source: 'remote' })
     }
   }
   return entries.sort((left, right) => (left.contribution.order ?? 0) - (right.contribution.order ?? 0))
@@ -125,7 +131,8 @@ return <PanelFallback t={t} locale={locale} panels={panels} document={document} 
 function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCommand }: WorkspaceProps & {
   panels: PanelEntry[]
 }): React.ReactElement {
-  const [selected, setSelected] = React.useState<string | null>(panels[0]?.contribution.id ?? null)
+  const { entries, collisions } = React.useMemo(() => mergePanelEntries(panels), [panels])
+  const [selected, setSelected] = React.useState<string | null>(entries[0]?.contribution.id ?? null)
   const [notice, setNotice] = React.useState<string | null>(null)
   const [state, setState] = React.useState<{ status: 'idle' | 'loading' | 'ready' | 'failed'; component?: (props: unknown) => unknown; reason?: string }>({ status: 'idle' })
   const [attempt, setAttempt] = React.useState(0)
@@ -136,7 +143,7 @@ function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCom
 
   const host = React.useMemo(() => ({
     openPanel(id: string) {
-      if (!panels.some((entry) => entry.contribution.id === id)) return false
+      if (!entries.some((entry) => entry.contribution.id === id)) return false
       setSelected(id)
       return true
     },
@@ -144,12 +151,13 @@ function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCom
       setNotice(message)
     },
     runCommand,
-  }), [panels, runCommand])
+  }), [entries, runCommand])
 
-  const active = panels.find((entry) => entry.contribution.id === selected) ?? null
+  const active = entries.find((entry) => entry.contribution.id === selected) ?? null
 
   React.useEffect(() => {
-    if (active === null) {
+    // in-realm 那一格由 `NodeModuleSurface` 自己装载（注册表在本包里，没有 remote 地址）。
+    if (active === null || active.source === 'in-realm') {
       setState({ status: 'idle' })
       return
     }
@@ -174,8 +182,11 @@ function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCom
   const stateLabel = state.status === 'loading' ? t('panel.loading') : state.status === 'failed' ? t('panel.failed') : null
 
   const main = (() => {
-    if (panels.length === 0) return <div className="p-3 text-xs text-muted-foreground">{t('panel.none')}</div>
+    if (entries.length === 0) return <div className="p-3 text-xs text-muted-foreground">{t('panel.none')}</div>
     if (active === null) return <div className="p-3 text-xs text-muted-foreground">{t('panel.notFound')}</div>
+    if (active.source === 'in-realm') {
+      return <NodeModuleSurface id={active.contribution.id} contribution={active.contribution} locale={locale} host={host} t={t} />
+    }
     if (state.status === 'loading' || state.status === 'idle') return <div className="p-3 font-mono text-[10px] tracking-widest text-muted-foreground">{t('panel.loading')}</div>
     if (state.status === 'failed' || state.component === undefined) {
       return (
@@ -196,7 +207,7 @@ function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCom
           aria-label={t('nav.title')}
           className="flex w-[200px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border p-2"
         >
-          {panels.map((entry) => {
+          {entries.map((entry) => {
             const isActive = entry.contribution.id === selected
             return (
               <Button
@@ -204,6 +215,7 @@ function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCom
                 variant={isActive ? 'secondary' : 'ghost'}
                 size="xs"
                 data-selected={isActive}
+                data-panel-source={entry.source}
                 onClick={() => setSelected(entry.contribution.id)}
                 className={
                   isActive
@@ -215,6 +227,11 @@ function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCom
               </Button>
             )
           })}
+          {collisions.map((id) => (
+            <div key={id} className="xaihi-error mt-2 rounded-md bg-destructive/10 px-2 py-1 text-[10px] text-destructive">
+              {collisionNotice(id)}
+            </div>
+          ))}
           {broken.map((plugin) => (
             <div key={plugin.package} className="xaihi-error mt-2 rounded-md bg-destructive/10 px-2 py-1 text-[10px] text-destructive">
               {t('plugin.broken')}: {plugin.problems?.join('; ')}
@@ -258,7 +275,7 @@ function PanelFallback({ t, locale, panels, document, loader, renderSlot, runCom
       <Separator className="shrink-0" />
       <footer className="flex items-center gap-2 px-3 py-1 font-mono text-[9px] tracking-widest text-muted-foreground">
         {renderSlot('xaihi.status')}
-        <span>{panels.length} {t('status.loaded')}</span>
+        <span>{entries.length} {t('status.loaded')}</span>
         {notice !== null && <span>{notice}</span>}
         <RunFeed t={t} />
       </footer>

@@ -30,6 +30,7 @@ export default defineConfig({
       // 每一条都指得到真源码）。三处共用一张表，改一处就会在另一处红。
       ...XIRANITE_ALIASES,
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'zod': fileURLToPath(import.meta.resolve('zod')),
     },
   },
   test: {
@@ -40,7 +41,12 @@ export default defineConfig({
     // 先试过 `poolOptions.threads.execArgv: ['--no-experimental-webstorage']`——照红，
     // Worker 的 execArgv 收不下进程级开关；所以改成在测试宿主里装回同一个实现（见那份文件头）。
     // 判据是 `tests/localstorage-env.spec.ts` 那三条：去掉起手必须红。
-    setupFiles: ['src/test/setup-webstorage.ts'],
+    //
+    // 第二条起手（`setup-document-feed.ts`）堵的是另一件**测试宿主才有**的事：
+    // 文档侧那条运行回显会去跟 `/xaihi/operations/stream`，测试里没有 EventSource、
+    // happy-dom 又把相对 URL 解到 `http://localhost:3000`，于是判据会打一次真网络请求。
+    // 理由与验法写在那个文件头。
+    setupFiles: ['src/test/setup-webstorage.ts', 'src/test/setup-document-feed.ts'],
     include: [
       'tests/**/*.spec.ts',
       'tests/**/*.spec.tsx',
@@ -59,6 +65,17 @@ export default defineConfig({
       'src/nodes/shared/externalNodeGateway.test.ts',
       'src/nodes/shared/useLocalFileDrop.test.tsx',
       'src/nodes/shared/useNodeSurface.test.ts',
+      // 2026-10-07 加：`workspaceContext.tsx` 从 REST 换成桥之后，这一份是**唯一**在 React 层
+      // 量 `WorkspaceProvider` 新契约的文件（握手门控 / 宿主读写 `state.getData|patchData` /
+      // 防抖 / 竞态保护；11 条实测绿，假桥 `fakeHost` 在文件内）。静态那条（入口起桥、快照该走
+      // `state.*` 两条边）在 `tests/document-bridge-wiring.spec.ts`，两条互补：那边量源码里的边，
+      // 这边量真跑一轮的行为。
+      'src/store/workspaceBackendLifecycle.test.tsx',
+      // 2026-10-07 加：`NodeConfigPopover` 的"开机恢复"偏好从 REST（`nodeConfigApi.getUi/saveUi`，
+      // 已裁）换成节点界面设置载体（`NodeUiConfigContext` → `xaihi-core.nodeUi`）。这一份量
+      // 载体路径的存取/迁移与"没载体退回本地遗留键"三条腿（7 条断言实测绿）。它也是
+      // `NodeUiConfigProvider` 装配契约的唯一行为判据。
+      'src/nodes/shared/NodeConfigPopover.test.tsx',
     ],
     server: {
       deps: {

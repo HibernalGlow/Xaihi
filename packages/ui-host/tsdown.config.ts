@@ -83,6 +83,11 @@ const client = {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
   },
   outputOptions: {
+    // DSH 只发 `client.*.js` 并且只评估 `client.js` 这一个文件：rolldown 一旦拆出
+    // `ExecuteButton-*.cjs` / `rolldown-runtime-*.cjs` 这类分片，宿主就报
+    // `require("./rolldown-runtime-….cjs") missed the module table`，整个入口装不上。
+    // 所以浏览器半边必须是单文件。
+    inlineDynamicImports: true,
     entryFileNames: 'client.js',
     banner: 'window.__ModuleLoader__.load({ id: "@hibernalglow/xaihi-ui", factory: (require) => {',
     footer: 'return module.exports; } });',

@@ -61,9 +61,9 @@ export interface WSState {
   viewMode: ViewMode
   /** cards 视图下的卡片布局方式。 */
   cardLayout: CardLayout
-  /** 全部工作区列表。 */
+  /** 工作区列表（ADR-0019 塌缩后恒为一条）。 */
   workspaces: WorkspaceItem[]
-  /** 当前激活的工作区 id。 */
+  /** 当前激活的工作区 id（ADR-0019 后恒等于 workspaces[0].id，无动作可改）。 */
   activeWorkspaceId: string
   /** 全部组件实例（跨工作区）。 */
   components: ComponentInstance[]
@@ -262,13 +262,14 @@ export interface WorkspaceUiActions {
   patchLaneWorkspacePreferences(workspaceId: string, patch: Partial<SwimlaneWorkspacePreferences>): void
 }
 
-/** 工作区增删改动作（slice 2）。 */
+/**
+ * 工作区动作（slice 2）。
+ *
+ * ADR-0019：多工作空间退役，工作空间塌缩成单例——增删改/切换/图标动作已删除，
+ * `workspaces` 恒为一条、`activeWorkspaceId` 恒等于它的 id（由 INITIAL_STATE 与
+ * hydrate 保证，没有任何动作能改）。只剩 flow 画布快照/相机的持久化。
+ */
 export interface WorkspaceListActions {
-  setActiveWorkspace(id: string): void
-  addWorkspace(): void
-  removeWorkspace(id: string): void
-  renameWorkspace(id: string, label: string): void
-  setWorkspaceIcon(id: string, icon: string | undefined): void
   setWorkspaceFlowCanvas(id: string, flowCanvas: FlowCanvasSnapshot | undefined): void
   setWorkspaceFlowCamera(id: string, flowCamera: FlowCanvasCamera | undefined): void
 }

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Xaihi</title>
+    <!--
+      仅开发期的文档壳（`pnpm dev:ui`），形状对齐 `packages/core/src/routes.ts`
+      `renderUiDocument()` 现拼的那份：同一段 `window.__XAIHI_UI__`、同一个挂载点。
+      rev 是占位记账（vite 的模块地址按源码路径寻址，不走 rev）；`apiBase:'/xaihi'`
+      决定桥的 endpoint（`/xaihi/host`，由 vite.config 的 server.proxy 转给隔离宿主）。
+    -->
+    <script>window.__XAIHI_UI__={rev:"dev",apiBase:"/xaihi",bundleBase:"/xaihi/ui/dev/",node:""}</script>
+  </head>
+  <body>
+    <div id="xaihi-ui-root"></div>
+    <script type="module" src="/src/document/main.tsx"></script>
+  </body>
+</html>
+
+

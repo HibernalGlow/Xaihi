@@ -2,12 +2,21 @@
  * WorkspaceProvider —— 工作区数据的"查询-持久化"循环控制器。
  *
  * 该 Provider 不渲染任何 UI，只负责：
- * 1. 通过 useQuery 从后端拉取 workspace/lane/component 快照，首次加载时调用
- *    store.hydrate 灌入 Zustand store
+ * 1. 通过 useQuery 拉取 workspace/lane/component 快照（**过桥**，落点是宿主的设置面），
+ *    首次加载时调用 store.hydrate 灌入 Zustand store
  * 2. 监听 store 中 workspaces/lanes/components 的变化，500ms 防抖后通过
- *    useMutation 持久化回后端（避免高频写入）
- * 3. 维护 backendReady 标志，根据后端状态变化与查询错误实时同步
+ *    useMutation 把同一份快照写回桥（避免高频写入）
+ * 3. 维护 backendReady 标志，根据桥的握手与查询错误实时同步
  * 4. 在 DEV 模式下挂载 window.xqa QA Controller，供 Playwright/UI 测试驱动
+ *
+ * **为什么这里不再有 REST**（2026-10-07 使用者口径"不再使用 rest 架构通信，一切都走这个
+ * DSH 插件标准来"）：过去这一层打的是 `@/backend/workspaceRpcClient`，即 Xiranite 的
+ * `/api/workspaces` 那套 HTTP 后端，并且被 `useLocalBackendStatus()` 的**健康检查**
+ * 门住（`enabled: localBackendReady`）—— 那份后端在本仓根本不存在，于是加载永远不开始
+ * 且表现为一屏空工作台。现在这一层的对面是宿主：读写都走桥的 `state.getData` /
+ * `state.patchData`，落点是 `xaihi-core` 命名空间里 `nodeState` 的一格
+ * （与节点状态同一个容器、各自占键，见 `document-host.ts` 的 `createPersistedState`）。
+ * 门也从"后端健康"换成"桥握手落地"（`useBridgeReady`）。
  *
  * 关键设计：locallyPersistedSnapshotRef 用于打破"persist onSuccess → setQueryData
  * → useQuery data 变化 → 再次 hydrate"的循环。本地 persist 成功后回写到
@@ -17,12 +26,12 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useShallow } from "zustand/react/shallow"
+import type { DocumentBridge } from "@hibernalglow/xaihi-sdk/bridge"
 import type { AppTheme, CardLayout, ComponentInstance, Lane, ViewMode, WorkspaceItem } from "@/types/workspace"
 import type { SwitchDisplayStyle } from "@/components/ui/switch-variants"
 import type { TabDisplayStyle } from "@/components/ui/tabs-variants"
-import { loadWorkspaceSnapshot as loadWorkspaceSnapshotRpc, persistWorkspaceSnapshot as persistWorkspaceSnapshotRpc } from "@/backend/workspaceRpcClient"
 import { localBackendConnectionKey, type LocalBackendConfig } from "@/backend/localBackendConfig"
-import { useLocalBackendStatus } from "@/hooks/useLocalBackendStatus"
+import { useBridgeReady, useDocumentBridge } from "@/document/bridge-context"
 import { useWorkspaceStore } from "@/store/workspaceStore"
 import type { WSStore } from "@/store/workspace/types"
 import type { ComponentDTO, LaneDTO, WorkspaceDTO, WorkspaceSnapshotDTO } from "@xiranite/shared"
@@ -34,17 +43,19 @@ const logger = createLogger("workspace")
 type WorkspaceSnapshot = WorkspaceSnapshotDTO
 
 const WORKSPACE_SNAPSHOT_QUERY_KEY = ["workspace", "snapshot"] as const
+/**
+ * 工作区快照在桥那边占的键（`nodeState` 里的一格）。
+ *
+ * 与节点状态同一个容器、**不同键**：2026-10-07 量到 `nodeState` 整份共用一个命名空间
+ * 版本号，两处写同一格会撞乐观并发围栏（那是围栏在正常工作，但看起来像写丢）。
+ * 名字得过得了 `NODE_ID_PATTERN`（小写字母/数字/`_`/`-`），所以用连字符形式。
+ */
+const WORKSPACE_SNAPSHOT_NODE = "xaihi-workspace"
 const QA_VIEW_MODES = new Set<ViewMode>(["dashboard", "cards", "dockview", "flow", "lane", "bento"])
 const QA_CARD_LAYOUTS = new Set<CardLayout>(["grid", "stack", "split", "focus"])
 
-function workspaceSnapshotQueryKey(config: LocalBackendConfig | undefined) {
-  if (!config) return [...WORKSPACE_SNAPSHOT_QUERY_KEY, "unconfigured"] as const
-  return [
-    ...WORKSPACE_SNAPSHOT_QUERY_KEY,
-    config.baseUrl,
-    config.token ? "token:set" : "token:none",
-    config.instanceId ?? "instance:unknown",
-  ] as const
+function workspaceSnapshotQueryKey(hosted: boolean) {
+  return [...WORKSPACE_SNAPSHOT_QUERY_KEY, hosted ? "hosted" : "unhosted"] as const
 }
 
 export function BackendConnectionBoundary({ config, children }: { config?: LocalBackendConfig, children: ReactNode }) {
@@ -124,24 +135,69 @@ function toComponentDTO(component: ComponentInstance, now: number): ComponentDTO
   }
 }
 
-async function loadWorkspaceSnapshot(): Promise<WorkspaceSnapshot> {
-  return startupDebugAsync("workspace:load-snapshot", loadWorkspaceSnapshotRpc)
+/** 空快照：桥那边这一格还没存过东西时的**真话**（不是"后端答了空列表"）。 */
+function emptyWorkspaceSnapshot(): WorkspaceSnapshot {
+  return { workspaces: [], lanes: [], components: [] }
 }
 
-async function persistWorkspaceSnapshot(snapshot: WorkspaceSnapshot): Promise<void> {
-  await persistWorkspaceSnapshotRpc(snapshot)
+/**
+ * 从宿主那一格读回快照。
+ *
+ * 过桥是**一次往返**（`state.getData` 返回 `{ json?, revision }`），不是 REST 那套
+ * 三张表各自分页：工作区本来就是一份整体文档（ADR-0009 把工作台放进同一份文档的
+ * 理由之一），按整份读写才不会出现"组件回来了、它所属的 lane 还没回来"。
+ * @param bridge - 这份文档的桥（调用点已用握手把它门住）。
+ * @returns 快照；那一格还没存过时是空快照。
+ */
+async function loadWorkspaceSnapshotFromHost(bridge: DocumentBridge): Promise<WorkspaceSnapshot> {
+  const value = await bridge.call("state.getData", WORKSPACE_SNAPSHOT_NODE) as { json?: unknown }
+  if (typeof value?.json !== "string" || value.json === "") return emptyWorkspaceSnapshot()
+  const parsed = JSON.parse(value.json) as Partial<WorkspaceSnapshot> | null
+  if (parsed === null) return emptyWorkspaceSnapshot()
+  return {
+    workspaces: parsed.workspaces ?? [],
+    lanes: parsed.lanes ?? [],
+    components: parsed.components ?? [],
+  }
+}
+
+/**
+ * 把快照写回宿主那一格。
+ *
+ * 先读一次 `revision` 再写：DSH 的设置面是乐观并发（写要带 `expectedRevision`，
+ * ADR-0013），不先读就会被 `SETTINGS_CONFLICT` 拒掉 —— 而那是数据不是异常，
+ * 不该当成崩溃。两发之间的窗口很小（同一次 persist 内），撞上时 react-query 的
+ * `retry: 1` 会再走一遍这一整个函数，第二次读到的就是新版本号。
+ * @param bridge - 这份文档的桥。
+ * @param snapshot - 要落盘的整份快照。
+ */
+async function persistWorkspaceSnapshotToHost(bridge: DocumentBridge, snapshot: WorkspaceSnapshot): Promise<void> {
+  const current = await bridge.call("state.getData", WORKSPACE_SNAPSHOT_NODE) as { revision?: unknown }
+  const revision = typeof current?.revision === "number" ? current.revision : undefined
+  await bridge.call("state.patchData", WORKSPACE_SNAPSHOT_NODE, JSON.stringify(snapshot), revision)
 }
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
+  const bridge = useDocumentBridge()
+  const hosted = bridge !== null
+  const hostReady = useBridgeReady(bridge)
   const locallyPersistedSnapshotRef = useRef<WorkspaceSnapshot | undefined>(undefined)
   const lastHydratedSnapshotKeyRef = useRef<string | undefined>(undefined)
   const skipHydrationPersistRef = useRef(false)
   /** Last SQLite component rows. Kept so skip-restore mode never writes an empty list. */
   const snapshotComponentsRef = useRef<ComponentDTO[]>([])
-  const localBackendStatus = useLocalBackendStatus()
-  const localBackendReady = localBackendStatus.data?.status === "ready"
-  const workspaceQueryKey = workspaceSnapshotQueryKey(localBackendStatus.data?.config)
+  /**
+   * 门从"本地后端健康"换成"桥握手落地"。
+   *
+   * 这两件事的形状不一样，所以要写明白：过去 `localBackendReady` 问的是
+   * "`/api` 那个后端起来没有"（一次 `health()` 往返），而那份后端在本仓不存在，
+   * 于是它永远 false、加载永远不开始、界面是一屏空工作台（**静默**的空）。
+   * 现在问的是"宿主接了我这条桥没有"，答案来自握手本身，不需要第二个往返，
+   * 而且"没接"这件事在 `realm.ts` 的协商板上就看得见。
+   */
+  const localBackendReady = hostReady
+  const workspaceQueryKey = workspaceSnapshotQueryKey(hosted)
   const hydrate = useWorkspaceStore((state) => state.hydrate)
   const setBackendReady = useWorkspaceStore((state) => state.setBackendReady)
   const backendReady = useWorkspaceStore((state) => state.backendReady)
@@ -158,7 +214,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   )
 
   startupDebug("react:workspace-provider-render", {
-    backendStatus: localBackendStatus.data?.status ?? "pending",
+    hosted,
+    hostReady,
+    backendStatus: hostReady ? "ready" : hosted ? "awaiting-handshake" : "unhosted",
     backendReady,
     workspaces: workspaces.length,
     lanes: lanes.length,
@@ -173,7 +231,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const workspaceQuery = useQuery({
     queryKey: workspaceQueryKey,
-    queryFn: loadWorkspaceSnapshot,
+    queryFn: async () => {
+      // `enabled` 已经把它门住了；这一句是给类型与"万一门被改掉"留的点名失败，
+      // 不是靠它维持正确性。
+      if (bridge === null) throw new Error("这份文档不在宿主里：工作区快照没有可问的对面")
+      return await startupDebugAsync("workspace:load-snapshot", () => loadWorkspaceSnapshotFromHost(bridge))
+    },
     enabled: localBackendReady,
     staleTime: 5_000,
     retry: 1,
@@ -181,7 +244,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   })
 
   const { mutate: persistWorkspace } = useMutation({
-    mutationFn: persistWorkspaceSnapshot,
+    mutationFn: async (snapshot: WorkspaceSnapshot) => {
+      if (bridge === null) throw new Error("这份文档不在宿主里：工作区快照没处可写")
+      await persistWorkspaceSnapshotToHost(bridge, snapshot)
+    },
     scope: { id: "workspace-persist" },
     onSuccess: (_result, snapshot) => {
       queryClient.setQueryData(workspaceQueryKey, snapshot)
@@ -274,7 +340,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [workspaces, lanes, components, backendReady, localBackendReady, persistWorkspace, restoreComponents])
 
   const content = useMemo(() => children, [children])
-  return <BackendConnectionBoundary config={localBackendStatus.data?.config}>{content}</BackendConnectionBoundary>
+  /**
+   * 不再包 `BackendConnectionBoundary`：那一层的作用是"后端换了一个进程（同端口不同
+   * `instanceId`）就把子树重建一次"，而现在对面是宿主、凭据与会话都归宿主管，
+   * 这一份文档里没有第二个端点可换（ADR-0013：本仓不自带配置文件、也不自带后端）。
+   * 组件本身留着导出：它是一条独立的接线判据（`workspaceBackendLifecycle.test.tsx`），
+   * 删掉它等于顺手删掉别人的账。
+   */
+  return content
 }
 
 /**

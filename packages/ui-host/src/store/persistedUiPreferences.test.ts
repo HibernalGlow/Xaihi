@@ -168,7 +168,9 @@ describe("a legacy localStorage snapshot hydrates into a complete config", () =>
   test("fresh store creation runs the merge", async () => {
     const key = "xiranite-workspace-ui"
     const previous = localStorage.getItem(key)
-    localStorage.setItem(key, JSON.stringify({ state: legacySnapshot.state, version: 3 }))
+    // v4 快照（同版本，migrate 不触发）：量的是 persist 的 `merge` 接线——清洗器把
+    // 缺 `mondrian` 的半成品补齐。v3 及更早的快照走的是另一条路，见下一条。
+    localStorage.setItem(key, JSON.stringify({ state: legacySnapshot.state, version: 4 }))
     try {
       vi.resetModules()
       const mod = await import("@/store/workspaceStore")
@@ -177,6 +179,27 @@ describe("a legacy localStorage snapshot hydrates into a complete config", () =>
       expect(hydrated.mondrian, "persist 的 merge 没有接线：mondrian 又变回 undefined 了").toEqual(DEFAULT_DESIGN_THEME.mondrian)
       // 阳性对照：合并函数如果没跑，读到的就正好是磁盘上那份缺字段的形状。
       expect(Object.keys(legacySnapshot.state.designTheme)).not.toContain("mondrian")
+    } finally {
+      if (previous === null) localStorage.removeItem(key)
+      else localStorage.setItem(key, previous)
+      vi.resetModules()
+    }
+  })
+
+  test("v3 快照被一次性重定基丢弃：全部字段落回迁移默认，不残留旧值", async () => {
+    // 2026-10-07 Xiranite 配置迁移：v3 快照里的字段（theme: "tori" 等）是旧代码默认
+    // 派生的值，「只补缺」会让它们永远盖过 INITIAL_STATE 里的迁移默认（灵动岛不生效
+    // 就是这么来的）。migrate 对 version < 4 返回空，merge 用当前 state 补齐。
+    const key = "xiranite-workspace-ui"
+    const previous = localStorage.getItem(key)
+    localStorage.setItem(key, JSON.stringify({ state: legacySnapshot.state, version: 3 }))
+    try {
+      vi.resetModules()
+      const mod = await import("@/store/workspaceStore")
+      const state = mod.useWorkspaceStore.getState()
+      expect(state.theme, "旧主题名不许从 v3 快照里活下来").toBe("wuling")
+      expect(state.designTheme.id, "designTheme 落回迁移默认").toBe("native")
+      expect(state.designTheme.mondrian).toEqual(DEFAULT_DESIGN_THEME.mondrian)
     } finally {
       if (previous === null) localStorage.removeItem(key)
       else localStorage.setItem(key, previous)

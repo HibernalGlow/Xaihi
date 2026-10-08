@@ -13,7 +13,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useCallback } from "react"
 import { getBackend } from "@/backend/client"
-import { resolveComponentWindowSize } from "@/backend/workspaceRpcClient"
+import { resolveComponentWindowSize } from "@/components/workspace/componentWindowSizeStore"
 import { createLogger } from "@/lib/logger"
 import { useWorkspaceStore } from "@/store/workspaceStore"
 import type { MainWindowAction, OpenComponentWindowInput, WindowCommandResult } from "@/backend/runtime/runtime"

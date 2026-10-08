@@ -133,12 +133,17 @@ export const useWorkspaceStore = create<WSStore>()(
       }),
       {
         name: "xiranite-workspace-ui",
-        version: 3,
+        version: 4,
         storage: createJSONStorage(() => localStorage),
         partialize: selectWorkspaceUiPreferences,
         merge: mergePersistedWorkspaceUi,
         // v1 → v2 迁移：把单一主题选择升级为 light/dark 双方案
         migrate: (persisted, version) => {
+          // v4（2026-10-07，Xiranite 配置迁移为默认值）一次性重定基：v3 及更早的快照
+          // 全是旧代码默认派生的值（chromePosition: "right" 等），浅合并会让它们盖过
+          // INITIAL_STATE 里的迁移默认。整份丢弃，merge 用当前 state（新默认）补齐，
+          // 下一次 persist 写就把 v4 快照落回 localStorage。
+          if (version < 4) return {}
           const state = persisted as Partial<WSStore>
           const migrated = { ...state }
           if (version < 2 && !state.themeSelections) {
@@ -286,11 +291,6 @@ export function selectWorkspaceActions(store: WSStore): WorkspaceActions {
     setDesignTheme: store.setDesignTheme,
     setViewMode: store.setViewMode,
     setCardLayout: store.setCardLayout,
-    setActiveWorkspace: store.setActiveWorkspace,
-    addWorkspace: store.addWorkspace,
-    removeWorkspace: store.removeWorkspace,
-    renameWorkspace: store.renameWorkspace,
-    setWorkspaceIcon: store.setWorkspaceIcon,
     setWorkspaceFlowCanvas: store.setWorkspaceFlowCanvas,
     setWorkspaceFlowCamera: store.setWorkspaceFlowCamera,
     deployComponent: store.deployComponent,

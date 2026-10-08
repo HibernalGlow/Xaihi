@@ -24,26 +24,33 @@ export function createBackendSlice(update: WorkspaceStoreUpdater): WorkspaceBack
 /**
  * 将后端 DTO 整体灌入 store，替换当前的工作区/泳道/组件集合。
  *
- * - 工作区为空时回退到 INITIAL_STATE.workspaces，避免首启时无工作区可用
+ * ADR-0019（多工作空间退役，塌缩成单例）：
+ * - 只保留快照里的第一个工作区；第 2..N 个连同其下组件与泳道级联丢弃
+ *   （复用原 removeWorkspaceState 的级联语义，落点只在 hydrate 这一处）
+ * - 快照为空时回退到 INITIAL_STATE.workspaces（单例 ws-alpha）
+ * - 存量组件的 workspaceId 全部保留、零迁移：若第一个工作区存在，其 id 原样沿用
  * - 独立窗口归属恢复为 "floating"，旧快照和工作区归属恢复为 "docked"
  * - position/size 使用默认值（这两个字段不持久化到后端）
- * - activeWorkspaceId 自动指向第一个工作区
+ * - activeWorkspaceId 恒等于保留下来的那条工作区 id
  * - zCounter 取现有值与所有组件 z 值的最大值，避免新组件 z 值冲突
  */
 function hydrateState(state: WSState, workspaces: WorkspaceDTO[], lanes: LaneDTO[], components: ComponentDTO[]): WSState {
-  const nextWorkspaces: WorkspaceItem[] = workspaces.length
-    ? workspaces.map((workspace) => ({
-      id: workspace.id,
-      label: workspace.label,
-      icon: workspace.icon,
-      flowCanvas: workspace.flowCanvas,
-      flowCamera: workspace.flowCamera,
-      createdAt: workspace.createdAt,
-      updatedAt: workspace.updatedAt,
-    }))
-    : INITIAL_STATE.workspaces
+  const keptWorkspace: WorkspaceItem | null = workspaces.length
+    ? {
+      id: workspaces[0].id,
+      label: workspaces[0].label,
+      icon: workspaces[0].icon,
+      flowCanvas: workspaces[0].flowCanvas,
+      flowCamera: workspaces[0].flowCamera,
+      createdAt: workspaces[0].createdAt,
+      updatedAt: workspaces[0].updatedAt,
+    }
+    : null
+  const nextWorkspaces: WorkspaceItem[] = keptWorkspace ? [keptWorkspace] : INITIAL_STATE.workspaces
+  const keptWorkspaceId = nextWorkspaces[0].id
 
-  const nextComponents: ComponentInstance[] = components.map((component) => ({
+  const keptComponents = components.filter((component) => component.workspaceId === keptWorkspaceId)
+  const nextComponents: ComponentInstance[] = keptComponents.map((component) => ({
     id: component.id,
     moduleId: component.moduleId,
     state: component.placement === "window" ? "floating" : "docked",
@@ -67,7 +74,8 @@ function hydrateState(state: WSState, workspaces: WorkspaceDTO[], lanes: LaneDTO
     updatedAt: component.updatedAt,
   }))
 
-  const nextLanes: Lane[] = lanes.map((lane) => ({
+  const keptLanes = lanes.filter((lane) => lane.workspaceId === keptWorkspaceId)
+  const nextLanes: Lane[] = keptLanes.map((lane) => ({
     id: lane.id,
     label: lane.label,
     workspaceId: lane.workspaceId,
@@ -84,7 +92,7 @@ function hydrateState(state: WSState, workspaces: WorkspaceDTO[], lanes: LaneDTO
     workspaces: nextWorkspaces,
     lanes: nextLanes,
     components: nextComponents,
-    activeWorkspaceId: nextWorkspaces[0]?.id ?? state.activeWorkspaceId,
+    activeWorkspaceId: nextWorkspaces[0].id,
     zCounter: Math.max(state.zCounter, ...nextComponents.map((component) => component.z ?? 0)),
   }
 }

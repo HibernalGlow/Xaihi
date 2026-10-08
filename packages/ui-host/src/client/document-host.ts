@@ -37,6 +37,7 @@ import type {
   NodeStateCapability,
   NodeWorkspaceCapability,
 } from '@xiranite/contract'
+import { documentRunProgressFeed, followNodeRun } from '../lib/nodeRunProgress.ts'
 
 /** 上游 `NodeLocalFilesCapability.list` 那条回的单条目形状（不自己重写一遍字段表）。 */
 type LocalFileEntry = Awaited<ReturnType<NonNullable<NodeLocalFilesCapability['list']>>>[number]
@@ -194,12 +195,35 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
       return env
     },
     runner: {
-      // 整组 runner 今天在对面就被拒（提案 P1：命令要跑在一个 Agent 上），所以这三条没有对面的读数可对照。
-      // 声明按上游接口给，是为了让折叠层在类型上就是它声称的那件事。`onEvent` **没有对应的桥动词**
-      // （`BRIDGE_METHODS` 里没有 runner.event），这里接住但不转出去：今天不静默丢事件，因为这条调用整组被拒；
-      // P1 落地时要连桥的动词一起补。
-      run: <TInput = unknown, TData = unknown>(nodeId: string, input: TInput, _onEvent?: NodeRunEvent): Promise<NodeRunResult<TData>> =>
-        call('runner.run', nodeId, input) as Promise<NodeRunResult<TData>>,
+      /*
+       * 这三条**今天真的有对面**：ADR-0020 之后本地插件执行通道（`NodeRegistry` + `createLocalRunner`）
+       * 是唯一主通道，`host-routes.ts` 的 `hostBridgeHandler` 注入 runner 之后会把
+       * `HOST_REFUSAL_REASONS.runner` 那条拒因删掉，所以协商回的 `granted` 里**有** runner
+       * （旧的"命令要跑在一个 Agent 上"那条理由连同提案 P1 一起作废了）。
+       * 声明仍按上游接口给，是为了让折叠层在类型上就是它声称的那件事。
+       *
+       * `onEvent` 这条**不走桥**：桥是请求／应答的（`bridge-shell.ts` 的 `createShellBridge`
+       * 只认 hello / request，没有外壳→文档的推送帧），HTTP 载体更是一次 POST 换一条 JSON ——
+       * 两条载体上"同一次调用中途推东西"都无从表达。所以进度走那条早就在的旁路：
+       * 账本 `/xaihi/operations/stream`（`@hibernalglow/xaihi-sdk/operations` 的词表，
+       * `client/run-feed.tsx` 在外壳那边读的就是同一条）。文档与宿主同源，两条载体下这条
+       * URL 都成立，界面因此不分叉。
+       *
+       * 拿不到那条流时**不编进度**：这条调用照常返回（结果与错误都还在应答里），
+       * 只是回调不再响 —— 症状是进度条停在 0 直到终态，而不是画一根假的。
+       */
+      run: <TInput = unknown, TData = unknown>(
+        nodeId: string,
+        input: TInput,
+        onEvent?: (event: NodeRunEvent) => void,
+      ): Promise<NodeRunResult<TData>> => {
+        // 跟读要在**发起调用之前**挂上：那次运行的 `started` 可能早于应答回来，
+        // 晚一步挂就等于把这一段丢掉（`followNodeRun` 会把挂上那一刻的 runId 当基线，
+        // 所以"挂早了"只会多听一会儿，不会把上一次运行的进度认成这一趟）。
+        const follow = onEvent === undefined ? undefined : followNodeRun(documentRunProgressFeed(), nodeId, onEvent)
+        const result = call('runner.run', nodeId, input) as Promise<NodeRunResult<TData>>
+        return follow === undefined ? result : result.finally(follow.stop)
+      },
       getInfo: <TInfo = unknown>(nodeId: string): Promise<TInfo> => call('runner.getInfo', nodeId) as Promise<TInfo>,
       cancelCurrent: () => call('runner.cancelCurrent') as Promise<boolean>,
     },
