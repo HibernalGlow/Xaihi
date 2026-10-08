@@ -158,10 +158,13 @@ export function toFindzInput(action: FindzAction, inputs: Record<string, unknown
     return { action, libraryId, taskId }
   }
 
+  const rawQuery = (typeof inputs.query === 'object' && inputs.query !== null ? inputs.query : {}) as Record<string, unknown>
+  const rawPage = (typeof rawQuery.page === 'object' && rawQuery.page !== null ? rawQuery.page : {}) as Record<string, unknown>
+
   const page: FindzPage = {}
-  const limit = inputs.pageLimit
+  const limit = typeof inputs.pageLimit === 'number' ? inputs.pageLimit : rawPage.limit
   if (typeof limit === 'number' && Number.isSafeInteger(limit) && limit > 0) page.limit = limit
-  const cursor = text(inputs.pageCursor)
+  const cursor = text(inputs.pageCursor) || text(rawPage.cursor)
   if (cursor !== '') page.cursor = cursor
 
   const search = text(inputs.text)
@@ -170,7 +173,14 @@ export function toFindzInput(action: FindzAction, inputs: Record<string, unknown
 
   if (action === 'treemap') {
     const areaBy = text(inputs.areaBy)
-    return { action, libraryId, text: search, ...prefix, ...(areaBy === '' ? {} : { areaBy }), query: { page } }
+    return {
+      action,
+      libraryId,
+      text: search,
+      ...prefix,
+      ...(areaBy === '' ? {} : { areaBy }),
+      query: { page, ...(rawQuery.rules !== undefined ? { rules: rawQuery.rules as never } : {}) },
+    }
   }
   if (action === 'query_members') {
     const archiveId = inputs.archiveId
@@ -180,10 +190,10 @@ export function toFindzInput(action: FindzAction, inputs: Record<string, unknown
     return { action, libraryId, archiveId, text: search, query: { page } }
   }
 
-  const query: Omit<FindzArchiveQuery, 'libraryId'> = {}
-  const sortBy = text(inputs.sortBy)
+  const query: Omit<FindzArchiveQuery, 'libraryId'> = { ...(rawQuery as Omit<FindzArchiveQuery, 'libraryId'>) }
+  const sortBy = text(inputs.sortBy) || text(rawQuery.sortBy)
   if (sortBy !== '') query.sortBy = sortBy
-  if (inputs.sortDesc === true) query.sortDesc = true
+  if (inputs.sortDesc === true || rawQuery.sortDesc === true) query.sortDesc = true
   if (Object.keys(page).length > 0) query.page = page
   return { action, libraryId, text: search, query, ...prefix }
 }

@@ -214,13 +214,13 @@ export function apply(ctx: Context, config: Config): void {
 
   // 本地 Runner 自定义执行派发：兼顾电源底层控制与定时器/监控（countdown, specific_time, netspeed, cpu, get_stats）
   const sleeptRuntime = createNodeSleeptRuntime()
-  const customExecute = async (input: unknown): Promise<NodeRunResult> => {
+  const customExecute = async (input: unknown, onEvent?: (event: unknown) => void): Promise<NodeRunResult> => {
     const raw = typeof input === 'object' && input !== null ? (input as SleeptInput) : {}
     const action = raw.action ?? 'status'
     if (['block', 'unblock', 'displayOff', 'screensaver', 'sleep'].includes(action)) {
-      return await node.run(action, raw as Record<string, unknown>)
+      return await node.run(action, raw as Record<string, unknown>, onEvent)
     }
-    const result = await runSleept(raw, sleeptRuntime)
+    const result = await runSleept(raw, sleeptRuntime, onEvent as ((event: NodeRunEvent) => void) | undefined)
     return {
       success: result.success,
       message: result.message,

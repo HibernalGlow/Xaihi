@@ -81,7 +81,10 @@ export function toNodeHostApi(host: XaihiNodeHost): XaihiNodeHostApi {
     updateComponent: (compId: string, patch: Partial<HostComponentRef>): void => {
       host.workspace.updateComponent(compId, patch)
     },
-    actions: { run: (nodeId, input) => host.runner.run(nodeId, input), cancelCurrent: () => host.runner.cancelCurrent() },
+    actions: {
+      run: (nodeId, input, onEvent) => host.runner.run(nodeId, input, onEvent),
+      cancelCurrent: () => host.runner.cancelCurrent?.(),
+    },
     downloadText: (filename: string, content: string): void => {
       host.downloads.text(filename, content)
     },

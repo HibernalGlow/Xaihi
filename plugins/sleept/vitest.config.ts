@@ -1,4 +1,8 @@
+import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { defineConfig } from 'vitest/config'
+
+const root = fileURLToPath(new URL('../..', import.meta.url))
 
 /**
  * 只跑本包自己的 `tests/**` 与 `src/**`。
@@ -12,6 +16,12 @@ import { defineConfig } from 'vitest/config'
  * 只动 include，不加 exclude：多一挡遮蔽就多一处下次静默漏跑的地方。
  */
 export default defineConfig({
+  resolve: {
+    alias: [
+      { find: /^@hibernalglow\/xaihi-cli-runtime\/(.*)$/, replacement: join(root, 'packages/cli-runtime/dist/$1.js') },
+      { find: '@hibernalglow/xaihi-cli-runtime', replacement: join(root, 'packages/cli-runtime/dist/index.js') },
+    ],
+  },
   test: {
     environment: 'node',
     include: ['tests/**/*.spec.{ts,tsx}', 'src/**/*.spec.{ts,tsx}'],
