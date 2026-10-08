@@ -1,0 +1,213 @@
+# 精简 xaihi 开发宿主：只关「DSH 自己的界面」与「出站数据面」
+#
+# 用法（与 xaihi-only-workbench.patch.yml 同）：
+#   一次性：dsh --profile <name> --patch $(pwd)/examples/profile-patches/xaihi-slim.patch.yml
+#   常驻：  把下面这些条目录进 `$DSH_HOME/profiles/<name>/cordis.patch.yml`
+#
+# ---------------------------------------------------------------------------
+# 判据：一行为什么可以被关
+#
+# **它不提供任何宿主能力面，且它服务的是 DSH 自己的脸或出站。**
+# 反之只要满足任一条就留：
+#   - 它提供 cordis 服务 / Remote / webServer 路由 / 工具（别的插件、节点可以取）
+#   - 它是某个 subsystem 的设置页（配能力的地方）
+#   - 它是某个投影单元 / provider / 执行后端（都是扩展点）
+#
+# 这条界线的来历：第一版按「用不上」关掉 59 行，把 `directory-picker` 与
+# 插件清单一起关了 —— 而 `ui-workspace` 正在 inject `remote.directoryPicker`、
+# `ui-plugin-manager` 正在 inject `remote.pluginInventory`。见下面「判据 3」。
+# 「用不上」不是可关的理由：宿主的能力面是给**将来**的插件/节点用的，
+# 本仓的节点集还在长（ADR-0006 每节点一个包）。
+#
+# ---------------------------------------------------------------------------
+# 实测读数（0.2.0-rc.2，profile `xaihi`，2026-10-06）
+#
+#   loader 行    关      开
+#   基线        33     160   （193 行）
+#   本层之后    57     136   （193 行）
+#
+# 行数不变 193：`directory-picker` 会**插入**两行
+# （`dsh-host-directory-picker-native` 与 `dsh-client-ui-directory-picker-native`，
+# 它们没有 id，是 loader 运行时生成的）。第一版把它关了，行数掉到 191 并误读成
+# 「少挂了两行」；把它放回来，两行也回来。读自 `/xaihi/debug.json` 的 `rows`。
+#
+# ---------------------------------------------------------------------------
+# 判据（三道，都是实机）
+#
+# 1. 启动干净：`--no-open` 起得来，日志无 failed / waiting 行。✔
+# 2. 宿主侧闭包探针：审计只在**必需行**挂掉时才打印等待表，所以"没报错"不等于
+#    "没有 pending"。做法是在本层之上再关掉 `webserver`（必需行）逼审计吐全部
+#    等待者。本层输出 6 行，**全部**可归因于注入的 `webserver: disabled`：
+#      connection (required) ← webRuntime     session-controller ← fileUploads
+#      web-runtime ← webServer                client-hmr ← webServer
+#      file-upload ← connection               xaihi-core ← webServer
+#    阳性对照：这把尺在 cut 过头那一轮确实报出 14 个等待者（含必需的 agent-loop）。
+# 3. **客户端行的远程面检查（这一道是第一版缺的）**。`dsh-client-ui-*` 跑在浏览器
+#    bundle 里，**完全不在宿主启动审计的视野内**；而它们 inject 的 `remote.<X>`
+#    在 cordis 里只是 remote 代理上的属性访问，不是服务依赖 —— 缺了不 pending，
+#    只在调用时报 404。两道宿主尺子都看不见它。
+#    做法：把每个包的 `lib/{index,client}.js` 里的 `inject = [...]` 抽出来，
+#    取仍启用行引用的 `remote.<X>`，再对「谁提供 X」按包名 / README 自述反查。
+#    本层修正的三处就是这么抓出来的：
+#      remote.directoryPicker        ← ui-workspace       宿主 directory-picker
+#      remote.pluginInventory        ← ui-plugin-manager  宿主 plugin-inventory
+#      remote.subagents              ← session-controller 宿主 subagent-spawn-in-process
+#      remote.fileReferences         ← ui-reference       宿主 file-reference-local
+#      remote.sessionReferenceResolver ← ui-reference     宿主 session-reference
+#    （后两条没有同名包，是按 README 自述里 "ctx.fileReferences" /
+#      "ctx.sessionReferenceResolver" 对上的。）
+#
+# ---------------------------------------------------------------------------
+# 为什么是这 24 行（逐族一句）
+#
+#   出站数据面（5）  遥测、产品分析、会话日志上传 —— 往 deepseeksvc 发数据，
+#                    不是能力面。本机开发宿主不发。
+#   DSH 自己的界面（13）
+#                    右栏四个 tab（文档预览/浏览器/终端/文件树）、工具卡片、
+#                    cordis 卡片、消息评分、附件条、技能卡、作业面板、
+#                    子代理面板、"在 App 中打开"入口 ——
+#                    全是 DSH 自己的视图；Xaihi 工作台是主视图（上一层的结论）。
+#                    注意：关的是**视图**，它们的宿主能力（作业注册表、终端
+#                    控制器、open-in-app 的三条 webServer 路由）都留着。
+#   DSH 自己的 agent 组合与循环（6）
+#                    三条用不上的 agent preset、goal 的自动续跑驱动、
+#                    循环卫生提醒、子代理选型子配置 ——
+#                    只影响 DSH 自己的代理行为，不是给别的插件的能力。
+#                    注意：`goal` 服务本身留着（只有 driver 关）。
+#
+# ---------------------------------------------------------------------------
+# 故意**不关**的（35 行，全是能力面 / 设置页 / 扩展点）—— 别顺手加回来
+#
+#   - `directory-picker`：接缝。它自述是「Host backend serving the seam capability」
+#     +「client surface occupying ui-workspace's directory-flow holes」，
+#     即它填的是 **ui-workspace 的目录流洞**。`ui-workspace` 就 inject 着
+#     `remote.directoryPicker`。
+#   - 插件管理三件套：`plugin-inventory`（pluginInventory 服务 + pluginInventory/list
+#     Remote）、`plugin-package-inventory-deepseek`、`ui-settings-plugin-inventory`
+#     （那个只读清单页）。`ui-plugin-manager` **就 inject 着 `remote.pluginInventory`**，
+#     而它是本仓装卸节点包的唯一入口。关掉它 = 插件管理器打开是空的。
+#   - `open-in-app`：宿主把编辑器 / Git GUI / 终端 / 文件管理器解析成**三条
+#     webServer 路由**，任何插件都能调。
+#   - `jobs` + `job-controller`：进程内后台作业注册表（per-owner 准入、生命周期）
+#     与它的 Host+Client 控制面（含"替人 kill"）。长任务节点要用。
+#   - `terminal-controller`：交互式终端的宿主能力。注意与 ADR-0006 的
+#     「terminal（DSH 的 PTY/代码执行子系统）不搬」**不矛盾**：不搬的是 Xaihi
+#     自己的面，宿主提供的能力不必替它拆掉。它的视图（`ui-sidebar-terminal`）仍关着。
+#   - `account-controller` + `ui-settings-account`：登录态 Remote 与登录/授权入口。
+#     隔离宿主本来就没有模型凭据（会撞"开始使用"闸门），关掉它等于把 UI 上的
+#     登录路也堵上。
+#   - `web` + `web-search-deepseek` + `web-fetch-http`：`ctx.web` 服务与其 provider。
+#     是发布给插件作者的服务，不是"DSH 的联网功能"。
+#   - `mcp-resources`：按需发现/读取 MCP 资源的工具集。
+#   - `office-to-pdf`：宿主 Office 转换能力。
+#   - `workspace-changes`：提供 `workspaceChanges` 服务（被 `ui-deliverables` 消费 ——
+#     那一行在上一层就关了，所以当下无消费者；但**接口不该被抽走**）。
+#   - `file-reference-local` / `session-reference`：`ctx.fileReferences` 与
+#     `ctx.sessionReferenceResolver`。`ui-reference` **正 inject 这两个 Remote**。
+#   - `session-log-download`：提供 `sessionLogDownload` 服务 + 认证下载路由 + `/export`
+#     命令。上一版把它标成"有意接受的功能损失"，是错的判断：它是能力面。
+#   - `session-projection-cache` / `session-title` / `session-title-llm` /
+#     `session-stats` / `session-turn-outline`：投影的持久化缓存与投影单元。
+#     projection 单元是**扩展点**（`sessionProjections` 上注册），关掉就是拆扩展点。
+#   - `subagent` + `subagent-spawn-in-process` + `subagent-fork-in-process`：
+#     子代理委派接缝与两个后端。`session-controller`（必需行）**inject 着
+#     `remote.subagents`**，关掉后端 = 委派面没有实现。
+#   - `ptc-runtime`：在干净 Node 进程里跑 TS 程序的执行后端（带会话沙箱与限额）。
+#   - `goal`：持久化的同会话目标服务（同族的 driver 关着，所以不会自动续跑）。
+#   - `llm-pi-ai`：`llm` 服务上的一条 provider 适配（pi-ai catalog / 手写 gateway）。
+#     与 `web-*-provider` 同类，是 provider 不是"多余模型线"。
+#   - 七个 `ui-settings-*`：设置页跟着它的 subsystem 走 —— 被留的 subsystem
+#     （shell/account/agent-loop/web-search/session-log/subagent/plugin-inventory）
+#     的设置页一并留。
+#   - `xaihi-*` 那些行是目标本身。
+#
+# ---------------------------------------------------------------------------
+# 两件要如实说的事
+#
+# 1. **`plan-mode` 不在名单里。** 它看着像"该关的 plan 面"，但 0.2.0-rc.2 的
+#    `dsh-web-app` 层**默认就把它关掉了**（它的条目有 52 行，`disabled: true` 在
+#    末尾，所以别用固定行数窗口去读 dump —— 我第一版解析器就栽在这上面，
+#    误报"关不掉"）。列进来是空操作。
+# 2. **`--dump-config-schema` 会报 4 条 `unrecognized Loader tree carrier`**
+#    （指向 `preset-*` 四行）。**那不是本层引入的** —— 不打任何 patch 跑同一条
+#    命令，同样 4 条、同样 4 个下标（/179…/182）。
+#
+# 另：`/export` 命令在本层之后**还在**（`session-log-download` 已放回）。
+
+# 出站数据面
+- id: otel
+  name: '@deepseek-ai/dsh-otel'
+  disabled: true
+- id: session-telemetry-otel
+  name: '@deepseek-ai/dsh-session-telemetry-otel'
+  disabled: true
+- id: desktop-product-telemetry
+  name: '@deepseek-ai/dsh-host-product-telemetry-otel'
+  disabled: true
+- id: product-analytics
+  name: '@deepseek-ai/dsh-client-product-analytics'
+  disabled: true
+- id: session-log-deepseek
+  name: '@deepseek-ai/dsh-session-log-deepseek'
+  disabled: true
+
+# DSH 自己的对话面 / 右栏面板 / 卡片
+- id: ui-sidebar-documentpreview
+  name: '@deepseek-ai/dsh-client-ui-sidebar-documentpreview'
+  disabled: true
+- id: ui-sidebar-browser
+  name: '@deepseek-ai/dsh-client-ui-sidebar-browser'
+  disabled: true
+- id: ui-sidebar-terminal
+  name: '@deepseek-ai/dsh-client-ui-sidebar-terminal'
+  disabled: true
+- id: ui-sidebar-files
+  name: '@deepseek-ai/dsh-client-ui-sidebar-files'
+  disabled: true
+- id: ui-tool
+  name: '@deepseek-ai/dsh-client-ui-tool'
+  disabled: true
+- id: ui-cordis
+  name: '@deepseek-ai/dsh-client-ui-cordis'
+  disabled: true
+- id: ui-message-feedback
+  name: '@deepseek-ai/dsh-client-ui-message-feedback'
+  disabled: true
+- id: message-feedback
+  name: '@deepseek-ai/dsh-message-feedback'
+  disabled: true
+- id: ui-attachment
+  name: '@deepseek-ai/dsh-client-ui-attachment'
+  disabled: true
+- id: ui-skill
+  name: '@deepseek-ai/dsh-client-ui-skill'
+  disabled: true
+- id: ui-jobs
+  name: '@deepseek-ai/dsh-client-ui-jobs'
+  disabled: true
+- id: ui-subagent
+  name: '@deepseek-ai/dsh-client-ui-subagent'
+  disabled: true
+- id: ui-open-in-app
+  name: '@deepseek-ai/dsh-client-ui-open-in-app'
+  disabled: true
+
+# DSH 自己的 agent 组合与循环
+- id: preset-ptc
+  name: '@deepseek-ai/dsh-agent-preset'
+  disabled: true
+- id: preset-cordis
+  name: '@deepseek-ai/dsh-agent-preset'
+  disabled: true
+- id: preset-minimal
+  name: '@deepseek-ai/dsh-agent-preset'
+  disabled: true
+- id: goal-round-driver
+  name: '@deepseek-ai/dsh-goal-round-driver'
+  disabled: true
+- id: repeat-tool-reminder
+  name: '@deepseek-ai/dsh-repeat-tool-reminder'
+  disabled: true
+- id: subagent-model-selection-settings
+  name: '@deepseek-ai/dsh-tool-subagent/model-selection-settings'
+  disabled: true

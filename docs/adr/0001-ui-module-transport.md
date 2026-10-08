@@ -24,3 +24,15 @@ Xaihi 要"插件独立发布为 npm 包、运行时依赖 DSH、插件自带 Web
 ## 证据
 
 `packages/host/webserver/src/index.ts:24-145`（路由 API 与重复注册抛错）；`packages/client/modules/src/index.ts:241-248,421-457`（`/plugins` 独占与产物白名单）；`packages/client/web/src/seed.ts:9-41`（React 单例来源）；`packages/client/web-react/README.md:19`（插槽渲染无 Suspense、无按条目懒加载）；实测 `remoteEntry.js` 200 / 同级 chunk 200 / 错 rev 404 / `..%2f` 404。
+
+## 修订
+
+- **2026-10-06 — 形态定为"1 个宿主容器 + N 个节点 remote"，机制与决定不变。**
+  ADR-0007 决定 6（方案甲：L1+L2+L4 同一个客户端包）曾把本 ADR 的适用面收窄成"只发一个 remote"，
+  **该决定当日即被 ADR-0008 取代**：现在 L1 外壳 + L2 原子层同包（`@hibernalglow/xaihi-ui`，即
+  `packages/ui-host`，已是 `dsh.client` 包），**L4 每节点各自成包**，L2 由宿主经 MF2 `shared` 共享。
+  ⇒ 本 ADR 的机制**继续服务 N 个远程单元**（1 个宿主容器 + 每节点 1 个），**不是**收窄成 1 个。
+  标题里的"插件 UI"仍读作"节点 UI"。
+  决定 1–5（契约只认 `remote`+`export`、`/xaihi/remotes/<slug>/<rev>/<file>`、`dsh.client` 兜底、
+  rev 进路径、React 单例硬断言）与全部后果段**保留不变**；第 5 条的硬断言按 ADR-0008 后果扩一条
+  `sameUiAsHost`。
