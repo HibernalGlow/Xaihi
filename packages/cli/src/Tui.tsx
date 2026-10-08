@@ -1,7 +1,7 @@
 /* @jsxImportSource @opentui/react */
 import { useKeyboard } from "@opentui/react"
 import { useEffect, useMemo, useState } from "react"
-import type { WorkspaceSnapshotDTO } from "@xiranite/shared"
+import type { WorkspaceSnapshotDTO } from "@hibernalglow/xaihi-shared"
 import {
   ClickTarget,
   TerminalTaskQueueScreen,
@@ -10,11 +10,13 @@ import {
   WorkbenchPanel,
   resolveTerminalTheme,
   useTerminalTheme,
-} from "@xiranite/cli-runtime/terminal/opentui"
-import type { TerminalTaskQueueController } from "@xiranite/cli-runtime/terminal"
+} from "@hibernalglow/xaihi-cli-runtime/terminal/opentui"
+import type { TerminalTaskQueueController } from "@hibernalglow/xaihi-cli-runtime/terminal"
 
 import type { NodeCliRegistration } from "./index.js"
 import { deployNode, patchNodeLayout, projectTerminalLayout, removeNode } from "./workspace-tui-model.js"
+
+import type { ReactNode } from "react"
 
 export interface XiraniteWorkspaceController {
   available: boolean
@@ -29,7 +31,7 @@ export function XiraniteTui(props: {
   taskQueue: TerminalTaskQueueController
   onOpenNode: (nodeId: string) => void
   onExit: () => void
-}) {
+}): ReactNode {
   return <TerminalThemeProvider theme={resolveTerminalTheme("nord")}><WorkspaceWorkbench {...props} /></TerminalThemeProvider>
 }
 
@@ -83,7 +85,7 @@ function WorkspaceWorkbench({ nodes, workspace, taskQueue, onOpenNode, onExit }:
   return (
     <box width="100%" height="100%" flexDirection="column" paddingLeft={1} paddingRight={1}>
       <box height={4} flexShrink={0} borderStyle="single" borderColor={theme.colors.border} paddingLeft={1} paddingRight={1} flexDirection="row" justifyContent="space-between">
-        <box flexDirection="column"><text fg={theme.colors.primary}><b>◆ XIRANITE // TERMINAL WORKSPACE</b></text><text fg={theme.colors.mutedForeground}>{status}</text></box>
+        <box flexDirection="column"><text fg={theme.colors.primary}><b>◆ XAIHI // TERMINAL WORKSPACE</b></text><text fg={theme.colors.mutedForeground}>{status}</text></box>
         <box flexDirection="row">{snapshot.workspaces.map((item) => <ClickTarget key={item.id} id={`workspace-${item.id}`} selected={workspaceId === item.id} onClick={() => { setWorkspaceId(item.id); setSelectedId(undefined) }}>{item.label}</ClickTarget>)}<ClickTarget id="global-queue" bordered onClick={() => setQueueOpen(true)}>▤ 队列 F9</ClickTarget></box>
       </box>
 

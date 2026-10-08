@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-import { pathToFileURL } from "node:url"
-import { createCliHost, normalizeNodeCliName, renderRichPanel, rich, terminalColumns, writeError, writeLine } from "@xiranite/cli-runtime"
-import type { CliCommand, CliHost } from "@xiranite/cli-runtime"
-import { createTerminalTaskQueueController, probeTerminalRuntime, terminalRuntimeHint } from "@xiranite/cli-runtime/terminal"
-import { createXiraniteWorkspaceClient } from "@xiranite/api/client"
-import { localizeNodeHelp } from "@xiranite/contract"
-import type { NodeHelp } from "@xiranite/contract"
+import { realpathSync } from "node:fs"
+import { fileURLToPath, pathToFileURL } from "node:url"
+import { createCliHost, normalizeNodeCliName, renderRichPanel, rich, terminalColumns, writeError, writeLine } from "@hibernalglow/xaihi-cli-runtime"
+import type { CliCommand, CliHost } from "@hibernalglow/xaihi-cli-runtime"
+import { createTerminalTaskQueueController, probeTerminalRuntime, terminalRuntimeHint } from "@hibernalglow/xaihi-cli-runtime/terminal"
+import { createXiraniteWorkspaceClient } from "@hibernalglow/xaihi-api/client"
+import { localizeNodeHelp } from "@hibernalglow/xaihi-contract"
+import type { NodeHelp } from "@hibernalglow/xaihi-contract"
 import { GENERATED_NODE_CLI_REGISTRY } from "./node-cli-registry.generated.js"
 
 export interface NodeCliRegistration {
@@ -49,16 +50,16 @@ export function findNodeCli(value: string): NodeCliRegistration | undefined {
 
 export function formatHelp(): string {
   return [
-    "xiranite [ui | logs | <node> [args]]",
+    "xaihi [ui | logs | <node> [args]]",
     "",
     "Commands:",
-    "  ui                   Open the fullscreen Xiranite terminal workspace",
+    "  ui                   Open the fullscreen Xaihi terminal workspace",
     "  list                 List node commands",
     "  logs [command]       Analyze structured application logs",
     "  help <node>          Show a node command help",
-    "  <node> [args]        Run a node CLI, for example `xiranite cleanf preview --help`",
+    "  <node> [args]        Run a node CLI, for example `xaihi cleanf preview --help`",
     "",
-    "No args after <node> are forwarded as-is, so `xiranite cleanf` opens that node's guided mode in an interactive terminal.",
+    "No args after <node> are forwarded as-is, so `xaihi cleanf` opens that node's guided mode in an interactive terminal.",
   ].join("\n")
 }
 
@@ -84,7 +85,7 @@ export async function runProgram(args = process.argv.slice(2), host: CliHost = c
 
   if (command === "ui") {
     if (!host.stdin.isTTY || !host.stdout.isTTY) {
-      writeError(host, "`xiranite ui` requires an interactive terminal.")
+      writeError(host, "`xaihi ui` requires an interactive terminal.")
       process.exitCode = 2
       return
     }
@@ -98,7 +99,7 @@ export async function runProgram(args = process.argv.slice(2), host: CliHost = c
   }
 
   if (command === "logs") {
-    const { runProgram: runLogs } = await import("@xiranite/logging/cli")
+    const { runProgram: runLogs } = await import("@hibernalglow/xaihi-logging/cli")
     await runLogs(rest, host)
     return
   }
@@ -163,7 +164,7 @@ export async function runWorkspaceNavigation(
 export async function runNodeCli(nodeId: string, args: string[], host: CliHost = createCliHost()): Promise<void> {
   const registration = findNodeCli(nodeId)
   if (!registration) {
-    writeError(host, `Unknown node "${nodeId}". Run \`xiranite list\` to see available commands.`)
+    writeError(host, `Unknown node "${nodeId}". Run \`xaihi list\` to see available commands.`)
     process.exitCode = 2
     return
   }
@@ -179,7 +180,7 @@ export async function showNodeHelp(
 ): Promise<void> {
   const registration = findNodeCli(nodeId)
   if (!registration) {
-    writeError(host, `Unknown node "${nodeId}". Run \`xiranite list\` to see available commands.`)
+    writeError(host, `Unknown node "${nodeId}". Run \`xaihi list\` to see available commands.`)
     process.exitCode = 2
     return
   }
@@ -412,7 +413,16 @@ function nodeHelpLabels(locale?: string): NodeHelpLabels {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+function sameRealpathAsSelf(entry: string): boolean {
+  try {
+    return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+
+const entry = process.argv[1]
+if (entry !== undefined && sameRealpathAsSelf(entry)) {
   try {
     await runProgram()
   } catch (error) {

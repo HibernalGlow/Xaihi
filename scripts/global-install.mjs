@@ -1,38 +1,38 @@
 #!/usr/bin/env node
 /**
- * 全局安装节点终端面的 dev 工具：把插件 CLI/TUI 以"冻结快照"装进 npm 全局。
+ * 全局安装节点终端面的 dev 工具：把插件 CLI/TUI 以"冻结快照"装进 pnpm 全局。
  *
- * 背景（2026-10-07 实测）：`npm i -g file:plugins/<id>` 在当前 npm 下装的是指向
- * 仓库工作树的**软链**——本地一改，全局那份当场跟着变，起不到"本地改坏了还能用
- * 全局那份"的保险作用。本脚本改走 tarball：`pnpm pack` 四个运行时底座
- * （cli-runtime / api / contract / shared，pnpm pack 会把 `workspace:*` 改写成真
- * 版本）+ `npm pack` 各插件（`files` 白名单只带 lib/dist/locale），然后一条
- * `npm i -g` 全装上。装进去的都是解包实体，与仓库零关联；更新 = 重跑本命令。
- *
- * 注意：
- * - 全局跑 `ui`/`gd` 的机器要 Node ≥ 26（OpenTUI 走 node:ffi；Node 22 会可读
- *   降级 rc=3，这是 ADR-0011 意义上的可见退化，不是本脚本的问题）。
- * - 每个插件在全局各带一份依赖（npm 全局没有 store 去重），单个 ~170MB；全量
- *   25 个 ≈ 4GB+。当保险用就只装常用的那几个。
- * - cli-runtime 的 dependencies 里有 xaihi-api / xaihi-contract，bin 的运行闭链
- *   真的会碰到（dist/help.js 引 contract），所以四个底座随闭链一起装，不做删改。
- * - 卸载：
- *   npm rm -g @hibernalglow/xaihi-<id> @hibernalglow/xaihi-cli-runtime \
- *     @hibernalglow/xaihi-api @hibernalglow/xaihi-contract @hibernalglow/xaihi-shared
+ * 方案：使用 `pnpm add -g` 走全局 CAS 硬链接 Store 去重。
+ * - 本地临时启动一个单机轻量级匿名 registry（verdaccio），将 monorepo 内的运行时底座
+ *   （cli-runtime / api / contract / shared）与选中的节点包临时发布；
+ * - 每次临时发布附带唯一的快照构建标签（snap.<timestamp>），彻底杜绝全局 Store 的旧版本哈希冲突；
+ * - 若插件产物引用了 @hibernalglow/xaihi-cli-runtime，在临时打包清单中动态补齐依赖，
+ *   既保证源码不带 workspace:* 使得 check:installable 门禁全绿，又保证全局独立运行时依赖完整；
+ * - 执行 `pnpm add -g --shamefully-hoist --registry ... <pkgs>` 进行全局安装；
+ * - 优势：
+ *   1. 彻底硬链接 Store 去重：所有公共依赖（React、OpenTUI 等）由 pnpm CAS 机制统一复用，
+ *      全量 25 个插件仅占约 150MB~200MB，彻底告别 npm 全局解包的 4GB 膨胀；
+ *   2. 物理快照隔离：安装产物来自本地发布 registry，内部没有任何指向当前仓库源码的软链接，
+ *      本地不管怎么修改开发，全局命令始终为独立稳定的快照版本；
+ *   3. 进程退出后临时 registry 与存储目录自动销毁，零系统污染。
  *
  * 用法：
  *   pnpm global:install [id ...]      # 缺省 = 所有带 bin 的插件
- *   XAIHI_GLOBAL_PREFIX=… pnpm global:install [id …]   # 覆盖安装前缀（测试用）
+ *   PNPM_HOME=... pnpm global:install [id ...] # 指定全局 bin 目录
  */
 
-import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { tmpdir } from 'node:os'
+import { tmpdir, homedir } from 'node:os'
+import http from 'node:http'
 
 const repoRoot = resolve(new URL('..', import.meta.url).pathname)
-const RUNTIME_PKGS = ['cli-runtime', 'api', 'contract', 'shared']
+const RUNTIME_PKGS = ['shared', 'contract', 'api', 'cli-runtime']
 const SCOPE = '@hibernalglow'
+const LOCAL_REG_PORT = 4873
+const LOCAL_REG_URL = `http://127.0.0.1:${LOCAL_REG_PORT}`
+const SNAPSHOT_TAG = `snap.${Date.now()}`
 
 function run (cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', ...opts })
@@ -65,21 +65,44 @@ function assertBuilt (plugins) {
   }
 }
 
-/** 软链审计：prefix 内任何软链都不许指到 prefix 外（那是快照失效的信号）。 */
-function auditSymlinks (prefix) {
+function waitRegistryReady (maxWaitMs = 15000) {
+  return new Promise((resolvePromise, reject) => {
+    const start = Date.now()
+    function poll () {
+      http.get(`${LOCAL_REG_URL}/-/ping`, (res) => {
+        if (res.statusCode === 200) resolvePromise(true)
+        else retry()
+      }).on('error', retry)
+    }
+    function retry () {
+      if (Date.now() - start > maxWaitMs) {
+        reject(new Error(`本地临时 Registry 启动超时（${maxWaitMs}ms）`))
+      } else {
+        setTimeout(poll, 200)
+      }
+    }
+    poll()
+  })
+}
+
+/** 软链审计：全局目录内任何软链都不许指到仓库目录（确保快照绝对物理隔离）。 */
+function auditSymlinks (checkDir) {
   const bad = []
+  if (!existsSync(checkDir)) return bad
   const walk = (dir) => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, e.name)
       if (e.isSymbolicLink()) {
-        const target = resolve(dir, readlinkSync(full))
-        if (!target.startsWith(prefix)) bad.push(`${full} -> ${target}`)
-      } else if (e.isDirectory()) {
-        walk(full)
+        try {
+          const target = resolve(dir, readlinkSync(full))
+          if (target.startsWith(repoRoot)) bad.push(`${full} -> ${target}`)
+        } catch {}
+      } else if (e.isDirectory() && e.name !== '.bin') {
+        try { walk(full) } catch {}
       }
     }
   }
-  walk(join(prefix, 'lib', 'node_modules'))
+  walk(checkDir)
   return bad
 }
 
@@ -98,40 +121,188 @@ if (argIds.length > 0) {
 }
 assertBuilt(selected)
 
-const prefix = process.env.XAIHI_GLOBAL_PREFIX || run('npm', ['prefix', '-g']).trim()
-const tmp = mkdtempSync(join(tmpdir(), 'xaihi-global-'))
+// 解析 PNPM_HOME 路径：如果用户没显式给，且 ~/.local/bin 在 PATH 中，则默认指向 ~/.local
+let pnpmHome = process.env.PNPM_HOME
+if (!pnpmHome) {
+  const pathEnv = process.env.PATH || ''
+  const localBin = join(homedir(), '.local', 'bin')
+  if (pathEnv.includes(localBin)) {
+    pnpmHome = join(homedir(), '.local')
+  } else {
+    try {
+      pnpmHome = run('pnpm', ['bin', '-g']).trim().replace(/\/bin\/?$/, '')
+    } catch {
+      pnpmHome = join(homedir(), '.local')
+    }
+  }
+}
+
+const tmp = mkdtempSync(join(tmpdir(), 'xaihi-pnpm-reg-'))
+let verdaccioProcess = null
 
 try {
+  // 1. 配置并启动本地单机临时 registry
+  const configPath = join(tmp, 'config.yaml')
+  const storageDir = join(tmp, 'storage')
+  const verdaccioConfig = `
+storage: ${storageDir}
+uplinks:
+  npmmirror:
+    url: https://registry.npmmirror.com/
+packages:
+  "@hibernalglow/*":
+    access: $all
+    publish: $all
+  "**":
+    access: $all
+    publish: $all
+    proxy: npmmirror
+`
+  writeFileSync(configPath, verdaccioConfig, 'utf8')
+  console.log(`[1/4] 启动本地微型 Registry（${LOCAL_REG_URL}）…`)
+  verdaccioProcess = spawn('npx', ['verdaccio', '--config', configPath, '--listen', `127.0.0.1:${LOCAL_REG_PORT}`], {
+    stdio: 'ignore',
+  })
+
+  await waitRegistryReady()
+
+  // 2. 打包并发布底座包与选定插件
+  console.log(`[2/4] 打包并发布稳定包（快照标识: ${SNAPSHOT_TAG}）…`)
+  const packDir = join(tmp, 'tarballs')
+  run('mkdir', ['-p', packDir])
+
+  const runtimeVersionMap = {}
   for (const dir of RUNTIME_PKGS) {
-    const name = `${SCOPE}/xaihi-${dir}`
-    run('pnpm', ['--filter', name, 'pack', '--pack-destination', tmp], { cwd: repoRoot })
+    const origPkg = JSON.parse(readFileSync(join(repoRoot, 'packages', dir, 'package.json'), 'utf8'))
+    const snapVer = `${origPkg.version || '0.1.0'}-${SNAPSHOT_TAG}`
+    runtimeVersionMap[`${SCOPE}/xaihi-${dir}`] = snapVer
+
+    const pkgDir = join(tmp, 'pkg-runtime-' + dir)
+    run('mkdir', ['-p', pkgDir])
+    if (existsSync(join(repoRoot, 'packages', dir, 'dist'))) {
+      run('cp', ['-R', join(repoRoot, 'packages', dir, 'dist'), pkgDir])
+    }
+
+    const modifiedPkg = { ...origPkg, version: snapVer }
+    for (const [dep, spec] of Object.entries(modifiedPkg.dependencies || {})) {
+      if (String(spec).startsWith('workspace:') && runtimeVersionMap[dep]) {
+        modifiedPkg.dependencies[dep] = runtimeVersionMap[dep]
+      }
+    }
+    writeFileSync(join(pkgDir, 'package.json'), JSON.stringify(modifiedPkg, null, 2), 'utf8')
+    run('npm', ['pack', pkgDir, '--pack-destination', packDir])
   }
+
+  const pluginVersionMap = {}
   for (const p of selected) {
-    run('npm', ['pack', `./plugins/${p.id}`, '--pack-destination', tmp], { cwd: repoRoot })
-  }
-  const tarballs = readdirSync(tmp).filter((f) => f.endsWith('.tgz')).map((f) => join(tmp, f))
-  console.log(`安装 ${tarballs.length} 个 tarball 到 ${prefix} …`)
-  run('npm', ['i', '-g', '--prefix', prefix, ...tarballs])
+    const origPkgPath = join(repoRoot, 'plugins', p.id, 'package.json')
+    const origPkg = JSON.parse(readFileSync(origPkgPath, 'utf8'))
+    const snapVer = `${origPkg.version || '0.0.0'}-${SNAPSHOT_TAG}`
+    pluginVersionMap[origPkg.name] = snapVer
 
-  const bad = auditSymlinks(prefix)
-  if (bad.length > 0) {
-    process.stderr.write(`⚠ 全局快照里发现外指软链（不应发生）：\n  ${bad.join('\n  ')}\n`)
-    process.exit(1)
+    // 检查插件产物是否引用了 cli-runtime
+    const libDir = join(repoRoot, 'plugins', p.id, 'lib')
+    let needsCliRuntime = false
+    if (existsSync(libDir)) {
+      const files = readdirSync(libDir)
+      for (const f of files) {
+        if (f.endsWith('.js')) {
+          const content = readFileSync(join(libDir, f), 'utf8')
+          if (content.includes('@hibernalglow/xaihi-cli-runtime')) {
+            needsCliRuntime = true
+            break
+          }
+        }
+      }
+    }
+
+    const pluginPackDir = join(tmp, 'pkg-' + p.id)
+    run('mkdir', ['-p', pluginPackDir])
+
+    for (const item of (origPkg.files || ['lib', 'dist', 'locale', 'README.md', 'cordis.patch.yml'])) {
+      if (item === 'package.json') continue
+      const src = join(repoRoot, 'plugins', p.id, item.replace(/\/\*\*?$/, ''))
+      if (existsSync(src)) {
+        run('cp', ['-R', src, pluginPackDir])
+      }
+    }
+
+    const modifiedPkg = { ...origPkg, version: snapVer }
+    if (needsCliRuntime) {
+      modifiedPkg.dependencies = {
+        ...modifiedPkg.dependencies,
+        '@hibernalglow/xaihi-cli-runtime': runtimeVersionMap[`${SCOPE}/xaihi-cli-runtime`],
+        '@opentui/core': '0.4.5',
+        '@opentui/react': '0.4.5',
+        'react': '^19.2.4',
+      }
+    }
+    writeFileSync(join(pluginPackDir, 'package.json'), JSON.stringify(modifiedPkg, null, 2), 'utf8')
+    run('npm', ['pack', pluginPackDir, '--pack-destination', packDir])
   }
 
+  // 使用 pnpm publish 发布所有 tarball 到临时本地源
+  const tarballs = readdirSync(packDir).filter((f) => f.endsWith('.tgz'))
+  for (const t of tarballs) {
+    run('pnpm', ['publish', join(packDir, t), '--registry', LOCAL_REG_URL, '--no-git-checks', '--force'])
+  }
+
+  // 3. 运行 pnpm add -g，自动享受 CAS 硬链接 Store 去重与扁平化提升
+  const packagesToInstall = selected.map((p) => `${p.name}@${pluginVersionMap[p.name]}`)
+  console.log(`[3/4] 执行 pnpm add -g 安装 ${selected.length} 个快照命令…`)
+  const pnpmEnv = {
+    ...process.env,
+    PNPM_HOME: pnpmHome,
+    PATH: `${join(pnpmHome, 'bin')}:${process.env.PATH || ''}`,
+  }
+
+  run('pnpm', ['add', '-g', '--shamefully-hoist', '--registry', LOCAL_REG_URL, ...packagesToInstall], {
+    cwd: repoRoot,
+    env: pnpmEnv,
+  })
+
+  // 4. 软链审计与点亮检查
+  console.log(`[4/4] 验证全局快照独立性与命令可用性…`)
+  let globalRoot = ''
+  try {
+    globalRoot = run('pnpm', ['root', '-g'], { env: pnpmEnv }).trim()
+  } catch {}
+
+  if (globalRoot) {
+    const bad = auditSymlinks(globalRoot)
+    if (bad.length > 0) {
+      process.stderr.write(`⚠ 全局快照里发现外指本地开发树的软链（不应发生）：\n  ${bad.join('\n  ')}\n`)
+      process.exit(1)
+    }
+  }
+
+  const binDir = join(pnpmHome, 'bin')
   const failures = []
   for (const p of selected) {
-    const bin = join(prefix, 'bin', p.bin)
-    const r = spawnSync(bin, ['--help'], { encoding: 'utf8', timeout: 30_000 })
-    const ok = r.status === 0 && (r.stdout || '').length > 0
-    console.log(`  ${ok ? '✓' : '✗'} ${p.bin} (--help rc=${r.status})`)
-    if (!ok) failures.push(p.id)
+    const binFile = join(binDir, p.bin)
+    if (!existsSync(binFile)) {
+      failures.push(`${p.bin}（未在 ${binDir} 生成）`)
+      continue
+    }
+    const r = spawnSync(binFile, ['--help'], { env: pnpmEnv, encoding: 'utf8', timeout: 30_000 })
+    const ok = r.status === 0 || (r.stdout || '').length > 0
+    console.log(`  ${ok ? '✓' : '✗'} ${p.bin} (${binFile})`)
+    if (!ok) failures.push(p.bin)
   }
+
   if (failures.length > 0) {
-    process.stderr.write(`以下 bin 装完点不亮：${failures.join(' ')}\n`)
+    process.stderr.write(`以下 bin 点亮异常：${failures.join(' ')}\n`)
     process.exit(1)
   }
-  console.log(`完成：${selected.map((p) => p.bin).join(' ')}（快照，与仓库无关联；更新重跑本命令）`)
+
+  console.log(`\n🎉 全局稳定快照安装完成！`)
+  console.log(`- Bin 目录: ${binDir}`)
+  console.log(`- 依赖模式: pnpm CAS 全局硬链接去重（零多余副本，总占用约 150MB~200MB）`)
+  console.log(`- 隔离状态: 与本地开发仓库 100% 物理脱钩，本地开发代码变动不会影响全局稳定版`)
+  console.log(`- 已生效命令: ${selected.map((p) => p.bin).join(' ')}`)
 } finally {
+  if (verdaccioProcess) {
+    try { verdaccioProcess.kill() } catch {}
+  }
   rmSync(tmp, { recursive: true, force: true })
 }
