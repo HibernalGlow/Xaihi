@@ -1,4 +1,4 @@
-import { createXiraniteNodeClient } from "@xiranite/api/client"
+import { createXiraniteNodeClient } from "@hibernalglow/xaihi-api/client"
 
 export interface TerminalTaskQueueItem {
   operationId: string

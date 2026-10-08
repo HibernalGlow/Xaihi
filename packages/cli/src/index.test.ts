@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest"
 import { findNodeCli, formatHelp, formatNodeList, NODE_CLI_REGISTRY, normalizeNodeId, runWorkspaceNavigation } from "./index"
 
-describe("@xiranite/cli registry", () => {
+describe("@hibernalglow/xaihi-cli registry", () => {
   test("registers generated node CLIs including migrated utility nodes", () => {
     expect(NODE_CLI_REGISTRY.length).toBeGreaterThanOrEqual(42)
     expect(NODE_CLI_REGISTRY.map((entry) => entry.id)).toContain("cleanf")
@@ -19,14 +19,14 @@ describe("@xiranite/cli registry", () => {
   })
 
   test("finds nodes by id or package-local bin name", () => {
-    expect(findNodeCli("linedup")?.packageName).toBe("@xiranite/node-linedup")
+    expect(findNodeCli("linedup")?.packageName).toBe("@hibernalglow/xaihi-linedup")
     expect(findNodeCli("xlinedup")?.id).toBe("linedup")
     expect(findNodeCli("missing")).toBeUndefined()
   })
 
   test("formats useful command discovery output", () => {
-    expect(formatHelp()).toContain("xiranite [ui | <node> [args]]")
-    expect(formatHelp()).toContain("fullscreen Xiranite terminal workspace")
+    expect(formatHelp()).toContain("xaihi [ui | logs | <node> [args]]")
+    expect(formatHelp()).toContain("fullscreen Xaihi terminal workspace")
     expect(formatNodeList()).toContain("xcleanf")
   })
 

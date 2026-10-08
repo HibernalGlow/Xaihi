@@ -3,8 +3,8 @@ import { createCliRenderer } from "@opentui/core"
 import { createRoot } from "@opentui/react"
 import type { ReadStream, WriteStream } from "node:tty"
 
-import type { CliHost } from "@xiranite/cli-runtime"
-import type { TerminalTaskQueueController } from "@xiranite/cli-runtime/terminal"
+import type { CliHost } from "@hibernalglow/xaihi-cli-runtime"
+import type { TerminalTaskQueueController } from "@hibernalglow/xaihi-cli-runtime/terminal"
 
 import { XiraniteTui, type XiraniteWorkspaceController } from "./Tui.js"
 import type { NodeCliRegistration } from "./index.js"

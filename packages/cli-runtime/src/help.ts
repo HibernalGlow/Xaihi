@@ -1,4 +1,4 @@
-import { localizeNodeHelp, type NodeHelp } from "@xiranite/contract"
+import { localizeNodeHelp, type NodeHelp } from "@hibernalglow/xaihi-contract"
 import type { CliHost } from "./index.js"
 import { writeLine } from "./index.js"
 import type { TerminalLanguage } from "./i18n.js"

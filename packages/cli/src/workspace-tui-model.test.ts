@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import type { WorkspaceSnapshotDTO } from "@xiranite/shared"
+import type { WorkspaceSnapshotDTO } from "@hibernalglow/xaihi-shared"
 import { deployNode, patchNodeLayout, projectTerminalLayout, removeNode } from "./workspace-tui-model.js"
 
 const empty: WorkspaceSnapshotDTO = {

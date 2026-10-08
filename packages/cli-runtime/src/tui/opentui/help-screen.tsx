@@ -1,6 +1,6 @@
 /* @jsxImportSource @opentui/react */
 import type { ReactNode } from "react"
-import { localizeNodeHelp, type NodeHelp } from "@xiranite/contract"
+import { localizeNodeHelp, type NodeHelp } from "@hibernalglow/xaihi-contract"
 import { useTerminalTheme } from "../theme.js"
 import { ClickTarget, WorkbenchPanel } from "./workbench-controls.js"
 

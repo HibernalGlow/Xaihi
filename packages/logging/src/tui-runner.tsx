@@ -2,7 +2,7 @@
 import { createCliRenderer } from "@opentui/core"
 import { createRoot } from "@opentui/react"
 import type { ReadStream, WriteStream } from "node:tty"
-import type { CliHost } from "@xiranite/cli-runtime"
+import type { CliHost } from "@hibernalglow/xaihi-cli-runtime"
 import { readLogDirectory } from "./node.js"
 import { LogTui } from "./Tui.js"
 

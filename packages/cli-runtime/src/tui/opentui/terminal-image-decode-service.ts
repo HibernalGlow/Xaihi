@@ -1,6 +1,6 @@
 import { LRUCache } from "lru-cache"
 import PQueue from "p-queue"
-import type { ResourceScheduler } from "@xiranite/contract"
+import type { ResourceScheduler } from "@hibernalglow/xaihi-contract"
 
 export interface TerminalDecodedImageFrame {
   rgba: Uint8Array

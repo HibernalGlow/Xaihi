@@ -50,7 +50,7 @@ export async function runOpenTuiTerminalUi<Input, Result>(
 /** Shared fullscreen chrome. Every OpenTUI node receives this TOML preference entry. */
 export function TerminalRoot({ taskQueue, help, language, preferences, theme: requestedTheme, content }: {
   taskQueue?: TerminalTaskQueueController
-  help?: import("@xiranite/contract").NodeHelp
+  help?: import("@hibernalglow/xaihi-contract").NodeHelp
   language: "zh" | "en"
   preferences?: RunTerminalUiOptions["preferences"]
   theme?: string

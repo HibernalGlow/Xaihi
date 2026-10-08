@@ -1,4 +1,4 @@
-import type { ComponentDTO, WorkspaceSnapshotDTO } from "@xiranite/shared"
+import type { ComponentDTO, WorkspaceSnapshotDTO } from "@hibernalglow/xaihi-shared"
 
 export const BENTO_COLUMNS = 12
 

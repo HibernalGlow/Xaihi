@@ -1,28 +1,26 @@
 /**
- * 终端渲染器到底跑不跑得起来：**问运行时，不要换个运行时**。
+ * 终端渲染器到底跑不跑得起来：**探测底座，不换运行时，不 spawn 任何东西。**
  *
- * 上游这一头原来叫 `bun-runtime.ts`，做的事是"发现自己在 Node 里就 `spawn` 一个裸 `bun`
- * 把自己重_exec_ 一遍"。两个理由必须废掉它：
+ * 背景与最终判定（2026-10-07 两次实测后定案）：
  *
- * 1. **它是个隐式的动作。** 一次 `xaihi ui` 会在使用者没要求的情况下起第二个进程，
- *    用的还是 PATH 上一个谁都可能没装的可执行文件（`bun.exe`/`bun`）。
- *    找不到时的报错是 `Unable to start Bun for OpenTUI: …`，
- *    而"为什么需要一个我没装的运行时"这件事没人说。
- * 2. **前提本身已经不成立（实测 2026-10-06）。** `@opentui/core@0.4.5` 的 `exports` 里
- *    同时有 `"bun": "./index.bun.js"` 与 `"node"/"import": "./index.node.js"`，
- *    平台包 `@opentui/core-darwin-arm64` 除了 `index.bun.js` 还有给 Node 用的 `index.js`
- *    （它导出的就是 `libopentui.dylib` 的路径）。
- *    在 Node 26.10 上直接 `await import("@opentui/core")` 实测拿到 **257 个导出**、
- *    rc=0，只带一条 `ExperimentalWarning: FFI is an experimental feature`。
- *    ⇒ OpenTUI 在 Node 上能起来，重定向到 bun 是在解决一个不存在的问题，
- *      代价是把"三面同一个 npm 包，`npm i -g` 就装好"（ADR-0006 分发形状）变成"还得装 bun"。
- *
- * 因此这里只做一件事：**探测**，并且把结果如实交出去。
- * 探测是"加载一次渲染器"，不是"开始渲染"——没有副作用、不改终端状态。
- * 探测不过就是可读的退化（ADR-0011 决定 4 的降级铁律），绝不偷偷换个运行时再跑。
+ * - OpenTUI 的渲染后端是 Zig 编译出来的原生库（`libopentui.dylib` 等），
+ *   无论 bun 还是 Node 都要经 FFI `dlopen` 它。bun 走 `bun:ffi`，
+ *   Node 走 **`node:ffi`（实验特性）**——Node 26 才有这个内置模块；
+ *   `@opentui/core` 的 Node 后端报错串自己就写着
+ *   `node:ffi ptr() only supports ArrayBuffer …`。
+ * - 实测（本机 darwin/arm64）：**Node 26.10 上 `createCliRenderer` 不带任何旗子直接成功**
+ *   （renderer OK，137 个属性）；**Node 22 没有 `node:ffi`**——`import('node:ffi')`
+ *   报 `ERR_UNKNOWN_BUILTIN_MODULE`，`import('@opentui/core')` 照样拿到 257 个导出，
+ *   但 `createCliRenderer` 必炸 `OpenTUI native FFI is not available for this runtime yet`。
+ *   ⇒ "import 成功"当判据是错的，判据必须是 **`node:ffi` 在不在**。
+ * - 本仓曾按上游搬过一条"Node 渲染失败就 spawn bun 重跑"的接力腿，
+ *   又按使用者决定**拆除**（2026-10-07）：不引入 bun、不隐式换运行时。
+ *   上游 `bun-runtime.ts` 的活儿在这里就是**探测 + 可读降级**（ADR-0011 决定 4）。
+ *   探测是"查一次 `node:ffi` + import 一次"，无副作用、不改终端状态。
  */
 
-/** 探测一次的成本是加载一个 dylib，缓存住；但失败也缓存，所以给一次重试口。 */
+import { accessSync, constants } from 'node:fs'
+
 export type TerminalRuntimeName = 'bun' | 'node'
 
 export interface TerminalRuntimeCapability {
@@ -50,6 +48,24 @@ function runtimeVersion(): string {
 
 let cached: TerminalRuntimeCapability | null = null
 
+/** FFI 底座在不在：bun 恒有 `bun:ffi`；Node 看 `node:ffi`（Node ≥ 26 的实验内置模块）。 */
+async function probeFfiSubstrate(): Promise<{ ok: true } | { ok: false; detail: string }> {
+  if ((process.versions as Versions).bun !== undefined) return { ok: true }
+  // 经变量 import：`node:ffi` 是 Node 26 的实验内置模块，@types/node@24 没有它的声明，
+  // 静态字面量 import 过不了 tsc；而且"运行时探一次"本来就是这里的本意。
+  const nodeFfi = 'node:ffi'
+  try {
+    await import(nodeFfi)
+    return { ok: true }
+  } catch {
+    return {
+      ok: false,
+      detail: '当前 Node 没有 node:ffi 内置模块（Node 26 起才有，实验特性）——'
+        + 'OpenTUI 的原生库（Zig 后端）必须经它 dlopen。换 Node ≥ 26 重跑即可，本命令不要求 bun。',
+    }
+  }
+}
+
 /**
  * @param refresh - 传 true 重新探一次（例如使用者刚装了东西之后）。
  */
@@ -57,6 +73,11 @@ export async function probeTerminalRuntime(refresh = false): Promise<TerminalRun
   if (cached !== null && !refresh) return cached
   const runtime = runtimeName()
   const version = runtimeVersion()
+  const ffi = await probeFfiSubstrate()
+  if (!ffi.ok) {
+    cached = { ok: false, runtime, version, detail: `${runtime} ${version} 起不了 OpenTUI：${ffi.detail}` }
+    return cached
+  }
   try {
     const core = await import('@opentui/core')
     const exports = Object.keys(core).length
@@ -66,7 +87,7 @@ export async function probeTerminalRuntime(refresh = false): Promise<TerminalRun
       version,
       exports,
       detail: exports > 0
-        ? `@opentui/core 在 ${runtime} ${version} 上加载成功（${exports} 个导出）`
+        ? `@opentui/core 在 ${runtime} ${version} 上加载成功（${exports} 个导出，FFI 底座 ${runtime === 'bun' ? 'bun:ffi' : 'node:ffi'} 就位）`
         : `@opentui/core 在 ${runtime} ${version} 上加载后一个导出都没有`,
     }
   } catch (error) {
@@ -92,7 +113,17 @@ export function terminalRuntimeHint(capability: TerminalRuntimeCapability): stri
     '',
     '终端 UI 这一面已经退化：交互面用引导式问答（gd），管道面（pipe）不受影响。',
     `当前运行时是 ${capability.runtime} ${capability.version}。`,
-    'OpenTUI 需要能加载原生库的运行时；Node 侧的 FFI 在部分版本上仍是实验特性。',
+    'OpenTUI 需要经 FFI 加载 Zig 原生后端：bun 用 bun:ffi，Node 用 node:ffi（Node ≥ 26，实验特性）。',
     '要看得见的细节就带上 --verbose 重跑这一条命令。',
   ].join('\n')
+}
+
+/** 保留给探测之外的调用点做文件可执行性检查（本模块内部不再做进程查找）。 */
+export function isExecutableFile(path: string): boolean {
+  try {
+    accessSync(path, constants.X_OK)
+    return true
+  } catch {
+    return false
+  }
 }

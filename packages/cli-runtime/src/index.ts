@@ -44,7 +44,8 @@ export interface CliEventRenderOptions {
   progressWidth?: number
 }
 
-export const NODE_CLI_PREFIX = ""
+// 显式标 `string`：不标就被推成字面量类型 `""`，下面真值分支会塌成 `never`。
+export const NODE_CLI_PREFIX: string = ""
 export const LEGACY_NODE_CLI_PREFIX = "xiranite-"
 
 export function nodeCliName(nodeId: string): string {

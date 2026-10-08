@@ -26,7 +26,7 @@ export function OpenTuiTerminalApp<Input, Result>({
   language: TerminalLanguage
   theme?: string
   preferences?: TerminalPreferenceController
-  help?: import("@xiranite/contract").NodeHelp
+  help?: import("@hibernalglow/xaihi-contract").NodeHelp
   onExit: () => void
 }): ReactNode {
   const t = createTerminalTranslator(language)

@@ -4,7 +4,7 @@ import { resolveTerminalLanguage, type TerminalLanguage } from "./i18n.js"
 import { probeTerminalRuntime, terminalRuntimeHint } from "./runtime-capability.js"
 import { listTerminalThemes } from "./theme.js"
 import type { ReactNode } from "react"
-import type { NodeHelp } from "@xiranite/contract"
+import type { NodeHelp } from "@hibernalglow/xaihi-contract"
 import { writeTerminalNodeHelp } from "../help.js"
 import { bindDefinitionToTaskQueue, createTerminalTaskQueueController, type TerminalTaskQueueController } from "./task-queue.js"
 
@@ -62,6 +62,12 @@ export interface RunInteractionCliOptions<Context, Input, Result> {
   screen?: TerminalUiScreen<Input, Result>
   loadScreen?: () => Promise<TerminalUiScreen<Input, Result>>
   createPreferences?: (context: Context, values: TerminalPreferenceValues) => TerminalPreferenceController | undefined
+  /**
+   * 上游节点 cli.ts 会传本进程入口进来（上游 `tui/bun-runtime.ts` 的 bun 接力腿用它）。
+   * 本仓**收下但不消费**：bun 腿已按使用者决定拆除（2026-10-07，OpenTUI 在 Node 上走
+   * `node:ffi`，Node ≥ 26 即可，见 runtime-capability.ts 头注释）。保留字段只为上游
+   * 调用点逐字搬过来时类型不红。
+   */
   reexecEntrypoint?: string
   help?: NodeHelp
 }
@@ -150,7 +156,6 @@ export async function runInteractionCli<Context, Input, Result>(options: RunInte
     loadScreen: options.loadScreen,
     taskQueue,
     help: options.help,
-    reexec: options.reexecEntrypoint ? { entrypoint: options.reexecEntrypoint, args } : undefined,
   })
 }
 
