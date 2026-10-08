@@ -9,12 +9,14 @@ packages:
   # 这正是 ADR-0002 里「profile 解析不了 workspace:*」的同一类失败，只是发生在仓内。
   # 放行的条件：这些包的依赖图换成 Xaihi 真实存在的包名（见 packages/cli/port-inventory.json），
   # 或者它们改成构建期内联、不声明运行时 workspace 依赖。逐条改完就从这里删一条。
-  - '!packages/api'
+  #
+  # 2026-10-07：`api` / `cli-runtime` / `contract` / `shared` 四条已删。`api` 里最后那两个
+  # `@xiranite/*` 是**纯类型**依赖，落点是 `packages/api/src/file-deletion-dtos.ts` 垫片
+  # （抄上游 `file-operations/src/types.ts`）+ 改指 contract 已移植好的 `NodeConfigVersion*`
+  # （`packages/contract/src/index.ts:377-403`），依赖图里再无 `@xiranite/*`。
+  # 仍在表外：`cli`（聚合 CLI，本次不需要）、`logging`（只被 cli 用）、`tui`（目录已不存在，条目保留待清）。
   - '!packages/cli'
-  - '!packages/cli-runtime'
-  - '!packages/contract'
   - '!packages/logging'
-  - '!packages/shared'
   - '!packages/tui'
 
 # pnpm 12 生成的是这个待填名单：占位串不填就 ERR_PNPM_IGNORED_BUILDS，整次 install 判失败。
@@ -30,3 +32,18 @@ allowBuilds:
   koffi: true
   node-pty: true
   protobufjs: true
+  # 2026-10-07：`packages/cli-runtime` 入表后带来的原生包。terminal 的图片预览要它，
+  # 装后脚本必须放行，否则 pnpm 12 记 ERR_PNPM_IGNORED_BUILDS 判整次 install 失败。
+  sharp: true
+
+minimumReleaseAgeExclude:
+  - '@babel/core@8.0.7'
+  - '@babel/helper-compilation-targets@8.0.7'
+  - '@babel/helpers@8.0.7'
+  - '@babel/parser@8.0.7'
+  - '@babel/preset-typescript@8.0.7'
+  - '@babel/traverse@8.0.7'
+
+overrides:
+  react: 19.2.4
+  react-dom: 19.2.4

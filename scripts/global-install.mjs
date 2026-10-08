@@ -106,6 +106,87 @@ function auditSymlinks (checkDir) {
   return bad
 }
 
+/**
+ * 扫插件产物 `lib/**` 里的**运行期外部信号**。
+ *
+ * 为什么要扫产品而不是读 `package.json`：终端面（CLI/TUI）这套依赖在插件包清单里
+ * 是空着的（`@opentui/*` 与 `react` 按 ADR-0002 用 registry 版补），所以"这个包运行时
+ * 到底还要谁"只能从产物里读回来。
+ *
+ * 两个信号都是**子串级**的，不是 import 语句级——今测两种拼法都出现过：
+ * - `@hibernalglow/xaihi-cli-runtime`：没内联 cli-runtime 的那批（今测只有 sleept）。
+ * - `@opentui/`：覆盖面大得多。有的插件内联了 `@opentui/react`，却仍要在运行时按平台
+ *   动态 import 原生包 `@opentui/core-<platform>-<arch>`（classf 的 `index.node-*.js`
+ *   里那个包名是**模板串拼出来的**，正则扫 import 语句扫不到）；cleanf 更直白，
+ *   逐条 `import("react")` / `import("@opentui/core")` / `import("@opentui/react")`。
+ * ⇒ **任一信号命中就给整套 TUI 运行期依赖**：少给一个，命令就是启动即崩
+ *   （实测 `Cannot find package 'react'`、`'@opentui/core-darwin-arm64'`）。
+ */
+function scanLibSignals (libDir) {
+  const out = { cliRuntime: false, opentui: false }
+  if (!existsSync(libDir)) return out
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name)
+      if (e.isDirectory()) {
+        walk(full)
+      } else if (e.name.endsWith('.js')) {
+        const src = readFileSync(full, 'utf8')
+        if (src.includes('@hibernalglow/xaihi-cli-runtime')) out.cliRuntime = true
+        if (src.includes('@opentui/')) out.opentui = true
+      }
+    }
+  }
+  walk(libDir)
+  return out
+}
+
+/**
+ * 给装出来的 `react-reconciler` 补 `exports` 映射。
+ *
+ * 上游 `react-reconciler` 的 tarball **没有 `exports` 字段**（0.33.0 与 0.34.0 都实测过），
+ * 而 `@opentui/react` 的 ESM 产物里写着**无扩展名**的 `react-reconciler/constants`；
+ * 裸 Node 的 ESM 解析器没有 `exports` 表就要求带扩展名，于是只要运行时**没内联**
+ * `@opentui/react`（sleept 走 cli-runtime 那条就是这样，cleanf 同理）就会撞
+ * `Cannot find module 'react-reconciler/constants'`。本仓 `node_modules` 里那份是
+ * **手工补过的**（`package.json` 的 mtime 比同目录其它文件晚 5 分钟），且没记进任何
+ * patch / pnpmfile —— 所以全局安装拿不到这笔账，这里按同样的映射补一遍（幂等）。
+ */
+const REACT_RECONCILER_EXPORTS = { '.': './index.js', './constants': './constants.js', './*': './*.js' }
+
+function patchReactReconcilerExports (globalRoot) {
+  if (!existsSync(globalRoot)) return 0
+  /*
+   * 布局：`pnpm root -g` 给的是 `<pnpmHome>/global/v11`，**不是** store 的 `node_modules`；
+   * 真正的虚拟 store 在 `<pnpmHome>/global/v11/<hash>/node_modules/.pnpm/` 下，
+   * 而且**每次安装都会新开一组 `<hash>` 目录**（实测一次安装铺出 19 个），所以要下钻一层全扫。
+   * 补丁本身要先 unlink 再写：虚拟 store 里的文件是 pnpm CAS 的**硬链接**，
+   * 直接 truncate 会顺带改掉内容寻址仓里那条共享 inode。
+   */
+  const candidates = []
+  for (const top of readdirSync(globalRoot, { withFileTypes: true })) {
+    if (top.isDirectory()) candidates.push(join(globalRoot, top.name, 'node_modules', '.pnpm'))
+  }
+  candidates.push(join(globalRoot, '.pnpm')) // 兜底：万一哪天布局变回平铺
+  let patched = 0
+  for (const pnpmDir of candidates) {
+    if (!existsSync(pnpmDir)) continue
+    for (const e of readdirSync(pnpmDir, { withFileTypes: true })) {
+      if (!e.isDirectory() || !e.name.startsWith('react-reconciler@')) continue
+      const pkgPath = join(pnpmDir, e.name, 'node_modules', 'react-reconciler', 'package.json')
+      if (!existsSync(pkgPath)) continue
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+      if (pkg.exports) continue
+      pkg.exports = REACT_RECONCILER_EXPORTS
+      const next = JSON.stringify(pkg, null, 2) + '\n'
+      rmSync(pkgPath, { force: true }) // 断硬链接，别动 CAS 里那条共享 inode
+      writeFileSync(pkgPath, next, 'utf8')
+      patched += 1
+    }
+  }
+  return patched
+}
+
 const plugins = collectPlugins()
 const argIds = process.argv.slice(2)
 let selected = plugins
@@ -200,21 +281,8 @@ packages:
     const snapVer = `${origPkg.version || '0.0.0'}-${SNAPSHOT_TAG}`
     pluginVersionMap[origPkg.name] = snapVer
 
-    // 检查插件产物是否引用了 cli-runtime
-    const libDir = join(repoRoot, 'plugins', p.id, 'lib')
-    let needsCliRuntime = false
-    if (existsSync(libDir)) {
-      const files = readdirSync(libDir)
-      for (const f of files) {
-        if (f.endsWith('.js')) {
-          const content = readFileSync(join(libDir, f), 'utf8')
-          if (content.includes('@hibernalglow/xaihi-cli-runtime')) {
-            needsCliRuntime = true
-            break
-          }
-        }
-      }
-    }
+    // 从产物里读回"这个包运行时还要谁"（判据见 scanLibSignals）。
+    const signals = scanLibSignals(join(repoRoot, 'plugins', p.id, 'lib'))
 
     const pluginPackDir = join(tmp, 'pkg-' + p.id)
     run('mkdir', ['-p', pluginPackDir])
@@ -228,13 +296,18 @@ packages:
     }
 
     const modifiedPkg = { ...origPkg, version: snapVer }
-    if (needsCliRuntime) {
+    if (signals.cliRuntime || signals.opentui) {
       modifiedPkg.dependencies = {
         ...modifiedPkg.dependencies,
-        '@hibernalglow/xaihi-cli-runtime': runtimeVersionMap[`${SCOPE}/xaihi-cli-runtime`],
         '@opentui/core': '0.4.5',
         '@opentui/react': '0.4.5',
-        'react': '^19.2.4',
+        // 钉死 19.2.4：仓库侧靠 `pnpm-workspace.yaml` 的 `overrides: react 19.2.4`
+        // 把它压住，全局安装没有那层 overrides，写 `^19.2.4` 会浮到 19.3.0，
+        // 把 `@opentui/react` 的 peer 组合推到没验过的一档（实测那份组合就是崩的）。
+        'react': '19.2.4',
+      }
+      if (signals.cliRuntime) {
+        modifiedPkg.dependencies['@hibernalglow/xaihi-cli-runtime'] = runtimeVersionMap[`${SCOPE}/xaihi-cli-runtime`]
       }
     }
     writeFileSync(join(pluginPackDir, 'package.json'), JSON.stringify(modifiedPkg, null, 2), 'utf8')
@@ -273,6 +346,10 @@ packages:
     if (bad.length > 0) {
       process.stderr.write(`⚠ 全局快照里发现外指本地开发树的软链（不应发生）：\n  ${bad.join('\n  ')}\n`)
       process.exit(1)
+    }
+    const patched = patchReactReconcilerExports(globalRoot)
+    if (patched > 0) {
+      console.log(`  ↳ react-reconciler 补 exports 映射：${patched} 份（上游 tarball 缺该字段，见函数注释）`)
     }
   }
 

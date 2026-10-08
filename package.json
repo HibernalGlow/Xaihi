@@ -30,7 +30,22 @@
     "profile:dump": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh --profile xaihi --dump-config",
     "plugin:install": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh plugin --profile xaihi install",
     "plugin:remove": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh plugin --profile xaihi remove",
-    "check:skills": "node scripts/check-skills.mjs --self-check && node scripts/check-skills.mjs"
+    "check:skills": "node scripts/check-skills.mjs --self-check && node scripts/check-skills.mjs",
+    "build:ui": "pnpm --filter @hibernalglow/xaihi-ui build:document",
+    "serve:workspace": "node scripts/serve-workspace.mjs",
+    "dev:ui": "pnpm --filter @hibernalglow/xaihi-ui dev",
+    "dev": "node scripts/dev.mjs",
+    "host:web": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh --profile xaihi",
+    "desktop:profile": "node desktop/dev-shell.mjs profile",
+    "desktop:check": "node desktop/dev-shell.mjs check",
+    "desktop:launch": "node desktop/dev-shell.mjs launch",
+    "desktop:stop": "node desktop/dev-shell.mjs stop",
+    "desktop:verify": "node desktop/dev-shell.mjs verify",
+    "live:workbench": "node scripts/check-workbench-live.mjs",
+    "live:nodeface": "node scripts/check-nodeface-live.mjs",
+    "live:realm": "node scripts/check-realm-live.mjs",
+    "live:remotes": "node scripts/check-remotes-live.mjs",
+    "global:install": "node scripts/global-install.mjs"
   },
   "devDependencies": {
     "@deepseek-ai/dsh": "0.2.0-rc.2",
@@ -40,6 +55,7 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@opentui/core-darwin-arm64": "0.4.5"
+    "@opentui/core-darwin-arm64": "0.4.5",
+    "react": "^19.2.4"
   }
 }

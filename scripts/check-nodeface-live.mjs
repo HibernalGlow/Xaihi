@@ -51,7 +51,7 @@ export function judge (r) {
   const need = (label, pass, detail) => checks.push({ label, pass, detail })
   need('① 载体是 host-http（顶层文档经 Xaihi 自己的路由）',
     typeof r.carrierLine === 'string' && r.carrierLine.includes('载体=host-http'),
-    String(r.carrierLine ?? '(板上没读到那一行)').slice(0, 120))
+    String(r.carrierLine || '(realm 读数账本里没有载体那一行)').slice(0, 120))
   need('② 真节点组件画出来了（有自己的控件，不是空壳）',
     r.componentButtons.length >= 2 && r.bodyLen > 8000 && r.hasTextarea === true,
     `按钮 ${String(r.componentButtons.length)} 个 · DOM ${String(r.bodyLen)} B · textarea=${String(r.hasTextarea)}`)
@@ -187,7 +187,9 @@ async function gather () {
   if (!firstLoad.hydrated) throw new Error('预取没落地（[data-xaihi-nodeface-state] 一直停在 pending）⇒ 这时写过去必撞版本号围栏，判据不测这一格')
 
   const face = await evaluate(`(() => ({
-    carrierLine: (document.querySelector('[data-xaihi-bridge]')||{textContent:''}).textContent.split('\\n')[0],
+    // 2026-10-07 起协商读数不画在页面上（左下角黑框日志撤掉，走日志模块）；
+    // 载体那行从 __XAIHI_REALM__.lines 账本里取。
+    carrierLine: ((globalThis.__XAIHI_REALM__?.lines ?? []).find((row) => row.includes('载体=')) || ''),
     bodyLen: document.body.innerHTML.length,
     hasTextarea: !!document.querySelector('textarea'),
     componentButtons: [...document.querySelectorAll('button')].map((b) => String(b.textContent).trim()).filter((t) => t !== '').slice(0, 10),
