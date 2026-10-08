@@ -45,6 +45,8 @@ const PORTED_TARGETS = {
   'api/client': 'api/src/client.ts',
   logging: 'logging/src/index.ts',
   'cli-runtime': 'cli-runtime/src/index.ts',
+  'cli-runtime/i18n': 'cli-runtime/src/i18n.ts',
+  'cli-runtime/interaction': 'cli-runtime/src/interaction.ts',
   'cli-runtime/terminal': 'cli-runtime/src/tui/index.ts',
 }
 

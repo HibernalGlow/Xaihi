@@ -40,344 +40,266 @@
       "react-dom/*": [
         "../../node_modules/@types/react-dom/*"
       ],
-      "@xiranite/contract": [
-        "../contract/src/index.ts"
-      ],
-      "@hibernalglow/xaihi-contract": [
-        "../contract/src/index.ts"
-      ],
-      "@xiranite/shared": [
-        "../shared/src/index.ts"
-      ],
-      "@hibernalglow/xaihi-shared": [
-        "../shared/src/index.ts"
-      ],
-      "@xiranite/shared/rules": [
-        "../shared/src/rules.ts"
-      ],
-      "@hibernalglow/xaihi-shared/rules": [
-        "../shared/src/rules.ts"
-      ],
-      "@xiranite/shared/swimlane": [
-        "../shared/src/swimlane.ts"
-      ],
-      "@hibernalglow/xaihi-shared/swimlane": [
-        "../shared/src/swimlane.ts"
-      ],
-      "@xiranite/api/client": [
-        "../api/src/client.ts"
-      ],
-      "@hibernalglow/xaihi-api/client": [
-        "../api/src/client.ts"
-      ],
-      "@xiranite/logging": [
-        "../logging/src/index.ts"
-      ],
-      "@hibernalglow/xaihi-logging": [
-        "../logging/src/index.ts"
-      ],
-      "@xiranite/cli-runtime": [
-        "../cli-runtime/src/index.ts"
-      ],
-      "@hibernalglow/xaihi-cli-runtime": [
-        "../cli-runtime/src/index.ts"
-      ],
-      "@xiranite/cli-runtime/terminal": [
-        "../cli-runtime/src/tui/index.ts"
+      "@hibernalglow/xaihi-cli-runtime/interaction": [
+        "../cli-runtime/src/interaction.ts"
       ],
       "@hibernalglow/xaihi-cli-runtime/terminal": [
         "../cli-runtime/src/tui/index.ts"
       ],
-      "@xiranite/node-bandia/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/cli-support.ts"
+      "@xiranite/node-marku/markdown-transforms": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/markdown-transforms.ts"
       ],
-      "@xiranite/node-bandia/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/cli.ts"
+      "@xiranite/node-sleept/interaction-types": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/interaction-types.ts"
       ],
-      "@xiranite/node-bandia/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/contract.ts"
-      ],
-      "@xiranite/node-bandia/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/core.ts"
-      ],
-      "@xiranite/node-bandia/exec": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/exec.ts"
-      ],
-      "@xiranite/node-bandia/path-mappings": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/path-mappings.ts"
-      ],
-      "@xiranite/node-bitv/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/cli-support.ts"
-      ],
-      "@xiranite/node-bitv/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/cli.ts"
-      ],
-      "@xiranite/node-bitv/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/contract.ts"
-      ],
-      "@xiranite/node-bitv/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/core.ts"
-      ],
-      "@xiranite/node-bitv/defaults": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/defaults.ts"
-      ],
-      "@xiranite/node-classf/blacklist": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/blacklist.ts"
-      ],
-      "@xiranite/node-classf/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/cli-support.ts"
-      ],
-      "@xiranite/node-classf/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/cli.ts"
-      ],
-      "@xiranite/node-classf/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/contract.ts"
-      ],
-      "@xiranite/node-classf/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/core.ts"
-      ],
-      "@xiranite/node-classf/crashu-core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/crashu-core.ts"
-      ],
-      "@xiranite/node-classf/migratef-core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/migratef-core.ts"
-      ],
-      "@xiranite/node-classf/repacku-core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/repacku-core.ts"
-      ],
-      "@xiranite/node-classf/samea-core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/samea-core.ts"
-      ],
-      "@xiranite/node-classq/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classq/src/cli-support.ts"
-      ],
-      "@xiranite/node-classq/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classq/src/cli.ts"
-      ],
-      "@xiranite/node-classq/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classq/src/contract.ts"
-      ],
-      "@xiranite/node-classq/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classq/src/core.ts"
-      ],
-      "@xiranite/node-cleanf/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/cli-support.ts"
-      ],
-      "@xiranite/node-cleanf/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/cli.ts"
-      ],
-      "@xiranite/node-cleanf/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/contract.ts"
-      ],
-      "@xiranite/node-cleanf/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/core.ts"
-      ],
-      "@xiranite/node-cleanf/paths": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/paths.ts"
-      ],
-      "@xiranite/node-crashu/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/crashu/src/cli-support.ts"
-      ],
-      "@xiranite/node-crashu/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/crashu/src/cli.ts"
-      ],
-      "@xiranite/node-crashu/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/crashu/src/contract.ts"
-      ],
-      "@xiranite/node-crashu/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/crashu/src/core.ts"
-      ],
-      "@xiranite/node-dissolvef/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/dissolvef/src/cli-support.ts"
-      ],
-      "@xiranite/node-dissolvef/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/dissolvef/src/contract.ts"
-      ],
-      "@xiranite/node-dissolvef/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/dissolvef/src/core.ts"
-      ],
-      "@xiranite/node-encodeb/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/encodeb/src/cli-support.ts"
-      ],
-      "@xiranite/node-encodeb/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/encodeb/src/cli.ts"
-      ],
-      "@xiranite/node-encodeb/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/encodeb/src/contract.ts"
-      ],
-      "@xiranite/node-encodeb/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/encodeb/src/core.ts"
-      ],
-      "@xiranite/node-enginev/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/cli-support.ts"
-      ],
-      "@xiranite/node-enginev/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/cli.ts"
-      ],
-      "@xiranite/node-enginev/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/contract.ts"
-      ],
-      "@xiranite/node-enginev/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/core.ts"
-      ],
-      "@xiranite/node-enginev/defaults": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/defaults.ts"
-      ],
-      "@xiranite/node-enginev/filter": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/filter.ts"
-      ],
-      "@xiranite/node-findz/command": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/command.ts"
-      ],
-      "@xiranite/node-findz/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/contract.ts"
-      ],
-      "@xiranite/node-findz/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/core.ts"
-      ],
-      "@xiranite/node-findz/worker-protocol": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/worker-protocol.ts"
-      ],
-      "@xiranite/node-formatv/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/formatv/src/cli-support.ts"
-      ],
-      "@xiranite/node-formatv/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/formatv/src/cli.ts"
-      ],
-      "@xiranite/node-formatv/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/formatv/src/contract.ts"
-      ],
-      "@xiranite/node-formatv/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/formatv/src/core.ts"
-      ],
-      "@xiranite/node-gifu/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/gifu/src/cli-support.ts"
-      ],
-      "@xiranite/node-gifu/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/gifu/src/cli.ts"
-      ],
-      "@xiranite/node-gifu/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/gifu/src/contract.ts"
-      ],
-      "@xiranite/node-gifu/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/gifu/src/core.ts"
-      ],
-      "@xiranite/node-linedup/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linedup/src/cli-support.ts"
-      ],
-      "@xiranite/node-linedup/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linedup/src/core.ts"
-      ],
-      "@xiranite/node-linku/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linku/src/cli-support.ts"
-      ],
-      "@xiranite/node-linku/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linku/src/cli.ts"
-      ],
-      "@xiranite/node-linku/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linku/src/contract.ts"
-      ],
-      "@xiranite/node-linku/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linku/src/core.ts"
-      ],
-      "@xiranite/node-logx/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/logx/src/cli-support.ts"
-      ],
-      "@xiranite/node-logx/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/logx/src/cli.ts"
-      ],
-      "@xiranite/node-logx/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/logx/src/contract.ts"
-      ],
-      "@xiranite/node-logx/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/logx/src/core.ts"
-      ],
-      "@xiranite/node-logx/fs": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/logx/src/fs.ts"
-      ],
-      "@xiranite/node-logx/logging": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/logx/src/logging.ts"
-      ],
-      "@xiranite/node-marku/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/cli-support.ts"
-      ],
-      "@xiranite/node-marku/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/contract.ts"
-      ],
-      "@xiranite/node-marku/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/core.ts"
+      "@xiranite/node-classf/deletion-history": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/deletion-history.ts"
       ],
       "@xiranite/node-marku/interaction-types": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/interaction-types.ts"
       ],
-      "@xiranite/node-marku/interaction": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/interaction.ts"
+      "@hibernalglow/xaihi-cli-runtime/i18n": [
+        "../cli-runtime/src/i18n.ts"
       ],
-      "@xiranite/node-marku/markdown-ast": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/markdown-ast.ts"
+      "@xiranite/node-dissolvef/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/dissolvef/src/cli-support.ts"
       ],
-      "@xiranite/node-marku/markdown-transforms": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/markdown-transforms.ts"
-      ],
-      "@xiranite/node-marku/workflow": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/workflow.ts"
-      ],
-      "@xiranite/node-migratef/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/migratef/src/cli-support.ts"
-      ],
-      "@xiranite/node-migratef/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/migratef/src/cli.ts"
-      ],
-      "@xiranite/node-migratef/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/migratef/src/contract.ts"
-      ],
-      "@xiranite/node-migratef/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/migratef/src/core.ts"
-      ],
-      "@xiranite/node-mvz/archive-entries": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/archive-entries.ts"
-      ],
-      "@xiranite/node-mvz/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/cli-support.ts"
-      ],
-      "@xiranite/node-mvz/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/contract.ts"
-      ],
-      "@xiranite/node-mvz/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/core.ts"
-      ],
-      "@xiranite/node-nameu/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/nameu/src/cli-support.ts"
-      ],
-      "@xiranite/node-nameu/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/nameu/src/cli.ts"
-      ],
-      "@xiranite/node-nameu/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/nameu/src/contract.ts"
-      ],
-      "@xiranite/node-nameu/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/nameu/src/core.ts"
+      "@xiranite/node-findz/worker-protocol": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/worker-protocol.ts"
       ],
       "@xiranite/node-rawfilter/cli-support": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/rawfilter/src/cli-support.ts"
       ],
-      "@xiranite/node-rawfilter/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/rawfilter/src/cli.ts"
+      "@hibernalglow/xaihi-shared/swimlane": [
+        "../shared/src/swimlane.ts"
       ],
-      "@xiranite/node-rawfilter/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/rawfilter/src/contract.ts"
+      "@xiranite/node-bandia/path-mappings": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/path-mappings.ts"
       ],
-      "@xiranite/node-rawfilter/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/rawfilter/src/core.ts"
+      "@xiranite/node-classf/migratef-core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/migratef-core.ts"
+      ],
+      "@xiranite/node-migratef/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/migratef/src/cli-support.ts"
       ],
       "@xiranite/node-recycleu/cli-support": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/recycleu/src/cli-support.ts"
       ],
-      "@xiranite/node-recycleu/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/recycleu/src/cli.ts"
+      "@xiranite/node-smartzip/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/smartzip/src/cli-support.ts"
+      ],
+      "@xiranite/node-classf/repacku-core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/repacku-core.ts"
+      ],
+      "@xiranite/node-encodeb/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/encodeb/src/cli-support.ts"
+      ],
+      "@xiranite/node-enginev/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/cli-support.ts"
+      ],
+      "@xiranite/node-formatv/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/formatv/src/cli-support.ts"
+      ],
+      "@xiranite/node-linedup/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linedup/src/cli-support.ts"
+      ],
+      "@xiranite/node-linedup/interaction": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linedup/src/interaction.ts"
+      ],
+      "@xiranite/node-mvz/archive-entries": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/archive-entries.ts"
+      ],
+      "@xiranite/node-repacku/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/repacku/src/cli-support.ts"
+      ],
+      "@xiranite/node-trename/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/trename/src/cli-support.ts"
+      ],
+      "@xiranite/cli-runtime/interaction": [
+        "../cli-runtime/src/interaction.ts"
+      ],
+      "@xiranite/node-bandia/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/cli-support.ts"
+      ],
+      "@xiranite/node-classf/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/cli-support.ts"
+      ],
+      "@xiranite/node-classf/crashu-core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/crashu-core.ts"
+      ],
+      "@xiranite/node-classq/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classq/src/cli-support.ts"
+      ],
+      "@xiranite/node-cleanf/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/cli-support.ts"
+      ],
+      "@xiranite/node-crashu/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/crashu/src/cli-support.ts"
+      ],
+      "@xiranite/node-dissolvef/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/dissolvef/src/contract.ts"
+      ],
+      "@xiranite/node-marku/markdown-ast": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/markdown-ast.ts"
+      ],
+      "@xiranite/node-rawfilter/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/rawfilter/src/contract.ts"
+      ],
+      "@xiranite/node-sleept/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/cli-support.ts"
+      ],
+      "@xiranite/node-sleept/interaction": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/interaction.ts"
+      ],
+      "@hibernalglow/xaihi-shared/rules": [
+        "../shared/src/rules.ts"
+      ],
+      "@xiranite/node-classf/samea-core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/samea-core.ts"
+      ],
+      "@xiranite/node-linku/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linku/src/cli-support.ts"
+      ],
+      "@xiranite/node-marku/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/cli-support.ts"
+      ],
+      "@xiranite/node-marku/interaction": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/interaction.ts"
+      ],
+      "@xiranite/node-migratef/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/migratef/src/contract.ts"
+      ],
+      "@xiranite/node-nameu/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/nameu/src/cli-support.ts"
       ],
       "@xiranite/node-recycleu/contract": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/recycleu/src/contract.ts"
+      ],
+      "@xiranite/node-samea/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/samea/src/cli-support.ts"
+      ],
+      "@xiranite/node-smartzip/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/smartzip/src/contract.ts"
+      ],
+      "@xiranite/node-timeu/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/timeu/src/cli-support.ts"
+      ],
+      "@hibernalglow/xaihi-cli-runtime": [
+        "../cli-runtime/src/index.ts"
+      ],
+      "@xiranite/node-bitv/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/cli-support.ts"
+      ],
+      "@xiranite/node-classf/blacklist": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/blacklist.ts"
+      ],
+      "@xiranite/node-encodeb/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/encodeb/src/contract.ts"
+      ],
+      "@xiranite/node-enginev/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/contract.ts"
+      ],
+      "@xiranite/node-enginev/defaults": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/defaults.ts"
+      ],
+      "@xiranite/node-formatv/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/formatv/src/contract.ts"
+      ],
+      "@xiranite/node-gifu/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/gifu/src/cli-support.ts"
+      ],
+      "@xiranite/node-repacku/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/repacku/src/contract.ts"
+      ],
+      "@xiranite/node-trename/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/trename/src/contract.ts"
+      ],
+      "@hibernalglow/xaihi-api/client": [
+        "../api/src/client.ts"
+      ],
+      "@xiranite/cli-runtime/terminal": [
+        "../cli-runtime/src/tui/index.ts"
+      ],
+      "@xiranite/node-bandia/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/contract.ts"
+      ],
+      "@xiranite/node-classf/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/contract.ts"
+      ],
+      "@xiranite/node-classq/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classq/src/contract.ts"
+      ],
+      "@xiranite/node-cleanf/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/contract.ts"
+      ],
+      "@xiranite/node-crashu/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/crashu/src/contract.ts"
+      ],
+      "@xiranite/node-mvz/cli-support": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/cli-support.ts"
+      ],
+      "@xiranite/node-sleept/cli-i18n": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/cli-i18n.ts"
+      ],
+      "@xiranite/node-sleept/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/contract.ts"
+      ],
+      "@xiranite/node-sleept/duration": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/duration.ts"
+      ],
+      "@xiranite/node-sleept/platform": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/platform.ts"
+      ],
+      "@xiranite/node-sleept/schedule": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/schedule.ts"
+      ],
+      "@xiranite/node-dissolvef/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/dissolvef/src/core.ts"
+      ],
+      "@xiranite/node-enginev/filter": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/filter.ts"
+      ],
+      "@xiranite/node-findz/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/contract.ts"
+      ],
+      "@xiranite/node-linku/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linku/src/contract.ts"
+      ],
+      "@xiranite/node-marku/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/contract.ts"
+      ],
+      "@xiranite/node-marku/workflow": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/workflow.ts"
+      ],
+      "@xiranite/node-nameu/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/nameu/src/contract.ts"
+      ],
+      "@xiranite/node-rawfilter/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/rawfilter/src/core.ts"
+      ],
+      "@xiranite/node-samea/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/samea/src/contract.ts"
+      ],
+      "@xiranite/node-timeu/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/timeu/src/contract.ts"
+      ],
+      "@hibernalglow/xaihi-contract": [
+        "../contract/src/index.ts"
+      ],
+      "@xiranite/node-bitv/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/contract.ts"
+      ],
+      "@xiranite/node-bitv/defaults": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/defaults.ts"
+      ],
+      "@xiranite/node-findz/command": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/command.ts"
+      ],
+      "@xiranite/node-gifu/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/gifu/src/contract.ts"
+      ],
+      "@xiranite/node-migratef/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/migratef/src/core.ts"
       ],
       "@xiranite/node-recycleu/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/recycleu/src/core.ts"
@@ -385,47 +307,65 @@
       "@xiranite/node-recycleu/exec": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/recycleu/src/exec.ts"
       ],
-      "@xiranite/node-repacku/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/repacku/src/cli-support.ts"
+      "@xiranite/node-smartzip/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/smartzip/src/core.ts"
       ],
-      "@xiranite/node-repacku/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/repacku/src/cli.ts"
+      "@xiranite/node-smartzip/exec": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/smartzip/src/exec.ts"
       ],
-      "@xiranite/node-repacku/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/repacku/src/contract.ts"
+      "@hibernalglow/xaihi-logging": [
+        "../logging/src/index.ts"
+      ],
+      "@xiranite/node-cleanf/paths": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/paths.ts"
+      ],
+      "@xiranite/node-encodeb/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/encodeb/src/core.ts"
+      ],
+      "@xiranite/node-enginev/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/enginev/src/core.ts"
+      ],
+      "@xiranite/node-formatv/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/formatv/src/core.ts"
+      ],
+      "@xiranite/node-linedup/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linedup/src/core.ts"
+      ],
+      "@xiranite/node-mvz/contract": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/contract.ts"
       ],
       "@xiranite/node-repacku/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/repacku/src/core.ts"
       ],
-      "@xiranite/node-samea/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/samea/src/cli-support.ts"
+      "@xiranite/node-trename/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/trename/src/core.ts"
       ],
-      "@xiranite/node-samea/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/samea/src/cli.ts"
+      "@hibernalglow/xaihi-shared": [
+        "../shared/src/index.ts"
       ],
-      "@xiranite/node-samea/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/samea/src/contract.ts"
+      "@xiranite/cli-runtime/i18n": [
+        "../cli-runtime/src/i18n.ts"
       ],
-      "@xiranite/node-samea/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/samea/src/core.ts"
+      "@xiranite/node-bandia/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/core.ts"
       ],
-      "@xiranite/node-sleept/cli-i18n": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/cli-i18n.ts"
+      "@xiranite/node-bandia/exec": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bandia/src/exec.ts"
       ],
-      "@xiranite/node-sleept/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/cli-support.ts"
+      "@xiranite/node-classf/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classf/src/core.ts"
       ],
-      "@xiranite/node-sleept/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/cli.ts"
+      "@xiranite/node-classq/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/classq/src/core.ts"
       ],
-      "@xiranite/node-sleept/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/contract.ts"
+      "@xiranite/node-cleanf/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/cleanf/src/core.ts"
+      ],
+      "@xiranite/node-crashu/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/crashu/src/core.ts"
       ],
       "@xiranite/node-sleept/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/core.ts"
-      ],
-      "@xiranite/node-sleept/duration": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/duration.ts"
       ],
       "@xiranite/node-sleept/exec": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/exec.ts"
@@ -433,47 +373,53 @@
       "@xiranite/node-sleept/i18n": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/i18n.ts"
       ],
-      "@xiranite/node-sleept/interaction-types": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/interaction-types.ts"
+      "@xiranite/node-findz/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/findz/src/core.ts"
       ],
-      "@xiranite/node-sleept/interaction": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/interaction.ts"
+      "@xiranite/node-linku/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/linku/src/core.ts"
       ],
-      "@xiranite/node-sleept/platform": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/sleept/src/platform.ts"
+      "@xiranite/node-marku/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/core.ts"
       ],
-      "@xiranite/node-smartzip/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/smartzip/src/cli-support.ts"
+      "@xiranite/node-nameu/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/nameu/src/core.ts"
       ],
-      "@xiranite/node-smartzip/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/smartzip/src/contract.ts"
-      ],
-      "@xiranite/node-smartzip/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/smartzip/src/core.ts"
-      ],
-      "@xiranite/node-smartzip/exec": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/smartzip/src/exec.ts"
-      ],
-      "@xiranite/node-timeu/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/timeu/src/cli-support.ts"
-      ],
-      "@xiranite/node-timeu/cli": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/timeu/src/cli.ts"
-      ],
-      "@xiranite/node-timeu/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/timeu/src/contract.ts"
+      "@xiranite/node-samea/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/samea/src/core.ts"
       ],
       "@xiranite/node-timeu/core": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/timeu/src/core.ts"
       ],
-      "@xiranite/node-trename/cli-support": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/trename/src/cli-support.ts"
+      "@xiranite/shared/swimlane": [
+        "../shared/src/swimlane.ts"
       ],
-      "@xiranite/node-trename/contract": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/trename/src/contract.ts"
+      "@xiranite/node-bitv/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/bitv/src/core.ts"
       ],
-      "@xiranite/node-trename/core": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/trename/src/core.ts"
+      "@xiranite/node-gifu/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/gifu/src/core.ts"
+      ],
+      "@xiranite/node-mvz/core": [
+        "/Users/glow/Base/Code/Freya/Xaihi/plugins/mvz/src/core.ts"
+      ],
+      "@xiranite/shared/rules": [
+        "../shared/src/rules.ts"
+      ],
+      "@xiranite/cli-runtime": [
+        "../cli-runtime/src/index.ts"
+      ],
+      "@xiranite/api/client": [
+        "../api/src/client.ts"
+      ],
+      "@xiranite/contract": [
+        "../contract/src/index.ts"
+      ],
+      "@xiranite/logging": [
+        "../logging/src/index.ts"
+      ],
+      "@xiranite/shared": [
+        "../shared/src/index.ts"
       ]
     }
   },
