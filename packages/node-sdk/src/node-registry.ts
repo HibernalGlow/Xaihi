@@ -143,12 +143,67 @@ export class NodeRegistry {
   }
 }
 
-/** 进程级默认节点注册表。 */
+/**
+ * 注册表挂在 `ctx` 上的服务名；由 xaihi-core 提供，节点侧经 `ctx.inject()` 取用。
+ *
+ * 为什么必须有这一格：`@hibernalglow/xaihi-sdk` 是被**内联**进每个包的（profile 解析不了
+ * `@hibernalglow/*`，见 `packages/core/tsdown.config.ts` 的 `noExternal` 与 ADR-0002），
+ * 所以下面那个模块级实例在装机产物里**每个包各一份**——实测三份 `const nodeRegistry = n()`
+ * 分别在 `xaihi-core/lib/`、`xaihi-linedup/lib/`、`xaihi-sleept/lib/`。节点写自己那份、
+ * core 的 Runner 读自己那份，症状是界面上 `Node "linedup" is not registered`。
+ * 跨包共享只能走 cordis 的服务表（`OPERATIONS_SERVICE` 早就是这么做的）。
+ */
+export const NODE_REGISTRY_SERVICE = 'xaihiNodeRegistry'
+
+/** `inject` 回调那一侧看得见的东西：只要一条按名字取服务。 */
+export interface NodeRegistryReader {
+  get(name: string): unknown
+}
+
+/**
+ * `defineNode` 取用注册表所需的最小宿主面（真 `Context` 结构化成立）。
+ *
+ * `inject` 是 cordis 的"等依赖到位再跑，依赖变了就重跑"缝：core 的 fiber 可能比节点
+ * 晚激活，注册时读一次会永久读空——与账本那条 `() => ctx.get(OPERATIONS_SERVICE)` 同一条理由，
+ * 只是注册是一次性的动作，所以必须用 inject 而不是取用器。
+ */
+export interface NodeRegistryHost extends NodeRegistryReader {
+  inject(deps: readonly string[], callback: (ctx: NodeRegistryReader) => unknown): unknown
+}
+
+/**
+ * 把一份注册表接到宿主的服务表上：可用时注册，缺席时不注册（也不假装注册成功）。
+ *
+ * 节点脱离 xaihi-core 单独装时，回调永不触发 ⇒ 工具面照常，本地 Runner 查不到这一条。
+ * 那是**读得回的**缺席（`Node "x" is not registered`），不是静默假通过。
+ * @param ctx - 调用方的 cordis 上下文。
+ * @param register - 拿到共享注册表之后登记条目，返回 cordis 的注销器。
+ * @param service - 服务名，缺省 `NODE_REGISTRY_SERVICE`。
+ */
+export function registerWithHost(
+  ctx: NodeRegistryHost,
+  register: (registry: NodeRegistry) => () => void,
+  service: string = NODE_REGISTRY_SERVICE,
+): void {
+  ctx.inject([service], (scoped) => {
+    const registry = scoped.get(service) as NodeRegistry | undefined
+    if (registry === undefined) return
+    return register(registry)
+  })
+}
+
+/**
+ * xaihi-core 那一份注册表。
+ *
+ * 刻意**不是**"所有人都往这里写"的进程级单例：那在装机形态下不成立（见
+ * `NODE_REGISTRY_SERVICE` 的注释）。core 装载它、并以服务名的形式交出去，节点写进来的
+ * 就是这一份；`createLocalRunner` 的缺省参数保留，是为了 core 自己那条路由不用重复传参。
+ */
 export const nodeRegistry = new NodeRegistry()
 
 /**
  * 创建对接桥 `ShellCapabilities.runner` 的本地运行面。
- * @param registry - 节点注册表实例（缺省为全局单例 `nodeRegistry`）。
+ * @param registry - 节点注册表实例（缺省为 core 提供的那一份）。
  */
 export function createLocalRunner(registry: NodeRegistry = nodeRegistry): RunFace {
   return {

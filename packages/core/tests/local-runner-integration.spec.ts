@@ -1,18 +1,43 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { createLocalRunner, nodeRegistry } from '@hibernalglow/xaihi-sdk'
+import { createLocalRunner, NODE_REGISTRY_SERVICE, nodeRegistry } from '@hibernalglow/xaihi-sdk'
 import { createShellBridge, createDocumentBridge } from '@hibernalglow/xaihi-sdk/bridge'
 import { createDocumentHost } from '../../ui-host/src/client/document-host.ts'
 import { toNodeHostApi } from '../../ui-host/src/client/node-host-bridge.ts'
 import { apply as applyLinedup } from '../../../plugins/linedup/src/index.ts'
 import { apply as applySleept } from '../../../plugins/sleept/src/index.ts'
 
+/**
+ * 一个"装了 xaihi-core"的最小宿主面。
+ *
+ * `provide(NODE_REGISTRY_SERVICE, …)` 那一条不是装饰：SDK 被内联进每个包，注册表现在只能
+ * 经服务名交出去（装机形态的判据在 `registry-shared-across-bundles.spec.ts`）。这里补上它，
+ * 用例才真的在测"面板按一次运行会发生什么"，而不是测一个生产里不存在的共享模块实例。
+ */
+function hostWithRegistry(): Context {
+  const ctx = new Context()
+  ctx.provide(NODE_REGISTRY_SERVICE, nodeRegistry)
+  return ctx
+}
+
+/**
+ * 等 cordis 把注入出来的那条 fiber 跑到 ACTIVE。
+ *
+ * 注册表现在走 `ctx.inject`，回调不是同步落地的。生产里没有这一拍要处理——装载远早于任何人
+ * 按"运行"；这里是"apply 完立刻跑"的写法，所以必须等一拍，否则测的是"还没轮到"。
+ */
+const loaded = async (): Promise<void> => {
+  for (let i = 0; i < 8; i += 1) await Promise.resolve()
+  await new Promise((resolve) => { setTimeout(resolve, 0) })
+}
+
 describe('Local Runner 端到端集成测试（纯本地 Node.js 插件通道）', () => {
   it('linedup 节点可直接执行，无需 Agent，返回结构化 data 结果', async () => {
-    const ctx = new Context()
+    const ctx = hostWithRegistry()
     // 模拟最小注入环境
     ctx.tools = { register: () => {} } as never
     applyLinedup(ctx, { label: { get: () => 'linedup' } as never })
+    await loaded()
 
     const runner = createLocalRunner(nodeRegistry)
     const result = await runner.run('linedup', {
@@ -44,12 +69,13 @@ describe('Local Runner 端到端集成测试（纯本地 Node.js 插件通道）
   })
 
   it('sleept 节点可通过 actions.run/runner.run 触发 onEvent 进度与事件', async () => {
-    const ctx = new Context()
+    const ctx = hostWithRegistry()
     ctx.tools = { register: () => {} } as never
     ctx.subprocess = { spawn: () => {} } as never
     ctx.commands = { register: () => {} } as never
 
     applySleept(ctx, { blockDefaultMinutes: { get: () => 60 } as never })
+    await loaded()
 
     const runner = createLocalRunner(nodeRegistry)
     const events: unknown[] = []
@@ -65,15 +91,16 @@ describe('Local Runner 端到端集成测试（纯本地 Node.js 插件通道）
       data: unknown
     }
 
-    expect(result.success).toBe(true)
+    expect(result.success, `宿主回的是：${result.message}`).toBe(true)
     expect(events.length).toBeGreaterThan(0)
     expect((events[0] as { type: string }).type).toBe('progress')
   })
 
   it('前端 UI Bridge 穿透：通过 ShellBridge 与 LocalRunner 联动，UI 面板 actions.run 与 runner.run 完整往返', async () => {
-    const ctx = new Context()
+    const ctx = hostWithRegistry()
     ctx.tools = { register: () => {} } as never
     applyLinedup(ctx, { label: { get: () => 'linedup' } as never })
+    await loaded()
 
     const runner = createLocalRunner(nodeRegistry)
     const [shellSend, docReceive] = [vi.fn(), vi.fn()]
@@ -146,22 +173,25 @@ describe('Local Runner 端到端集成测试（纯本地 Node.js 插件通道）
   })
 
   it('sleept 节点执行 get_stats，正确返回 UI 所需的指标结构', async () => {
-    const ctx = new Context()
+    const ctx = hostWithRegistry()
     ctx.tools = { register: () => {} } as never
     ctx.subprocess = { spawn: () => {} } as never
     ctx.commands = { register: () => {} } as never
 
     applySleept(ctx, { blockDefaultMinutes: { get: () => 60 } as never })
+    await loaded()
 
     const runner = createLocalRunner(nodeRegistry)
     const result = await runner.run('sleept', {
       action: 'get_stats',
     }) as {
       success: boolean
+      /** 失败原因必须读得回来：这一条曾经只报 `expected false to be true`，看不出是派发落空。 */
+      message: string
       data: { currentCpu: number; currentUpload: number; currentDownload: number; timerStatus: string }
     }
 
-    expect(result.success).toBe(true)
+    expect(result.success, `宿主回的是：${result.message}`).toBe(true)
     expect(result.data).toBeDefined()
     expect(typeof result.data.currentCpu).toBe('number')
     expect(result.data.timerStatus).toBe('idle')

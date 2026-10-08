@@ -36,6 +36,7 @@ import {
 } from './settings-history.ts'
 import {
   HISTORY_SNAPSHOT_PATH,
+  NODE_REGISTRY_SERVICE,
   OPERATIONS_SERVICE,
   OPERATIONS_SNAPSHOT_PATH,
   OPERATIONS_STREAM_PATH,
@@ -50,8 +51,15 @@ export const name = '@hibernalglow/xaihi-core'
 
 export const inject = ['webServer', 'loader', 'tools']
 
-/** 本插件对宿主提供的服务名（节点侧经 `ctx.get(OPERATIONS_SERVICE)` 可选取用）。 */
-export const provide = [OPERATIONS_SERVICE]
+/**
+ * 本插件对宿主提供的服务名。
+ *
+ * - `OPERATIONS_SERVICE`：运行账本，节点侧经 `ctx.get()` 可选取用（缺了就只丢进度，不失败）。
+ * - `NODE_REGISTRY_SERVICE`：**这一份** `nodeRegistry` 实例。SDK 是被内联进每个包的
+ *   （`noExternal`，ADR-0002），所以"进程级单例"在装机产物里是每包一份；节点只有经这个名字
+ *   才写得到 Runner 读的那一份。取用侧用 `ctx.inject()`，因为 core 的 fiber 可能比节点晚激活。
+ */
+export const provide = [OPERATIONS_SERVICE, NODE_REGISTRY_SERVICE]
 
 export interface Config {
   /** 每次清单请求打一行诊断日志。 */
@@ -385,6 +393,9 @@ export function apply(ctx: HostContext, config: Config): void {
   }
   // 服务必须在 fiber 活着的期间可见、卸载时自动收回，所以挂在 effect 里而不是模块作用域。
   ctx.effect(() => ctx.provide(OPERATIONS_SERVICE, journal), 'xaihi-core: operations journal')
+  // 注册表交出去的是**本包这一份实例**，下面两条 Runner 路由读的也是它：一次装载只有一个表，
+  // 节点写进来的条目因此查得到（不交出去就是界面上那句 `Node "x" is not registered`）。
+  ctx.effect(() => ctx.provide(NODE_REGISTRY_SERVICE, nodeRegistry), 'xaihi-core: node registry')
   const snapshot = () => {
     const registrations = collect(ctx)
     if (config.verbose.get()) {

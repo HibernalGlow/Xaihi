@@ -10,6 +10,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { defineNode, type NodeToolContext } from '../src/define-node.ts'
+import { NodeRegistry } from '../src/node-registry.ts'
 import type { ActiveRun, OperationEvent, OperationJournal, OperationRun, OperationSeq } from '../src/operations.ts'
 import type { NodeDefinition } from '../src/node.ts'
 
@@ -77,11 +78,15 @@ function fakeJournal(): {
 
 function context(): { ctx: NodeToolContext; tools: Array<Record<string, unknown>> } {
   const tools: Array<Record<string, unknown>> = []
+  // 注册表那一条不是本文件的判据，但 `inject` 不许写成空壳：回调不跑就等于
+  // "defineNode 从不注册"这件事在这里被假装成立（同 node-registry.spec 那条假绿教训）。
+  const registry = new NodeRegistry()
   return {
     ctx: {
       tools: { register: (tool) => { tools.push(tool as Record<string, unknown>); return () => {} } },
       on: () => () => {},
-      effect: () => () => {},
+      inject: (_deps, callback) => { callback({ get: () => registry }); return () => {} },
+      get: () => registry,
     },
     tools,
   }

@@ -1,25 +1,27 @@
 import { describe, expect, it } from 'vitest'
 import { defineNode } from '../src/define-node.ts'
-import { createLocalRunner, NodeRegistry, nodeRegistry } from '../src/node-registry.ts'
+import { createLocalRunner, NODE_REGISTRY_SERVICE, NodeRegistry, nodeRegistry } from '../src/node-registry.ts'
 
 /**
- * 只做 `defineNode` 真会碰的三件事：注册工具、挂 pre-execute、登记副作用注销器。
+ * 只做 `defineNode` 真会碰的三件事：注册工具、挂 pre-execute、把节点交给宿主那份注册表。
  *
- * `effect` **必须真的执行回调并收下它返回的注销器** —— 随手返回 undefined 会让
- * `nodeRegistry.register` 从不发生，于是所有靠"自动注册"的判据都会假绿。
+ * `inject` **必须真的执行回调**并按 `service` 交出注册表 —— 随手返回 undefined 会让
+ * `registry.register` 从不发生，于是所有靠"自动注册"的判据都会假绿。
+ * `service` 传 null 是"这台宿主没装 xaihi-core"那一种装配：回调要跑，但 `get` 回 undefined。
  */
-function fakeHost(): { ctx: never; disposed: Array<() => void> } {
+function fakeHost(service: NodeRegistry | null = nodeRegistry): { ctx: never; disposed: Array<() => void> } {
   const disposed: Array<() => void> = []
   return {
     disposed,
     ctx: {
       tools: { register: () => undefined },
       on: () => () => undefined,
-      effect: (callback: () => unknown) => {
-        const dispose = callback()
+      inject: (_deps: readonly string[], callback: (scoped: { get(name: string): unknown }) => unknown) => {
+        const dispose = callback({ get: () => service ?? undefined })
         if (typeof dispose === 'function') disposed.push(dispose as () => void)
         return () => undefined
       },
+      get: () => service ?? undefined,
     } as never,
   }
 }
@@ -221,6 +223,33 @@ describe('插件卸载时节点必须离开进程级注册表', () => {
 
     for (const dispose of second.disposed) dispose()
     expect(nodeRegistry.has('cycle-sample')).toBe(false)
+  })
+
+  /**
+   * 阳性对照：把 `registerWithHost` 里那句 `if (registry === undefined) return` 删掉、
+   * 或者让它回落到模块级 `nodeRegistry`，这条就变红。
+   *
+   * 防的是"缺席时假装注册成功"：宿主没装 xaihi-core 时节点连的对面根本不存在，此时往自己
+   * 那份表里写一份，症状是本地 Runner 与界面各查一份表、谁都不空但谁都不全。
+   */
+  it('宿主没提供注册表服务时，节点不进任何表（也不假装进了）', () => {
+    const { ctx, disposed } = fakeHost(null)
+    defineNode(ctx, { definition: sampleDefinition('orphan-sample'), handlers: { go: async () => 'ok' } })
+    expect(disposed.length, '没注册就不该有注销器').toBe(0)
+    expect(nodeRegistry.has('orphan-sample'), '服务缺席时仍写进了模块级单例').toBe(false)
+    return createLocalRunner(nodeRegistry).run('orphan-sample', { action: 'go' }).then((result) => {
+      expect((result as { message: string }).message).toContain('not registered')
+    })
+  })
+
+  it('注册走的是服务名那一份表，不是本包模块里的单例', () => {
+    const hosted = new NodeRegistry()
+    const { ctx } = fakeHost(hosted)
+    defineNode(ctx, { definition: sampleDefinition('served-sample'), handlers: { go: async () => 'ok' } })
+    expect(hosted.has('served-sample'), '宿主那份表没收到').toBe(true)
+    expect(nodeRegistry.has('served-sample'), '又写回模块级单例 = 两份表并存的老毛病').toBe(false)
+    // 服务名本身是 core 与节点之间的契约，改名等于换协议。
+    expect(NODE_REGISTRY_SERVICE).toBe('xaihiNodeRegistry')
   })
 
   it('旧实例的注销器不会摘掉新实例（按身份判，不是按名字删）', () => {
