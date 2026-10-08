@@ -336,6 +336,7 @@ function RecycleuWorkbench({
           <box flexDirection="column" flexGrow={1} minHeight={0}>
             <box
               height={7}
+              flexShrink={0}
               flexDirection="column"
               alignItems="center"
               borderStyle="rounded"
@@ -372,11 +373,12 @@ function RecycleuWorkbench({
                 </text>
               ) : null}
             </box>
-            <box flexDirection="column">
+            <box id="recycleu-metrics" flexDirection="column" flexShrink={0}>
               {display?.metrics?.map((metric) => (
                 <box
                   key={metric.label}
                   width="100%"
+                  flexShrink={0}
                   flexDirection="row"
                   justifyContent="space-between"
                 >

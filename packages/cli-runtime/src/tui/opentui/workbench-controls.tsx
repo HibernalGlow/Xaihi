@@ -257,6 +257,7 @@ export function WorkbenchButton({
       paddingRight={1}
       justifyContent="center"
       alignItems="center"
+      flexShrink={0}
       onMouseDown={disabled ? undefined : onClick}
       onMouseOver={disabled ? undefined : () => setHovered(true)}
       onMouseOut={disabled ? undefined : () => setHovered(false)}

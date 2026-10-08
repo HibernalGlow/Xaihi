@@ -8,9 +8,9 @@ export function ProgressBar({ value, width = 30, label }: { value: number; width
   const percent = Math.max(0, Math.min(100, Math.round(value)))
   const filled = Math.round((percent / 100) * width)
   return (
-    <box flexDirection="column">
+    <box flexDirection="column" flexShrink={0}>
       {label ? <text>{label}</text> : null}
-      <box flexDirection="row" gap={1}>
+      <box flexDirection="row" gap={1} flexShrink={0}>
         <text fg={theme.colors.primary}>{"█".repeat(filled)}{"░".repeat(width - filled)}</text>
         <text fg={theme.colors.mutedForeground}>{percent}%</text>
       </box>
