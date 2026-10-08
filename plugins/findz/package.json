@@ -1,0 +1,977 @@
+{
+  "name": "@hibernalglow/xaihi-findz",
+  "version": "0.0.0",
+  "description": "Xaihi node Archive search: searches ZIP/CBZ libraries through an out-of-process Go index core, plus a self-owned workspace panel.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-findz",
+    "title": {
+      "zh": "归档检索",
+      "en": "Findz"
+    },
+    "ui": {
+      "remote": "findz",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.findz",
+        "title": {
+          "zh": "归档检索面板",
+          "en": "Archive search panel"
+        },
+        "area": "workspace",
+        "remote": "findz",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "findz",
+      "title": {
+        "zh": "归档检索",
+        "en": "Findz"
+      },
+      "description": {
+        "zh": "检索 ZIP/CBZ 归档库：索引归档与成员、按条件查询、按需分析图像头信息、投影矩形图。索引内核是进程外的 Go 可执行文件，本节点不把 native 拉进宿主进程。",
+        "en": "Search ZIP/CBZ libraries: index archives and members, query with filters, analyse image headers on demand, and project a treemap. The index core is an out-of-process Go binary; this node never loads native code into the host."
+      },
+      "actions": [
+        {
+          "id": "api_info",
+          "label": {
+            "zh": "内核能力自检",
+            "en": "Native capability check"
+          },
+          "description": {
+            "zh": "读内核自述：ABI、请求版本、能力集、支持的图像格式。",
+            "en": "Read the core's self-report: ABI, request versions, capabilities, supported image formats."
+          }
+        },
+        {
+          "id": "open_library",
+          "label": {
+            "zh": "打开库",
+            "en": "Open library"
+          },
+          "description": {
+            "zh": "打开一个库根目录，索引库落在 config.indexDir 下。",
+            "en": "Open a library root; its index lives under config.indexDir."
+          }
+        },
+        {
+          "id": "close_library",
+          "label": {
+            "zh": "关闭库",
+            "en": "Close library"
+          },
+          "description": {
+            "zh": "关闭库并释放它的索引连接。",
+            "en": "Close a library and release its index connection."
+          }
+        },
+        {
+          "id": "scan",
+          "label": {
+            "zh": "扫描库",
+            "en": "Scan library"
+          },
+          "description": {
+            "zh": "扫描库：只读目录与 ZIP 中央目录，绝不解压成员。",
+            "en": "Scan the library: directory and ZIP central directories only, never decompressing members."
+          }
+        },
+        {
+          "id": "analyze",
+          "label": {
+            "zh": "分析图像头信息",
+            "en": "Analyse image headers"
+          },
+          "description": {
+            "zh": "按需读有界前缀，记录图像真实格式与宽高（可能很慢）。",
+            "en": "Read bounded member prefixes on demand and record actual format and dimensions (can be slow)."
+          }
+        },
+        {
+          "id": "query_archives",
+          "label": {
+            "zh": "查询归档",
+            "en": "Query archives"
+          },
+          "description": {
+            "zh": "按文本 + 排序 + 分页查归档。",
+            "en": "Query archives by text, sort and page."
+          }
+        },
+        {
+          "id": "query_members",
+          "label": {
+            "zh": "查询成员",
+            "en": "Query members"
+          },
+          "description": {
+            "zh": "查某个归档的成员。",
+            "en": "Query the members of one archive."
+          }
+        },
+        {
+          "id": "export_rows",
+          "label": {
+            "zh": "导出结果行",
+            "en": "Export rows"
+          },
+          "description": {
+            "zh": "按同样的查询导出结果行（只回数据，不写文件）。",
+            "en": "Export the same query's rows (data only; writes nothing)."
+          }
+        },
+        {
+          "id": "treemap",
+          "label": {
+            "zh": "矩形图",
+            "en": "Treemap"
+          },
+          "description": {
+            "zh": "按面积与颜色两个独立指标投影成矩形图。",
+            "en": "Project the query into a treemap with independent area and colour metrics."
+          }
+        },
+        {
+          "id": "task",
+          "label": {
+            "zh": "任务状态",
+            "en": "Task status"
+          },
+          "description": {
+            "zh": "读一条任务的状态与计数。",
+            "en": "Read one task's status and counters."
+          }
+        },
+        {
+          "id": "pause",
+          "label": {
+            "zh": "暂停任务",
+            "en": "Pause task"
+          },
+          "description": {
+            "zh": "暂停一条任务。",
+            "en": "Pause a task."
+          }
+        },
+        {
+          "id": "resume",
+          "label": {
+            "zh": "继续任务",
+            "en": "Resume task"
+          },
+          "description": {
+            "zh": "继续一条任务。",
+            "en": "Resume a task."
+          }
+        },
+        {
+          "id": "cancel",
+          "label": {
+            "zh": "取消任务",
+            "en": "Cancel task"
+          },
+          "description": {
+            "zh": "取消一条任务，已提交的事务保持原样。",
+            "en": "Cancel a task; already committed transactions stay as they are."
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "kind": "select",
+          "isActionSelector": true,
+          "label": {
+            "zh": "动作",
+            "en": "Action"
+          },
+          "default": "query_archives",
+          "options": [
+            {
+              "value": "api_info",
+              "label": {
+                "zh": "内核能力自检",
+                "en": "Native capability check"
+              }
+            },
+            {
+              "value": "open_library",
+              "label": {
+                "zh": "打开库",
+                "en": "Open library"
+              }
+            },
+            {
+              "value": "close_library",
+              "label": {
+                "zh": "关闭库",
+                "en": "Close library"
+              }
+            },
+            {
+              "value": "scan",
+              "label": {
+                "zh": "扫描库",
+                "en": "Scan library"
+              }
+            },
+            {
+              "value": "analyze",
+              "label": {
+                "zh": "分析图像头信息",
+                "en": "Analyse image headers"
+              }
+            },
+            {
+              "value": "query_archives",
+              "label": {
+                "zh": "查询归档",
+                "en": "Query archives"
+              }
+            },
+            {
+              "value": "query_members",
+              "label": {
+                "zh": "查询成员",
+                "en": "Query members"
+              }
+            },
+            {
+              "value": "export_rows",
+              "label": {
+                "zh": "导出结果行",
+                "en": "Export rows"
+              }
+            },
+            {
+              "value": "treemap",
+              "label": {
+                "zh": "矩形图",
+                "en": "Treemap"
+              }
+            },
+            {
+              "value": "task",
+              "label": {
+                "zh": "任务状态",
+                "en": "Task status"
+              }
+            },
+            {
+              "value": "pause",
+              "label": {
+                "zh": "暂停任务",
+                "en": "Pause task"
+              }
+            },
+            {
+              "value": "resume",
+              "label": {
+                "zh": "继续任务",
+                "en": "Resume task"
+              }
+            },
+            {
+              "value": "cancel",
+              "label": {
+                "zh": "取消任务",
+                "en": "Cancel task"
+              }
+            }
+          ],
+          "rules": [
+            {
+              "rule": {
+                "type": "oneOfDeclaredOptions"
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "libraryId",
+          "kind": "text",
+          "label": {
+            "zh": "库 id",
+            "en": "Library id"
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "required"
+              }
+            },
+            {
+              "rule": {
+                "type": "nonBlank"
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "open_library",
+                  "close_library",
+                  "scan",
+                  "analyze",
+                  "query_archives",
+                  "query_members",
+                  "export_rows",
+                  "treemap",
+                  "task",
+                  "pause",
+                  "resume",
+                  "cancel"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "libraryRoot",
+          "kind": "text",
+          "label": {
+            "zh": "库根目录（绝对路径）",
+            "en": "Library root (absolute path)"
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "required"
+              }
+            },
+            {
+              "rule": {
+                "type": "nonBlank"
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "open_library"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "text",
+          "kind": "text",
+          "label": {
+            "zh": "文本过滤（匹配归档与成员路径）",
+            "en": "Text filter (archive and member paths)"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "query_archives",
+                  "query_members",
+                  "export_rows",
+                  "treemap"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "pathPrefix",
+          "kind": "text",
+          "label": {
+            "zh": "路径前缀",
+            "en": "Path prefix"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "query_archives",
+                  "export_rows",
+                  "treemap"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "areaBy",
+          "kind": "select",
+          "label": {
+            "zh": "矩形图面积指标",
+            "en": "Treemap area metric"
+          },
+          "default": "archiveSize",
+          "options": [
+            {
+              "value": "archiveSize",
+              "label": {
+                "zh": "归档大小",
+                "en": "Archive size"
+              }
+            },
+            {
+              "value": "totalImageSize",
+              "label": {
+                "zh": "图像总大小",
+                "en": "Total image size"
+              }
+            },
+            {
+              "value": "averageImageSize",
+              "label": {
+                "zh": "平均图像大小",
+                "en": "Average image size"
+              }
+            },
+            {
+              "value": "averageBytesPerMegapixel",
+              "label": {
+                "zh": "平均每百万像素字节",
+                "en": "Average bytes per megapixel"
+              }
+            },
+            {
+              "value": "medianBytesPerMegapixel",
+              "label": {
+                "zh": "每百万像素字节中位数",
+                "en": "Median bytes per megapixel"
+              }
+            },
+            {
+              "value": "anomalyCount",
+              "label": {
+                "zh": "异常计数",
+                "en": "Anomaly count"
+              }
+            },
+            {
+              "value": "estimatedSavings",
+              "label": {
+                "zh": "估计可省字节",
+                "en": "Estimated savings"
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "treemap"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "taskId",
+          "kind": "text",
+          "label": {
+            "zh": "任务 id",
+            "en": "Task id"
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "required"
+              }
+            },
+            {
+              "rule": {
+                "type": "nonBlank"
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "task",
+                  "pause",
+                  "resume",
+                  "cancel"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "archiveId",
+          "kind": "number",
+          "label": {
+            "zh": "归档 id",
+            "en": "Archive id"
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "required"
+              }
+            },
+            {
+              "rule": {
+                "type": "integerAtLeast",
+                "minimum": 1
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "query_members"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "kind": "select",
+          "label": {
+            "zh": "排序字段",
+            "en": "Sort by"
+          },
+          "default": "size",
+          "options": [
+            {
+              "value": "size",
+              "label": {
+                "zh": "归档大小（默认）",
+                "en": "Archive size (default)"
+              }
+            },
+            {
+              "value": "relativePath",
+              "label": {
+                "zh": "相对路径",
+                "en": "Relative path"
+              }
+            },
+            {
+              "value": "imageCount",
+              "label": {
+                "zh": "图像成员数",
+                "en": "Image member count"
+              }
+            },
+            {
+              "value": "analysisCoverage",
+              "label": {
+                "zh": "已分析数",
+                "en": "Analysed count"
+              }
+            },
+            {
+              "value": "totalImageSize",
+              "label": {
+                "zh": "图像总大小",
+                "en": "Total image size"
+              }
+            },
+            {
+              "value": "averageImageSize",
+              "label": {
+                "zh": "平均图像大小",
+                "en": "Average image size"
+              }
+            },
+            {
+              "value": "averageBytesPerMegapixel",
+              "label": {
+                "zh": "平均每百万像素字节",
+                "en": "Average bytes per megapixel"
+              }
+            },
+            {
+              "value": "anomalyCount",
+              "label": {
+                "zh": "异常计数",
+                "en": "Anomaly count"
+              }
+            },
+            {
+              "value": "estimatedSavings",
+              "label": {
+                "zh": "估计可省字节",
+                "en": "Estimated savings"
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "query_archives",
+                  "export_rows"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "sortDesc",
+          "kind": "boolean",
+          "label": {
+            "zh": "降序",
+            "en": "Descending"
+          },
+          "default": true,
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "query_archives",
+                  "export_rows"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "pageLimit",
+          "kind": "number",
+          "label": {
+            "zh": "每页条数（1–1000）",
+            "en": "Page size (1–1000)"
+          },
+          "rules": [
+            {
+              "rule": {
+                "type": "integerInRange",
+                "minimum": 1,
+                "maximum": 1000
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "query_archives",
+                  "query_members",
+                  "export_rows",
+                  "treemap"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "pageCursor",
+          "kind": "text",
+          "label": {
+            "zh": "翻页游标（上一页返回的 nextCursor）",
+            "en": "Page cursor (nextCursor from the previous page)"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "query_archives",
+                  "query_members",
+                  "export_rows",
+                  "treemap"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "scopeKind",
+          "kind": "select",
+          "label": {
+            "zh": "分析范围",
+            "en": "Analysis scope"
+          },
+          "default": "all",
+          "options": [
+            {
+              "value": "all",
+              "label": {
+                "zh": "全部候选成员",
+                "en": "All candidate members"
+              }
+            },
+            {
+              "value": "archives",
+              "label": {
+                "zh": "指定归档",
+                "en": "Selected archives"
+              }
+            },
+            {
+              "value": "members",
+              "label": {
+                "zh": "指定成员",
+                "en": "Selected members"
+              }
+            }
+          ],
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "analyze"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "deepRetry",
+          "kind": "boolean",
+          "label": {
+            "zh": "深度重试（把预算提到 8/16 MiB）",
+            "en": "Deep retry (raise the budget to 8/16 MiB)"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "actionField": "action",
+                "allowed": [
+                  "analyze"
+                ]
+              },
+              "negated": false
+            }
+          }
+        }
+      ],
+      "groups": [
+        {
+          "id": "main",
+          "label": {
+            "zh": "检索",
+            "en": "Search"
+          },
+          "fieldIds": [
+            "action",
+            "libraryId",
+            "libraryRoot",
+            "text",
+            "pathPrefix",
+            "areaBy",
+            "taskId",
+            "archiveId",
+            "sortBy",
+            "sortDesc",
+            "pageLimit",
+            "pageCursor",
+            "scopeKind",
+            "deepRetry"
+          ]
+        }
+      ],
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "libraryId",
+          "slot": "libraryId",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "libraryRoot",
+          "slot": "libraryRoot",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "text",
+          "slot": "text",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "pathPrefix",
+          "slot": "pathPrefix",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "areaBy",
+          "slot": "areaBy",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "taskId",
+          "slot": "taskId",
+          "transform": "trim"
+        },
+        {
+          "fieldId": "archiveId",
+          "slot": "archiveId",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "sortBy",
+          "slot": "sortBy",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "sortDesc",
+          "slot": "sortDesc",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "pageLimit",
+          "slot": "pageLimit",
+          "transform": "asInteger"
+        },
+        {
+          "fieldId": "pageCursor",
+          "slot": "pageCursor",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "scopeKind",
+          "slot": "scopeKind",
+          "transform": "trimOrOmit"
+        },
+        {
+          "fieldId": "deepRetry",
+          "slot": "deepRetry",
+          "transform": "asBoolean"
+        }
+      ],
+      "danger": {
+        "type": "none"
+      },
+      "reportsProgress": true,
+      "publishesOutputPath": false,
+      "help": {
+        "whenToUse": {
+          "zh": "库大到翻不动、想按条件找归档或成员、或者想先看哪些图异常大再决定要不要重压时用。顺序是 open_library → scan → query；库 id 自己起，它会同时决定索引文件名。",
+          "en": "Use when the library is too large to browse, when you want condition-based archive/member lookup, or when you want to spot unusually large images before deciding to recompress. The order is open_library → scan → query; you pick the library id, and it also names the index file."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-commands": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/node": "^22.20.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11",
+    "@hibernalglow/xaihi-ui-kit": "workspace:*"
+  }
+}

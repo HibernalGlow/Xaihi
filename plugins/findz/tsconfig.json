@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // 与 `plugins/dissolvef/tsconfig.json` 同一个理由：`src/core.ts`、
+    // `src/worker-protocol.ts`、`src/watcher-service.ts` 是从 Xiranite `noxide`
+    // 基线逐字搬来的，而它们是在**没有** `noUncheckedIndexedAccess` 的编译器下写的。
+    // 要在这里通过就得给上百行数组下标逐个加断言——那正是移植里最不该发生的
+    // "顺手改行为"。所以只关这两面旗（strict 保留），范围限在本包。
+    //
+    // 本包新写的 `src/index.ts` / `src/gateway.ts` / `src/command.ts` 照样被 strict
+    // 家族管着——`gateway.ts` 里 `pending` 那处"启动失败也要 unset"就是类型检查
+    // 逼出来的：把 `FindzHost | undefined` 收窄错了，`dispose` 那行当场就红。
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false
+  },
+  "include": ["src", "frontend", "rspack.config.mjs"]
+}
