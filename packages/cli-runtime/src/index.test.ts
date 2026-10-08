@@ -19,8 +19,11 @@ import { listTerminalThemes, resolveTerminalTheme, runTerminalUi } from "./termi
 
 describe("cli-runtime", () => {
   test("derives short node command names and normalizes legacy names", () => {
-    expect(nodeCliName("repacku")).toBe("xrepacku")
-    expect(normalizeNodeCliName("xrepacku")).toBe("repacku")
+    // ADR-0017 决定 3：NODE_CLI_PREFIX = "" ⇒ 派生名一律是裸 id，屏上与 bin 同字。
+    expect(nodeCliName("repacku")).toBe("repacku")
+    // 退役掉的 `x` 前缀不再当别名收：`xiranite-` 才是被认的那一份历史形状。
+    // 把这条钉住是因为它决定「用户敲旧名」会不会被悄悄解析成新包。
+    expect(normalizeNodeCliName("xrepacku")).toBe("xrepacku")
     expect(normalizeNodeCliName("xiranite-repacku")).toBe("repacku")
   })
 

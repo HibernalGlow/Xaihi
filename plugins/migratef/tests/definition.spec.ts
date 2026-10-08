@@ -228,15 +228,15 @@ describe('migratef 的清单与定义', () => {
     expect(validateNodeDefinition(broken).ok).toBe(false)
   })
 
-  it('bin / exports / help 的接线形状：`xmigratef` 指向 lib/cli.js，帮助页从清单推导', async () => {
-    expect(pkg.bin).toEqual({ xmigratef: './lib/cli.js' })
+  it('bin / exports / help 的接线形状：`migratef` 指向 lib/cli.js，帮助页从清单推导', async () => {
+    expect(pkg.bin).toEqual({ migratef: './lib/cli.js' })
     expect(Object.keys(pkg.exports ?? {})).toEqual(['.', './cli', './help', './locale/*.json', './cordis.patch.yml', './package.json'])
 
     const { help } = await import('../src/help.ts')
     expect(help.title).toBe('MigrateF')
-    expect(help.commands[0]?.command).toBe('xmigratef')
+    expect(help.commands[0]?.command).toBe('migratef')
     expect(help.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xmigratef --help', 'xmigratef plan', 'xmigratef move', 'xmigratef copy', 'xmigratef history', 'xmigratef undo',
+      'migratef --help', 'migratef plan', 'migratef move', 'migratef copy', 'migratef history', 'migratef undo',
     ])
 
     // 台账 G7：本包不 inject `commands`，所以 `help.ts` **不传** `command`。
@@ -250,8 +250,8 @@ describe('migratef 的清单与定义', () => {
     cloned.actions.pop()
     cloned.actions.pop()
     const { nodeHelpFromManifest } = await import('@hibernalglow/xaihi-sdk')
-    const shrunk = nodeHelpFromManifest(cloned, { bin: 'xmigratef' })
+    const shrunk = nodeHelpFromManifest(cloned, { bin: 'migratef' })
     expect(shrunk.commands[0]?.examples.map((example) => example.command))
-      .toEqual(['xmigratef --help', 'xmigratef plan', 'xmigratef move', 'xmigratef copy'])
+      .toEqual(['migratef --help', 'migratef plan', 'migratef move', 'migratef copy'])
   })
 })

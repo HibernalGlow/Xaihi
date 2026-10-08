@@ -3,7 +3,7 @@
  *
  * 上游这里是一份手写 `help.ts`（`packages/nodes/classf/src/help.ts`，77 行），把标题、
  * 描述与 `xiranite classf …` 那套命令再誊一遍英文样板（连 `--classify auto` 那些 flag
- * 都写死在里面）。手抄的第二真源迟早骗人：本仓的 bin 是 `xclassf`，位置参也不接受了。
+ * 都写死在里面）。手抄的第二真源迟早骗人：本仓的 bin 是 `classf`，位置参也不接受了。
  * 推导器与它为什么叫 `Terminal*` 的说明在 `@hibernalglow/xaihi-sdk` 的 `help.ts`。
  *
  * 导出名 `help` 是聚合 CLI 定的：`packages/cli/src/index.ts` 里
@@ -34,4 +34,4 @@ if (node === undefined) {
 }
 
 // 类型在这里点名：不写的话 dts 生成会报 TS4023（用了外部模块的类型却叫不出名字）。
-export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'xclassf' })
+export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'classf' })

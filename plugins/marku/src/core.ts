@@ -10,7 +10,7 @@
  * - 动作 `action` 缺省时由**输入形状**推：有 `inputText`/"input_text" 就是 `text`，否则 `run`（`:125`）。
  *   `MarkuAction` 有 5 个值，其中 `workflow` 只在 `core.ts` 与基线 CLI 之间存在，
  *   `node-definitions/marku.json` 的动作表只声明 4 条（`text`/`run`/`history`/`undo`）⇒
- *   宿主面上没有 `marku_workflow` 这个工具，这一腿只有 `xmarku workflow` 走得到。
+ *   宿主面上没有 `marku_workflow` 这个工具，这一腿只有 `marku workflow` 走得到。
  * - `module` 缺省 `"markt"`；`MARKU_MODULES`（`:111-121`）那 9 条的**次序**就是模块工具箱
  *   下拉的次序，基线 `interaction.ts` 的图标数组（`≡ # ◇ ▦ Aa ↔ 1. ▣ ☷`）按同一下标配它，
  *   排序或改名会让图标串位。

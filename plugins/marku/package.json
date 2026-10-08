@@ -654,6 +654,6 @@
     "vitest": "^4.1.11"
   },
   "bin": {
-    "xmarku": "./lib/cli.js"
+    "marku": "./lib/cli.js"
   }
 }

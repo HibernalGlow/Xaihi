@@ -18,7 +18,7 @@
  *    把它直接当 enum 成员交给模型，包一层标量模型就选不中。
  * 2. `groups[].title` 改叫 `label`：本仓 `NodeGroup` 的词表用的是 `label`。
  * 3. `help` 只留 `whenToUse`（每种语言一条字符串）：上游那两大块 `workflows` / `commands`
- *    说的是旧壳的 `xiranite marku …` 命令名，本仓的 bin 是 `xmarku`（ADR-0010），
+ *    说的是旧壳的 `xiranite marku …` 命令名，本仓的 bin 是 `marku`（ADR-0010），
  *    照抄等于把"按帮助页敲一条不存在的命令"写进发布物。终端那一屏由 `src/help.ts` 从清单推导。
  * 4. `danger` 从上游的 `pluginExport(is_dangerous)` 翻成 `all` 两条谓词，逐字对应
  *    `src/interaction.ts` 那句 `action === "undo" || (action === "run" && dryRun === false)`；
@@ -405,25 +405,25 @@ describe('apply 的工具注册与账本闸门（宿主半边）', () => {
 })
 
 describe('bin / exports / help 的接线形状（G7：没注册 commands 就不传 command）', () => {
-  it('xmarku 指向 lib/cli.js，exports 带 ./cli 与 ./help', () => {
-    expect(pkg.bin).toEqual({ xmarku: './lib/cli.js' })
+  it('marku 指向 lib/cli.js，exports 带 ./cli 与 ./help', () => {
+    expect(pkg.bin).toEqual({ marku: './lib/cli.js' })
     expect(Object.keys(pkg.exports ?? {})).toEqual(['.', './cli', './help', './locale/*.json', './cordis.patch.yml', './package.json'])
   })
 
   it('help 由清单推导：示例行读的是 actions，不是手写文案', async () => {
     const { help } = await import('../src/help.ts')
     expect(help.title).toBe('Marku')
-    expect(help.commands[0]?.command).toBe('xmarku')
+    expect(help.commands[0]?.command).toBe('marku')
     expect(help.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xmarku --help', 'xmarku text', 'xmarku run', 'xmarku history', 'xmarku undo',
+      'marku --help', 'marku text', 'marku run', 'marku history', 'marku undo',
     ])
 
     // 阳性对照：把清单里的动作删一条，示例行就少一条 ⇒ 这条尺读的是清单，不是硬编码。
     const cloned = JSON.parse(JSON.stringify(pkg.xaihi?.node)) as { actions: unknown[] }
     cloned.actions.pop()
-    const shrunk = nodeHelpFromManifest(cloned, { bin: 'xmarku' })
+    const shrunk = nodeHelpFromManifest(cloned, { bin: 'marku' })
     expect(shrunk.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xmarku --help', 'xmarku text', 'xmarku run', 'xmarku history',
+      'marku --help', 'marku text', 'marku run', 'marku history',
     ])
   })
 
@@ -431,10 +431,10 @@ describe('bin / exports / help 的接线形状（G7：没注册 commands 就不�
     const source = readFileSync(fileURLToPath(new URL('../src/help.ts', import.meta.url)), 'utf8')
     const withoutComments = source.split('\n').filter((line) => !/^\s*(\*|\/\/)/.test(line)).join('\n')
     expect(withoutComments).not.toMatch(/command:\s*['"]/)
-    expect(withoutComments).toMatch(/bin:\s*'xmarku'/)
+    expect(withoutComments).toMatch(/bin:\s*'marku'/)
     // 阳性对照：这条尺必须看得见违规——同一条正则喂一份"传了 command"的文本就要命中，
     // 否则它等于恒真（对照文本是手写的，不由被测文件推导）。
-    expect(/command:\s*['"]/.test(`nodeHelpFromManifest(node, { bin: 'xmarku', command: '/marku' })`)).toBe(true)
+    expect(/command:\s*['"]/.test(`nodeHelpFromManifest(node, { bin: 'marku', command: '/marku' })`)).toBe(true)
     expect(inject).not.toContain('commands')
   })
 })

@@ -289,11 +289,11 @@ describe('mvz 清单的 SDK 侧形状', () => {
   })
 
   it('帮助页只印 bin，不印宿主斜杠命令（缺口 G7 的这一侧）', () => {
-    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'xmvz' })
+    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'mvz' })
     expect(help.title).toBe('MVZ')
-    expect(help.commands[0]!.command).toBe('xmvz')
+    expect(help.commands[0]!.command).toBe('mvz')
     const examples = help.commands[0]!.examples.map((example) => example.command)
-    expect(examples).toEqual(['xmvz --help', 'xmvz extract', 'xmvz move', 'xmvz delete', 'xmvz rename'])
+    expect(examples).toEqual(['mvz --help', 'mvz extract', 'mvz move', 'mvz delete', 'mvz rename'])
     // 现实披露：本包没传 `command`，推导器仍然按 `/mvz` 兜底（node-sdk/src/help.ts:108）。
     // 这一格不在本包权限内，已写进 `src/help.ts` 与报告的 G7 段。
     expect(help.commands[1]!.command).toBe('/mvz')

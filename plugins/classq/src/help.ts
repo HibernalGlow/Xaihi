@@ -3,7 +3,7 @@
  *
  * 上游这里是一份手写 `help.ts`（tag `noxide` 的 `packages/nodes/classq/src/help.ts`，74 行），
  * 把标题/描述/命令再誊一遍英文样板，实测已经漂了（命令名还写着旧壳的 `xiranite classq`，
- * 而本仓的 bin 是 `xclassq`、无模型入口是 `/classq`）。手抄的第二真源迟早骗人，
+ * 而本仓的 bin 是 `classq`、无模型入口是 `/classq`）。手抄的第二真源迟早骗人，
  * 所以这里只从清单推。推导器与它为什么叫 `Terminal*` 的说明在 `@hibernalglow/xaihi-sdk` 的 `help.ts`。
  *
  * 导出名 `help` 是聚合 CLI 定的：`packages/cli/src/index.ts` 里
@@ -26,4 +26,4 @@ if (node === undefined) {
 }
 
 // 类型在这里点名：不写的话 dts 生成会报 TS4023（用了外部模块的类型却叫不出名字）。
-export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'xclassq', command: '/classq' })
+export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'classq', command: '/classq' })

@@ -69,7 +69,7 @@ const DEFAULT_COMPRESSION_LEVEL = 7
  * 缺的那条缝点名在这里：`--json` 的载荷与 stderr 用同一句话，不分叉。
  *
  * 这条常量是 bin 面唯一的"为什么"：`ctx.subprocess` 活在宿主进程里，
- * `xrepacku` 那颗 bin 不在，所以它只出计划（与台账 G1 里 `xlogx` 那一档同一条边界，
+ * `repacku` 那颗 bin 不在，所以它只出计划（与台账 G1 里 `xlogx` 那一档同一条边界，
  * 缺的服务从 `ctx.fs` 换成 `ctx.subprocess`）。
  */
 export const REPACKU_EXECUTION_REFUSAL

@@ -93,10 +93,14 @@ const remoteName = (name: string): string => name.replace(/-/g, '')
 const sq = (value: string): string => `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
 
 /**
- * bin 名沿用 vendored 支撑里的 `nodeCliName`（`x<nodeId>`），聚合 CLI 与 `--help`
- * 里的用法行才不会各说一套。
+ * bin 名沿用 vendored 支撑里的 `nodeCliName`（ADR-0017 决定 3：`NODE_CLI_PREFIX = ""` ⇒ 返回裸
+ * `<nodeId>`），聚合 CLI 与 `--help` 里的用法行才不会各说一套。
+ *
+ * 这条曾经是 `x${input.nodeId}`：模板里的 `CLI_NAME` 走 `nodeCliName()`（裸名），而这里给
+ * `package.json#bin` 加了 `x`，于是脚手架产出的包天生就是「bin 叫 xfoo、屏上印 foo」——
+ * `check:cliface` 判 no-name 的那 8 个包是这么来的。改这一行才是防复发的落点。
  */
-export const binNameOf = (input: ScaffoldInput): string => `x${input.nodeId}`
+export const binNameOf = (input: ScaffoldInput): string => input.nodeId
 
 /** 宿主侧无模型入口的名字（`ctx.commands`），与 `nodeHelpFromManifest` 的默认推导同源。 */
 export const hostCommandOf = (input: ScaffoldInput): string => `/${input.nodeId}`

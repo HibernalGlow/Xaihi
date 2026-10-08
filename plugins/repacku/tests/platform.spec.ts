@@ -124,7 +124,7 @@ afterEach(async () => {
 /**
  * 夹具根目录。这里要小心一件事，而且是内核的**真行为**：`BLACKLIST_KEYWORDS`
  * （core.ts:148-162）是按整条路径的小写子串判的，`$TMPDIR` 下那种 `tmp.XXXXX` 名字
- * 会让每一层都被判成 skip（实测：`mktemp -d` 造的目录跑 `xrepacku analyze` 回
+ * 会让每一层都被判成 skip（实测：`mktemp -d` 造的目录跑 `repacku analyze` 回
  * `Folder could not be analyzed.`）。所以夹具只保证自己那段前缀不含黑名单词，
  * 下面另有一条用例专门钉那条黑名单行为本身。
  */

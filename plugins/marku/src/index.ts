@@ -29,12 +29,12 @@
  *   只有单次输出缝，没有"同一运行的中间态流"）。账本缺席时 `defineNode` 会 `console.warn`
  *   并把进度降级成无操作，节点仍能脱离工作台单独装。
  * - 宿主侧无模型入口 `/marku` → **不注册**：`inject` 里只有 `tools`，没有 `commands`。
- *   按台账 **G7** 的口径，`src/help.ts` 因此**不传** `command`，只传 `bin: 'xmarku'`。
+ *   按台账 **G7** 的口径，`src/help.ts` 因此**不传** `command`，只传 `bin: 'marku'`。
  *
  * 未出货的动作也要说清楚：`core.ts` 支持 5 个动作（`MarkuAction` 里有 `workflow`），
  * 而 `node-definitions/marku.json` 的 `actions` 只声明 4 条（`text` / `run` / `history` / `undo`）
  * ⇒ 宿主面上没有 `marku_workflow` 这个工具，这里也**不替它造第 5 条动作**（那是发明词表）。
- * `workflow` 那条腿只有终端面 `xmarku workflow` 走得到，而它的 `--name`（从配置里的
+ * `workflow` 那条腿只有终端面 `marku workflow` 走得到，而它的 `--name`（从配置里的
  * `workflowLibrary` 找命名工作流）按台账 **G2** 拒绝：bin 够不到 settings 缝。
  *
  * @module xaihi-marku

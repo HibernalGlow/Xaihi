@@ -3,7 +3,7 @@
  *
  * 上游这里是一份手写 `help.ts`（`<Xiranite>` tag `noxide` 的
  * `packages/nodes/repacku/src/help.ts`，120 行），内容是把标题、描述与
- * `xiranite repacku …` 那套命令再誊一遍英文样板。本仓的 bin 是 `xrepacku`，
+ * `xiranite repacku …` 那套命令再誊一遍英文样板。本仓的 bin 是 `repacku`，
  * 那份手抄件说的是旧壳的命令名；照抄就会让使用者按帮助页敲一条不存在的命令。
  * 推导器与它为什么叫 `Terminal*` 的说明在 `@hibernalglow/xaihi-sdk` 的 `help.ts`。
  *
@@ -16,7 +16,7 @@
  * 与 `plugins/migratef/src/help.ts` 记的是同一条先例。
  *
  * 五条动作 `analyze` / `compress` / `full` / `single-pack` / `gallery-pack` 同时是推导出来的
- * 示例行（`xrepacku <action>`）与本包终端面的子命令名——这一对在这儿是**同字**的。
+ * 示例行（`repacku <action>`）与本包终端面的子命令名——这一对在这儿是**同字**的。
  *
  * 导出名 `help` 是聚合 CLI 定的：`packages/cli/src/index.ts` 里
  * `interface NodeHelpModule { help?: NodeHelp }`，按 `{packageName}/help` 动态装载。
@@ -39,4 +39,4 @@ if (node === undefined) {
 
 // 类型在这里点名：不写的话 dts 生成会报 TS4023（用了外部模块的类型却叫不出名字）。
 // 只传 bin：见文件头那条 G7 判据（本包不 inject `commands`）。
-export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'xrepacku' })
+export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'repacku' })

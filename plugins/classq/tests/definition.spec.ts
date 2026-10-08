@@ -211,6 +211,6 @@ describe('classq 清单词表（逐条对上游 classq.json）', () => {
     // 阳性对照：终端那一屏（bin 的 --help）确实是从这份清单推的，节点 id 与动作名只能来自它。
     const { help } = await import('../src/help.ts')
     expect(help.title).toBe('ClassQ')
-    expect(help.commands[0]?.examples.map((example) => example.command)).toEqual(['xclassq --help', 'xclassq plan', 'xclassq classify'])
+    expect(help.commands[0]?.examples.map((example) => example.command)).toEqual(['classq --help', 'classq plan', 'classq classify'])
   })
 })

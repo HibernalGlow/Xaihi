@@ -70,6 +70,12 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     description: "Convert image archives to GIF, WebP, APNG, WebM, or MP4 with the native media runtime.",
   },
   {
+    id: "kisaki",
+    packageName: "@hibernalglow/xaihi-kisaki",
+    bin: "kisaki",
+    description: "Advanced duplicate file, media similarity, and disk optimization workbench.",
+  },
+  {
     id: "linedup",
     packageName: "@hibernalglow/xaihi-linedup",
     bin: "linedup",

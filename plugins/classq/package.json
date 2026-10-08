@@ -469,6 +469,6 @@
     "vitest": "^4.1.11"
   },
   "bin": {
-    "xclassq": "./lib/cli.js"
+    "classq": "./lib/cli.js"
   }
 }

@@ -18,7 +18,7 @@
  *   `Step <n> (<module>) failed: <msg>` 记在 source 上，前面的步骤结果全部保留。
  * - `clonePlainConfig` 用 JSON 往返做深拷贝：函数与 `undefined` 因此被丢掉（快照语义）。
  * - workflow 动作在宿主面上**不出货**：`node-definitions/marku.json` 的 `actions` 只有 4 条，
- *   `package.json#xaihi.node` 照抄，所以 `marku_workflow` 这个工具不存在，只有 `xmarku workflow`
+ *   `package.json#xaihi.node` 照抄，所以 `marku_workflow` 这个工具不存在，只有 `marku workflow`
  *   走得到（`src/cli.ts` 的拒绝与理由在那里）。
  *
  * @module xaihi-marku/workflow

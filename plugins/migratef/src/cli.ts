@@ -31,7 +31,7 @@
  * 4. **账本闸门在动第一条文件之前**（`requireHistoryPath`，ADR-0003 决定 2）：内核
  *    `executePlan` 是先搬文件、后记账本（`core.ts:269`），所以"没给账本位置"必须拦在
  *    跑内核之前，而不是等于"文件动了、撤销记录没落"。后果写在面上：
- *    `xmigratef move` / `copy`（不带 `--dryRun`）与 `history` / `undo` 不给
+ *    `migratef move` / `copy`（不带 `--dryRun`）与 `history` / `undo` 不给
  *    `--historyPath` ⇒ stderr 一句点名 `Config.historyPath` 的话 + 退出码 1；
  *    `plan` 与带 `--dryRun` 的那两条**不需要配置**也照跑（可见退化，不是崩）。
  *

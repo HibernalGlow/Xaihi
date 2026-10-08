@@ -209,12 +209,12 @@ describe('nameu 清单的 SDK 侧形状', () => {
   })
 
   it('工具名是 <nodeId>_<actionId>，帮助页由清单推导', () => {
-    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'xnameu', command: '/nameu' })
+    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'nameu', command: '/nameu' })
     expect(help.title).toBe('NameU')
-    expect(help.commands.map((command) => command.command)).toEqual(['xnameu', '/nameu'])
+    expect(help.commands.map((command) => command.command)).toEqual(['nameu', '/nameu'])
     // 三个动作都进 bin 的示例行（推导器读的是清单 actions，不是手抄的第二份）。
     const examples = help.commands[0]!.examples.map((example) => example.command)
-    expect(examples).toEqual(['xnameu --help', 'xnameu scan', 'xnameu plan', 'xnameu rename'])
+    expect(examples).toEqual(['nameu --help', 'nameu scan', 'nameu plan', 'nameu rename'])
   })
 })
 

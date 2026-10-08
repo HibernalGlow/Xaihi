@@ -23,7 +23,7 @@
  *    同一些值在 Xaihi 是 `src/index.ts` 的 `Config`，独立 bin 读不到 ⇒ 这里返回空默认，
  *    名单落回内核自带的三条 `DEFAULT_*`（`core.ts:76-78`，只有一份，不在这里抄第二份）。
  *    真接的连带后果要写清：上游那条 `dryRun: action !== "rename" || args.includes("--dry-run")
- *    || config?.dry_run === true` 在没有配置文件时，`xnameu rename` **就是真改名**
+ *    || config?.dry_run === true` 在没有配置文件时，`nameu rename` **就是真改名**
  *    （末项恒假）。这里保留同一个行为：`rename` 不带 `--dry-run` 就动文件。
  * 4. **不新增 flag**：内核还吃 `excludeKeywords` / `forbiddenArtistKeywords` /
  *    `archiveExtensions` 与 `path` / `listText` 那几条槽，但上游的终端面没有暴露它们

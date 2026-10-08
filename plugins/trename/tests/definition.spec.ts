@@ -15,7 +15,7 @@
  *    把它直接当 enum 成员交给模型，包一层标量模型就选不中。
  * 2. `groups[].title` 改叫 `label`：本仓 `NodeGroup` 的词表用的是 `label`。**文案照上游原样。**
  * 3. `help` 只留 `whenToUse`（每语言一条）与 `safety`：上游那两大块 `workflows` / `commands`
- *    说的是旧壳的 `xiranite trename …` 命令名，本仓 bin 是 `xtrename`（ADR-0010）。
+ *    说的是旧壳的 `xiranite trename …` 命令名，本仓 bin 是 `trename`（ADR-0010）。
  * 4. `danger` 的 `actionIs` 谓词**去掉** `actionField: "action"`：`defineNode` 的参数表里没有
  *    动作选择器（`parametersFor` 明令跳过 `isActionSelector`），`dangerFor` 的 `all` 分支只看
  *    `exec.arguments`，留着那条就会得到"危险闸门永远不亮"。字段 `visible` 里那条 `actionField`
@@ -301,8 +301,8 @@ describe('trename 的清单与定义', () => {
     expect(metaOf('historyPath')).toBeUndefined()
   })
 
-  it('bin / exports / cli-support / help 的接线形状：xtrename 指向 lib/cli.js，help 不声明斜杠命令', async () => {
-    expect(pkg.bin).toEqual({ xtrename: './lib/cli.js' })
+  it('bin / exports / cli-support / help 的接线形状：trename 指向 lib/cli.js，help 不声明斜杠命令', async () => {
+    expect(pkg.bin).toEqual({ trename: './lib/cli.js' })
     expect(Object.keys(pkg.exports ?? {})).toEqual(['.', './cli', './help', './locale/*.json', './cordis.patch.yml', './package.json'])
 
     const helpSource = readFileSync(fileURLToPath(new URL('../src/help.ts', import.meta.url)), 'utf8')
@@ -312,16 +312,16 @@ describe('trename 的清单与定义', () => {
     expect(helpCode).not.toContain('command:')
     expect(inject).not.toContain('commands')
     // 阳性对照：把这条尺拿一份"传了 command"的副本喂一遍，必须抓得到。
-    const mutated = helpCode.replace("{ bin: 'xtrename' }", "{ bin: 'xtrename', command: '/trename' }")
+    const mutated = helpCode.replace("{ bin: 'trename' }", "{ bin: 'trename', command: '/trename' }")
     expect(mutated).toContain('command:')
 
     const { help } = await import('../src/help.ts')
-    // 期望值手抄推导器的规则：bin 是 xtrename，示例行按清单里的动作列。
+    // 期望值手抄推导器的规则：bin 是 trename，示例行按清单里的动作列。
     expect(help.title).toBe('Trename')
-    expect(help.commands[0]?.command).toBe('xtrename')
+    expect(help.commands[0]?.command).toBe('trename')
     expect(help.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xtrename --help', 'xtrename scan', 'xtrename import', 'xtrename validate',
-      'xtrename rename', 'xtrename undo', 'xtrename history',
+      'trename --help', 'trename scan', 'trename import', 'trename validate',
+      'trename rename', 'trename undo', 'trename history',
     ])
     // 现状钉住（不是认可）：推导器在 `command` 缺席时仍按 `/${nodeId}` 兜底
     // （`packages/node-sdk/src/help.ts:108`），所以这一屏还会印 `/trename`。
@@ -332,9 +332,9 @@ describe('trename 的清单与定义', () => {
     const cloned = JSON.parse(JSON.stringify(pkg.xaihi?.node)) as { actions: unknown[] }
     cloned.actions.pop()
     const { nodeHelpFromManifest } = await import('@hibernalglow/xaihi-sdk')
-    const shrunk = nodeHelpFromManifest(cloned, { bin: 'xtrename' })
+    const shrunk = nodeHelpFromManifest(cloned, { bin: 'trename' })
     expect(shrunk.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xtrename --help', 'xtrename scan', 'xtrename import', 'xtrename validate', 'xtrename rename', 'xtrename undo',
+      'trename --help', 'trename scan', 'trename import', 'trename validate', 'trename rename', 'trename undo',
     ])
   })
 

@@ -50,7 +50,7 @@
  *    `Rename requires JSON content.` 而不是崩一次。
  * 6. **`--help` 那一屏由清单推导**：上游在 `runProgram` 开头调
  *    `writeTerminalNodeHelp(host, help, "zh")`，而那份 `help.ts` 通篇是旧壳的
- *    `xiranite trename …` 命令名（本仓 bin 是 `xtrename`）。这里走 `runNodeCliFace` 的
+ *    `xiranite trename …` 命令名（本仓 bin 是 `trename`）。这里走 `runNodeCliFace` 的
  *    citty 式 usage，`src/help.ts` 那份推导载荷留给聚合 CLI 装载。
  *
  * @module xaihi-trename/cli

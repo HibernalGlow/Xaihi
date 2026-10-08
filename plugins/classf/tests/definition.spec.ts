@@ -15,7 +15,7 @@
  *    剥无可剥也要说得出来，所以正控拿"引用未知字段的分组"来做。
  * 3. `help` 只留 `whenToUse`（每种语言一条字符串，上游那两条数组各只有一条）与 `safety`：
  *    上游的 `workflows` / `commands` 两块说的是旧壳的 `xiranite classf plan D:/set …`
- *    那套命令与本包 bin（`xclassf`，且子命令后不接受位置参）对不上，照抄等于宣传一条
+ *    那套命令与本包 bin（`classf`，且子命令后不接受位置参）对不上，照抄等于宣传一条
  *    使用者敲不通的命令。
  * 4. `danger` 的 `actionIs` 谓词**去掉** `actionField: "action"`：`parametersFor` 明令跳过
  *    `isActionSelector`，而 `dangerFor` 的 `all` 分支只看 `exec.arguments` ⇒ 留着那条
@@ -257,16 +257,16 @@ describe('classf 的清单与定义', () => {
     expect(validateNodeDefinition(broken).ok).toBe(false)
   })
 
-  it('bin / exports / help 的接线形状：`xclassf` 指向 lib/cli.js，help 从清单推导且**不传 command**', async () => {
-    expect(pkg.bin).toEqual({ xclassf: './lib/cli.js' })
+  it('bin / exports / help 的接线形状：`classf` 指向 lib/cli.js，help 从清单推导且**不传 command**', async () => {
+    expect(pkg.bin).toEqual({ classf: './lib/cli.js' })
     expect(Object.keys(pkg.exports ?? {})).toEqual(['.', './cli', './help', './locale/*.json', './cordis.patch.yml', './package.json'])
 
     const { help } = await import('../src/help.ts')
-    // 期望值手抄推导器的规则：bin 是 xclassf、示例行按清单里的动作列。
+    // 期望值手抄推导器的规则：bin 是 classf、示例行按清单里的动作列。
     expect(help.title).toBe('ClassF')
-    expect(help.commands[0]?.command).toBe('xclassf')
+    expect(help.commands[0]?.command).toBe('classf')
     expect(help.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xclassf --help', 'xclassf plan', 'xclassf classify',
+      'classf --help', 'classf plan', 'classf classify',
     ])
 
     // 台账 G7：本包 `inject` 里**没有** `commands` ⇒ 源码里不许出现 `command:` 那一条实参。
@@ -276,12 +276,12 @@ describe('classf 的清单与定义', () => {
     const callLine = helpSource.split('\n').find((line) => line.includes('nodeHelpFromManifest(node')) ?? ''
     expect(callLine).not.toContain('command:')
     // 阳性对照：`command` 这个实参是活的——给了别的名字，推导结果就必须跟着变。
-    const withCommand = nodeHelpFromManifest(pkg.xaihi?.node as never, { bin: 'xclassf', command: '/classf-legacy' })
+    const withCommand = nodeHelpFromManifest(pkg.xaihi?.node as never, { bin: 'classf', command: '/classf-legacy' })
     expect(withCommand.commands[1]?.command).toBe('/classf-legacy')
     // 阳性对照：把清单里的动作删一条，示例行就少一条 ⇒ 这条尺读的是清单，不是手写文案。
     const cloned = JSON.parse(JSON.stringify(pkg.xaihi?.node)) as { actions: unknown[] }
     cloned.actions.pop()
-    const shrunk = nodeHelpFromManifest(cloned, { bin: 'xclassf' })
-    expect(shrunk.commands[0]?.examples.map((example) => example.command)).toEqual(['xclassf --help', 'xclassf plan'])
+    const shrunk = nodeHelpFromManifest(cloned, { bin: 'classf' })
+    expect(shrunk.commands[0]?.examples.map((example) => example.command)).toEqual(['classf --help', 'classf plan'])
   })
 })

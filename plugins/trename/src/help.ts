@@ -4,7 +4,7 @@
  * 上游这里是一份手写 `help.ts`（基线 tag `noxide` 的
  * `packages/nodes/trename/src/help.ts`，120 行），内容是把手边的标题、描述与
  * `xiranite trename …` 那套命令再誊一遍英文样板（连 `xiranite help trename` 都在里面）。
- * 本仓的 bin 是 `xtrename`，那份手抄件说的是旧壳的命令名；照抄就会让使用者按帮助页
+ * 本仓的 bin 是 `trename`，那份手抄件说的是旧壳的命令名；照抄就会让使用者按帮助页
  * 敲一条不存在的命令。推导器与它为什么叫 `Terminal*` 的说明在
  * `@hibernalglow/xaihi-sdk` 的 `help.ts`。
  *
@@ -18,7 +18,7 @@
  * `/trename`，得改推导器本身（G7 的修法里那条"尺"要一起做）。
  *
  * 六个动作 `scan` / `import` / `validate` / `rename` / `undo` / `history` 同时出现在
- * `commands[].examples`（`xtrename <action>`）与终端面的子命令名里，这一对是同一套字，
+ * `commands[].examples`（`trename <action>`）与终端面的子命令名里，这一对是同一套字，
  * 不像 formatv 那样有 kebab 分叉。
  *
  * 导出名 `help` 是聚合 CLI 定的：`packages/cli/src/index.ts` 里
@@ -41,4 +41,4 @@ if (node === undefined) {
 }
 
 // 类型在这里点名：不写的话 dts 生成会报 TS4023（用了外部模块的类型却叫不出名字）。
-export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'xtrename' })
+export const help: TerminalNodeHelp = nodeHelpFromManifest(node, { bin: 'trename' })

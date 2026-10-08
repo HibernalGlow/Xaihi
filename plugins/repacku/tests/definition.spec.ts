@@ -17,7 +17,7 @@
  *    本节点上游的 `groups` 是**空数组**，所以这条换算在这里是空集——仍钉一条"没有 title"。
  * 3. `help` 只留 `whenToUse`（每种语言一条字符串，上游是只有一条目的数组）与 `safety`：
  *    上游那两大块 `workflows` / `commands` 说的是旧壳的 `xiranite repacku …` 命令名，
- *    本仓的 bin 是 `xrepacku`（ADR-0010），照抄等于把"按帮助页敲一条不存在的命令"写进发布物
+ *    本仓的 bin 是 `repacku`（ADR-0010），照抄等于把"按帮助页敲一条不存在的命令"写进发布物
  *    （台账 G4 同一件事）。终端那一屏由 `src/help.ts` 从清单推导。
  * 4. `danger` 保持上游原样 `{type:"pluginExport", exportName:"is_dangerous"}`：本节点没有
  *    `predicates`，所以那条"`danger.predicates[].test.actionField` 剥掉"的换算在这里也是空集。
@@ -295,17 +295,17 @@ describe('repacku 的清单与定义', () => {
     expect(validateNodeDefinition(broken).ok).toBe(false)
   })
 
-  it('bin / exports / help 的接线形状：`xrepacku` 指向 lib/cli.js，help 从清单推导', async () => {
-    expect(pkg.bin).toEqual({ xrepacku: './lib/cli.js' })
+  it('bin / exports / help 的接线形状：`repacku` 指向 lib/cli.js，help 从清单推导', async () => {
+    expect(pkg.bin).toEqual({ repacku: './lib/cli.js' })
     expect(Object.keys(pkg.exports ?? {})).toEqual(['.', './cli', './help', './locale/*.json', './cordis.patch.yml', './package.json'])
 
     const { help } = await import('../src/help.ts')
-    // 期望值手抄推导器的规则：bin 是 xrepacku、示例行按动作列。
+    // 期望值手抄推导器的规则：bin 是 repacku、示例行按动作列。
     expect(help.title).toBe('Repacku')
-    expect(help.commands[0]?.command).toBe('xrepacku')
+    expect(help.commands[0]?.command).toBe('repacku')
     expect(help.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xrepacku --help', 'xrepacku analyze', 'xrepacku compress', 'xrepacku full',
-      'xrepacku single-pack', 'xrepacku gallery-pack',
+      'repacku --help', 'repacku analyze', 'repacku compress', 'repacku full',
+      'repacku single-pack', 'repacku gallery-pack',
     ])
     // 台账 G7 的**已知残留**：本包不 inject `commands`，`src/help.ts` 因此**不传** `command`，
     // 但推导器在 `options.command` 缺席时仍按 `/${nodeId}` 兜底（packages/node-sdk/src/help.ts:108），
@@ -316,14 +316,14 @@ describe('repacku 的清单与定义', () => {
     // 阳性对照：把清单里的动作删一条，示例行就少一条 ⇒ 这条尺读的是清单，不是手写文案。
     const cloned = JSON.parse(JSON.stringify(pkg.xaihi?.node)) as { actions: unknown[] }
     cloned.actions.pop()
-    const shrunk = nodeHelpFromManifest(cloned, { bin: 'xrepacku' })
+    const shrunk = nodeHelpFromManifest(cloned, { bin: 'repacku' })
     expect(shrunk.commands[0]?.examples.map((example) => example.command)).toEqual([
-      'xrepacku --help', 'xrepacku analyze', 'xrepacku compress', 'xrepacku full', 'xrepacku single-pack',
+      'repacku --help', 'repacku analyze', 'repacku compress', 'repacku full', 'repacku single-pack',
     ])
     // 阳性对照：一条动作都没有时推导器直接抛，而不是印一屏空命令。
     const empty = JSON.parse(JSON.stringify(pkg.xaihi?.node)) as { actions: unknown[] }
     empty.actions = []
-    expect(() => nodeHelpFromManifest(empty, { bin: 'xrepacku' })).toThrow(/一个动作都没有/)
+    expect(() => nodeHelpFromManifest(empty, { bin: 'repacku' })).toThrow(/一个动作都没有/)
   })
 
   it('G8 的另一半：省略的布尔保持 undefined，交给内核与默认值兜底', () => {
