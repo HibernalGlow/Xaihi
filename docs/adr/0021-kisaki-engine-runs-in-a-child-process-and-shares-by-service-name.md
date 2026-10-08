@@ -26,6 +26,11 @@
    （ADR-0002：装进 profile 的包不许引用 `@hibernalglow/*`；同一条理由见 `NODE_REGISTRY_SERVICE` 那段实测）。
    消费者 `connectKisakiEngine(ctx, use)`：提供方在场才跑回调，**缺席就什么都不发生**，
    由消费者那一格自己说出"没有引擎提供方"。
+   今天**没有生产消费者**（现读 27 个插件的 `export const inject`，全部只写宿主服务
+   `tools` / `subprocess` / `commands`，没有一条按别的插件的服务名注入）。所以这一条边的覆盖形状是
+   "提供方 + 契约 + 跨实例判据"（`plugins/kisaki/tests/engine-service.spec.ts` 的 4 条，
+   含"两份内联实例的 `connectKisakiEngine` 不是同一个函数"那条对照），
+   等第二个真节点要用重复检测时再接——那句话由它自己说，不在这儿替它预写。
 5. **引擎不可用不回落成宿主进程内装载。** 三种缺席都有名字：`no-subprocess`（这次装配没有那条服务）、
    `entry-missing`（找不到入口，文案与候选表同源）、以及子进程转上来的 `binding-missing` /
    `binding-load-failed` / `abi-mismatch` / `capability-missing`。
@@ -33,7 +38,7 @@
 6. **CLI 与 TUI 走同一条腿。** `plugins/kisaki/src/local-subprocess.ts` 是一份按同一 handle 形状写的
    本地 provider（POSIX 走进程组、Windows 走 `taskkill /T`），因此终端面不需要第二条引擎语义。
 7. **已知缺口点名，不掩盖**：`runner.getInfo` 到今天**没有生产者**——
-   `createLocalRunner` 只交 `{run, cancel}`（`packages/node-sdk/src/node-registry.ts:207-212`），
+   `createLocalRunner` 只交 `{run, cancel}`（`packages/node-sdk/src/node-registry.ts:208-212`），
    桥那侧对 `runner.getInfo` 一律回 `unavailable`（`packages/node-sdk/src/bridge-shell.ts:267`）。
    于是界面那份 `nativeCapabilities` 恒为空集（`packages/ui-host/src/nodes/kisaki/use-kisaki-workbench.ts:123-130`），
    按能力点亮的工具位永远是暗的。这一条**本批没修**，修法是把 `getInfo` 接到引擎的 `info()`
