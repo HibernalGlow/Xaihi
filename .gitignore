@@ -17,6 +17,18 @@ node_modules/
 /examples/*/lib/
 /examples/*/dist/
 /packages/*/src/**/generated/
+# 原生构建输出：`native/<模块>/dist/` 是 `go build -o dist/findz-host` 那一条命令的落点
+# （见 `native/findz-go/README.md`）。那份可执行文件 14.9 MB、c-shared 库 9.8 MB，
+# 提交进去等于把 mac 与 win 两份工具链绑死在 git 历史里——历史改不掉，只能整库重做。
+# 插件侧读的是配置里使用者给的 `hostBinary` 绝对路径，不是仓内那份字节，所以 tip 上不需要它。
+/native/*/dist/
+# 一次性验证载体：`scripts/check-node-bundle.mjs` 的 `--self-check` 每次跑都在
+# `.scratch/node-bundle-selfcheck/` 里现写五份夹具（它自己 mkdirSync + writeFileSync），
+# 提交它们只会留下一份与下一次自检产物不一致的陈旧副本。
+/.scratch/
+# 搬运那一刀的临时差量转储与 unlazy 技能的构建台账，都没有读者（现读 rg 全仓零命中）。
+/.scratch-porttmp/
+/.unlazy/
 *.tsbuildinfo
 *.log
 .DS_Store
