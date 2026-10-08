@@ -1,0 +1,68 @@
+From dcec4611fe2dadbbafdee370860238b3a07d33f4 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Thu, 8 Oct 2026 22:49:20 +0800
+Subject: [PATCH] =?utf-8?q?desktop:=20=E5=9C=A8=E5=BC=80=E5=8F=91=E7=89=88?=
+ =?utf-8?q?=20app=20=E5=90=AF=E5=8A=A8=E5=99=A8=E4=B8=AD=E5=9B=BA=E5=8C=96?=
+ =?utf-8?q?=20primary-runtime=20=E8=B7=AF=E5=BE=84=E4=B8=8E=20profile?=
+ =?utf-8?q?=EF=BC=88Xaihi=20patch=200018=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+---
+ apps/desktop/scripts/dev.ts             |  4 +++-
+ apps/desktop/scripts/development-app.ts | 10 +++++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/apps/desktop/scripts/dev.ts b/apps/desktop/scripts/dev.ts
+index 1ae2f3e..713d11f 100644
+--- a/apps/desktop/scripts/dev.ts
++++ b/apps/desktop/scripts/dev.ts
+@@ -78,7 +78,9 @@ async function launchElectron(): Promise<void> {
+   console.log(`desktop development: inspectors main=${String(mainPort)}, renderer=${String(rendererPort)}, host=${String(hostPort)}`)
+   if (process.platform === 'darwin') {
+     const executable = prepareDevelopmentApp({ electron, appRoot: APP_ROOT, directory: DEVELOPMENT_ROOT, home, userData,
+-      mainPort, rendererPort, hostPort, openDevtools: environment.DSH_DESKTOP_OPEN_DEVTOOLS! })
++      mainPort, rendererPort, hostPort, openDevtools: environment.DSH_DESKTOP_OPEN_DEVTOOLS!,
++      primaryRuntimeDir: environment.DSH_DESKTOP_PRIMARY_RUNTIME_DIR,
++      profile: process.env.XAIHI_DESKTOP_PROFILE })
+     await run(executable, [], APP_ROOT, environment)
+     return
+   }
+diff --git a/apps/desktop/scripts/development-app.ts b/apps/desktop/scripts/development-app.ts
+index ff09b8b..7c517dc 100644
+--- a/apps/desktop/scripts/development-app.ts
++++ b/apps/desktop/scripts/development-app.ts
+@@ -15,6 +15,8 @@ export interface DevelopmentAppOptions {
+   readonly rendererPort: number
+   readonly hostPort: number
+   readonly openDevtools: string
++  readonly primaryRuntimeDir?: string
++  readonly profile?: string
+ }
+ 
+ function quote(value: string): string { return `'${value.replaceAll("'", "'\\''")}'` }
+@@ -60,13 +62,19 @@ export function prepareDevelopmentApp(options: DevelopmentAppOptions): string {
+  * @returns shell program with literal arguments and environment values.
+  */
+ export function developmentLauncher(options: DevelopmentAppOptions, bundle: string): string {
+-  const environment = {
++  const environment: Record<string, string> = {
+     DSH_HOME: options.home,
+     DSH_DESKTOP_DEV_APP: '1',
+     DSH_DESKTOP_HOST_INSPECT_PORT: String(options.hostPort),
+     DSH_DESKTOP_OPEN_DEVTOOLS: options.openDevtools,
+     ELECTRON_ENABLE_LOGGING: '1',
+   }
++  if (options.primaryRuntimeDir !== undefined && options.primaryRuntimeDir !== '') {
++    environment.DSH_DESKTOP_PRIMARY_RUNTIME_DIR = options.primaryRuntimeDir
++  }
++  if (options.profile !== undefined && options.profile !== '') {
++    environment.XAIHI_DESKTOP_PROFILE = options.profile
++  }
+   const args = [
+     join(bundle, 'Contents', 'MacOS', 'Electron'),
+     `--inspect=127.0.0.1:${String(options.mainPort)}`,
+-- 
+2.55.0
+
