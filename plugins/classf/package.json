@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "classf": "./lib/cli.js"
+    "xclassf": "./lib/cli.js"
   },
   "files": [
     "lib/**",

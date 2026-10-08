@@ -24,7 +24,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "mvz": "./lib/cli.js"
+    "xmvz": "./lib/cli.js"
   },
   "files": [
     "lib/**",

@@ -34,16 +34,24 @@
 import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
+  runInteractionCli,
+} from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
+import {
   canRunInteractiveCli,
   createCliHost,
   defineCommand,
   nodeCliName,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeJson,
+  writeLine,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import type { BandiaInput, BandiaResult } from './core.ts'
+import { runBandia } from './core.ts'
+import { createBandiaInteractionSchema, type BandiaInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('bandia')
 
@@ -85,17 +93,49 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
-/** 派发形状对齐 vendored 支撑里的 `runNodeCliFace`（`--help` 短路与无参拒绝都在那儿）。 */
+function createBandiaUiDefinition (
+  defaults: Partial<BandiaInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<BandiaInput, BandiaResult> {
+  let cancelled = false
+  let paused = false
+  let resumePaused: (() => void) | undefined
+  const schema = createBandiaInteractionSchema(defaults, language)
+  return {
+    schema,
+    async run (input, onEvent) {
+      cancelled = false
+      paused = false
+      return runBandia(input, onEvent)
+    },
+    pause () { paused = true },
+    resume () { paused = false; resumePaused?.() },
+    cancel () {
+      cancelled = true
+      paused = false
+      resumePaused?.()
+    },
+  }
+}
+
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createBandiaUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + '而本节点的执行需要的 ctx.subprocess 与批准缝也只在宿主进程里。',
+    loadScreen: async () => (await import('./Tui.tsx')).BandiaTui,
   })
 }
 
@@ -145,19 +185,19 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
       ui: defineCommand({
         meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.（未接）' },
         async run () {
-          await runUnwiredFace('ui', host)
+          await runProgram(['ui'], host)
         },
       }),
       gd: defineCommand({
         meta: { name: 'gd', description: 'Open the compact guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('gd', host)
+          await runProgram(['gd'], host)
         },
       }),
       guided: defineCommand({
         meta: { name: 'guided', description: 'Compatibility alias for gd.（未接）' },
         async run () {
-          await runUnwiredFace('guided', host)
+          await runProgram(['guided'], host)
         },
       }),
     },

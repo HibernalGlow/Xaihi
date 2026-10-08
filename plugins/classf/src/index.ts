@@ -78,7 +78,8 @@ export interface Config {
 
 export const Config = Schema.object({
   crashuSimilarityThreshold: Schema.number().default(0.8).volatile(),
-  sameaMinOccurrences: Schema.number().default(1).volatile(),
+  // 默认对齐迁移配置 [nodes.classf] sameaGroupMinOccurrences = 2。
+  sameaMinOccurrences: Schema.number().default(2).volatile(),
   sameaCentralize: Schema.boolean().default(false).volatile(),
   sameaIgnorePathBlacklist: Schema.boolean().default(false).volatile(),
   sameaGroupCentralize: Schema.boolean().default(false).volatile(),

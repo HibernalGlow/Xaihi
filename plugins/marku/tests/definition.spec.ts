@@ -294,9 +294,9 @@ describe('marku 的参数表：四个动作各自看见的字段（照 visible �
     // ⇒ 这条落差就是 `src/index.ts` 的 `pathsOf()` 存在的原因（接线层按上游三种分隔符收）。
     expect(bindInputs(node, { paths: '/a.md;/b.md' })).toMatchObject({ paths: ['/a.md;/b.md'] })
     expect(bindInputs(node, { paths: '/a.md,/b.md' })).toMatchObject({ paths: ['/a.md', '/b.md'] })
-    // 阳性对照：`asBoolean` 对**缺失值**给 false，而内核的 `dryRun` 默认是 true
-    // （`core.ts:132`）⇒ 接线层必须靠 `booleanSlot` 区分"没给"和"给了假"。
-    expect(bindInputs(node, {}).dryRun).toBe(false)
+    // SDK 修复：`asBoolean` 对缺失值保持 undefined，内核的 `dryRun` 默认是 true
+    // （`core.ts:132`）由接线层 / 内核默认值兜底。
+    expect(bindInputs(node, {}).dryRun).toBeUndefined()
   })
 })
 

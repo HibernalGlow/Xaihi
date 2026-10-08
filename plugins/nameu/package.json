@@ -571,6 +571,6 @@
     "vitest": "^4.1.11"
   },
   "bin": {
-    "nameu": "./lib/cli.js"
+    "xnameu": "./lib/cli.js"
   }
 }

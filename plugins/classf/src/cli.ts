@@ -160,7 +160,7 @@ function createClassfUiDefinition (
 export async function runProgram (rawArgs = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
   const args = applyUpstreamFlagAliases(rawArgs)
   const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
-  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY)) {
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
     writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
     process.exitCode = 0
     return
@@ -201,19 +201,19 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
       ui: defineCommand({
         meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.（未接）' },
         async run () {
-          await runUnwiredFace('ui', host)
+          await runProgram(['ui'], host)
         },
       }),
       gd: defineCommand({
         meta: { name: 'gd', description: 'Open the compact guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('gd', host)
+          await runProgram(['gd'], host)
         },
       }),
       guided: defineCommand({
         meta: { name: 'guided', description: 'Compatibility alias for gd.（未接）' },
         async run () {
-          await runUnwiredFace('guided', host)
+          await runProgram(['guided'], host)
         },
       }),
     },

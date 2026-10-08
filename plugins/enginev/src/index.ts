@@ -33,7 +33,7 @@ import { createRequire } from 'node:module'
 import type { Context, Volatile } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { defineNode, OPERATIONS_SERVICE, type OperationJournal, type OperationRun } from '@hibernalglow/xaihi-sdk'
-import type { EngineVAction, EngineVData, EngineVExportFormat, EngineVInput, EngineVSortField, EngineVSortOrder } from './core.ts'
+import type { EngineVAction, EngineVData, EngineVExportFormat, EngineVFilterOptions, EngineVInput, EngineVSortField, EngineVSortOrder } from './core.ts'
 import { runEngineV } from './core.ts'
 import { createNodeEngineVRuntime } from './platform.ts'
 
@@ -122,8 +122,8 @@ function has(field: string, args: Record<string, unknown>): boolean {
 }
 
 /** 清单里那四条点号绑定读回成内核的 `filters` 对象；空值不留键（`clean()` 本来就把空白当没给）。 */
-function filtersOf(args: Record<string, unknown>, inputs: Record<string, unknown>): EngineVInput['filters'] {
-  const filters: Record<string, unknown> = {}
+function filtersOf(args: Record<string, unknown>, inputs: Record<string, unknown>): EngineVFilterOptions {
+  const filters: EngineVFilterOptions = {}
   const title = text(inputs['filters.title'])
   const contentRating = text(inputs['filters.contentRating'])
   const type = text(inputs['filters.type'])
@@ -134,7 +134,7 @@ function filtersOf(args: Record<string, unknown>, inputs: Record<string, unknown
     const tags = listFrom(inputs['filters.tags'])
     if (tags.length > 0) filters.tags = tags
   }
-  return filters as EngineVInput['filters']
+  return filters
 }
 
 function text(value: unknown): string {
@@ -165,7 +165,7 @@ function isSortOrder(value: string): value is EngineVSortOrder {
  * 直接当 `done / total=100` 用，不许照抄 dissolvef 那句 `* 100`（那份内核给的是 0..1）。
  * `log` 事件（单个目录读失败时那条，`core.ts:227`）原样进预览，不折成失败。
  */
-function forward(event: { type: string; progress?: number; message: string }, run: OperationRun): void {
+function forward(event: { type: string; progress?: number | undefined; message: string }, run: OperationRun): void {
   if (event.type === 'progress') {
     run.progress({ done: Math.round(event.progress ?? 0), total: 100 })
   }

@@ -326,9 +326,9 @@ describe('repacku 的清单与定义', () => {
     expect(() => nodeHelpFromManifest(empty, { bin: 'xrepacku' })).toThrow(/一个动作都没有/)
   })
 
-  it('G8 的另一半：省略的布尔被 bindInputs 折成 false，不是被填成清单默认', () => {
-    // 这一条测的是 SDK 的折叠规则（不是本包的代码），因为 `dangerCheck` 的放宽正是被它逼出来的。
-    expect(transformValue(undefined, 'asBoolean')).toBe(false)
+  it('G8 的另一半：省略的布尔保持 undefined，交给内核与默认值兜底', () => {
+    // 这一条测的是 SDK 的折叠规则（现在 undefined 不折叠为 false，而是保持 undefined 兜底）。
+    expect(transformValue(undefined, 'asBoolean')).toBeUndefined()
     expect(transformValue(true, 'asBoolean')).toBe(true)
     expect(transformValue(undefined, 'trimOrOmit')).toBeUndefined()
     expect(transformValue(undefined, 'asInteger')).toBeUndefined()

@@ -143,7 +143,8 @@ describe('bandia 清单的词表逐字对上游', () => {
     // 阳性对照：上游那份写法（`title`、没有 `label`）与本包那份是不同的对象；
     // 若这里改成比较两份文案，它就变成同义反复了——比的是**键名**。
     const upstream = JSON.parse(JSON.stringify(ownNode())) as NodeShape
-    upstream.groups[0]!.title = upstream.groups[0]!.label
+    const labelText = ownNode().groups[0]!.label!
+    upstream.groups[0]!.title = labelText
     delete upstream.groups[0]!.label
     expect(Object.keys(upstream.groups[0]!).sort()).toEqual(['fieldIds', 'id', 'title'])
     expect(Object.keys(node.groups[0]!).sort()).toEqual(['fieldIds', 'id', 'label'])

@@ -660,6 +660,6 @@
     "vitest": "^4.1.11"
   },
   "bin": {
-    "migratef": "./lib/cli.js"
+    "xmigratef": "./lib/cli.js"
   }
 }

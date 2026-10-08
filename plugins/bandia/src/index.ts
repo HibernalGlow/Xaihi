@@ -106,9 +106,14 @@ function inputFrom(action: BandiaAction, args: Record<string, unknown>, inputs: 
   if (has('mappingText', args)) input.mappingText = String(inputs.mappingText ?? '')
   if (has('outputDir', args)) input.outputDir = text(inputs.outputDir)
   if (has('outputPrefix', args)) input.outputPrefix = text(inputs.outputPrefix)
-  if (has('extractMode', args)) input.extractMode = asEnum<BandiaExtractMode>(inputs.extractMode, ['auto', 'normal'])
-  if (has('overwriteMode', args)) input.overwriteMode = asEnum<BandiaOverwriteMode>(inputs.overwriteMode, ['overwrite', 'skip', 'rename'])
-  if (has('compressFormat', args)) input.compressFormat = asEnum<BandiaArchiveFormat>(inputs.compressFormat, ['zip', '7z'])
+  // 三条 select 只在下发值得到清单里那几个值时才带上那个键：`exactOptionalPropertyTypes`
+  // 不吃"键在、值为 undefined"，而"值不认识"与"没给"在内核里走的确实是同一条 `??` 分支。
+  const extractMode = has('extractMode', args) ? asEnum<BandiaExtractMode>(inputs.extractMode, ['auto', 'normal']) : undefined
+  if (extractMode !== undefined) input.extractMode = extractMode
+  const overwriteMode = has('overwriteMode', args) ? asEnum<BandiaOverwriteMode>(inputs.overwriteMode, ['overwrite', 'skip', 'rename']) : undefined
+  if (overwriteMode !== undefined) input.overwriteMode = overwriteMode
+  const compressFormat = has('compressFormat', args) ? asEnum<BandiaArchiveFormat>(inputs.compressFormat, ['zip', '7z']) : undefined
+  if (compressFormat !== undefined) input.compressFormat = compressFormat
   if (has('parallel', args)) input.parallel = inputs.parallel === true
   if (has('workers', args)) {
     const workers = Number(inputs.workers)
@@ -163,7 +168,7 @@ function asEnum<T extends string>(value: unknown, allowed: readonly T[]): T | un
  * `emit()` 把当前文件名拼在消息尾部（`core.ts:451` 的 `${message}|${currentFile}`），
  * 这里原样进 `preview`，不拆——拆了就得再决定一次哪个是消息、哪个是文件。
  */
-function forward(event: { type: string; progress?: number; message: string }, run: OperationRun): void {
+function forward(event: { type: string; progress?: number | undefined; message: string }, run: OperationRun): void {
   if (event.type === 'progress') {
     run.progress({ done: Math.round(event.progress ?? 0), total: 100 })
   }

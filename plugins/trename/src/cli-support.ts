@@ -385,16 +385,18 @@ export interface NodeCliFaceOptions {
   runPipe: (args: string[], host: CliHost) => Promise<void>
   /** `ui` / `gd` 在本包接不了的原因；上游那两条腿是 OpenTUI 与 @clack。 */
   interactiveBlockedReason: string
+  runGd?: (host: CliHost) => Promise<void>
+  runUi?: (host: CliHost) => Promise<void>
 }
 
 /**
- * `runInteractionCli`（`tui/index.ts` 第 84 行）的去 TUI 版：
- * `--help` 短路、无参且非 TTY 时那句拒绝、`ui`/`gd` 的判定都照原样，
- * 只是两条交互腿换成"未接"的明确报错（退出码 2），不去拉 OpenTUI。
+ * 终端交互统一分发：
+ * - `gd`：交互引导流（默认 Clack）
+ * - `ui`：全屏终端控制台（OpenTUI）
  */
 export async function runNodeCliFace (options: NodeCliFaceOptions): Promise<void> {
   const { args, host, cliName } = options
-  if (args[0] === 'help' || args.includes('--help') || args.includes('-h')) {
+  if (args[0] === "help" || args.includes("--help") || args.includes("-h")) {
     await options.runPipe(args, host)
     return
   }
@@ -404,20 +406,89 @@ export async function runNodeCliFace (options: NodeCliFaceOptions): Promise<void
     return
   }
   const mode = resolveCliInvocation(args, host)
-  if (mode === 'gd') {
-    const clack = await import('@clack/prompts')
-    clack.intro(rich(host, `${cliName} // 引导流 (Clack)`, 'cyan'))
-    clack.note(`运行 ${cliName} 交互向导。命令行脚本化请参考 \`${cliName} --help\`。`, '向导模式')
-    clack.outro(rich(host, `${cliName} 向导完成`, 'green'))
+  if (mode === "gd") {
+    if (options.runGd) {
+      await options.runGd(host)
+      return
+    }
+    writeError(host, `${cliName}: 引导流未接或未配置 runGd。交互引导请走 runInteractionCli。`)
+    process.exitCode = 2
     return
   }
-  if (mode === 'ui') {
-    const { createCliRenderer } = await import('@opentui/core')
+  if (mode === "ui") {
+    if (options.runUi) {
+      await options.runUi(host)
+      return
+    }
+    const React = (await import("react")).default
+    const { createCliRenderer } = await import("@opentui/core")
+    const { createRoot, useKeyboard } = await import("@opentui/react")
+
+    let resolveExit: () => void
+    const exitPromise = new Promise<void>((resolve) => {
+      resolveExit = resolve
+    })
+
     const renderer = await createCliRenderer({
       exitOnCtrlC: true,
-      screenMode: 'alternate-screen',
+      screenMode: "alternate-screen",
     })
-    renderer.destroy()
+    const root = createRoot(renderer)
+    let exited = false
+    const exit = () => {
+      if (exited) return
+      exited = true
+      root.unmount()
+      renderer.destroy()
+      resolveExit()
+    }
+
+    function NodeDeck () {
+      useKeyboard((key) => {
+        if (key.name === "q" || key.name === "escape") exit()
+      })
+      return React.createElement("box", {
+        width: "100%",
+        height: "100%",
+        flexDirection: "column",
+        paddingLeft: 1,
+        paddingRight: 1,
+      }, [
+        React.createElement("box", {
+          key: "hdr",
+          height: 3,
+          borderStyle: "single",
+          borderColor: "#38bdf8",
+          paddingLeft: 1,
+          paddingRight: 1,
+          flexDirection: "row",
+          justifyContent: "space-between",
+        }, [
+          React.createElement("text", { key: "t", fg: "#38bdf8" }, `${cliName.toUpperCase()} // TERMINAL CONTROL DECK (OpenTUI)`),
+          React.createElement("text", { key: "q", fg: "#94a3b8" }, "[Q / Esc] 退出"),
+        ]),
+        React.createElement("box", {
+          key: "body",
+          flexGrow: 1,
+          borderStyle: "round",
+          borderColor: "#64748b",
+          flexDirection: "column",
+          paddingLeft: 2,
+          paddingTop: 1,
+          marginTop: 1,
+        }, [
+          React.createElement("text", { key: "status", fg: "#10b981" }, `● 节点 ${cliName} 终端控制台已就绪`),
+          React.createElement("text", { key: "hint", fg: "#94a3b8" }, `运行参数请参考 \`${cliName} --help\`。按 [Q] 或 [Esc] 键退出控制台。`),
+        ]),
+      ])
+    }
+
+    root.render(React.createElement(NodeDeck))
+    if (!canRunInteractiveCli(host)) {
+      exit()
+    } else {
+      await exitPromise
+    }
     return
   }
   await options.runPipe(args, host)

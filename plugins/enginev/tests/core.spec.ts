@@ -201,7 +201,8 @@ describe('enginev 内核：上游写了但没被测到的分支', () => {
 
     const asJson = await runEngineV({ action: 'export', wallpapers, exportPath: '/out/w.json' }, runtime)
     expect(asJson.success).toBe(true)
-    const text = runtime.writes['/out/w.json']
+    // 夹具自己写的键，`noUncheckedIndexedAccess` 不会替我们记住这一点，所以在这里点名。
+    const text = runtime.writes['/out/w.json']!
     expect(text.endsWith('\n')).toBe(true)
     expect(JSON.parse(text) as Array<{ workshopId: string }>).toHaveLength(1)
     // 阳性对照：paths 格式只有一行路径 + 一个换行，不是 JSON。
@@ -320,7 +321,7 @@ describe('enginev 内核：上游写了但没被测到的分支', () => {
     const runtime = createMemoryRuntime()
     runtime.json('/work/111/project.json', project('A', 'Video', 'Everyone'))
     runtime.json('/work/222/project.json', project('B', 'Scene', 'Mature'))
-    const events: Array<{ type: string; progress?: number; message: string }> = []
+    const events: Array<{ type: string; progress?: number | undefined; message: string }> = []
     const result = await runEngineV({ action: 'scan', path: '/work' }, runtime, (event) => events.push(event))
     expect(result.success).toBe(true)
     expect(result.message).toBe('Scan complete: 2 wallpaper(s).')

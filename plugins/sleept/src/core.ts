@@ -33,7 +33,11 @@ import type { NodeRunEvent, NodeRunResult } from "./contract.ts"
 import { countdownSeconds, formatDuration } from "./duration.ts"
 
 export type SleeptAction = "status" | "countdown" | "specific_time" | "netspeed" | "cpu" | "get_stats"
-export type PowerMode = "sleep" | "hibernate" | "shutdown" | "restart"
+// PowerMode 的真源在 `./schedule.ts`（上游 HEAD 把词表升成 6 值并让三个面都从常量派生，
+// 本仓旧基线的 4 值手写定义随之作废——`display-sleep` / `screensaver` 从此是合法取值）。
+// 这里既本地使用（SleeptInput / SleeptRuntime）也再导出，维持 `./core.ts` 消费面一行不改。
+import { parseTargetDatetime, type PowerMode } from "./schedule.ts"
+export { POWER_MODE_VALUES, parseTargetDatetime, type PowerMode } from "./schedule.ts"
 export type NetTriggerMode = "both" | "any"
 
 export interface SleeptInput {
@@ -150,17 +154,7 @@ export function normalizeInput(raw: SleeptInput): Required<SleeptInput> {
 // 好让基线里从 `./core.js` 取这两条的消费者一行都不用改。
 export { countdownSeconds, formatDuration }
 
-export function parseTargetDatetime(value: string, now = new Date()): Date {
-  const normalized = value.trim().replace(" ", "T")
-  const parsed = new Date(normalized)
-  if (Number.isNaN(parsed.getTime())) {
-    throw new Error("Invalid datetime. Use YYYY-MM-DD HH:MM:SS.")
-  }
-  if (parsed <= now) {
-    throw new Error("Target datetime must be in the future.")
-  }
-  return parsed
-}
+// parseTargetDatetime 的定义已迁至 `./schedule.ts`（与上游 HEAD 同形；本仓旧副本逐字相同，删重复）。
 
 async function runCountdown(
   input: Required<SleeptInput>,

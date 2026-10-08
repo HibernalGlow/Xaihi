@@ -179,7 +179,7 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
             : 'Compatibility alias for gd.（未接）',
       },
       async run () {
-        await runUnwiredFace(leg, host)
+        await runProgram([leg], host)
       },
     })
   }

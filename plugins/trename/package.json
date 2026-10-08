@@ -742,6 +742,6 @@
     "vitest": "^4.1.11"
   },
   "bin": {
-    "trename": "./lib/cli.js"
+    "xtrename": "./lib/cli.js"
   }
 }

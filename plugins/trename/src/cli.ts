@@ -68,7 +68,6 @@ import {
   readStdinText,
   renderProgressBar,
   rich,
-  runNodeCliFace,
   runPipeProgram,
   terminalColumns,
   truncateVisible,
@@ -214,19 +213,19 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
       ui: defineCommand({
         meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.（未接）' },
         async run () {
-          await runUnwiredFace('ui', host)
+          await runProgram(['ui'], host)
         },
       }),
       gd: defineCommand({
         meta: { name: 'gd', description: 'Open the compact guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('gd', host)
+          await runProgram(['gd'], host)
         },
       }),
       guided: defineCommand({
         meta: { name: 'guided', description: 'Open the rich guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('guided', host)
+          await runProgram(['guided'], host)
         },
       }),
     },

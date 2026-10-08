@@ -20,11 +20,11 @@
  *    `isArchiveByContent` 各多一条尾参。**没有删过任何一条上游分支**，也没有把任何一次调用
  *    改成"直接跑"。
  * 2. **没有 `runCommand` 时响亮拒绝**，不折成"7-Zip 没装"。上游 `find7z` 找不到就回 `null`，
- *    内核据此说 `7-Zip was not found. Install 7-Zip or add 7z to PATH…`（`core.ts:188`）——
+ *    内核据此说 `7-Zip was not found. Install 7-Zip or add 7z to PATH…`（`core.ts:271`）——
  *    独立 bin 里 7z 很可能就在盘上，把"够不到那条缝"报成"没装"是伪造读数（AGENTS.md
  *    「不许伪造它没给的数据」）。所以缺缝时抛 `NO_SUBPROCESS_MESSAGE`，由内核的 `catch`
- *    折成 `success:false` 的那一句（`core.ts:297-299`），退出码与面板都读得回来。
- *    **后果**：bin 里 `status` 与四条动作的 `--dryRun` 计划是真跑的（`core.ts:187` 那个三元
+ *    折成 `success:false` 的那一句（`core.ts:306-307`），退出码与面板都读得回来。
+ *    **后果**：bin 里 `status` 与四条动作的 `--dryRun` 计划是真跑的（`core.ts:270` 那个三元
  *    在 dryRun 时跳过 `find7z`，`execute` 又不进），`inspect_codepage` 与"真执行"那几条
  *    在 bin 里一律可见地拒（缺口 G1/G6 那一族：缝活在宿主进程里）。
  * 3. **`@xiranite/file-operations` 那一层不引**（上游 `:5-6` 的 `executeSingleFileMutation` /
@@ -36,8 +36,11 @@
  *    `plugins/enginev/src/platform.ts` 同一条）：
  *    **绝不退化成 `rm` 永久删**。上游两处调用者一条都不改判据——嵌套归档解完之后的清理
  *    （`:170`）与 `deleteSource` / `deleteSourceWhenPassword`（`:175`）。
- *    `src/index.ts` 在合成缝里把这一句补进运行账本的 `preview`，因为这一抛会让**整次运行**
- *    在"文件已经解出来"之后失败：不写进账本就是静默。
+ *    `src/index.ts` 在合成缝里把这一抛**原样**交给 `defineNode`：先 `run.resultView(…)`（那一份
+ *    `data.errors` 里就有这句话——`failure()` 在 `core.ts:528-530` 把原因塞进去了），再把
+ *    `success:false` 抛出去，落在账本那条 `fail` 的原因上
+ *    （`packages/node-sdk/src/define-node.ts:258-259`）。因为这一抛会让**整次运行**
+ *    在"文件已经解出来"之后失败：两处都不落地就是静默。
  * 4. `:1` 的 `@xiranite/contract` → 本包 `./contract.ts`，`./core.js` → `./core.ts`
  *    （`@xiranite/*` 是 `workspace:*`，写进依赖全仓 pnpm 就解不出树，ADR-0002）。
  *
@@ -60,7 +63,7 @@
  *   `extract_codepage` 且**有码页**（显式或自动推荐）时才加；排除项走 `excludeArgs`
  *   （`:533-539`，有排除项时补一条 `-r`）。
  * - `displayArgs` 把 `-p*` 折成 `-p••••`（`:155`）：**进账本与结果视图的计划里不许有明文密码**
- *   （内核 `data()` 那边还把 `config.passwords` 整体折成 `••••`，`core.ts:508`）。
+ *   （内核 `data()` 那边还把 `config.passwords` 整体折成 `••••`，`core.ts:517`）。
  * - `detached` 只有 `open` 经 7zFM 那一支用（`:458`），其它一律 false。
  * - 嵌套递归的深度上限是**写死的 32**（`:165`），不是配置项；`skipMultipart` 为真时
  *   非首卷直接 `status:"skipped"`（`:109-111`），而 `expandExtractSources` 早在一层就把
@@ -81,7 +84,7 @@
  * - `isArchiveByContent` 认"能列出来"或 `Type = 非 ERROR`（`:523`）；`isConfiguredArchive`
  *   在**没有扩展名时返回 true**（`:543`，那是"目录/无名文件当候选"的上游口径）。
  * - `appendRecord` 先 `mkdir(dirname(path), {recursive:true})` 再追一行 JSON（`:640-643`）——
- *   运行记录的默认落点是 `.xiranite/smartzip-runs.jsonl`（`core.ts:309`），
+ *   运行记录的默认落点是 `.xiranite/smartzip-runs.jsonl`（`core.ts:392`），
  *   那是**旧数据所在的位置**，改名等于数据迁移，所以两侧都原样留着。
  *
  * @module xaihi-smartzip/platform

@@ -43,7 +43,7 @@
     "id": "xaihi-linedup",
     "title": {
       "zh": "行去重过滤",
-      "en": "Line dedup"
+      "en": "Linedup"
     },
     "ui": {
       "remote": "linedup",
@@ -66,7 +66,7 @@
       "nodeId": "linedup",
       "title": {
         "zh": "行去重过滤",
-        "en": "Line dedup"
+        "en": "Linedup"
       },
       "description": {
         "zh": "对多行文本去重并按过滤行剔除，返回保留与剔除两部分及计数。",

@@ -279,12 +279,12 @@ describe('mvz 清单的 SDK 侧形状', () => {
     expect((parametersFor(def, 'rename')?.pattern as Record<string, unknown> | undefined)?.required).toBeUndefined()
   })
 
-  it('bindInputs 把省略的布尔折成 false（缺口 G8 那一格，钉现状不修语义）', () => {
+  it('bindInputs 省略的布尔保持 undefined，交给内核与默认值兜底', () => {
     const validated = validateNodeDefinition(ownNode())
     if (!validated.ok) throw new Error('清单不合法')
     const bound = bindInputs(validated.value, { fileText: 'a.zip//x.txt' })
-    expect(bound).toMatchObject({ dryRun: false, near: false, autoDir: false, flatten: false })
-    // 也就是说：模型少传 dryRun ⇒ 表单那份 default:true 不会生效 ⇒ 走的是执行那条腿。
+    expect(bound).toMatchObject({ dryRun: undefined, near: undefined, autoDir: undefined, flatten: undefined })
+    // 模型少传 dryRun ⇒ 不是 true ⇒ 走的是执行那条腿。
     expect(dangerFor(validated.value, undefined, 'delete', bound as Record<string, unknown>)).toBeDefined()
   })
 

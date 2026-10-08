@@ -7,7 +7,16 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { validateNodeDefinition } from '@hibernalglow/xaihi-sdk'
-import { explainRemovals, filterLines, normalizeLine, splitLines, uniqueNonEmptyLines } from '../src/core.ts'
+import {
+  analyzeReadLines,
+  createDiffRows,
+  explainRemovals,
+  filterLines,
+  findDuplicateLines,
+  normalizeLine,
+  splitLines,
+  uniqueNonEmptyLines,
+} from '../src/core.ts'
 
 describe('linedup core', () => {
   it('normalizeLine 只裁两端空白，不动内部', () => {
@@ -44,6 +53,27 @@ describe('linedup core', () => {
 
   it('explainRemovals 说的是命中的那条过滤行', () => {
     expect(explainRemovals(['keep', 'drop me'], ['drop'])).toEqual([{ line: 'drop me', matchedFilter: 'drop' }])
+  })
+
+  // 以下三条断言的期望值逐条手抄自基线 noxide 的 packages/nodes/linedup/src/core.test.ts，
+  // 覆盖这次保真修复还原回来的三个内核函数（它们曾在搬漏的版本里缺失）。
+  it('createDiffRows 按 filtered 集把源行标成 kept/removed', () => {
+    expect(createDiffRows(splitLines('keep\nremove'), ['keep'])).toEqual([
+      { line: 'keep', status: 'kept' },
+      { line: 'remove', status: 'removed' },
+    ])
+  })
+
+  it('findDuplicateLines 只数出现两次以上的行，空行不计', () => {
+    const duplicates = findDuplicateLines(['a', 'b', 'a', 'c', 'b', 'a', ''])
+    expect([...duplicates.entries()].sort()).toEqual([['a', 3], ['b', 2]])
+  })
+
+  it('analyzeReadLines 给出 total/unique/duplicates', () => {
+    const stats = analyzeReadLines(['alpha', 'beta', 'alpha', '', 'gamma'])
+    expect(stats.totalLines).toBe(4)
+    expect(stats.uniqueLines).toBe(3)
+    expect([...stats.duplicates.entries()]).toEqual([['alpha', 2]])
   })
 
   it('空过滤器不移除任何东西（阳性对照：非空时必须移除）', () => {

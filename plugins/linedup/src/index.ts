@@ -52,12 +52,13 @@ export function apply(ctx: Context, config: Config): void {
           sort: inputs.sort !== false,
         })
         // 纯计算没有中间态，所以只发结果视图：定义里承诺的 resultExport 到此才真的有人发。
-        run.resultView({
-          keptCount: result.keptCount,
-          removedCount: result.removedCount,
-          kept: result.filteredLines,
-          removed: result.removedLines,
-        })
+        //
+        // 形状必须是 `core.ts` 那份 `LinedupFilterResult` **逐字**，不能另起一套短名：
+        // 面板（`ui-host/src/nodes/linedup/ResultPanels.tsx:54,65` 与 `model.ts:52`）
+        // 与终端面（`cli.ts:182,190`）读的都是 `filteredLines` / `removedLines`。
+        // 曾经这里发的是 `kept` / `removed`，症状是"计数对了（keptCount 同名）、
+        // 列表页整个崩"—— 端到端判据在 `ui-host/tests/local-runner-e2e.spec.tsx` 里钉住了它。
+        run.resultView(result)
         return [
           `${config.label.get()} · kept ${String(result.keptCount)}, removed ${String(result.removedCount)}`,
           ...result.filteredLines.map((line) => `+ ${line}`),

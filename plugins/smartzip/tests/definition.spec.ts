@@ -22,7 +22,7 @@
  *    都是这一格）。
  *
  * 另外钉住上游自带的 `dryRun` 分歧，不在这里统一：清单里字段的声明默认是 **true**，
- * 内核 `core.ts:224` 的默认是 **false**（`tests/core.spec.ts` 钉另一侧）。
+ * 内核 `core.ts:233` 的默认是 **false**（`tests/core.spec.ts` 钉另一侧）。
  *
  * @module xaihi-smartzip/tests/definition
  */
@@ -329,7 +329,7 @@ describe('smartzip 宿主接线（apply → defineNode → 真内核）', () => 
     const output = await (tool['execute'] as (args: unknown, exec: unknown) => Promise<string>)({ iniText: '' }, {})
     expect(output).toContain('status · SmartZip status loaded: 9 archive extension(s).')
     // 清单里没有 iniText 这个字段，所以走的是内核默认表：9 项就是 `parseSmartZipIni('')` 的
-    // `[ext]` 缺省（`core.ts:311`）。阳性对照：`Config.passwords` 那句不进输出。
+    // `[ext]` 缺省（`core.ts:320`）。阳性对照：`Config.passwords` 那句不进输出。
     expect(output).not.toContain('hunter-two')
   })
 

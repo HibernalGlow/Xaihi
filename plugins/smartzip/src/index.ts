@@ -11,7 +11,7 @@
  *
  * ## DI 缝 → DSH 服务的对应（判据见 `docs/service-mapping.md` 与 ADR-0003）
  *
- * | `SmartZipRuntime` 的 6 个方法（`core.ts:192-199`） | 落点 | 服务 |
+ * | `SmartZipRuntime` 的 6 个方法（`core.ts:201-208`） | 落点 | 服务 |
  * |---|---|---|
  * | `readText` / `appendRecord` | `src/platform.ts` | `node:fs/promises`（ADR-0003 决定 1）|
  * | `resolveInputPaths`（= 上游 `expandExtractSources`，递归枚举）| `src/platform.ts` | `node:fs/promises`（同上）|
@@ -88,7 +88,7 @@ export const inject = ['tools', 'subprocess']
  * 同一些值在这里声明成 `Config`，值由 DSH 的 patch 层给，读写走 settings 面，使用点 `.get()`。
  *
  * `dryRun` 的默认是 **true**（上游 `dry_run ?? true` 与清单里那条 `default: {boolean:true}`
- * 同一格），而内核 `core.ts:224` 的 `input.dryRun ?? false` 是**另一格**——两份都是真源，
+ * 同一格），而内核 `core.ts:233` 的 `input.dryRun ?? false` 是**另一格**——两份都是真源，
  * 都不许"统一"（缺口 **G8** 的原因；`rawfilter` 是同一格先例）。两侧各钉一条测试：
  * `tests/core.spec.ts` 钉内核，`tests/definition.spec.ts` 钉清单。
  *
@@ -116,7 +116,8 @@ export const Config = Schema.object({
   codePage: Schema.number().default(0).volatile(),
   databasePath: Schema.string().default('').volatile(),
   recordRun: Schema.boolean().default(false).volatile(),
-  dryRun: Schema.boolean().default(true).volatile(),
+  // 默认对齐迁移配置 [nodes.smartzip] dryRun = false（口令不搬，仍走设置面 mutate）。
+  dryRun: Schema.boolean().default(false).volatile(),
 })
 
 /** 本包自己的清单；读不到就是打包/安装出错，宁可直接抛。 */
@@ -180,8 +181,8 @@ function inputFrom(action: SmartZipAction, args: Record<string, unknown>, inputs
   // 两条布尔都只在"有人真表过态"时才下发：
   // - 原始参数里有这个键 ⇒ 用面板/命令给的值；
   // - 否则 `Config` 说是 true ⇒ 显式下发 true（上游 `dry_run ?? true` 那一格）；
-  // - 否则**不下发**，让内核自己的默认成立（`recordRun: Boolean(databasePath)` `core.ts:223`、
-  //   `dryRun: false` `core.ts:224`）。把 `Config` 的 false 也显式下发，就等于把
+  // - 否则**不下发**，让内核自己的默认成立（`recordRun: Boolean(databasePath)` `core.ts:232`、
+  //   `dryRun: false` `core.ts:233`）。把 `Config` 的 false 也显式下发，就等于把
   //   "给了库路径就默认记账"这条内核语义在宿主面抹掉（bandia 同一取舍）。
   if (has('recordRun', args)) input.recordRun = inputs.recordRun === true
   else if (config.recordRun.get()) input.recordRun = true
@@ -192,7 +193,7 @@ function inputFrom(action: SmartZipAction, args: Record<string, unknown>, inputs
 
 /**
  * 内核事件 → 运行账本。**单位**：smartzip 内核与 `src/platform.ts` 的 `progress` 都是百分数
- * （`core.ts:235,251,253` 与上游 `platform.ts:76,154`），直接当 `done / total = 100` 用，
+ * （`core.ts:244,260,262` 与上游 `platform.ts:76,436`），直接当 `done / total = 100` 用，
  * 不许照抄 dissolvef 那句 `* 100`（那份内核给的是 0..1）。见 `src/contract.ts` 文件头。
  */
 function forward(event: { type: string; progress?: number | undefined; message: string }, run: OperationRun): void {
@@ -203,10 +204,10 @@ function forward(event: { type: string; progress?: number | undefined; message: 
 }
 
 /**
- * 结果视图：内核算好的字段一条不加、一条不减（`core.ts:180-190` 那份 `SmartZipData`）。
- * `config` 直接给——内核的 `data()` 已经把 `passwords` 整体折成 `••••`（`core.ts:508`）。
+ * 结果视图：内核算好的字段一条不加、一条不减（`core.ts:189-199` 那份 `SmartZipData`）。
+ * `config` 直接给——内核的 `data()` 已经把 `passwords` 整体折成 `••••`（`core.ts:517`）。
  * `commandResult` 只带长度不带正文：那两个长度就是内核自己那份运行记录的字段
- * （`stdoutLength` / `stderrLength`，`core.ts:411-412`），而 7-Zip 的输出上限是 32 MiB
+ * （`stdoutLength` / `stderrLength`，`core.ts:420-421`），而 7-Zip 的输出上限是 32 MiB
  * （`src/exec.ts` 的 `OUTPUT_BYTES`），整段塞进账本会把一次运行变成一份日志转储。
  */
 function viewOf(data: SmartZipData | undefined) {

@@ -154,7 +154,8 @@ describe('bandia 内核：上游写了但没被测到的分支', () => {
       'C:/work/x.zip': fileStat(42),
     })
     await runBandia({ action: 'export_efu', paths: ['C:/work/book', 'C:/work/x.zip'], efuOutputPath: 'C:/tmp/e.efu' }, runtime)
-    const text = runtime.writes['C:/tmp/e.efu']
+    // 夹具自己写的键，`noUncheckedIndexedAccess` 不会替我们记住这一点，所以在这里点名。
+    const text = runtime.writes['C:/tmp/e.efu']!
     expect(text.startsWith('\ufeff')).toBe(true)
     expect(text).toContain('\r\n')
     // 1_700_000_000_000 ms → FILETIME：ms*10000 + 116444736000000000（core.ts:550-552）

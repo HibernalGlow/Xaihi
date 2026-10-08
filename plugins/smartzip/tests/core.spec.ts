@@ -11,7 +11,7 @@
  * 假 runtime 原样，因为内核只认那 6 个方法）。
  *
  * 本文件另外钉住三处"会被顺手改掉就再也读不回来"的形状：
- * 1. **`dryRun` 的内核默认是 false**（`core.ts:224`），而清单里那条字段的声明默认是 **true**
+ * 1. **`dryRun` 的内核默认是 false**（`core.ts:233`），而清单里那条字段的声明默认是 **true**
  *    ——两份都是真源，不许统一（缺口 G8 的成因；另一侧钉在 `tests/definition.spec.ts`）。
  * 2. **缺 `ctx.subprocess` 时说的那句是"够不到那条缝"，不是"7-Zip 没装"**
  *    （`src/platform.ts`）。阳性对照：喂一条假的 `runCommand` 之后，同一次调用改口说

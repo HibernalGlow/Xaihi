@@ -94,11 +94,12 @@ export interface Config {
 }
 
 export const Config = Schema.object({
-  preset: Schema.string().default('').volatile(),
-  srcEncoding: Schema.string().default('').volatile(),
-  dstEncoding: Schema.string().default('').volatile(),
-  transform: Schema.string().default('').volatile(),
-  strategy: Schema.string().default('').volatile(),
+  // 默认对齐迁移配置 [nodes.encodeb]（2026-10-05 Xiranite 使用者配置）。
+  preset: Schema.string().default('cn').volatile(),
+  srcEncoding: Schema.string().default('cp437').volatile(),
+  dstEncoding: Schema.string().default('cp936').volatile(),
+  transform: Schema.string().default('recode').volatile(),
+  strategy: Schema.string().default('replace').volatile(),
   limit: Schema.number().default(0).volatile(),
 })
 

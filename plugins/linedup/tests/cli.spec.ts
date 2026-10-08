@@ -115,6 +115,16 @@ describe('linedup CLI', () => {
     expect(host.stderrText()).toContain('Missing source content')
     expect(host.stdoutText()).toBe('')
   })
+
+  it('交互腿 ui 与 gd/guided 正常进入（退出码 0），且先于任何参数校验', async () => {
+    for (const leg of ['ui', 'gd', 'guided']) {
+      const host = createHost()
+      await runProgram([leg], host)
+      expect(process.exitCode, `${leg} 执行成功`).toBe(0)
+      process.exitCode = 0
+      expect(host.stdoutText()).toContain(`linedup ${leg} 交互模式已就绪`)
+    }
+  })
 })
 
 async function createFixture (name: string): Promise<string> {

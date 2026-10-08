@@ -267,13 +267,9 @@ describe('nameu 宿主接线（apply → defineNode → 真内核）', () => {
     // 阳性对照：这条走的是宿主面，工具没跑起来就会在这里红（而不是在清单断言里假装过）。
     expect(existsSync(join(artist, 'BookArtist.zip'))).toBe(false)
 
-    // 已读回来的落差（不是"待查"）：模型**省略**某个布尔参数时，`asBoolean` 给的是 `false`
-    // （node-sdk/src/define-node.ts:144-145），清单里的声明式 default 只有表单那一侧会填。
-    // 于是 nameu 少传 `addArtistName` 就等于"不补画师名"、少传 `dryRun` 的 rename 就等于
-    // "真改名"（那条由 danger.all 变成的 ask 拦着）。这条断言钉的是当下真实行为：
-    // 哪天 SDK 改成"缺参即不提供"，这里必须红，然后回到 index.ts 改回退那一刀。
+    // SDK 改成了"缺参即不提供（undefined）"，config.addArtistName 默认值 true 生效：
     const omitted = await execute({ pathsText: [artist], mode: 'single' }, {})
-    expect(omitted).toContain('->\tBook.zip')
+    expect(omitted).toContain('->\tBookArtist.zip')
   })
 })
 

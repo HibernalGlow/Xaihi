@@ -43,7 +43,7 @@
     "id": "xaihi-dissolvef",
     "title": {
       "zh": "文件归并整理",
-      "en": "Dissolve folders"
+      "en": "Dissolvef"
     },
     "ui": {
       "remote": "dissolvef",
@@ -66,7 +66,7 @@
       "nodeId": "dissolvef",
       "title": {
         "zh": "文件归并整理",
-        "en": "Dissolve folders"
+        "en": "Dissolvef"
       },
       "description": {
         "zh": "把一个目录里的子文件夹按\"嵌套 / 媒体 / 压缩包 / 直接文件\"四种策略归并到上层，先出计划再落地，并留下可撤销的 undo journal。",
