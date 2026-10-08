@@ -96,7 +96,7 @@ afterEach(() => {
  * 不是再调一次被测函数得到）。
  * 本文件所有计数都从它推，不再各写一个数字：手抄的期望只能有一处。
  */
-const REGISTERED = ['bandia', 'bitv', 'classf', 'classq', 'cleanf', 'crashu', 'dissolvef', 'encodeb', 'enginev', 'findz', 'formatv', 'gifu', 'linedup', 'linku', 'logx', 'marku', 'migratef', 'mvz', 'nameu', 'rawfilter', 'recycleu', 'repacku', 'samea', 'sleept', 'smartzip', 'timeu', 'trename']
+const REGISTERED = ['bandia', 'bitv', 'classf', 'classq', 'cleanf', 'crashu', 'dissolvef', 'encodeb', 'enginev', 'findz', 'formatv', 'gifu', 'kisaki', 'linedup', 'linku', 'marku', 'migratef', 'mvz', 'nameu', 'rawfilter', 'recycleu', 'repacku', 'samea', 'sleept', 'smartzip', 'timeu', 'trename']
 
 describe('注册表 → 面板条目', () => {
 
@@ -116,10 +116,10 @@ describe('注册表 → 面板条目', () => {
   it('标题取嵌进来的 package.json#xaihi.node，两种语言各自一份', () => {
     const titles = Object.fromEntries(inRealmPanelEntries().map((entry) => [entry.contribution.id, entry.contribution.title]))
     // 点名的这四个 zh/en 本来就不同：退成注册表 `name`（或退成单一语言）在这几条上立刻看得出来。
-    expect(titles.sleept).toEqual({ zh: '休眠管理', en: 'Sleep control' })
-    expect(titles.dissolvef).toEqual({ zh: '文件归并整理', en: 'Dissolve folders' })
-    expect(titles.findz).toEqual({ zh: '归档检索', en: 'Archive search' })
-    expect(titles.linedup).toEqual({ zh: '行去重过滤', en: 'Line dedup' })
+    expect(titles.sleept).toEqual({ zh: '休眠管理', en: 'Sleept' })
+    expect(titles.dissolvef).toEqual({ zh: '文件归并整理', en: 'Dissolvef' })
+    expect(titles.findz).toEqual({ zh: '归档检索', en: 'Findz' })
+    expect(titles.linedup).toEqual({ zh: '行去重过滤', en: 'Linedup' })
     for (const entry of inRealmPanelEntries()) {
       expect(entry.contribution.title.zh).not.toBe('')
       expect(entry.contribution.title.en).not.toBe('')
