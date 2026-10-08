@@ -78,9 +78,13 @@ import {
   writeRichPanel,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import type { TrenameAction, TrenameData, TrenameInput, TrenameOperation, TrenameResult } from './core.ts'
 import { runTrename } from './core.ts'
 import { createNodeTrenameRuntime } from './platform.ts'
+import { createTrenameInteractionSchema, type TrenameInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('trename')
 
@@ -105,16 +109,35 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
+function createTrenameUiDefinition (
+  defaults: Partial<TrenameInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<TrenameInput, TrenameResult> {
+  const schema = createTrenameInteractionSchema({ undoPath: defaults.undoPath }, language)
+  return {
+    schema,
+    run: (input, onEvent) => runTrename(input, createNodeTrenameRuntime(), onEvent),
+  }
+}
+
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createTrenameUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + `脚本化请用 \`${CLI_NAME} scan --path <文件夹> --json\`；替代归属是工作台面板与宿主侧的 \`trename_<action>\` 工具（\`ctx.tools\`）。`,
+    loadScreen: async () => (await import('./Tui.tsx')).TrenameTui,
   })
 }
 

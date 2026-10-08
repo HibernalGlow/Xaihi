@@ -49,17 +49,26 @@
 import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
+  runInteractionCli,
+  type InteractionCliContext,
+} from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
+import {
   canRunInteractiveCli,
   createCliHost,
   defineCommand,
   nodeCliName,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeJson,
+  writeLine,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
-import { BITV_PROCESS_SEAM_REFUSAL } from './platform.ts'
+import { BITV_PROCESS_SEAM_REFUSAL, createNodeBitvRuntime } from './platform.ts'
+import { createBitvInteractionSchema, type BitvInteractionValues } from './interaction.ts'
+import type { BitvInput, BitvResult } from './core.ts'
+import { runBitv } from './core.ts'
 
 const CLI_NAME = nodeCliName('bitv')
 
@@ -67,7 +76,7 @@ const CLI_NAME = nodeCliName('bitv')
 const NODE_ACTIONS = ['status', 'analyze', 'classify', 'report'] as const
 
 /**
- * 未接的交互腿：留在面上，跑起来响亮拒绝。
+ * 交互腿名单。
  * 导出是为了让测试与 `--help` 用同一份名单，而不是各抄一遍（抄两份就会漂）。
  */
 export const UNWIRED_INTERACTIVE_LEGS = ['ui', 'gd', 'guided'] as const
@@ -82,17 +91,43 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
-/** 派发形状对齐 vendored 支撑里的 `runNodeCliFace`（`--help` 短路与无参拒绝都在那儿）。 */
+function createBitvDefinition (
+  defaults: Partial<BitvInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<BitvInput, BitvResult> {
+  const schema = createBitvInteractionSchema(defaults, language)
+  return {
+    schema,
+    async run (input, onEvent) {
+      const runtime = createNodeBitvRuntime({
+        async spawn () {
+          throw new Error('ffprobe execution requires DSH host subprocess seam')
+        },
+      })
+      return runBitv(input, runtime, onEvent)
+    },
+  }
+}
+
+/** 派发形状接入 @hibernalglow/xaihi-cli-runtime 的 runInteractionCli。 */
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY)) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createBitvDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + `而本节点四条动作要跑的 ffprobe 一律走 DSH 的 \`ctx.subprocess\`（\`src/platform.ts\`），独立 bin 拿不到那条缝。脚本化请用 \`${CLI_NAME} --help\` 看这一面今天能做什么。`,
+    loadScreen: async () => (await import('./Tui.tsx')).BitvTui,
   })
 }
 
@@ -128,23 +163,22 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
           await runSeamBlockedAction('report', args, host)
         },
       }),
-      // ↓ 上游面上有、本包没带的那三条腿：面在这儿，实现不在这儿。
       ui: defineCommand({
         meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.（未接）' },
         async run () {
-          await runUnwiredFace('ui', host)
+          await runProgram(['ui'], host)
         },
       }),
       gd: defineCommand({
         meta: { name: 'gd', description: 'Open the compact guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('gd', host)
+          await runProgram(['gd'], host)
         },
       }),
       guided: defineCommand({
         meta: { name: 'guided', description: 'Compatibility alias for gd.（未接）' },
         async run () {
-          await runUnwiredFace('guided', host)
+          await runProgram(['guided'], host)
         },
       }),
     },

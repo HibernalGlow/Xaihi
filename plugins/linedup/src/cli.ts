@@ -21,6 +21,12 @@
 import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { readFile, writeFile } from 'node:fs/promises'
+import {
+  runInteractionCli,
+  type InteractionCliContext,
+} from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import { filterLines, splitLines } from './core.ts'
 import {
   canRunInteractiveCli,
@@ -29,14 +35,22 @@ import {
   hasPipedInput,
   nodeCliName,
   readStdinText,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeLine,
 } from './cli-support.ts'
 import type { CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import {
+  createLinedupInteractionSchema,
+  runLinedupInteraction,
+  type LinedupInput,
+  type LinedupResult,
+  type LinedupInteractionValues,
+} from './interaction.ts'
 
 const CLI_NAME = nodeCliName('linedup')
+
+export const UNWIRED_INTERACTIVE_LEGS = ['ui', 'gd', 'guided'] as const
 
 interface FilterOptions {
   source?: string
@@ -57,12 +71,6 @@ interface LinedupDefaults {
   preserveOrder?: boolean
 }
 
-/**
- * 未接：上游在这里读 `xiranite.config.toml` 的 `[nodes.linedup]`
- * （`@xiranite/config` 的 `loadNodeConfigWithHints`）。Xaihi 没有"配置文件在 cwd 旁边"
- * 这一层——同一些默认值在宿主侧是 `src/index.ts` 的 `Config`（cordis 的 Schema），
- * 只有跑在 DSH 进程里才读得到，独立 bin 读不到。所以这里返回空默认，flag 一律以命令行给的为准。
- */
 async function resolveLinedupDefaults (): Promise<LinedupDefaults> {
   return {}
 }
@@ -77,42 +85,39 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
-/** 派发形状对齐上游的 `runInteractionCli`（见 cli-support 末尾）。 */
+function createLinedupDefinition (
+  defaults: Partial<LinedupInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<LinedupInput, LinedupResult> {
+  const schema = createLinedupInteractionSchema({ ...defaults }, language)
+  return {
+    schema,
+    async run (input) {
+      return runLinedupInteraction(input)
+    },
+  }
+}
+
+/** 派发形状接入 @hibernalglow/xaihi-cli-runtime 的 runInteractionCli。 */
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY)) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createLinedupDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
-      await legacyRunProgram(pipeArgs, pipeHost)
+      await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '引导流（@clack）与全屏 TUI（OpenTUI）都不随本包发布，'
-      + `脚本化请用 \`${CLI_NAME} filter --source <文本> --filter <文本> --json\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).LinedupTui,
   })
-}
-
-async function legacyRunProgram (args: readonly string[], host: CliHost): Promise<void> {
-  if (args.length === 0) {
-    await runGuided(host)
-    return
-  }
-  await runPipeProgram(createProgram(host), args, host)
-}
-
-/**
- * 未接：上游的 `runGuided` 要 `selectRich` / `promptRich`（`@clack/prompts`）、
- * 剪贴板（`./platform.js` 的 `readClipboardText`，本包没有这个模块）与
- * `analyzeReadLines`（本包 `src/core.ts` 只搬了 filterLines/splitLines/explainRemovals）。
- * 该由谁替：DSH 的面板（`frontend/Panel.tsx`）与 `ctx.commands`。
- */
-async function runGuided (host: CliHost): Promise<void> {
-  if (!canRunInteractiveCli(host)) {
-    writeError(host, `Guided mode requires an interactive terminal. Use \`${CLI_NAME} filter --help\` for scripted use.`)
-    process.exitCode = 2
-    return
-  }
-  writeError(host, `\`${CLI_NAME} guided\` 未接：引导流的选项树在 @clack 上，本包不引它。`)
-  process.exitCode = 2
 }
 
 function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
@@ -142,13 +147,31 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
           await runFilter(args as FilterOptions, host, defaults)
         },
       }),
+      ui: defineCommand({
+        meta: {
+          name: 'ui',
+          description: 'Open the full terminal UI using OpenTUI.',
+        },
+        async run () {
+          await runProgram(['ui'], host)
+        },
+      }),
+      gd: defineCommand({
+        meta: {
+          name: 'gd',
+          description: 'Open the compact guided terminal workflow.',
+        },
+        async run () {
+          await runProgram(['gd'], host)
+        },
+      }),
       guided: defineCommand({
         meta: {
           name: 'guided',
           description: 'Open a rich terminal guided workflow.',
         },
         async run () {
-          await runGuided(host)
+          await runProgram(['guided'], host)
         },
       }),
     },

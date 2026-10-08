@@ -31,4 +31,56 @@
  *
  * @module xaihi-marku/interaction
  */
-import type{InteractionField,InteractionValues,TerminalInteractionSchema}from"./interaction-types.ts";import type{TerminalLanguage}from"./interaction-types.ts";import{MARKU_MODULES,type MarkuAction,type MarkuInput,type MarkuModuleId,type MarkuResult}from"./core.js"
+import type { InteractionField, InteractionValues, TerminalInteractionSchema } from "@hibernalglow/xaihi-cli-runtime/interaction"
+import type { TerminalLanguage } from "@hibernalglow/xaihi-cli-runtime/i18n"
+import { MARKU_MODULES, type MarkuModuleId, type MarkuAction, type MarkuInput, type MarkuResult } from "./core.ts"
+
+export const MARKU_MODULE_VOCABULARY: ReadonlyArray<{ id: MarkuModuleId; name: string }> = MARKU_MODULES
+
+export type MarkuInteractionValues = InteractionValues & {
+  action: MarkuAction
+  module: MarkuModuleId
+  paths: string
+  inputText: string
+  stepConfig: string
+  recursive: boolean
+  dryRun: boolean
+  enableUndo: boolean
+  historyPath: string
+  undoId: string
+}
+
+export function createMarkuInteractionSchema(d: Partial<MarkuInteractionValues> = {}, language: TerminalLanguage = "zh"): TerminalInteractionSchema<MarkuInput, MarkuResult> {
+  const zh = language === "zh"
+  const base: MarkuInteractionValues = { action: "text", module: "markt", paths: "", inputText: "", stepConfig: "{}", recursive: false, dryRun: true, enableUndo: true, historyPath: "", undoId: "" }
+  const initialValues = { ...base, ...Object.fromEntries(Object.entries(d).filter(([, v]) => v !== undefined)) } as MarkuInteractionValues
+  const fields: InteractionField[] = [
+    { id: "action", label: zh ? "处理方式" : "Action", kind: "select", role: "action", options: [{ value: "text", label: zh ? "≡ 文本处理" : "≡ Text" }, { value: "run", label: zh ? "▤ 文件批处理" : "▤ Files" }, { value: "history", label: zh ? "◷ 历史" : "◷ History" }, { value: "undo", label: zh ? "↶ 撤销" : "↶ Undo" }] },
+    { id: "module", label: zh ? "处理模块" : "Module", kind: "select", options: MARKU_MODULES.map((x, i) => ({ value: x.id, label: `${["≡", "#", "◇", "▦", "Aa", "↔", "1.", "▣", "☷"][i]} ${x.id}` })), visibleWhen: v => v.action === "text" || v.action === "run" },
+    { id: "paths", label: zh ? "Markdown 路径" : "Markdown paths", kind: "text", visibleWhen: v => v.action === "run" },
+    { id: "inputText", label: zh ? "输入文本" : "Input text", kind: "text", visibleWhen: v => v.action === "text" },
+    { id: "stepConfig", label: zh ? "模块配置 JSON" : "Module config JSON", kind: "text", visibleWhen: v => v.action === "text" || v.action === "run" },
+    { id: "recursive", label: zh ? "递归目录" : "Recursive", kind: "boolean", visibleWhen: v => v.action === "run" },
+    { id: "dryRun", label: zh ? "仅预演" : "Dry run", kind: "boolean", visibleWhen: v => v.action === "run" },
+    { id: "enableUndo", label: zh ? "记录撤销" : "Record undo", kind: "boolean", visibleWhen: v => v.action === "run" },
+    { id: "historyPath", label: zh ? "历史文件" : "History file", kind: "text", visibleWhen: v => v.action === "history" || v.action === "undo" },
+    { id: "undoId", label: zh ? "撤销 ID" : "Undo ID", kind: "text", visibleWhen: v => v.action === "undo" },
+  ]
+  return {
+    id: "marku", title: "MarkU", description: zh ? "Markdown 模块处理、差异审阅与撤销工作台" : "Markdown module processing, diff review, and undo workbench", initialValues, fields,
+    view: { sections: [{ id: "module", title: zh ? "模块工具箱" : "Module toolbox", fieldIds: fields.map(x => x.id) }], dashboard: { title: "MarkU", display: v => ({ primary: String(v.module), secondary: String(v.action), metrics: [] }) } },
+    toInput: v => ({ action: v.action as MarkuAction, module: v.module as MarkuModuleId, paths: split(v.paths), inputText: String(v.inputText ?? ""), stepConfig: json(v.stepConfig), recursive: v.recursive === true, dryRun: v.dryRun !== false, enableUndo: v.enableUndo !== false, historyPath: String(v.historyPath ?? ""), undoId: String(v.undoId ?? "") }),
+    validate(_v, i) {
+      if (i.action === "history" || i.action === "undo") return null
+      if (i.action === "text") return i.inputText?.length ? null : zh ? "请输入 Markdown 文本。" : "Enter Markdown text."
+      return i.paths?.length ? null : zh ? "请输入 Markdown 文件或目录。" : "Enter Markdown files or folders."
+    },
+    preview: i => [`${zh ? "模块" : "Module"}: ${i.module}`, `${zh ? "动作" : "Action"}: ${i.action}`],
+    isDangerous: i => i.action === "undo" || (i.action === "run" && i.dryRun === false),
+    dangerPrompt: i => ({ title: i.action === "undo" ? (zh ? "确认撤销写入" : "Confirm undo") : (zh ? "确认写入 Markdown" : "Confirm Markdown write"), body: zh ? "该操作会修改磁盘中的 Markdown 文件。" : "This modifies Markdown files on disk.", confirmLabel: zh ? "确认执行" : "Execute" }),
+    result: r => ({ success: r.success, message: r.message, lines: r.data ? [`Processed: ${r.data.filesProcessed}`, `Changed: ${r.data.filesChanged}`, `Errors: ${r.data.errors.length}`] : [] }),
+  }
+}
+
+function split(v: unknown) { return String(v ?? "").split(/[;\r\n]+/).map(x => x.trim()).filter(Boolean) }
+function json(v: unknown) { try { return JSON.parse(String(v ?? "{}")) as Record<string, unknown> } catch { return {} } }

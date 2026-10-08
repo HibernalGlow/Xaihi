@@ -16,5 +16,10 @@ export default defineConfig({
   clean: true,
   fixedExtension: false,
   noExternal: ['@hibernalglow/xaihi-sdk'],
-  external: ['@deepseek-ai/dsh-tools'],
+    external: [
+    /^@hibernalglow\/xaihi-cli-runtime/,
+    /^@opentui\//,
+    /^react(\/|$)/,
+    "@deepseek-ai/dsh-tools",
+  ],
 })

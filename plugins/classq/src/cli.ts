@@ -38,13 +38,17 @@
 import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
+  runInteractionCli,
+} from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
+import {
   canRunInteractiveCli,
   createCliHost,
   defineCommand,
   hasPipedInput,
   nodeCliName,
   readStdinLines,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeJson,
@@ -54,6 +58,7 @@ import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support
 import type { ClassqAction, ClassqExistingPolicy, ClassqInput, ClassqResult, ClassqTransferMode } from './core.ts'
 import { runClassq } from './core.ts'
 import { createNodeClassqRuntime } from './platform.ts'
+import { createClassqInteractionSchema, type ClassqInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('classq')
 
@@ -76,16 +81,57 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
+function createClassqDefinition (
+  defaults: Partial<ClassqInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<ClassqInput, ClassqResult> {
+  let cancelled = false
+  let paused = false
+  let resumePaused: (() => void) | undefined
+  const schema = createClassqInteractionSchema(defaults, language)
+  return {
+    schema,
+    async run (input, onEvent) {
+      cancelled = false
+      paused = false
+      const runtime = createNodeClassqRuntime()
+      return runClassq(input, {
+        ...runtime,
+        isCancelled: () => cancelled,
+        waitWhilePaused: async () => {
+          while (paused && !cancelled) await new Promise<void>((resolve) => { resumePaused = resolve })
+          resumePaused = undefined
+        },
+      }, onEvent)
+    },
+    pause () { paused = true },
+    resume () { paused = false; resumePaused?.() },
+    cancel () {
+      cancelled = true
+      paused = false
+      resumePaused?.()
+    },
+  }
+}
+
 export async function runProgram(args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createClassqDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + `脚本化请用 \`${CLI_NAME} plan --paths <文本> --json\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).ClassqTui,
   })
 }
 

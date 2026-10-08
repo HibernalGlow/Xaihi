@@ -51,7 +51,6 @@ import {
   readStdinLines,
   renderProgressBar,
   rich,
-  runNodeCliFace,
   runPipeProgram,
   terminalColumns,
   truncateVisible,
@@ -62,9 +61,13 @@ import {
   writeRichPanel,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import type { RawfilterAction, RawfilterInput, RawfilterPlanItem, RawfilterResult } from './core.ts'
 import { runRawfilter } from './core.ts'
 import { createNodeRawfilterRuntime } from './platform.ts'
+import { createRawfilterInteractionSchema, type RawfilterInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('rawfilter')
 
@@ -87,17 +90,35 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
+function createRawfilterUiDefinition (
+  defaults: Partial<RawfilterInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<RawfilterInput, RawfilterResult> {
+  const schema = createRawfilterInteractionSchema(defaults, language)
+  return {
+    schema,
+    run: (input, event) => runRawfilter(input, createNodeRawfilterRuntime(), event),
+  }
+}
+
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createRawfilterUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + '引导流里那条"从剪贴板读路径"要 DSH 的 `ctx.subprocess`（独立 bin 拿不到），'
-      + `脚本化请用 \`${CLI_NAME} plan --path <目录> --json\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).RawfilterTui,
   })
 }
 
@@ -154,19 +175,19 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
       ui: defineCommand({
         meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.（未接）' },
         async run () {
-          await runUnwiredFace('ui', host)
+          await runProgram(['ui'], host)
         },
       }),
       gd: defineCommand({
         meta: { name: 'gd', description: 'Open the rich guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('gd', host)
+          await runProgram(['gd'], host)
         },
       }),
       guided: defineCommand({
         meta: { name: 'guided', description: 'Compatibility alias for gd.（未接）' },
         async run () {
-          await runUnwiredFace('guided', host)
+          await runProgram(['guided'], host)
         },
       }),
     },

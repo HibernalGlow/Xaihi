@@ -1,37 +1,38 @@
 #!/usr/bin/env node
 /**
- * sleept 的终端面，对照 `<Xiranite>` tag `noxide` 的 `packages/nodes/sleept/src/cli.ts`。
+ * sleept 的终端面。上游真源：`<Xiranite>` 当前 HEAD（`v1.0.0-587-g8e42280f`）的
+ * `packages/nodes/sleept/src/cli.ts`（742 行）——本仓按它的接线形状移植，不是照抄全文：
  *
- * 这一档是三个节点里**形状差得最远**的一个，原因写在明处：
- * 上游的 sleept 是**定时器**——`countdown / at / netspeed / cpu` 四个触发器 + 触发后的
- * 电源动作，逻辑在 `packages/nodes/sleept/src/core.ts` 的 `runSleept`。本仓的 sleept 是
- * **电源节点**——`status / block / unblock / sleep / displayOff / screensaver`
- * （真源：`package.json#xaihi.node`），那份定时器内核**现在在 `src/core.ts`**
- * （两条纯函数在 `src/duration.ts`，交互面的折参在 `src/interaction.ts`——工作台那两条
- * value-import 已经从"未迁"变成解析得到）。**内核在这儿，四条定时器子命令在这个 bin 里仍然是未接**：
- * `runSleept` 一寸一寸都靠注入的 `SleeptRuntime`（`sleep` / `getCpuPercent` / `getNetCounters` /
- * `executePowerAction`），缺的不是算法，是喂它的那台运行时。
- * 于是：
- * - 本节点定义里的六个动作成为子命令，flag 与退出码按上游终端面的形状给；
- * - 上游那四个定时器子命令**留在 `--help` 里**，跑起来一律"未接"（退出码 2）。
- *   静默消失比响亮拒绝更糟：那样聚合 CLI 的面板看起来像"这个节点少了四个能力"，
- *   而不是"这块运行时还没接"。
+ * - **已接**：`ui` / `gd` / `guided` 走 `runInteractionCli`（`@hibernalglow/xaihi-cli-runtime/terminal`），
+ *   `loadScreen` 动态装载 `./Tui.tsx` 的 `SleeptTui`，引导流读 `./interaction.ts` 的 schema，
+ *   运行时由 `./runtime.ts` 的 `createNodeSleeptRuntime` 提供（上游 `platform.ts` 的运行时工厂）。
+ * - **有意不搬**：上游 `resolveSleeptDefaults` 从 `@xiranite/config/node` 读配置文件——按
+ *   ADR-0013 本仓没有这条通路（配置只走 DSH settings，独立 bin 读不到宿主半边），所以
+ *   `loadContext` 交给 schema 自带默认值；上游 `createPreferenceController` 的偏好持久化
+ *   同因不搬（终端偏好设置页在本 bin 里改动不落盘，这是 ADR-0011 意义上的可见退化）。
+ * - **执行闸门**：TUI/引导流里的电源动作全部过 `dryrun` 闸（默认 true，关掉要使用者在
+ *   交互面上亲手切，终端面那一下按键就是当场授权）；`--help` 与管道子命令没有交互闸，
+ *   电源动作照旧拒绝（`refusalReason`）。
  *
- * 执行这一半也**未接**：本包的执行一律经 DSH 的 `ctx.subprocess`（`src/exec.ts` 顶部写了
- * 为什么不自建 spawn），而独立 bin 不在宿主进程里，拿不到那条缝。所以 CLI 只做到
- * "把平台计划算出来给你看"（`planCommand` / `planAssertionProbe` 都是纯函数，复用 `src/platform.ts`，
- * 不在此另写一份平台分支），随后拒绝执行。无模型的入口另有宿主侧的 slash command
- * （`src/index.ts` 的 `ctx.commands.register({ name: 'sleept' })`），它同样不许碰
- * 被 `danger.actionIn` 标红的 `sleep`。
+ * 管道面（`status` / `block` / …）保持原状：本节点的执行一律经 DSH 的 `ctx.subprocess`
+ * （`src/exec.ts`），独立 bin 只做规划（`planCommand` / `planAssertionProbe`，纯函数），
+ * 随后拒绝执行。无模型的入口另有宿主侧 slash command（`src/index.ts`）。
  *
  * @module xaihi-sleept/cli
  */
 
+import { realpathSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import {
+  runInteractionCli,
+  type InteractionCliContext,
+} from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import {
   createCliHost,
   defineCommand,
   nodeCliName,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeJson,
@@ -42,6 +43,9 @@ import {
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
 import { planAssertionProbe, planCommand, type PlannedCommand, type SleeptAction } from './platform.ts'
+import { runSleept, type NetTriggerMode, type SleeptInput, type SleeptResult } from './core.ts'
+import { createSleeptInteractionSchema, type SleeptInteractionAction } from './interaction.ts'
+import { createNodeSleeptRuntime } from './runtime.ts'
 
 const CLI_NAME = nodeCliName('sleept')
 
@@ -73,16 +77,80 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
+/**
+ * 独立 bin 读不到宿主 settings（ADR-0013），交互偏好与定时器默认值一律交给
+ * schema 自带的那份（`createSleeptInteractionSchema` 只收 `!== undefined` 的键，
+ * 空对象 = 全默认；`dryrun` 默认 true，见 schema）。
+ */
+interface SleeptDefaults {
+  action?: SleeptInteractionAction
+  powerMode?: import('./schedule.ts').PowerMode
+  hours?: number
+  minutes?: number
+  seconds?: number
+  targetDatetime?: string
+  uploadThreshold?: number
+  downloadThreshold?: number
+  netDuration?: number
+  netTriggerMode?: NetTriggerMode
+  cpuThreshold?: number
+  cpuDuration?: number
+  dryrun?: boolean
+  maxWaitSeconds?: number
+}
+
+async function loadSleeptContext (): Promise<InteractionCliContext<SleeptDefaults>> {
+  return {
+    preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' },
+    value: {},
+  }
+}
+
+/** 上游 `createSleeptUiDefinition`（cli.ts 214-261 行）的同形移植；runtime 换本仓的 `./runtime.ts`。 */
+function createSleeptUiDefinition (
+  defaults: SleeptDefaults,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<SleeptInput, SleeptResult> {
+  let cancelled = false
+  let paused = false
+  let resumePaused: (() => void) | undefined
+  const schema = createSleeptInteractionSchema({ ...defaults }, language)
+  return {
+    schema,
+    async run (input, onEvent) {
+      cancelled = false
+      paused = false
+      const runtime = createNodeSleeptRuntime()
+      return runSleept(input, {
+        ...runtime,
+        isCancelled: () => cancelled,
+        waitWhilePaused: async () => {
+          while (paused && !cancelled) await new Promise<void>((resolve) => { resumePaused = resolve })
+          resumePaused = undefined
+        },
+      }, onEvent)
+    },
+    pause () { paused = true },
+    resume () { paused = false; resumePaused?.() },
+    cancel () {
+      cancelled = true
+      paused = false
+      resumePaused?.()
+    },
+  }
+}
+
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => loadSleeptContext(),
+    createDefinition: (defaults, language) => createSleeptUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + '而且本节点的执行本来就只活在宿主进程里（`ctx.subprocess`）。',
+    loadScreen: async () => (await import('./Tui.tsx')).SleeptTui,
   })
 }
 
@@ -91,7 +159,7 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
     meta: { name: CLI_NAME, description: 'Sleep control CLI: planned commands on the terminal face, execution on the host face.' },
     subCommands: {
       'ui': defineCommand({
-        meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.（未接）' },
+        meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.' },
         args: {
           renderer: { type: 'string', description: 'opentui.' },
           lang: { type: 'string', description: 'en or zh.' },
@@ -102,13 +170,13 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
         },
       }),
       'gd': defineCommand({
-        meta: { name: 'gd', description: 'Open the compact guided terminal workflow.（未接）' },
+        meta: { name: 'gd', description: 'Open the compact guided terminal workflow.' },
         async run () {
           await runProgram(['gd'], host)
         },
       }),
       'guided': defineCommand({
-        meta: { name: 'guided', description: 'Compatibility alias for gd.（未接）' },
+        meta: { name: 'guided', description: 'Compatibility alias for gd.' },
         async run () {
           await runProgram(['guided'], host)
         },
@@ -335,9 +403,27 @@ async function runUnwiredTimer (name: string, host: CliHost): Promise<void> {
   process.exitCode = 2
 }
 
-/** 自执行闸门：与 linedup / dissolvef 同一写法。 */
-const entry = process.argv[1] ?? ''
-if (/\bcli\.[cm]?[jt]s$/.test(entry.replace(/\\/g, '/'))) {
+/** argv[1] 与本模块经 realpath 后是否同指一个文件：npm 装出的 bin 软链（`…/bin/<id>`）
+ * 解析到真身后点亮；聚合 CLI 引本模块时 argv[1] 是它自己的入口，比对失败不点亮。 */
+function sameRealpathAsSelf (entry: string): boolean {
+  try {
+    return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 自执行闸门：`argv[1]` 经 realpath 后与本模块同指一个文件才点亮。
+ * 2026-10-07 之前这里用的是 `/\bcli\.[cm]?[jt]s$/` 正则匹配裸 `argv[1]`——而 npm
+ * 装出的 bin 是以节点 id 命名的软链（`…/bin/<id>`），正则不匹配，实机
+ * `npm i -g file:` 后 `bin/<id> --help` 静默 rc=0（阳性对照：真路径
+ * `node lib/cli.js --help` 正常）。上游 sleept 原用 `pathToFileURL(argv[1]).href`
+ * 比较，本仓按同一条比较形状补上 realpath：bin 软链直跑点亮；聚合 CLI 引本模块
+ * 时 argv[1] 是它自己的入口，不点亮。
+ */
+const entry = process.argv[1]
+if (entry !== undefined && sameRealpathAsSelf(entry)) {
   try {
     await runProgram()
   } catch (error) {

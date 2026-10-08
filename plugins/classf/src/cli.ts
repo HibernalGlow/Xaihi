@@ -41,11 +41,15 @@
 import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
+  runInteractionCli,
+} from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
+import {
   canRunInteractiveCli,
   createCliHost,
   defineCommand,
   nodeCliName,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeJson,
@@ -55,6 +59,7 @@ import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support
 import type { ClassfAction, ClassfClassifyMode, ClassfExistingPolicy, ClassfInput, ClassfPlacementMode, ClassfResult, ClassfTransferMode, ClassfWorkItemMode } from './core.ts'
 import { runClassf } from './core.ts'
 import { CLIPBOARD_UNWIRED, SIBLING_KERNEL_UNWIRED, createNodeClassfRuntime } from './platform.ts'
+import { createClassfInteractionSchema, type ClassfInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('classf')
 
@@ -119,17 +124,58 @@ export function applyUpstreamFlagAliases (args: readonly string[]): string[] {
   })
 }
 
+function createClassfUiDefinition (
+  defaults: Partial<ClassfInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<ClassfInput, ClassfResult> {
+  let cancelled = false
+  let paused = false
+  let resumePaused: (() => void) | undefined
+  const schema = createClassfInteractionSchema({ ...defaults }, language)
+  return {
+    schema,
+    async run (input, onEvent) {
+      cancelled = false
+      paused = false
+      const runtime = createNodeClassfRuntime()
+      return runClassf(input, {
+        ...runtime,
+        isCancelled: () => cancelled,
+        waitWhilePaused: async () => {
+          while (paused && !cancelled) await new Promise<void>((resolve) => { resumePaused = resolve })
+          resumePaused = undefined
+        },
+      }, onEvent)
+    },
+    pause () { paused = true },
+    resume () { paused = false; resumePaused?.() },
+    cancel () {
+      cancelled = true
+      paused = false
+      resumePaused?.()
+    },
+  }
+}
+
 export async function runProgram (rawArgs = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
   const args = applyUpstreamFlagAliases(rawArgs)
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY)) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createClassfUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + `脚本化请用 \`${CLI_NAME} plan --paths-text <根目录> --json\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).ClassfTui,
   })
 }
 

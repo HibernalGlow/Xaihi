@@ -19,7 +19,7 @@
  *    同一些值（`ini_path` / `passwords` / `code_page` / `database_path` / `record_run` /
  *    `dry_run`）在 Xaihi 是 `src/index.ts` 的 `Config`，独立 bin 读不到 ⇒ 这里的 defaults
  *    是空的，缺省落回内核自己那一套。**连带后果**：内核的 `dryRun` 默认是 **false**
- *    （`core.ts:224`），所以 `xsmartzip extract` 不带 `--dryRun` 走的是"真执行"那一条——
+ *    （`core.ts:233`），所以 `xsmartzip extract` 不带 `--dryRun` 走的是"真执行"那一条——
  *    而那条在本 bin 里必然被第 2 条拦下，不会动到任何文件。
  * 2. **7-Zip 起不来：这一面只出计划**。`ctx.subprocess` 活在宿主进程里（缺口 G1/G6 那一族：
  *    DSH 的服务缝在插件进程内，能装进 `$PATH` 的那一面在外面），所以 bin 里构造的运行时
@@ -27,7 +27,7 @@
  *    `NO_SUBPROCESS_MESSAGE`（`src/platform.ts`），内核把它折成 `success:false` 的一句、
  *    这里折成退出码 1。**不折成"7-Zip 没装"**：那会把"够不到缝"报成使用者的机器上没装 7z，
  *    是伪造读数。于是这一面上今天真跑得通的是：`status`（只读 INI 与内核默认表）、
- *    四条执行动作的 `--dryRun` 计划（`core.ts:261` 那个三元在 dryRun 时跳过 `find7z`，
+ *    四条执行动作的 `--dryRun` 计划（`core.ts:270` 那个三元在 dryRun 时跳过 `find7z`，
  *    计划行由 `buildSmartZipCommand` 出）、以及 `extract --dryRun` 的目录展开
  *    （`resolveInputPaths` 是 `node:fs` 的真枚举）。`inspect_codepage` 需要 7-Zip 列文件树，
  *    在这一面是**可见地拒**。
@@ -35,7 +35,7 @@
  *    的 `parseArgs` 只认 `--flag value` / `--flag=value` / 布尔取反，**没有位置参数**，
  *    也不认 `auto` 这种哨兵值（缺口 **G12**，bitv / classf 已撞过同一条）。所以路径走
  *    `--pathsText`（换行分隔，`-` 表示从 stdin 逐行读，与上游 `:204-207` 那句兜底同源），
- *    码页走 `--codePage <整数>`，`auto` 写作 `0`（内核 `core.ts:221` 那句判据本来就把
+ *    码页走 `--codePage <整数>`，`auto` 写作 `0`（内核 `core.ts:230` 那句判据本来就把
  *    非正整数折成 0，语义不变）。
  * 4. **危险动作的批准缝在这一面不存在**（缺口 **G6**）：宿主侧 `danger.all` 经 `defineNode`
  *    变成 DSH 的 `ask`，bin 里没有 `ctx.approval` 可展示 ⇒ 这里不自己造确认框，也不做
@@ -48,27 +48,31 @@
  * @module xaihi-smartzip/cli
  */
 
+import { realpathSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import {
   canRunInteractiveCli,
   createCliHost,
   defineCommand,
   nodeCliName,
-  readStdinLines,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeJson,
   writeLine,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import type { SmartZipAction, SmartZipInput, SmartZipResult } from './core.ts'
 import { runSmartZip } from './core.ts'
 import { createNodeSmartZipRuntime } from './platform.ts'
+import { createSmartZipInteractionSchema, type SmartZipInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('smartzip')
 
-/** 内核认得的六个动作（`core.ts:77` 那份 `SmartZipAction`）；清单漂出这个名单就抛。 */
+/** 内核认得的六个动作（`core.ts:86` 那份 `SmartZipAction`）；清单漂出这个名单就抛。 */
 const KERNEL_ACTIONS: readonly SmartZipAction[] = ['status', 'inspect_codepage', 'extract', 'extract_codepage', 'open', 'archive']
 
 /** 一条子命令需要的两个字段：内核认得的动作 id 与清单里那句英文描述。 */
@@ -120,17 +124,35 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
-/** 派发形状对齐 vendored 支撑里的 `runNodeCliFace`（`--help` 短路与无参拒绝都在那儿）。 */
+function createSmartZipUiDefinition (
+  defaults: Partial<SmartZipInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<SmartZipInput, SmartZipResult> {
+  return {
+    schema: createSmartZipInteractionSchema(defaults, language),
+    run: (input, onEvent) => runSmartZip(input, createNodeSmartZipRuntime(), onEvent),
+  }
+}
+
+/** 派发形状接入 @hibernalglow/xaihi-cli-runtime 的 runInteractionCli。 */
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createSmartZipUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack/prompts）都不随本包发布；'
-      + `脚本化请用 \`${CLI_NAME} status --json\` 或 \`${CLI_NAME} archive --dryRun --json\` 这样一条子命令。`,
+    loadScreen: async () => (await import('./Tui.tsx')).SmartZipTui,
   })
 }
 
@@ -204,8 +226,8 @@ async function runHostedAction (action: SmartZipAction, args: CliArgs, host: Cli
 
 /**
  * flag → 内核入参。`recordRun` / `dryRun` 只在**真的写过**那个 flag 时才下发：
- * 内核自己的默认是 `recordRun = Boolean(databasePath)`（`core.ts:223`）与
- * `dryRun = false`（`core.ts:224`），把没写过的情形折成 `false` 会抹掉前一条。
+ * 内核自己的默认是 `recordRun = Boolean(databasePath)`（`core.ts:232`）与
+ * `dryRun = false`（`core.ts:233`），把没写过的情形折成 `false` 会抹掉前一条。
  */
 async function inputFromCli (action: SmartZipAction, args: CliArgs, host: CliHost): Promise<SmartZipInput> {
   const input: SmartZipInput = { action }
@@ -233,7 +255,7 @@ async function pathsFrom (value: unknown, host: CliHost): Promise<string[]> {
   return [...rest, ...fromStdin]
 }
 
-/** `--codePage` 只收正整数；`auto` 与垃圾值都折成"不给"，让内核自己那判据去折 0（`core.ts:221`）。 */
+/** `--codePage` 只收正整数；`auto` 与垃圾值都折成"不给"，让内核自己那判据去折 0（`core.ts:230`）。 */
 function codePageOf (value: unknown): number | undefined {
   if (value === undefined) return undefined
   const parsed = Number.parseInt(String(value), 10)
@@ -262,12 +284,27 @@ async function runUnwiredFace (name: string, host: CliHost): Promise<void> {
   process.exitCode = 2
 }
 
+/** argv[1] 与本模块经 realpath 后是否同指一个文件：npm 装出的 bin 软链（`…/bin/<id>`）
+ * 解析到真身后点亮；聚合 CLI 引本模块时 argv[1] 是它自己的入口，比对失败不点亮。 */
+function sameRealpathAsSelf (entry: string): boolean {
+  try {
+    return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+
 /**
- * 自执行闸门：与同批节点同一写法（`.bin` 软链下 argv[1] 未必等于 `import.meta.url`，
- * 而聚合 CLI 引本模块时 argv[1] 是它自己的入口，两条都不该点亮）。
+ * 自执行闸门：`argv[1]` 经 realpath 后与本模块同指一个文件才点亮。
+ * 2026-10-07 之前这里用的是 `/\bcli\.[cm]?[jt]s$/` 正则匹配裸 `argv[1]`——而 npm
+ * 装出的 bin 是以节点 id 命名的软链（`…/bin/<id>`），正则不匹配，实机
+ * `npm i -g file:` 后 `bin/<id> --help` 静默 rc=0（阳性对照：真路径
+ * `node lib/cli.js --help` 正常）。上游 sleept 原用 `pathToFileURL(argv[1]).href`
+ * 比较，本仓按同一条比较形状补上 realpath：bin 软链直跑点亮；聚合 CLI 引本模块
+ * 时 argv[1] 是它自己的入口，不点亮。
  */
-const entry = process.argv[1] ?? ''
-if (/\bcli\.[cm]?[jt]s$/.test(entry.replace(/\\/g, '/'))) {
+const entry = process.argv[1]
+if (entry !== undefined && sameRealpathAsSelf(entry)) {
   try {
     await runProgram()
   } catch (error) {

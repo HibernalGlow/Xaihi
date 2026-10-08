@@ -47,16 +47,19 @@ import {
   hasPipedInput,
   nodeCliName,
   readStdinLines,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeJson,
   writeLine,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import type { NameuAction, NameuInput, NameuMode, NameuResult } from './core.ts'
 import { runNameu } from './core.ts'
 import { createNodeNameuRuntime } from './platform.ts'
+import { createNameuInteractionSchema, type NameuInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('nameu')
 
@@ -79,16 +82,35 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
+function createNameuUiDefinition (
+  defaults: Partial<NameuInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<NameuInput, NameuResult> {
+  const schema = createNameuInteractionSchema(defaults, language)
+  return {
+    schema,
+    run: (input, event) => runNameu(input, createNodeNameuRuntime(), event),
+  }
+}
+
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createNameuUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + `脚本化请用 \`${CLI_NAME} plan --paths <文本> --json\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).NameuTui,
   })
 }
 
@@ -161,19 +183,19 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
       ui: defineCommand({
         meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.（未接）' },
         async run () {
-          await runUnwiredFace('ui', host)
+          await runProgram(['ui'], host)
         },
       }),
       gd: defineCommand({
         meta: { name: 'gd', description: 'Open the compact guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('gd', host)
+          await runProgram(['gd'], host)
         },
       }),
       guided: defineCommand({
         meta: { name: 'guided', description: 'Compatibility alias for gd.（未接）' },
         async run () {
-          await runUnwiredFace('guided', host)
+          await runProgram(['guided'], host)
         },
       }),
     },

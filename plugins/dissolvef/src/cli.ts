@@ -38,7 +38,6 @@ import {
   readStdinLines,
   renderProgressBar,
   rich,
-  runNodeCliFace,
   runPipeProgram,
   terminalColumns,
   truncateVisible,
@@ -49,9 +48,13 @@ import {
   writeRichPanel,
 } from './cli-support.ts'
 import type { CliCommand, CliCommandSpec, CliHost, RichColor } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import type { DissolvefAction, DissolvefConflictMode, DissolvefInput, DissolvefMediaType, DissolvefPlanItem, DissolvefResult } from './core.ts'
 import { runDissolvef } from './core.ts'
 import { createNodeDissolvefRuntime } from './platform.ts'
+import { createDissolvefInteractionSchema, type DissolvefInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('dissolvef')
 const PREVIEW_LIMIT = 40
@@ -93,16 +96,35 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
+function createDissolvefUiDefinition (
+  defaults: Partial<DissolvefInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<DissolvefInput, DissolvefResult> {
+  const schema = createDissolvefInteractionSchema(defaults, language)
+  return {
+    schema,
+    run: (input, event) => runDissolvef(input, createNodeDissolvefRuntime(), event),
+  }
+}
+
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createDissolvefUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await legacyRunProgram(pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + `脚本化请用 \`${CLI_NAME} plan --path <文件夹> --json\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).DissolvefTui,
   })
 }
 
@@ -195,10 +217,22 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
           await runAction({ action: 'undo', ...inputFromArgs(await argsWithPipedPath(args, host)) }, Boolean(args.json), host)
         },
       }),
+      ui: defineCommand({
+        meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.' },
+        async run () {
+          await runProgram(['ui'], host)
+        },
+      }),
+      gd: defineCommand({
+        meta: { name: 'gd', description: 'Open the compact guided terminal workflow.' },
+        async run () {
+          await runProgram(['gd'], host)
+        },
+      }),
       guided: defineCommand({
         meta: { name: 'guided', description: 'Open the rich guided terminal workflow.' },
         async run () {
-          await runGuided(host)
+          await runProgram(['guided'], host)
         },
       }),
     },

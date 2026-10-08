@@ -45,16 +45,19 @@ import {
   defineCommand,
   nodeCliName,
   readStdinLines,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeJson,
   writeLine,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import type { TimeuAction, TimeuInput, TimeuResult } from './core.ts'
 import { runTimeu } from './core.ts'
 import { createNodeTimeuRuntime } from './platform.ts'
+import { createTimeuInteractionSchema, type TimeuInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('timeu')
 
@@ -74,16 +77,35 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
+function createTimeuUiDefinition (
+  defaults: Partial<TimeuInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<TimeuInput, TimeuResult> {
+  return {
+    schema: createTimeuInteractionSchema(defaults, language),
+    run: (input, onEvent) => runTimeu(input, createNodeTimeuRuntime(), onEvent),
+  }
+}
+
+/** 派发形状接入 @hibernalglow/xaihi-cli-runtime 的 runInteractionCli。 */
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createTimeuUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + `脚本化请用 \`${CLI_NAME} scan --paths <文本> --json\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).TimeuTui,
   })
 }
 

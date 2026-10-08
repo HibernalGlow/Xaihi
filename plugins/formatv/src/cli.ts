@@ -50,7 +50,6 @@ import {
   readStdinLines,
   renderProgressBar,
   rich,
-  runNodeCliFace,
   runPipeProgram,
   terminalColumns,
   truncateVisible,
@@ -60,9 +59,13 @@ import {
   writeRichPanel,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import type { FormatvAction, FormatvData, FormatvInput, FormatvResult } from './core.ts'
 import { DEFAULT_PREFIXES, runFormatv } from './core.ts'
 import { createNodeFormatvRuntime } from './platform.ts'
+import { createFormatvInteractionSchema, type FormatvInteractionValues } from './interaction.ts'
 import { applyReportDefaults, DEFAULT_REPORT_DEFAULTS, type ReportDefaults } from './report-defaults.ts'
 
 const CLI_NAME = nodeCliName('formatv')
@@ -86,18 +89,40 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
+function createFormatvUiDefinition (
+  defaults: Partial<FormatvInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<FormatvInput, FormatvResult> {
+  const schema = createFormatvInteractionSchema({
+    recursive: defaults.recursive ?? false,
+    prefixName: defaults.prefixName ?? 'hb',
+    dryRun: defaults.dryRun ?? true,
+    reportPath: '',
+  }, language)
+  return {
+    schema,
+    run: (input, onEvent) => runFormatv(input, createNodeFormatvRuntime(), onEvent),
+  }
+}
+
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createFormatvUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
-      // 上游 `runPipe` 有一条"空参就印 usage"的分支（`cli.ts:164` 的三元），
-      // 本仓的 face 已经把无参 + 非 TTY 判成拒绝了，这里不留那条死路。
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + `脚本化请用 \`${CLI_NAME} scan --path <文件夹> --json\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).FormatvTui,
   })
 }
 
@@ -160,19 +185,19 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
       ui: defineCommand({
         meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.（未接）' },
         async run () {
-          await runUnwiredFace('ui', host)
+          await runProgram(['ui'], host)
         },
       }),
       gd: defineCommand({
         meta: { name: 'gd', description: 'Open the compact guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('gd', host)
+          await runProgram(['gd'], host)
         },
       }),
       guided: defineCommand({
         meta: { name: 'guided', description: 'Open the rich guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('guided', host)
+          await runProgram(['guided'], host)
         },
       }),
     },

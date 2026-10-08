@@ -60,7 +60,6 @@ import {
   readStdinText,
   renderProgressBar,
   rich,
-  runNodeCliFace,
   runPipeProgram,
   terminalColumns,
   truncateVisible,
@@ -69,9 +68,13 @@ import {
   writeLine,
   writeRichPanel,
 } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import type { MarkuAction, MarkuInput, MarkuModuleId, MarkuResult } from './core.ts'
-import { MARKU_MODULES, runMarku } from './core.ts'
+import { MARKU_MODULES, isMarkuModuleId, runMarku } from './core.ts'
 import { createNodeMarkuRuntime } from './platform.ts'
+import { createMarkuInteractionSchema, type MarkuInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('marku')
 
@@ -127,22 +130,39 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
+function createMarkuUiDefinition (
+  defaults: Partial<MarkuInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<MarkuInput, MarkuResult> {
+  const schema = createMarkuInteractionSchema(defaults, language)
+  return {
+    schema,
+    run: (input, event) => runMarku(input, createNodeMarkuRuntime(), event),
+  }
+}
+
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createMarkuUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
-      // 基线 `:125` 的 `runPipe`：无参时打一行可用子命令，有参才进程序本体。
       if (pipeArgs.length === 0) {
         writeLine(pipeHost, `${CLI_NAME} ui | gd | text | run | history | undo`)
         return
       }
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI + 基线 `Tui.tsx`）与引导流（`@clack` + `interaction.ts` 那份 schema，'
-      + '还有偏好读写要的宿主 settings 缝）都不随本包发布，'
-      + `脚本化请用 \`${CLI_NAME} text --module markt --input "# Title" --json\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).MarkuTui,
   })
 }
 
@@ -223,19 +243,19 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
       ui: defineCommand({
         meta: { name: 'ui', description: 'Open the full terminal UI using OpenTUI.（未接）' },
         async run () {
-          await runUnwiredFace('ui', host)
+          await runProgram(['ui'], host)
         },
       }),
       gd: defineCommand({
         meta: { name: 'gd', description: 'Open the compact guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('gd', host)
+          await runProgram(['gd'], host)
         },
       }),
       guided: defineCommand({
         meta: { name: 'guided', description: 'Open the rich guided terminal workflow.（未接）' },
         async run () {
-          await runUnwiredFace('guided', host)
+          await runProgram(['guided'], host)
         },
       }),
     },

@@ -67,11 +67,25 @@ function jsFiles(dir) {
   return out
 }
 
+/**
+ * 全局安装（global-install.mjs）在快照发布时动态补齐的 CLI 运行时依赖。
+ * 仅允许有 bin 的插件在终端产物（非宿主入口 index.js）里引用，宿主入口绝不许碰。
+ */
+const CLI_RUNTIME_SEAMS = new Set([
+  '@hibernalglow/xaihi-cli-runtime',
+  '@opentui/core',
+  '@opentui/react',
+  'react',
+  '@clack/prompts',
+  '@clack/core',
+])
+
 /** 一个包的读数：缺 `lib/` 与缺 `package.json` 都算违规，不是"跳过"。 */
 export function checkPackage(dir) {
   const manifestPath = join(dir, 'package.json')
   if (!existsSync(manifestPath)) return [`${dir.replace(`${ROOT}/`, '')}: 没有 package.json`]
   const pkg = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  const hasBin = Boolean(pkg.bin && Object.keys(pkg.bin).length > 0)
   const allowed = new Set([
     ...Object.keys(pkg.dependencies ?? {}),
     ...Object.keys(pkg.peerDependencies ?? {}),
@@ -81,8 +95,10 @@ export function checkPackage(dir) {
   if (!existsSync(libDir)) return [`${dir.replace(`${ROOT}/`, '')}: 没有 lib/ 产物（尺不看源码，看的是装进 profile 的那份文件）`]
   const problems = []
   for (const file of jsFiles(libDir)) {
+    const isHostEntry = file.endsWith('/index.js') || file.endsWith('/index.mjs') || file.endsWith('/index.cjs')
     for (const spec of bareSpecifiers(readFileSync(file, 'utf8'))) {
       if (allowed.has(spec)) continue
+      if (hasBin && !isHostEntry && CLI_RUNTIME_SEAMS.has(spec)) continue
       problems.push(`${file.replace(`${ROOT}/`, '')}: 产物引了未声明的裸名 "${spec}"（跑起来就是 ERR_MODULE_NOT_FOUND）`)
     }
   }

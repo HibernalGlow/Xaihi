@@ -72,9 +72,13 @@ import {
   writeRichPanel,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import type { RepackuAction, RepackuInput, RepackuOperation, RepackuResult } from './core.ts'
 import { runRepacku } from './core.ts'
 import { REPACKU_EXECUTION_REFUSAL, createRepackuPlannerRuntime } from './platform.ts'
+import { createRepackuInteractionSchema, type RepackuInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('repacku')
 
@@ -100,18 +104,36 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
-/** 派发形状对齐 vendored 支撑里的 `runNodeCliFace`（`--help` 短路与无参拒绝都在那儿）。 */
+function createRepackuUiDefinition (
+  defaults: Partial<RepackuInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<RepackuInput, RepackuResult> {
+  const schema = createRepackuInteractionSchema(defaults, language)
+  return {
+    schema,
+    run: async (input, onEvent) => runRepacku(input, createRepackuPlannerRuntime(), onEvent),
+  }
+}
+
+/** 派发形状接入 @hibernalglow/xaihi-cli-runtime 的 runInteractionCli。 */
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createRepackuUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + '而真压缩要的外部程序只有宿主进程里的 `ctx.subprocess` 那条缝接得上；'
-      + `脚本化请用 \`${CLI_NAME} analyze --path <目录> --json\` 或任何动作配 \`--dryRun\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).RepackuTui,
   })
 }
 

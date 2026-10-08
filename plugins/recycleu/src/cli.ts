@@ -28,14 +28,13 @@
 
 import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { DEFAULT_RECYCLEU_STATE, runRecycleu, type RecycleuRuntime } from './core.ts'
+import { DEFAULT_RECYCLEU_STATE, runRecycleu, type RecycleuInput, type RecycleuResult, type RecycleuRuntime } from './core.ts'
 import { CANCELLATION_GAP, planRecycleuEmpty } from './exec.ts'
 import {
   createCliHost,
   defineCommand,
   nodeCliName,
   rich,
-  runNodeCliFace,
   runPipeProgram,
   terminalColumns,
   writeError,
@@ -44,6 +43,10 @@ import {
   writeRichPanel,
 } from './cli-support.ts'
 import type { CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
+import { createRecycleuInteractionSchema, type RecycleuInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('recycleu')
 
@@ -75,17 +78,58 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
-/** 派发形状对齐上游的 `runInteractionCli`（见 cli-support 末尾）。 */
+function createRecycleuUiDefinition (
+  defaults: Partial<RecycleuInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<RecycleuInput, RecycleuResult> {
+  let cancellationRequested = false
+  let paused = false
+  let resumePaused: (() => void) | undefined
+  return {
+    schema: createRecycleuInteractionSchema({
+      interval: defaults.interval,
+      maxCycles: defaults.maxCycles,
+      driveLetter: defaults.driveLetter,
+    }, language),
+    async run (input, onEvent) {
+      cancellationRequested = false
+      paused = false
+      return runRecycleu(input, {
+        ...readOnlyRuntime(),
+        isCancelled: () => cancellationRequested,
+        waitWhilePaused: async () => {
+          while (paused && !cancellationRequested) {
+            await new Promise<void>((resolve) => { resumePaused = resolve })
+          }
+          resumePaused = undefined
+        },
+      }, onEvent)
+    },
+    pause () { paused = true },
+    resume () { paused = false; resumePaused?.() },
+    cancel () { cancellationRequested = true; paused = false; resumePaused?.() },
+  }
+}
+
+/** 派发形状接入 @hibernalglow/xaihi-cli-runtime 的 runInteractionCli。 */
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createRecycleuUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI 的 `Tui.tsx`）与引导流（@clack 的 `interaction.ts`）'
-      + '都不随本包发布，而清空回收站这一半本来就只活在宿主进程里（`ctx.subprocess` + DSH 的批准缝）。',
+    loadScreen: async () => (await import('./Tui.tsx')).RecycleuTui,
   })
 }
 

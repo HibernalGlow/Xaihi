@@ -41,16 +41,19 @@ import {
   hasPipedInput,
   nodeCliName,
   readStdinLines,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeJson,
   writeLine,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
 import type { SameaAction, SameaInput, SameaResult } from './core.ts'
 import { runSamea } from './core.ts'
 import { createNodeSameaRuntime } from './platform.ts'
+import { createSameaInteractionSchema, type SameaInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('samea')
 
@@ -73,16 +76,35 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
+function createSameaUiDefinition (
+  defaults: Partial<SameaInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<SameaInput, SameaResult> {
+  const schema = createSameaInteractionSchema(defaults, language)
+  return {
+    schema,
+    run: (input, onEvent) => runSamea(input, createNodeSameaRuntime(), onEvent),
+  }
+}
+
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createSameaUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI）与引导流（@clack）都不随本包发布，'
-      + `脚本化请用 \`${CLI_NAME} plan --paths <文本> --json\`。`,
+    loadScreen: async () => (await import('./Tui.tsx')).SameaTui,
   })
 }
 

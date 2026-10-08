@@ -161,7 +161,8 @@ export function resolveCliInvocation(args: readonly string[], host: CliHost, def
 }
 
 export function requireInteractiveMode(host: CliHost, mode: InteractionMode): string | null {
-  return host.stdin.isTTY && host.stdout.isTTY ? null : `\`${mode}\` mode requires an interactive terminal. Use a subcommand with --json for scripted use.`
+  const engine = mode === "ui" ? "OpenTUI" : "@clack"
+  return host.stdin.isTTY && host.stdout.isTTY ? null : `\`${mode}\` (${engine}) mode requires an interactive terminal. Use a subcommand with --json for scripted use.`
 }
 
 /** Extracts the renderer flag without exposing it to node-specific schemas. */

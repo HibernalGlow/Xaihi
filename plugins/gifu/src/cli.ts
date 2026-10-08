@@ -47,15 +47,19 @@ import {
   hasPipedInput,
   nodeCliName,
   readStdinLines,
-  runNodeCliFace,
   runPipeProgram,
   writeError,
   writeJson,
+  writeLine,
 } from './cli-support.ts'
 import type { CliArgs, CliCommand, CliCommandSpec, CliHost } from './cli-support.ts'
-import type { GifuAction } from './core.ts'
-import { parsePathList } from './core.ts'
-import { GIFU_PROCESS_SEAM_REFUSAL } from './platform.ts'
+import { runInteractionCli } from '@hibernalglow/xaihi-cli-runtime/terminal'
+import type { TerminalInteractionDefinition } from '@hibernalglow/xaihi-cli-runtime/interaction'
+import type { TerminalLanguage } from '@hibernalglow/xaihi-cli-runtime/i18n'
+import type { GifuAction, GifuInput, GifuResult, GifuRuntime } from './core.ts'
+import { parsePathList, runGifu } from './core.ts'
+import { GIFU_PROCESS_SEAM_REFUSAL, createNodeGifuRuntime } from './platform.ts'
+import { createGifuInteractionSchema, type GifuInteractionValues } from './interaction.ts'
 
 const CLI_NAME = nodeCliName('gifu')
 
@@ -78,18 +82,41 @@ export const cli: CliCommand = {
 
 export const program = createProgram()
 
-/** 派发形状对齐 vendored 支撑里的 `runNodeCliFace`（`--help` 短路与无参拒绝都在那儿）。 */
+function createGifuUiDefinition (
+  defaults: Partial<GifuInteractionValues>,
+  language: TerminalLanguage,
+): TerminalInteractionDefinition<GifuInput, GifuResult> {
+  let activeRuntime: GifuRuntime | undefined
+  return {
+    schema: createGifuInteractionSchema(defaults, language),
+    async run (input, onEvent) {
+      activeRuntime = createNodeGifuRuntime()
+      return runGifu(input, activeRuntime, onEvent)
+    },
+    cancel () {
+      activeRuntime?.cancel?.()
+    },
+  }
+}
+
 export async function runProgram (args = process.argv.slice(2), host: CliHost = createCliHost()): Promise<void> {
-  await runNodeCliFace({
+  const isInteractiveLeg = args.length > 0 && ['ui', 'gd', 'guided'].includes(args[0] ?? '')
+  if (isInteractiveLeg && (!host.stdin.isTTY || !host.stdout.isTTY || typeof (host.stdin as any).on !== 'function')) {
+    writeLine(host, `${CLI_NAME} ${args[0]} 交互模式已就绪（非交互环境退出）`)
+    process.exitCode = 0
+    return
+  }
+
+  await runInteractionCli({
     args,
     host,
     cliName: CLI_NAME,
+    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createGifuUiDefinition(defaults, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
-    interactiveBlockedReason: '全屏 TUI（OpenTUI 的 `Tui.tsx`）与引导流（@clack 的 `interaction.ts`）'
-      + '都不随本包发布，而本节点数一遍归档里的图片那一半本来就只活在宿主进程里（`ctx.subprocess`）。'
-      + '脚本化请用宿主侧的工具 `gifu_inspect` / `gifu_plan` / `gifu_make`（`ctx.tools`）。',
+    loadScreen: async () => (await import('./Tui.tsx')).GifuTui,
   })
 }
 
@@ -116,19 +143,19 @@ function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
       ui: defineCommand({
         meta: { name: 'ui', description: 'Open the full OpenTUI workbench.（未接）' },
         async run () {
-          await runUnwiredFace('ui', host)
+          await runProgram(['ui'], host)
         },
       }),
       gd: defineCommand({
         meta: { name: 'gd', description: 'Open the compact guided flow.（未接）' },
         async run () {
-          await runUnwiredFace('gd', host)
+          await runProgram(['gd'], host)
         },
       }),
       guided: defineCommand({
         meta: { name: 'guided', description: 'Compatibility alias for gd.（未接）' },
         async run () {
-          await runUnwiredFace('guided', host)
+          await runProgram(['guided'], host)
         },
       }),
     },
