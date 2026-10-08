@@ -1,19 +1,16 @@
 /**
- * sleept 的终端字典，从 `<Xiranite>` tag `noxide` 的 `packages/nodes/sleept/src/i18n.ts`
- * （164 行）逐字搬来：两份语言的每一条键与每一句文案都原样，唯一的改动是顶部那条
- * import 的说明符 —— `@xiranite/cli-runtime/i18n` 换成本包的 `./cli-i18n.ts` 垫片。
+ * sleept 的终端字典，逐字搬自 `<Xiranite>` 当前 HEAD（`v1.0.0-587-g8e42280f`）的
+ * `packages/nodes/sleept/src/i18n.ts`（168 行）——取代此前按 tag `noxide`（164 行）搬的
+ * 旧基线，新增 `powerDisplaySleep` / `powerScreensaver` 两条键。
  *
- * 这份字典是 `src/interaction.ts` 那套标签/校验文案的**逐字出处**，也是将来
- * `package.json#xaihi.node` 词表对不上时可以回读的另一半，所以整块留着而不是删成"没人用"。
- *
- * 要说清的现状：`createSleeptTranslator` 依赖 i18next，而本包没带那条依赖，
- * 所以这一格在本仓是**响亮拒绝的未接面**（判据与实测都写在 `./cli-i18n.ts` 的头注释里）。
- * 字典本身仍然是真数据；缺的只是把它渲染成句子的那台工厂。
+ * 本仓改动只有说明符：`@xiranite/cli-runtime/i18n` → `@hibernalglow/xaihi-cli-runtime/i18n`。
+ * `createI18nTranslator` 现在解析得到真身（i18next 随 cli-runtime 依赖装好），不再是
+ * `./cli-i18n.ts` 垫片那台的响亮拒绝；该垫片因此失业，留待与 `interaction-types.ts` 一起清。
  *
  * @module xaihi-sleept/i18n
  */
 
-import { createI18nTranslator, type TerminalLanguage } from './cli-i18n.ts'
+import { createI18nTranslator, type TerminalLanguage } from "@hibernalglow/xaihi-cli-runtime/i18n"
 
 // The shared keys below replace the duplicated GUI-only Sleept dictionary.
 // Existing values are preserved from src/i18n/locales/{en,zh}.json.
@@ -35,6 +32,8 @@ export const sleeptLocaleResources = {
     powerSleep: "Sleep",
     powerOff: "Off",
     powerReboot: "Reboot",
+    powerDisplaySleep: "Display sleep",
+    powerScreensaver: "Start screensaver",
     dry: "Dry",
     dryRun: "dry-run",
     live: "live",
@@ -111,6 +110,8 @@ export const sleeptLocaleResources = {
     powerSleep: "睡眠",
     powerOff: "关机",
     powerReboot: "重启",
+    powerDisplaySleep: "显示器休眠",
+    powerScreensaver: "进入屏保",
     dry: "预演",
     dryRun: "预演",
     live: "运行",
