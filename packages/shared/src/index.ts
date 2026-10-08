@@ -207,37 +207,6 @@ export const nodeOperationStreamMessageSchema = z.discriminatedUnion("type", [
   }),
 ])
 
-export const nodeMemoryProtectionPolicySettingsSchema = z.object({
-  maxRssGrowthMiB: z.number().int().min(1).max(65_536),
-  maxHeapGrowthMiB: z.number().int().min(1).max(32_768),
-  maxRetainedEvents: z.number().int().min(1).max(10_000),
-  sampleIntervalMs: z.number().int().min(25).max(60_000),
-})
-
-export const nodeMemoryProtectionSettingsSchema = z.object({
-  defaultPolicy: nodeMemoryProtectionPolicySettingsSchema,
-  nodePolicies: z.record(z.string().min(1), nodeMemoryProtectionPolicySettingsSchema),
-})
-
-export const NODE_MEMORY_PROTECTION_APP_SECTION = "node_memory_protection"
-
-export const DEFAULT_NODE_MEMORY_PROTECTION_SETTINGS: NodeMemoryProtectionSettingsDTO = {
-  defaultPolicy: {
-    maxRssGrowthMiB: 8_192,
-    maxHeapGrowthMiB: 4_096,
-    maxRetainedEvents: 1_000,
-    sampleIntervalMs: 250,
-  },
-  nodePolicies: {
-    xlchemy: {
-      maxRssGrowthMiB: 16_384,
-      maxHeapGrowthMiB: 2_048,
-      maxRetainedEvents: 256,
-      sampleIntervalMs: 100,
-    },
-  },
-}
-
 // ── Node run history ───────────────────────────────────────────────
 // 每次节点运行结束后持久化一条快照，用于全局历史中心 / 节点内参数恢复。
 export const nodeRunHistoryStatusSchema = z.enum([
@@ -365,8 +334,6 @@ export type NexusCaptureKindDTO = z.infer<typeof nexusCaptureKindSchema>
 export type NexusCaptureRequestDTO = z.infer<typeof nexusCaptureRequestSchema>
 export type NexusCaptureDTO = z.infer<typeof nexusCaptureSchema>
 export type NodeOperationPhaseDTO = z.infer<typeof nodeOperationPhaseSchema>
-export type NodeMemoryProtectionPolicySettingsDTO = z.infer<typeof nodeMemoryProtectionPolicySettingsSchema>
-export type NodeMemoryProtectionSettingsDTO = z.infer<typeof nodeMemoryProtectionSettingsSchema>
 export interface NodeRunResultDTO<TData = unknown> {
   success: boolean
   message: string
@@ -439,3 +406,43 @@ export type RuntimeHistoryListDTO = z.infer<typeof runtimeHistoryListSchema>
 export interface RuntimeHistoryClearResultDTO {
   deletedCount: number
 }
+
+// ── Node memory protection ─────────────────────────────────────────
+// 上游那份的出处：`<Xiranite>/packages/shared/src/index.ts:210-232,361-362`。
+// 这里只搬 **wire 形状**（zod，给过桥的响应做校验），**不搬默认值**：
+// ADR-0013 说值只有一个出口 = DSH 的 settings 面，而声明在 `packages/core` 的 `Config` 上。
+// 默认数字因此也只有一份（core 里那个 `DEFAULT_NODE_MEMORY_PROTECTION`），
+// 界面要"恢复默认"就问服务端要 `{ current, defaults }`，不在这里抄第二份。
+export const nodeMemoryProtectionPolicySettingsSchema = z.object({
+  maxRssGrowthMiB: z.number().int().min(1).max(65_536),
+  maxHeapGrowthMiB: z.number().int().min(1).max(32_768),
+  maxRetainedEvents: z.number().int().min(1).max(10_000),
+  sampleIntervalMs: z.number().int().min(25).max(60_000),
+})
+
+export const nodeMemoryProtectionSettingsSchema = z.object({
+  defaultPolicy: nodeMemoryProtectionPolicySettingsSchema,
+  nodePolicies: z.record(z.string().min(1), nodeMemoryProtectionPolicySettingsSchema),
+})
+
+export type NodeMemoryProtectionPolicySettingsDTO = z.infer<typeof nodeMemoryProtectionPolicySettingsSchema>
+export type NodeMemoryProtectionSettingsDTO = z.infer<typeof nodeMemoryProtectionSettingsSchema>
+
+/** 过桥的两条动作名。放在 shared 是因为**两头都要认**：core 的 `host-routes` 分发它，
+ *  文档侧的 `localBackendControl` 调用它；名字各写一份就会漂成两条互不认识的边。 */
+export const NODE_MEMORY_PROTECTION_READ = 'nodeMemoryProtection.read'
+export const NODE_MEMORY_PROTECTION_WRITE = 'nodeMemoryProtection.write'
+
+/** 写响应必须带**可读回的冲突状态**（ADR-0013：`SETTINGS_CONFLICT` 不是 toast 里的"失败"）。 */
+export const nodeMemoryProtectionWriteResultSchema = z.union([
+  z.object({ ok: z.literal(true), value: nodeMemoryProtectionSettingsSchema, revision: z.number().int() }),
+  z.object({
+    ok: z.literal(false),
+    code: z.enum(['settings_conflict', 'rejected', 'unauthorized_namespace']),
+    message: z.string(),
+    current: nodeMemoryProtectionSettingsSchema.optional(),
+    revision: z.number().int().optional(),
+  }),
+])
+
+export type NodeMemoryProtectionWriteResultDTO = z.infer<typeof nodeMemoryProtectionWriteResultSchema>

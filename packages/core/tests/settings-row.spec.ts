@@ -55,12 +55,27 @@ describe('设置命名空间的落点', () => {
     expect(fields).toEqual(expect.arrayContaining(['nodeState', 'nodeUi', 'nodeMemoryProtection']))
   })
 
+  it('工作台自己那份界面设置也有落点（appUi）', () => {
+    /*
+     * 这一条盯着的是"工作台改了设置、刷新就没了"那条症状的根：`AppConfigSync` 过去把
+     * ui / themes / bgImage 三段打在 Xiranite 的 `/config/app/*` 上，而那份后端在本仓不存在。
+     * 过桥之后它写的是 `xaihi-core.appUi.<段>`，所以这一格**必须**是 volatile ——
+     * 不是 volatile 的话每一次保存都撞第二道写闸，而界面只显示一条 warn。
+     * 单独一条而不是并进上一条：上一句说的是节点那三格，这一句说的是工作台自己那一格，
+     * 混在一起之后"哪一格没了"读不出来。
+     */
+    const fields = volatileConfigFields(readFileSync(CORE_ENTRY, 'utf8'))
+    expect(fields).toContain('appUi')
+  })
+
   it('阳性对照：摘掉 .volatile() 就该看不见那一格（尺看得见违规，不是恒真）', () => {
     const src = readFileSync(CORE_ENTRY, 'utf8')
     const sabotaged = src.replace('nodeUi: nodeUiSchema.volatile(),', 'nodeUi: nodeUiSchema,')
     expect(volatileConfigFields(sabotaged)).not.toContain('nodeUi')
     const sabotagedMemory = src.replace('nodeMemoryProtection: nodeMemoryProtectionSchema.volatile(),', 'nodeMemoryProtection: nodeMemoryProtectionSchema,')
     expect(volatileConfigFields(sabotagedMemory), '这一格变成不可写 = 界面上那次写会撞第二道写闸，尺必须看不见它').not.toContain('nodeMemoryProtection')
+    const sabotagedApp = src.replace('appUi: appUiSchema.volatile(),', 'appUi: appUiSchema,')
+    expect(volatileConfigFields(sabotagedApp), '工作台设置那一格同理：不可写就等于设置存不下来').not.toContain('appUi')
     // 另一头也要看得见：整块 Config 不存在时不是"空清单通过"，是零落点
     expect(volatileConfigFields('export const name = "x"')).toEqual([])
   })

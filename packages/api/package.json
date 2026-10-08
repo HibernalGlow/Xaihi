@@ -1,5 +1,5 @@
 {
-  "name": "@xiranite/api",
+  "name": "@hibernalglow/xaihi-api",
   "version": "0.1.0",
   "type": "module",
   "private": false,
@@ -20,9 +20,8 @@
     "test": "vitest run src"
   },
   "dependencies": {
-    "@xiranite/file-operations": "workspace:*",
-    "@xiranite/services": "workspace:*",
-    "@xiranite/shared": "workspace:*"
+    "@hibernalglow/xaihi-contract": "workspace:*",
+    "@hibernalglow/xaihi-shared": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^7.0.2",

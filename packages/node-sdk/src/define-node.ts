@@ -45,6 +45,21 @@ export interface ExecInfo {
 export interface NodeToolContext {
   tools: { register(definition: unknown): unknown }
   on(event: 'tools/pre-execute', listener: (exec: ExecInfo, next: () => Promise<PreDecision>) => Promise<PreDecision>): unknown
+  /**
+   * cordis fiber 的副作用回收缝（`ctx.effect`）：回调立即执行，返回的那个函数被登记为注销器。
+   *
+   * 签名刻意写成宽松形状。这里**不能**依赖 cordis 的类型：node-sdk 的 peer 只有 dsh-tools，
+   * 而 cordis 的 `effect` 收的是它自己那套 `Effect` 联合（`Disposable | Iterable<Disposable> | …`）。
+   * 若照它的形状精确声明，真 `Context` 反而过不了赋值（`Context.effect` 的参数不是这个子集）。
+   * 写成 `() => unknown` 之后，真 `Context`（`new Context()`）与测试替身两侧都结构化成立，
+   * 调用点也不丢类型。
+   *
+   * `defineNode` 需要它，是因为 `nodeRegistry` 是**进程级单例**，不挂在任何 fiber 上。没有这条缝，
+   * 插件卸载或热更之后节点会永久留在表里，本地 Runner 仍能调到一个已经死掉的实例 —— 症状是
+   * "停用的节点还在跑"。`ctx.tools.register` 那边由 dsh-tools 自己 effect 化（`tools.register()`
+   * 内部走 `layers.effect`），这一条没有兜底，只能在这里接。
+   */
+  effect(callback: () => unknown, label?: string): unknown
 }
 
 /** 一次动作调用的入参：原始参数 + 按 inputBindings 绑好的执行输入 + 本次运行的上报句柄。 */
@@ -360,14 +375,19 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
 
   const handle: NodeHandle = { invoke, run: runAction }
 
-  // 自动注册到全局节点注册表，打通本地 Runner 通道
-  nodeRegistry.register({
+  // 自动注册到全局节点注册表，打通本地 Runner 通道。
+  //
+  // `register` 的返回值就是注销器，必须挂到调用方 fiber 上：`nodeRegistry` 是进程级单例，
+  // 不挂就等于"注册即永久"。插件卸载 / 热更后这一条不摘，本地 Runner 还能调到一个已经
+  // 死掉的实例（`invoke` 闭包里的 ctx 已经失效）。`ctx.tools.register` 由 dsh-tools 自己
+  // effect 化，这里没有兜底，所以只能显式接。
+  ctx.effect(() => nodeRegistry.register({
     nodeId: definition.nodeId,
     definition,
     handlers: options.handlers,
     invoke,
     run: runAction,
-  })
+  }), `xaihi-sdk: node "${definition.nodeId}" registry entry`)
 
   // 注意：`invoke` 不走 `tools/pre-execute`，所以它绕过了危险闸门。
   // 非模型入口（命令、面板按钮）必须自己先问 `dangerFor`，别把危险动作接到它上面。

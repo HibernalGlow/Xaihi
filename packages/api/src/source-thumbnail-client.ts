@@ -1,4 +1,4 @@
-import { appendUrlPath } from "@xiranite/shared"
+import { appendUrlPath } from "@hibernalglow/xaihi-shared"
 
 export type SourceThumbnailKind = "file" | "folder"
 export type SourceThumbnailPreviewCount = 1 | 4 | 9 | 16

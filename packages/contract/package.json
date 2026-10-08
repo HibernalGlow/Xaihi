@@ -1,5 +1,5 @@
 {
-  "name": "@xiranite/contract",
+  "name": "@hibernalglow/xaihi-contract",
   "version": "0.1.0",
   "type": "module",
   "private": false,
@@ -20,7 +20,7 @@
     "test": "npm run build"
   },
   "dependencies": {
-    "@xiranite/shared": "workspace:*"
+    "@hibernalglow/xaihi-shared": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^7.0.2"

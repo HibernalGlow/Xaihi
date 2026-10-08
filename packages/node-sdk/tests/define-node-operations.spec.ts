@@ -81,6 +81,7 @@ function context(): { ctx: NodeToolContext; tools: Array<Record<string, unknown>
     ctx: {
       tools: { register: (tool) => { tools.push(tool as Record<string, unknown>); return () => {} } },
       on: () => () => {},
+      effect: () => () => {},
     },
     tools,
   }

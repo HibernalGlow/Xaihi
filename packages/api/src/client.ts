@@ -1,11 +1,10 @@
-import { treaty, type Treaty } from "@elysiajs/eden"
-import { appendUrlPath } from "@xiranite/shared"
+import { appendUrlPath } from "@hibernalglow/xaihi-shared"
 import type {
   FileDeletionExportFormat,
   FileDeletionList,
   FileDeletionQuery,
   FileDeletionRestoreResult,
-} from "@xiranite/file-operations"
+} from "./file-deletion-dtos.js"
 export type {
   FileDeletionExportFormat,
   FileDeletionList,
@@ -13,8 +12,15 @@ export type {
   FileDeletionRecord,
   FileDeletionRestoreResult,
   FileDeletionState,
-} from "@xiranite/file-operations"
-import type { ConfigHistoryRepositoryStatus, ConfigVersion, ConfigVersionDetail, NodeConfigExportResult } from "@xiranite/services"
+} from "./file-deletion-dtos.js"
+// 上游这四个来自 `@xiranite/services`；本仓的移植落点是 contract（字段逐一对应，见该包 377-403），
+// 与 `file-deletion-dtos.ts` 同一处置：在这条 import 上做别名，不改本文件里已有的用法。
+import type {
+  NodeConfigExport as NodeConfigExportResult,
+  NodeConfigHistoryRepositoryStatus as ConfigHistoryRepositoryStatus,
+  NodeConfigVersion as ConfigVersion,
+  NodeConfigVersionDetail as ConfigVersionDetail,
+} from "@hibernalglow/xaihi-contract"
 import type {
   ComponentWindowSizeDTO,
   ComponentWindowSizeLookupDTO,
@@ -25,7 +31,6 @@ import type {
   NodeOperationListResponseDTO,
   NodeOperationStartResponseDTO,
   NodeOperationStreamMessageDTO,
-  NodeMemoryProtectionSettingsDTO,
   NodeRunEventDTO,
   NodeRunHistoryClearQueryDTO,
   NodeRunHistoryClearResultDTO,
@@ -39,38 +44,15 @@ import type {
   RuntimeHistoryListDTO,
   RuntimeHistoryQueryDTO,
   WorkspaceSnapshotDTO,
-} from "@xiranite/shared"
-import type { XiraniteApp } from "./index.js"
+} from "@hibernalglow/xaihi-shared"
 export * from "./source-thumbnail-client.js"
 
 export interface XiraniteClientOptions {
   token?: string
 }
 
-export interface Webview2Config {
-  features: string[]
-  switches: string[]
-}
-
-export interface LocalBackendRestartConfig {
-  baseUrl: string
-  token?: string
-}
-
-export interface LocalBackendRestartResult {
-  restarted: boolean
-  supported: boolean
-  message: string
-  config?: LocalBackendRestartConfig
-}
-
 export interface XiraniteSystemClient {
   health(): Promise<{ ok: boolean; instanceId?: string }>
-  restartBackend(): Promise<LocalBackendRestartResult>
-  getNodeSourceHotReload(): Promise<{ supported: boolean; enabled: boolean }>
-  setNodeSourceHotReload(enabled: boolean): Promise<{ supported: boolean; enabled: boolean }>
-  getNodeMemoryProtection(): Promise<{ supported: boolean; settings: NodeMemoryProtectionSettingsDTO | null }>
-  setNodeMemoryProtection(settings: NodeMemoryProtectionSettingsDTO): Promise<{ supported: boolean; settings: NodeMemoryProtectionSettingsDTO | null }>
 }
 
 export interface XiraniteWorkspaceClient {
@@ -129,8 +111,6 @@ export interface XiraniteConfigClient {
   deleteNodePreset(nodeId: string, presetId: string): Promise<{ deleted: boolean }>
   getAppConfig<T = unknown>(section: string): Promise<{ config: T | undefined; path: string }>
   updateAppConfig<T = unknown>(section: string, config: T): Promise<{ config: T; path: string }>
-  getWebview2Config(): Promise<{ config: Webview2Config | undefined; path: string }>
-  updateWebview2Config(config: Webview2Config): Promise<{ config: Webview2Config; path: string }>
   getCustomThemes(): Promise<{ themes: unknown[]; path: string }>
   saveCustomThemes(themes: unknown[]): Promise<{ themes: unknown[]; path: string }>
   getBackgroundImage(): Promise<{ url: string | null; path: string }>
@@ -289,20 +269,6 @@ export function createXiraniteConfigClient(baseUrl: string, options: XiraniteCli
       if (!response.ok) throw new Error(`App config save failed: ${response.status}`)
       return await response.json() as { config: T; path: string }
     },
-    async getWebview2Config() {
-      const response = await fetch(apiUrl(baseUrl, "/config/webview2"), { headers })
-      if (!response.ok) throw new Error(`WebView2 config load failed: ${response.status}`)
-      return await response.json() as { config: Webview2Config | undefined; path: string }
-    },
-    async updateWebview2Config(config: Webview2Config) {
-      const response = await fetch(apiUrl(baseUrl, "/config/webview2"), {
-        method: "PUT",
-        headers: { ...headers, "content-type": "application/json" },
-        body: JSON.stringify({ config }),
-      })
-      if (!response.ok) throw new Error(`WebView2 config save failed: ${response.status}`)
-      return await response.json() as { config: Webview2Config; path: string }
-    },
     async getCustomThemes() {
       const response = await fetch(apiUrl(baseUrl, "/config/themes"), { headers })
       if (!response.ok) throw new Error(`Custom themes load failed: ${response.status}`)
@@ -351,61 +317,14 @@ export function createXiraniteConfigClient(baseUrl: string, options: XiraniteCli
   }
 }
 
-export function createXiraniteClient(baseUrl: string, options: XiraniteClientOptions = {}): Treaty.Create<XiraniteApp> {
-  return treaty<XiraniteApp>(baseUrl, treatyOptions(options))
-}
-
 export function createXiraniteSystemClient(baseUrl: string, options: XiraniteClientOptions = {}): XiraniteSystemClient {
-  const client = createXiraniteClient(baseUrl, options)
   const headers = requestHeaders(options)
 
   return {
     async health() {
-      const result = await client.health.get()
-      if (result.error) throw new Error(`Local backend health check failed: ${result.status}`)
-      return result.data
-    },
-    async restartBackend() {
-      const response = await fetch(apiUrl(baseUrl, "/system/restart"), {
-        method: "POST",
-        headers,
-      })
-      const data = await response.json().catch(() => undefined) as LocalBackendRestartResult | undefined
-      if (!response.ok && !data) throw new Error(`Local backend restart failed: ${response.status}`)
-      if (data) return data
-      return {
-        restarted: false,
-        supported: false,
-        message: `Local backend restart failed: ${response.status}`,
-      }
-    },
-    async getNodeSourceHotReload() {
-      const response = await fetch(apiUrl(baseUrl, "/system/node-source-hot-reload"), { headers })
-      if (!response.ok) throw new Error(`Node source hot reload status failed: ${response.status}`)
-      return await response.json() as { supported: boolean; enabled: boolean }
-    },
-    async setNodeSourceHotReload(enabled) {
-      const response = await fetch(apiUrl(baseUrl, "/system/node-source-hot-reload"), {
-        method: "PUT",
-        headers: { ...headers, "content-type": "application/json" },
-        body: JSON.stringify({ enabled }),
-      })
-      if (!response.ok) throw new Error(`Node source hot reload update failed: ${response.status}`)
-      return await response.json() as { supported: boolean; enabled: boolean }
-    },
-    async getNodeMemoryProtection() {
-      const response = await fetch(apiUrl(baseUrl, "/system/node-memory-protection"), { headers })
-      if (!response.ok) throw new Error(`Node memory protection status failed: ${response.status}`)
-      return await response.json() as { supported: boolean; settings: NodeMemoryProtectionSettingsDTO | null }
-    },
-    async setNodeMemoryProtection(settings) {
-      const response = await fetch(apiUrl(baseUrl, "/system/node-memory-protection"), {
-        method: "PUT",
-        headers: { ...headers, "content-type": "application/json" },
-        body: JSON.stringify(settings),
-      })
-      if (!response.ok) throw new Error(`Node memory protection update failed: ${response.status}`)
-      return await response.json() as { supported: boolean; settings: NodeMemoryProtectionSettingsDTO | null }
+      const response = await fetch(apiUrl(baseUrl, "/health"), { headers })
+      if (!response.ok) throw new Error(`Local backend health check failed: ${response.status}`)
+      return await response.json() as { ok: boolean; instanceId?: string }
     },
   }
 }
@@ -418,19 +337,24 @@ export interface XiraniteFileDeletionClient {
 }
 
 export function createXiraniteWorkspaceClient(baseUrl: string, options: XiraniteClientOptions = {}): XiraniteWorkspaceClient {
-  const client = createXiraniteClient(baseUrl, options)
   const headers = requestHeaders(options)
 
   return {
     async loadSnapshot() {
-      const result = await client.workspace.snapshot.get()
-      if (result.error) throw new Error(`Workspace snapshot load failed: ${result.status}`)
-      return result.data.snapshot
+      const response = await fetch(apiUrl(baseUrl, "/workspace/snapshot"), { headers })
+      if (!response.ok) throw new Error(`Workspace snapshot load failed: ${response.status}`)
+      const result = await response.json() as { snapshot: WorkspaceSnapshotDTO }
+      return result.snapshot
     },
     async persistSnapshot(snapshot) {
-      const result = await client.workspace.snapshot.put(snapshot)
-      if (result.error) throw new Error(`Workspace snapshot persist failed: ${result.status}`)
-      return result.data.snapshot
+      const response = await fetch(apiUrl(baseUrl, "/workspace/snapshot"), {
+        method: "PUT",
+        headers: { ...headers, "content-type": "application/json" },
+        body: JSON.stringify(snapshot),
+      })
+      if (!response.ok) throw new Error(`Workspace snapshot persist failed: ${response.status}`)
+      const result = await response.json() as { snapshot: WorkspaceSnapshotDTO }
+      return result.snapshot
     },
     async resolveComponentWindowSize(input) {
       const url = apiUrl(baseUrl, "/workspace/window-size")
@@ -649,15 +573,6 @@ function fileDeletionUrl(
   if (query.limit !== undefined) url.searchParams.set("limit", String(query.limit))
   if (query.cursor) url.searchParams.set("cursor", query.cursor)
   return url
-}
-
-function treatyOptions(options: XiraniteClientOptions): Treaty.Config {
-  if (!options.token) return {}
-  return {
-    headers: {
-      "x-xiranite-token": options.token,
-    },
-  }
 }
 
 function requestHeaders(options: XiraniteClientOptions): Record<string, string> {

@@ -1,4 +1,4 @@
-import type { NodeRunEventDTO as NodeRunEvent, NodeRunResultDTO as NodeRunResult } from "@xiranite/shared"
+import type { NodeRunEventDTO as NodeRunEvent, NodeRunResultDTO as NodeRunResult } from "@hibernalglow/xaihi-shared"
 
 /**
  * Host capability contract version. Nodes declare a compatible range via
@@ -445,7 +445,7 @@ export interface NodeHostCapabilities<
 
 /**
  * Minimal parse-compatible schema interface. Zod schemas satisfy this
- * structurally, but @xiranite/contract does not depend on Zod so package
+ * structurally, but @hibernalglow/xaihi-contract does not depend on Zod so package
  * authors can use any compatible validator.
  */
 export interface NodeSchema<T> {
@@ -581,7 +581,7 @@ export type NodeEntry<TCore extends Record<string, unknown> = Record<string, unk
 // 本包原先只带了 66 条导出，少了 `pinCoverage` 与 `versionRange` 这两片叶子，
 // 症状在浏览器那侧——`ModuleRenderer.tsx:303` 要 `checkContractVersion`、
 // `plugins/frontendIntegrity.ts:265` 要 `classifyPluginArtifacts` 等四条，
-// rspack 报 "was not found in '@xiranite/contract' (possible exports: NODE_HOST_CONTRACT_VERSION, localizeNodeHelp)"。
+// rspack 报 "was not found in '@hibernalglow/xaihi-contract' (possible exports: NODE_HOST_CONTRACT_VERSION, localizeNodeHelp)"。
 export {
   classifyPluginArtifacts,
   describePinCoverage,

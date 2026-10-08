@@ -36,19 +36,31 @@ export function normalizeNodeId(id: string): string {
 export class NodeRegistry {
   private readonly nodes = new Map<string, RegisteredNode>()
 
-  /** 注册一个节点。如果已有同名节点，则覆盖；返回取消注册函数。 */
+  /**
+   * 注册一个节点。如果已有同名节点，则覆盖；返回取消注册函数。
+   *
+   * 注销器**按身份判**：只有当表里那一格仍然是本次注册的条目时才摘除它。热更的落地顺序是
+   * "先装新的、再卸旧的"，无条件按 key 删会把新实例一起摘掉（ABA）—— 症状是新插件刚装上
+   * 就被上一条的注销器摘空。按身份判之后，同名重叠注册是幂等的：谁的注销器只摘谁那一条。
+   */
   register(entry: RegisteredNode): () => void {
     const key = entry.nodeId
-    this.nodes.set(key, entry)
     const norm = normalizeNodeId(key)
+    this.nodes.set(key, entry)
     if (norm !== key) {
       this.nodes.set(norm, entry)
     }
     return () => {
-      this.unregister(key)
+      if (this.nodes.get(key) === entry) this.nodes.delete(key)
+      if (norm !== key && this.nodes.get(norm) === entry) this.nodes.delete(norm)
     }
   }
 
+  /**
+   * 按 nodeId 显式注销（长短名字一起摘）。这是"立刻清掉"的入口；fiber 回收走 `register`
+   * 返回的那个按身份判的注销器，两者刻意不同：显式注销是"我就要删这个名字"，注销器是
+   * "只删我自己那一条"。
+   */
   unregister(nodeId: string): boolean {
     const deleted1 = this.nodes.delete(nodeId)
     const deleted2 = this.nodes.delete(normalizeNodeId(nodeId))

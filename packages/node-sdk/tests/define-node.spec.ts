@@ -53,15 +53,19 @@ const definition = {
   publishesOutputPath: false,
 } as unknown as NodeDefinition
 
-function fakeContext(): { ctx: NodeToolContext; registered: Array<Record<string, unknown>>; listeners: Array<(exec: ExecInfo, next: () => Promise<PreDecision>) => Promise<PreDecision>> } {
+function fakeContext(): { ctx: NodeToolContext; registered: Array<Record<string, unknown>>; listeners: Array<(exec: ExecInfo, next: () => Promise<PreDecision>) => Promise<PreDecision>>; effects: Array<() => void> } {
   const registered: Array<Record<string, unknown>> = []
   const listeners: Array<(exec: ExecInfo, next: () => Promise<PreDecision>) => Promise<PreDecision>> = []
+  const effects: Array<() => void> = []
   return {
     registered,
     listeners,
+    effects,
     ctx: {
       tools: { register: (tool) => { registered.push(tool as unknown as Record<string, unknown>); return () => {} } },
       on: (_event, listener) => { listeners.push(listener); return () => {} },
+      // cordis 的 `ctx.effect`：回调立即跑，返回的函数被收作注销器。
+      effect: (callback: () => unknown) => { const dispose = callback(); if (typeof dispose === 'function') effects.push(dispose as () => void); return () => {} },
     },
   }
 }

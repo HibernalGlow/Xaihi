@@ -2,6 +2,41 @@ import { describe, expect, it } from 'vitest'
 import { defineNode } from '../src/define-node.ts'
 import { createLocalRunner, NodeRegistry, nodeRegistry } from '../src/node-registry.ts'
 
+/**
+ * 只做 `defineNode` 真会碰的三件事：注册工具、挂 pre-execute、登记副作用注销器。
+ *
+ * `effect` **必须真的执行回调并收下它返回的注销器** —— 随手返回 undefined 会让
+ * `nodeRegistry.register` 从不发生，于是所有靠"自动注册"的判据都会假绿。
+ */
+function fakeHost(): { ctx: never; disposed: Array<() => void> } {
+  const disposed: Array<() => void> = []
+  return {
+    disposed,
+    ctx: {
+      tools: { register: () => undefined },
+      on: () => () => undefined,
+      effect: (callback: () => unknown) => {
+        const dispose = callback()
+        if (typeof dispose === 'function') disposed.push(dispose as () => void)
+        return () => undefined
+      },
+    } as never,
+  }
+}
+
+/** 一份刚好够校验的最小定义。 */
+function sampleDefinition(nodeId: string): unknown {
+  return {
+    definitionVersion: 1,
+    nodeId,
+    title: { en: 'Sample', zh: '样例' },
+    description: { en: 'Sample desc', zh: '样例描述' },
+    actions: [{ id: 'go', label: { en: 'Go', zh: '跑' } }],
+    fields: [],
+    inputBindings: [],
+  }
+}
+
 describe('NodeRegistry 本地执行通道', () => {
   it('支持注册、名称规范化检索与注销', () => {
     const registry = new NodeRegistry()
@@ -34,10 +69,7 @@ describe('NodeRegistry 本地执行通道', () => {
   })
 
   it('通过 defineNode 自动注册，并通过 run 捕获 resultView 数据', async () => {
-    const ctx = {
-      tools: { register() {} },
-      on() {},
-    }
+    const { ctx } = fakeHost()
     const def = {
       definitionVersion: 1,
       nodeId: 'calc-sample',
@@ -89,7 +121,7 @@ describe('NodeRegistry 本地执行通道', () => {
     expect(notFound.success).toBe(false)
     expect(notFound.message).toContain('not registered')
 
-    const ctx = { tools: { register() {} }, on() {} }
+    const ctx = fakeHost().ctx
     const def = {
       definitionVersion: 1,
       nodeId: 'failing-sample',
@@ -120,7 +152,7 @@ describe('NodeRegistry 本地执行通道', () => {
   })
 
   it('支持向 onEvent 回调实时推送 progress 与 preview 日志', async () => {
-    const ctx = { tools: { register() {} }, on() {} }
+    const ctx = fakeHost().ctx
     const def = {
       definitionVersion: 1,
       nodeId: 'progress-sample',
@@ -153,5 +185,53 @@ describe('NodeRegistry 本地执行通道', () => {
       { type: 'progress', progress: 50, done: 5, total: 10 },
       { type: 'log', message: 'working on step 1' },
     ])
+  })
+})
+
+describe('插件卸载时节点必须离开进程级注册表', () => {
+  it('defineNode 把注销器挂到 ctx.effect：跑掉它之后注册表里就没有这个节点了', () => {
+    const { ctx, disposed } = fakeHost()
+    defineNode(ctx, { definition: sampleDefinition('disposal-sample'), handlers: { go: async () => 'ok' } })
+
+    expect(nodeRegistry.has('disposal-sample'), '装载后应已进表').toBe(true)
+    expect(disposed.length, 'defineNode 必须为注册表挂一条副作用').toBeGreaterThan(0)
+
+    for (const dispose of disposed) dispose()
+
+    expect(nodeRegistry.has('disposal-sample'), '卸载后仍能查到 = 停用不生效').toBe(false)
+    const run = createLocalRunner()
+    return run.run('disposal-sample', { action: 'go' }).then((result) => {
+      expect((result as { message: string }).message).toContain('not registered')
+    })
+  })
+
+  it('重复 apply / dispose 循环后表回到空，且迟到的注销器不会摘掉新实例', () => {
+    const first = fakeHost()
+    defineNode(first.ctx, { definition: sampleDefinition('cycle-sample'), handlers: { go: async () => 'ok' } })
+    expect(nodeRegistry.has('cycle-sample')).toBe(true)
+    for (const dispose of first.disposed) dispose()
+    expect(nodeRegistry.has('cycle-sample'), '第一轮卸载后应空').toBe(false)
+
+    // 热更的"先装下一轮"：同名重新注册。
+    const second = fakeHost()
+    defineNode(second.ctx, { definition: sampleDefinition('cycle-sample'), handlers: { go: async () => 'ok' } })
+    // 上一轮的注销器此时才被重放（迟到的 dispose）：它按身份判，不得摘掉新实例。
+    for (const dispose of first.disposed) dispose()
+    expect(nodeRegistry.get('cycle-sample'), '陈旧注销器摘掉了新实例 = ABA').toBeTruthy()
+
+    for (const dispose of second.disposed) dispose()
+    expect(nodeRegistry.has('cycle-sample')).toBe(false)
+  })
+
+  it('旧实例的注销器不会摘掉新实例（按身份判，不是按名字删）', () => {
+    const registry = new NodeRegistry()
+    const oldEntry = { nodeId: 'shared-name' } as never
+    const newEntry = { nodeId: 'shared-name' } as never
+
+    const disposeOld = registry.register(oldEntry)
+    registry.register(newEntry)
+    disposeOld()
+
+    expect(registry.get('shared-name'), '旧注销器把新实例摘掉了 = ABA').toBe(newEntry)
   })
 })
