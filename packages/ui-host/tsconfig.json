@@ -5,7 +5,9 @@
     "resolveJsonModule": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@xiranite/contract": ["../contract/src/index.ts"]
+      "@xiranite/contract": ["../contract/src/index.ts"],
+      "@hibernalglow/xaihi-kisaki": ["../../plugins/kisaki/src/index.ts"],
+      "@hibernalglow/xaihi-kisaki/*": ["../../plugins/kisaki/src/*"]
     }
   },
   "include": ["src/client", "tests"]

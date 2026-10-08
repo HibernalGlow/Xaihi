@@ -40,6 +40,12 @@
       "react-dom/*": [
         "../../node_modules/@types/react-dom/*"
       ],
+      "@hibernalglow/xaihi-kisaki": [
+        "../../plugins/kisaki/src/index.ts"
+      ],
+      "@hibernalglow/xaihi-kisaki/*": [
+        "../../plugins/kisaki/src/*"
+      ],
       "@hibernalglow/xaihi-cli-runtime/interaction": [
         "../cli-runtime/src/interaction.ts"
       ],

@@ -1,0 +1,176 @@
+{
+  "name": "@hibernalglow/xaihi-kisaki",
+  "version": "0.0.0",
+  "description": "Xaihi node Kisaki: native czkawka rust engine for duplicate detection and disk analysis.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    },
+    "./help": {
+      "types": "./lib/help.d.ts",
+      "default": "./lib/help.js"
+    },
+    "./locale/*.json": "./locale/*.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "kisaki": "./lib/cli.js"
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "locale/*.json",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-kisaki",
+    "title": {
+      "zh": "Kisaki",
+      "en": "Kisaki"
+    },
+    "ui": {
+      "remote": "kisaki",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "xaihi.workspace.kisaki",
+        "title": {
+          "zh": "Kisaki面板",
+          "en": "Kisaki panel"
+        },
+        "area": "workspace",
+        "remote": "kisaki",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "kisaki",
+      "title": {
+        "zh": "Kisaki",
+        "en": "Kisaki"
+      },
+      "description": {
+        "zh": "文件分析去重工作台（基于 Czkawka 原生 Rust 核心）。",
+        "en": "Advanced duplicate file, media similarity, and disk optimization workbench."
+      },
+      "actions": [
+        {
+          "id": "scan",
+          "label": {
+            "zh": "⌕ 扫描",
+            "en": "⌕ Scan"
+          }
+        },
+        {
+          "id": "delete",
+          "label": {
+            "zh": "🗑 删除",
+            "en": "🗑 Delete"
+          }
+        },
+        {
+          "id": "move",
+          "label": {
+            "zh": "→ 移动",
+            "en": "→ Move"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "tool",
+          "label": {
+            "zh": "扫描工具",
+            "en": "Scan tool"
+          },
+          "kind": "select",
+          "isActionSelector": true,
+          "options": [
+            { "value": "duplicate-files", "label": { "zh": "重复文件", "en": "Duplicate Files" } },
+            { "value": "empty-folders", "label": { "zh": "空文件夹", "en": "Empty Folders" } },
+            { "value": "big-files", "label": { "zh": "大文件", "en": "Big Files" } },
+            { "value": "empty-files", "label": { "zh": "空文件", "en": "Empty Files" } },
+            { "value": "temporary-files", "label": { "zh": "临时文件", "en": "Temporary Files" } },
+            { "value": "similar-images", "label": { "zh": "相似图片", "en": "Similar Images" } },
+            { "value": "similar-videos", "label": { "zh": "相似视频", "en": "Similar Videos" } },
+            { "value": "duplicate-music", "label": { "zh": "重复音乐", "en": "Duplicate Music" } },
+            { "value": "invalid-symlinks", "label": { "zh": "无效链接", "en": "Invalid Symlinks" } },
+            { "value": "broken-files", "label": { "zh": "损坏文件", "en": "Broken Files" } },
+            { "value": "bad-names", "label": { "zh": "不良名称", "en": "Bad Names" } },
+            { "value": "bad-extensions", "label": { "zh": "不良扩展名", "en": "Bad Extensions" } }
+          ],
+          "default": {
+            "text": "duplicate-files"
+          }
+        }
+      ],
+      "help": {
+        "whenToUse": {
+          "zh": "需要精确扫描重复文件、空文件/空文件夹、相似图像及优化磁盘时使用 Kisaki。",
+          "en": "Use Kisaki when you need high-performance duplicate detection and disk cleanup."
+        },
+        "workflows": {
+          "ui": [
+            "选择扫描工具与目标目录",
+            "执行扫描并查看分组与相似度分析",
+            "使用选择助手标记并安全清理"
+          ],
+          "cli": [
+            "kisaki scan duplicate-files <dir> 扫描重复文件",
+            "kisaki --help 查看全部命令行参数"
+          ]
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsdown && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "clean": "rm -rf lib dist"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@hibernalglow/xaihi-cli-runtime": "workspace:*",
+    "@module-federation/enhanced": "2.9.2",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11",
+    "@types/node": "^22.20.0"
+  }
+}
