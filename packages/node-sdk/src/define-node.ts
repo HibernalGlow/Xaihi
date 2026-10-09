@@ -72,6 +72,15 @@ export type NodeHandlers = Record<string, NodeActionHandler>
 /** 账本的给出方式：实例，或每次调用现取的取用器。 */
 export type JournalSource = OperationJournal | (() => OperationJournal | undefined)
 
+/**
+ * 取消之后回给面板的那句话。
+ *
+ * 后半句不许省：被取消的那次调用是**不再等**处理器，不是**停得下**处理器。
+ * 一个从不查 `signal.aborted` 的循环会照原样跑完，界面上说"已经停了"就是伪造
+ * （ADR-0011 决定 4：可以退化，不许静默、不许假）。
+ */
+export const CANCELLED_MESSAGE = '已取消：这次调用不再等待结果。该节点若没在实现里查 signal.aborted，它的工作可能仍在继续。'
+
 /** 注册选项。 */
 export interface DefineNodeOptions {
   /** `package.json#xaihi.node` 的原始值，内部先校验再接线。 */
@@ -308,6 +317,7 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
     let capturedResultView: unknown = undefined
     const run: OperationRun = {
       runId: baseRun.runId,
+      signal: baseRun.signal,
       progress: (p) => {
         baseRun.progress(p)
         try {
@@ -328,12 +338,37 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
       checkpoint: (p) => { baseRun.checkpoint(p) },
     }
     const inputs = { ...raw, ...bindInputs(definition, raw) }
+    /*
+     * 取消必须**立刻**结算，不能等处理器自己停下来。
+     *
+     * 为什么用 race 而不是只把 `signal` 递进去：递进去只是"这个节点可以选择理会"，
+     * 而一个不查 `signal.aborted` 的循环会让面板在取消之后继续转圈——那正好是这次改动
+     * 要修的病（`NodeRegistry.cancel` 之前是个无条件 return false 的桩，取消既停不下工作
+     * 也读不回来）。race 之后：理会的节点干净停下，不理会的这一侧也立刻读到"已取消"，
+     * 而文案照实说它可能还在跑——不伪造"已经停了"。
+     */
+    const pending = handler({ args: raw, inputs, run })
+    // 被取消那一侧迟到的失败不再有人在等，但必须有人接：不然它变成 unhandled rejection。
+    pending.catch(() => undefined)
+    const cancelled = new Promise<'cancelled'>((resolve) => {
+      if (baseRun.signal.aborted) resolve('cancelled')
+      else baseRun.signal.addEventListener('abort', () => { resolve('cancelled') }, { once: true })
+    })
     try {
-      const message = await handler({ args: raw, inputs, run })
+      const raced = await Promise.race([pending, cancelled])
+      if (raced === 'cancelled') {
+        // 账本里那条 `failed（已取消）` 由 `journal.cancel` 记——按下中止键的那一侧才是它的作者。
+        return {
+          success: false,
+          message: CANCELLED_MESSAGE,
+          data: capturedResultView,
+          runId: baseRun.runId,
+        }
+      }
       journal?.finish(baseRun.runId)
       return {
         success: true,
-        message,
+        message: raced,
         data: capturedResultView,
         runId: baseRun.runId,
       }
@@ -387,6 +422,13 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
     handlers: options.handlers,
     invoke,
     run: runAction,
+    // 取消按在账本上：它才知道这条 runId 此刻还在跑，也是它把 `failed（已取消）` 记进账的。
+    // 没装 xaihi-core 时 `resolve()` 永远空 ⇒ 这一格回 false，界面读到的是"取消不了"，
+    // 而不是一个把"没接上"洗成"已取消"的 true。
+    cancelRun: (runId: string) => resolve()?.cancel(runId, `已取消：${definition.nodeId}/${runId}`) ?? false,
+    inFlightRuns: () => (resolve()?.runs() ?? [])
+      .filter((run) => run.nodeId === definition.nodeId && run.outcome === 'running')
+      .map((run) => run.runId),
     ...(options.execute === undefined ? {} : { execute: options.execute }),
   }))
 

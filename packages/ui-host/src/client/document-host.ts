@@ -24,8 +24,8 @@
  * @module xaihi-ui/document-host
  */
 
-import type { NodeCapabilityId } from '@hibernalglow/xaihi-sdk/bridge'
-import { BridgeError, type DocumentBridge } from '@hibernalglow/xaihi-sdk/bridge'
+import type { NodeCapabilityId, RunWaitPolicy } from '@hibernalglow/xaihi-sdk/bridge'
+import { BRIDGE_RUN_IDLE_TIMEOUT_MS, BridgeError, runWaitPolicyFor, type DocumentBridge } from '@hibernalglow/xaihi-sdk/bridge'
 import type {
   NodeClipboardCapability,
   NodeEnvCapability,
@@ -162,6 +162,31 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
   const granted = (): readonly NodeCapabilityId[] => requireReady(bridge).granted
   const call = (method: Parameters<DocumentBridge['call']>[0], ...args: readonly unknown[]): Promise<unknown> => bridge.call(method, ...args)
 
+  /**
+   * 每个节点一次运行的等待策略，按 nodeId 缓存一份。
+   *
+   * 上限从哪来：节点自己声明的那一格（`NodeDefinition.runTimeoutMs`），经 `runner.getInfo`
+   * 从宿主读回来。路由那侧读的是同一个字段（`RunFace.runTimeoutFor`），两侧不许各算各的——
+   * 各算各的形状是"客户端还在等、服务端先回 502"。
+   * 读不到声明（那一组没授予、或节点没注册）时回"只用心跳、不设上限"：这里猜一个数
+   * 会把一次本来能跑完的扫描判成超时，那正是这次改动要修的病。
+   */
+  const runPolicyCache = new Map<string, RunWaitPolicy>()
+  const runWaitPolicyOf = async (nodeId: string): Promise<RunWaitPolicy> => {
+    const cached = runPolicyCache.get(nodeId)
+    if (cached !== undefined) return cached
+    let declared: number | undefined
+    try {
+      const info = await call('runner.getInfo', nodeId) as { runTimeoutMs?: unknown } | null
+      if (typeof info?.runTimeoutMs === 'number') declared = info.runTimeoutMs
+    } catch {
+      return { idleMs: BRIDGE_RUN_IDLE_TIMEOUT_MS, ceilingMs: null }
+    }
+    const policy = runWaitPolicyFor(declared)
+    runPolicyCache.set(nodeId, policy)
+    return policy
+  }
+
   return {
     contract: {
       name: 'xaihi.node-host',
@@ -212,17 +237,39 @@ export function createDocumentHost(deps: DocumentHostDeps): XaihiNodeHost {
        * 拿不到那条流时**不编进度**：这条调用照常返回（结果与错误都还在应答里），
        * 只是回调不再响 —— 症状是进度条停在 0 直到终态，而不是画一根假的。
        */
-      run: <TInput = unknown, TData = unknown>(
+      run: async <TInput = unknown, TData = unknown>(
         nodeId: string,
         input: TInput,
         onEvent?: (event: NodeRunEvent) => void,
       ): Promise<NodeRunResult<TData>> => {
-        // 跟读要在**发起调用之前**挂上：那次运行的 `started` 可能早于应答回来，
-        // 晚一步挂就等于把这一段丢掉（`followNodeRun` 会把挂上那一刻的 runId 当基线，
-        // 所以"挂早了"只会多听一会儿，不会把上一次运行的进度认成这一趟）。
-        const follow = onEvent === undefined ? undefined : followNodeRun(documentRunProgressFeed(), nodeId, onEvent)
-        const result = call('runner.run', nodeId, input) as Promise<NodeRunResult<TData>>
-        return follow === undefined ? result : result.finally(follow.stop)
+        /*
+         * 等待上界从"应答要在 30 秒内回来"换成"这次运行还在动"。
+         *
+         * 一次目录扫描可以合法跑十分钟，而旧的固定 wall-clock 在那种情况下只做一件坏事：
+         * 宿主仍在跑，面板先念"失败"，那次运行又**没被停下**（取消此前是桩），
+         * 应答迟到时请求早就不在 `pending` 里 —— 结果被静默丢掉。现在账本每出一条这个节点
+         * 的事件就把上界推后一次，真卡死（一段时间毫无事件）照样读得回来。
+         *
+         * 心跳的认领规则沿用 `followNodeRun` 那条已写明的上限：桥只带 nodeId，所以"同一个节点
+         * 被两处同时点着"时两条会互相续期。要精确对齐得让桥多一条"我这次运行叫什么"，
+         * 那是 `BRIDGE_METHODS` 里没有的动词。
+         */
+        const policy = await runWaitPolicyOf(nodeId)
+        const handle = bridge.beginCall('runner.run', [nodeId, input], policy)
+        const feed = documentRunProgressFeed()
+        const beat = feed.subscribe(() => {
+          if (feed.latest(nodeId)?.phase === 'running') handle.renew()
+        })
+        // 跟读要在发起之前挂上：那次运行的 `started` 可能早于应答回来。
+        const follow = onEvent === undefined
+          ? undefined
+          : followNodeRun(feed, nodeId, (event) => { handle.renew(); onEvent(event) })
+        try {
+          return await handle.promise as NodeRunResult<TData>
+        } finally {
+          beat()
+          follow?.stop()
+        }
       },
       getInfo: <TInfo = unknown>(nodeId: string): Promise<TInfo> => call('runner.getInfo', nodeId) as Promise<TInfo>,
       cancelCurrent: () => call('runner.cancelCurrent') as Promise<boolean>,

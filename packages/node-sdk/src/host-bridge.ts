@@ -41,6 +41,44 @@ export const BRIDGE_MAX_MESSAGE_BYTES = 256 * 1024
 /** 一次 `request` 等待 `response` 的上界（毫秒）。没有上界时，桥丢一条消息会变成"面板永远转圈"。 */
 export const BRIDGE_REQUEST_TIMEOUT_MS = 30_000
 
+/**
+ * `runner.run` 等的是"这次运行还在动"，不是"应答在 30 秒内回来"，所以它单独一条判据。
+ *
+ * 为什么不能沿用上面那个常量：一次目录扫描可以合法跑十分钟，而 wall-clock 上界在这条桥上
+ * 只做一件坏事——宿主仍在干活时让面板念"失败"，而那次运行**并没有被停下**
+ * （`NodeRegistry.cancel` 此前是无条件 `return false` 的桩）。应答回来时请求早就不在
+ * `pending` 里，结果被静默丢掉（`bridge-document.ts` 的 `receive`）。净效果是
+ * "既没截断工作、也没收到结果、只留下一个假失败"。
+ *
+ * 于是这条动词的判据换成**心跳间隔**：账本每出一条事件就把上界往后推，真卡死
+ * （一段时间毫无事件）仍然读得回来。节点想收紧或放宽自己的硬上限，走
+ * `NodeDefinition.runTimeoutMs`，两侧都从那一处读。
+ */
+export const BRIDGE_RUN_IDLE_TIMEOUT_MS = 30_000
+
+/** 节点声明 `runTimeoutMs: 0` 的读法：明确不设硬上限，只用心跳判卡死。 */
+export const RUN_TIMEOUT_UNLIMITED = 0
+
+/** 一次 `runner.run` 的等待策略。 */
+export interface RunWaitPolicy {
+  /** 距最后一次账本事件多久算卡死。 */
+  idleMs: number
+  /** 从发起算起的硬上限；null = 不设上限（心跳仍是判据）。 */
+  ceilingMs: number | null
+}
+
+/**
+ * 把节点声明的 `runTimeoutMs` 折成等待策略。
+ * 未声明与声明 0 都落到"不设硬上限"，区别只在前者是个没想过的事、后者是一条写下来的决定。
+ */
+export function runWaitPolicyFor(
+  declared: number | undefined,
+  idleMs: number = BRIDGE_RUN_IDLE_TIMEOUT_MS,
+): RunWaitPolicy {
+  if (declared === undefined || declared === RUN_TIMEOUT_UNLIMITED) return { idleMs, ceilingMs: null }
+  return { idleMs, ceilingMs: declared }
+}
+
 /** 九组能力的名字，逐字搬自上游。 */
 export const NODE_CAPABILITY_IDS = [
   'contract',

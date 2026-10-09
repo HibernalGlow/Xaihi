@@ -137,6 +137,15 @@ export interface ActiveRun {
 /** 交给动作实现的操作句柄。 */
 export interface OperationRun {
   runId: string
+  /**
+   * 这次运行的取消信号。宿主侧（`defineNode` 的注册表条目）在 `cancel(runId)` 时 abort 它。
+   *
+   * 为什么放在句柄上而不是加一个参数：动作实现已经拿得到 `call.run`，而"要不要理会中断"
+   * 只有节点自己知道——循环里查一次 `signal.aborted` 是它那一侧的事，宿主不能替它决定。
+   * 不理会也有一条读回：那次调用会立即以「已取消」结算，而账本里那句原因会说明
+   * 这个节点没响应中断、工作可能仍在继续（不伪造"已经停了"）。
+   */
+  signal: AbortSignal
   /** 报一次进度；`done` 必须单调不减由调用方保证，这里不做二次加工。 */
   progress(progress: OperationProgress): void
   /** 中途预览（例如"这批将删除这些文件"）。 */
@@ -154,6 +163,8 @@ export interface OperationRun {
 /** 空句柄：没有 journal 时动作也要能跑，因此进度上报必须是无操作而不是抛。 */
 export const NULL_RUN: OperationRun = {
   runId: 'none',
+  // 一条永远不会被 abort 的信号：没有账本时 `cancel` 无处登记，但动作实现仍要能读这一格而不必判空。
+  signal: new AbortController().signal,
   progress() {},
   preview() {},
   resultView() {},
@@ -164,6 +175,16 @@ export const NULL_RUN: OperationRun = {
 export interface OperationJournal {
   /** 开一次运行并拿到句柄；同时补一条 `started`。 */
   open(identity: { nodeId: string; actionId: string }): OperationRun
+  /**
+   * 请求中止一次在飞运行：abort 它的 `signal`，并补一条 `failed`（原因写"已取消"）。
+   *
+   * 为什么取消归账本而不是归调用方：账本是唯一知道"这条 runId 此刻还在跑"的地方
+   * （`runs()` 那份），把中止键交给它，界面读回的"已取消"与账本记的那一条才是同一件事。
+   * @param runId - 要中止哪一次运行。
+   * @param reason - 写进账本的原因文案。
+   * @returns 真按下了中止键才回 true；未知 runId 或那条已经收尾了回 false。
+   */
+  cancel(runId: string, reason?: string): boolean
   /** 收尾一次成功的运行，补 `finished`。由 `defineNode` 调用，节点自己不该收口。 */
   finish(runId: string): void
   /** 收尾一次失败的运行，补 `failed` 并带上原因。 */

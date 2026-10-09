@@ -144,7 +144,8 @@ export interface BitvData {
 
 export interface BitvRuntime {
   findFfprobe: () => Promise<string | null>
-  discoverVideos: (paths: string[], recursive: boolean) => Promise<BitvDiscoveryResult>
+  /** `signal` 可选：走了中断就在扫描途中停下（临时实现可以不理它，那只是这条节点不响应取消）。 */
+  discoverVideos: (paths: string[], recursive: boolean, signal?: AbortSignal) => Promise<BitvDiscoveryResult>
   statFile: (path: string) => Promise<BitvFileStat>
   runFfprobeJson: (ffprobePath: string, path: string) => Promise<unknown>
   readJson: (path: string) => Promise<unknown>
@@ -268,10 +269,25 @@ export function parseFfprobeVideo(
   }
 }
 
+/**
+ * 取消之后抛出去的那一条。
+ *
+ * 这里**必须抛**而不是"把已扫到的部分交出去"：这条节点在分析之后会真的搬文件，
+ * 拿半份输入去搬等于把"取消了"变成"按不完整的清单改了盘"。抛出之后这次运行到此为止，
+ * 账本里那句"已取消"与面板读到的是同一件事（`defineNode` 的 cancel 记账）。
+ */
+const BITV_CANCELLED = "bitv cancelled: 剩下的文件没有处理（这次运行的其余部分未执行）"
+
+/** 每个长循环开头的同一道闸。 */
+function throwIfCancelled(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) throw new Error(BITV_CANCELLED)
+}
+
 export async function runBitv(
   input: BitvInput,
   runtime: BitvRuntime,
   onEvent: (event: NodeRunEvent) => void = () => {},
+  signal?: AbortSignal,
 ): Promise<BitvResult> {
   const action = input.action ?? "status"
   const requestedPaths = parseBitvPaths(input.paths)
@@ -297,7 +313,7 @@ export async function runBitv(
   const levels = createBitrateLevels(bitrateStepMbps, maxLevels)
 
   if (action === "report") {
-    return runReportClassification(input, runtime, levels, base, onEvent)
+    return runReportClassification(input, runtime, levels, base, onEvent, signal)
   }
 
   if (requestedPaths.length === 0) {
@@ -311,7 +327,8 @@ export async function runBitv(
 
   const recursive = input.recursive ?? BITV_DEFAULTS.recursive
   onEvent({ type: "progress", progress: 0, message: "Scanning video paths." })
-  const discovery = await runtime.discoverVideos(requestedPaths, recursive)
+  throwIfCancelled(signal)
+  const discovery = await runtime.discoverVideos(requestedPaths, recursive, signal)
   if (discovery.files.length === 0) {
     const errors = discovery.errors.length ? discovery.errors : ["No supported video files were found."]
     return {
@@ -321,7 +338,7 @@ export async function runBitv(
     }
   }
 
-  const analysis = await analyzeVideos(discovery.files, ffprobePath, levels, runtime, onEvent)
+  const analysis = await analyzeVideos(discovery.files, ffprobePath, levels, runtime, onEvent, signal)
   const errors = [...discovery.errors, ...analysis.errors]
   const stats = summarizeVideos(analysis.videos)
 
@@ -377,6 +394,7 @@ export async function runBitv(
     dryRun,
     runtime,
     onEvent,
+    signal,
   )
   errors.push(...operations.flatMap((operation) => operation.error ? [operation.error] : []))
   const success = analysis.videos.length > 0 && errors.length === 0
@@ -464,6 +482,7 @@ async function runReportClassification(
   levels: readonly BitrateLevel[],
   base: BitvData,
   onEvent: (event: NodeRunEvent) => void,
+  signal?: AbortSignal,
 ): Promise<BitvResult> {
   const reportPath = input.reportPath?.trim() || parseBitvPaths(input.paths)[0]
   if (!reportPath) return { success: false, message: "Report classification requires a JSON report path.", data: base }
@@ -494,6 +513,7 @@ async function runReportClassification(
     dryRun,
     runtime,
     onEvent,
+    signal,
   )
   const errors = operations.flatMap((operation) => operation.error ? [operation.error] : [])
   const success = operations.length > 0 && errors.length === 0
@@ -523,10 +543,12 @@ async function analyzeVideos(
   levels: readonly BitrateLevel[],
   runtime: BitvRuntime,
   onEvent: (event: NodeRunEvent) => void,
+  signal?: AbortSignal,
 ): Promise<{ videos: BitvVideoInfo[]; errors: string[] }> {
   const videos: BitvVideoInfo[] = []
   const errors: string[] = []
   for (let index = 0; index < files.length; index += 1) {
+    throwIfCancelled(signal)
     const file = files[index]!
     const progress = Math.round(5 + (index / files.length) * 65)
     onEvent({ type: "progress", progress, message: `Analyzing ${basename(file.path)}.` })
@@ -550,9 +572,11 @@ async function classifyVideos(
   dryRun: boolean,
   runtime: BitvRuntime,
   onEvent: (event: NodeRunEvent) => void,
+  signal?: AbortSignal,
 ): Promise<BitvFileOperation[]> {
   const operations: BitvFileOperation[] = []
   for (let index = 0; index < videos.length; index += 1) {
+    throwIfCancelled(signal)
     const video = videos[index]!
     const desiredPath = joinPath(targetPath, safePathSegment(video.bitrateLevel), safeRelativePath(video.relativePath, video.filename))
     const progress = Math.round(72 + (index / videos.length) * 26)

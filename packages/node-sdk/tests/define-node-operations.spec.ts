@@ -35,6 +35,8 @@ function fakeJournal(): {
 } {
   const events: OperationEvent[] = []
   const runs: ActiveRun[] = []
+  /** 与 core 那份同一条纪律：中止键按 runId 存，`cancel` 才是真按下而不是记一笔。 */
+  const controllers = new Map<string, AbortController>()
   let seq: OperationSeq = 0
   let counter = 0
   const push = (event: Omit<OperationEvent, 'seq' | 'at'>): void => {
@@ -46,15 +48,27 @@ function fakeJournal(): {
       counter += 1
       const runId = `${identity.nodeId}/${identity.actionId}#${counter}`
       runs.push({ runId, nodeId: identity.nodeId, actionId: identity.actionId, startedAt: 0, outcome: 'running', lastSeq: seq })
+      const controller = new AbortController()
+      controllers.set(runId, controller)
       push({ runId, nodeId: identity.nodeId, actionId: identity.actionId, kind: 'started' })
       const run: OperationRun = {
         runId,
+        signal: controller.signal,
         progress: (progress) => push({ runId, nodeId: identity.nodeId, actionId: identity.actionId, kind: 'progress', progress }),
         preview: (payload) => push({ runId, nodeId: identity.nodeId, actionId: identity.actionId, kind: 'preview', payload }),
         resultView: (payload) => push({ runId, nodeId: identity.nodeId, actionId: identity.actionId, kind: 'result_view', payload }),
         checkpoint: (payload) => push({ runId, nodeId: identity.nodeId, actionId: identity.actionId, kind: 'checkpoint', payload }),
       }
       return run
+    },
+    cancel(runId, reason = '已取消') {
+      const run = runs.find((entry) => entry.runId === runId)
+      if (run === undefined || run.outcome !== 'running') return false
+      controllers.get(runId)?.abort()
+      run.outcome = 'failed'
+      run.message = reason
+      push({ runId, nodeId: run.nodeId, actionId: run.actionId, kind: 'failed', message: reason })
+      return true
     },
     finish(runId) {
       const run = runs.find((entry) => entry.runId === runId)

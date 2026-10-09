@@ -30,6 +30,7 @@ import {
   type BridgeRequest,
   type BridgeReady,
   type NodeCapabilityId,
+  type RunWaitPolicy,
 } from './host-bridge.ts'
 
 /** 桥的错误：`reason` 是给界面读的键，`detail` 是人看的补充。 */
@@ -48,6 +49,18 @@ export class BridgeError extends Error {
 /** 往外壳那一侧投递消息。装配时包成 `parent.postMessage(msg, shellOrigin)`。 */
 export type SendToShell = (message: BridgeHello | BridgeRequest) => void
 
+/** 一次在飞调用的句柄。 */
+export interface BridgeCallHandle {
+  /** 请求 id。 */
+  id: string
+  promise: Promise<unknown>
+  /**
+   * 把"卡死"的判据往后推一次——用于"对端还在干活，只是没到应答"这类长动作。
+   * 只推心跳那一档；节点声明的硬上限（`ceilingMs`）不因续期而改变。
+   */
+  renew: () => void
+}
+
 export interface DocumentBridge {
   /** 握手应答；未完成时是 null（不是"空的 ready"）。 */
   ready(): BridgeReady | null
@@ -57,6 +70,14 @@ export interface DocumentBridge {
   receive(raw: unknown, origin: string): boolean
   /** 跨界调用。失败一律抛 `BridgeError`。 */
   call(method: BridgeMethod, ...args: readonly unknown[]): Promise<unknown>
+  /**
+   * 发起一条**可续期**的调用：调用方拿到句柄，能在等待途中用 `renew()` 推后"卡死"判据。
+   * `runner.run` 用它把超时从 wall-clock 换成心跳（`BRIDGE_RUN_IDLE_TIMEOUT_MS` 的注释记着为什么）。
+   * @param method - 动词。
+   * @param args - 参数（与 `call` 同一份线上形状）。
+   * @param policy - 等待策略；不给就是 `call` 那条固定上界。
+   */
+  beginCall(method: BridgeMethod, args: readonly unknown[], policy?: RunWaitPolicy): BridgeCallHandle
   /** 撤掉所有在飞的请求（文档卸载时用；留着会变成一堆 timeout）。 */
   abortAll(reason: string): void
 }
@@ -139,6 +160,22 @@ export function createHttpDocumentBridge (options: HttpBridgeOptions): DocumentB
   return bridge
 }
 
+/** 一条在飞请求的等待记账。 */
+interface PendingCall {
+  resolve: (value: unknown) => void
+  reject: (error: BridgeError) => void
+  method: BridgeMethod
+  /** 心跳档：距最后一次 `renew` 多久算卡死。 */
+  idleMs: number
+  /** 硬上限档：距发起多久一定算失败；null = 不设上限。 */
+  ceilingMs: number | null
+  /** 这条上限是不是**节点声明**的：只有它是真，才允许把失败念成 `run-timeout`。 */
+  ceilingDeclared: boolean
+  startedAt: number
+  lastBeatAt: number
+  timer: ReturnType<typeof setTimeout> | undefined
+}
+
 /**
  * 建立文档侧的桥会话。
  * @param send - 投给外壳。
@@ -152,16 +189,110 @@ export function createDocumentBridge(
   requested: readonly NodeCapabilityId[],
   timeoutMs: number = BRIDGE_REQUEST_TIMEOUT_MS,
 ): DocumentBridge {
-  const pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: BridgeError) => void; timer: ReturnType<typeof setTimeout>; method: BridgeMethod }>()
+  const pending = new Map<string, PendingCall>()
   let handshake: BridgeReady | null = null
   let seq = 0
 
+  /** 下一次"该判卡死"的时刻：心跳档与硬上限档里更早的那一个。 */
+  const remainingMs = (entry: PendingCall, now: number): number => {
+    const idle = entry.lastBeatAt + entry.idleMs - now
+    if (entry.ceilingMs === null) return idle
+    return Math.min(idle, entry.startedAt + entry.ceilingMs - now)
+  }
+
+  const clearTimer = (entry: PendingCall): void => {
+    if (entry.timer !== undefined) clearTimeout(entry.timer)
+    entry.timer = undefined
+  }
+
+  /** 按当前记账重挂定时器；到点就落一条失败。 */
+  const arm = (id: string): void => {
+    const entry = pending.get(id)
+    if (entry === undefined) return
+    clearTimer(entry)
+    const wait = remainingMs(entry, Date.now())
+    if (wait > 0) entry.timer = setTimeout(() => { fire(id) }, wait)
+    else fire(id)
+  }
+
+  /** 到点：区分"没心跳"与"超出节点自己声明的上限"，因为界面上要念的是不同的话。 */
+  const fire = (id: string): void => {
+    const entry = pending.get(id)
+    if (entry === undefined) return
+    pending.delete(id)
+    entry.timer = undefined
+    const now = Date.now()
+    const pastCeiling = entry.ceilingDeclared && entry.ceilingMs !== null && now >= entry.startedAt + entry.ceilingMs
+    entry.reject(pastCeiling
+      ? new BridgeError('run-timeout', `${entry.method} 超出这个节点声明的上限（${String(entry.ceilingMs)}ms）`)
+      : new BridgeError('timeout', `${entry.method} 在 ${String(entry.idleMs)}ms 内没有应答，也没有新的进度`))
+  }
+
   const failPending = (error: BridgeError) => {
     for (const [, entry] of pending) {
-      clearTimeout(entry.timer)
+      clearTimer(entry)
       entry.reject(error)
     }
     pending.clear()
+  }
+
+  const beginCall = (method: BridgeMethod, args: readonly unknown[], policy?: RunWaitPolicy): BridgeCallHandle => {
+    if (handshake === null) {
+      return {
+        id: '',
+        promise: Promise.reject(new BridgeError('not-ready', '还没拿到宿主握手应答')),
+        renew: () => undefined,
+      }
+    }
+    if (!handshake.granted.includes(groupOf(method))) {
+      const row = handshake.degraded.find((item) => item.capability === groupOf(method))
+      return {
+        id: '',
+        promise: Promise.reject(new BridgeError('refused', row?.reason ?? `${groupOf(method)} 组未被授予`)),
+        renew: () => undefined,
+      }
+    }
+    const request = { schema: BRIDGE_SCHEMA, kind: 'request' as const, id: `d${++seq}`, method, args }
+    if (exceedsMessageBudget(request)) {
+      return {
+        id: request.id,
+        promise: Promise.reject(new BridgeError('too-large', `请求体超过桥上界（${method}）`)),
+        renew: () => undefined,
+      }
+    }
+    const id = request.id
+    const promise = new Promise<unknown>((resolve, reject) => {
+      const startedAt = Date.now()
+      const entry: PendingCall = {
+        resolve,
+        reject,
+        method,
+        idleMs: policy?.idleMs ?? timeoutMs,
+        // 没给策略 = 沿用那条固定 wall-clock：普通动词一次往返就该在 30 秒内回来。
+        ceilingMs: policy === undefined ? timeoutMs : policy.ceilingMs ?? null,
+        // 只有节点真声明过上限，到点才允许念成"超出了你自己声明的上限"；
+        // 把桥的缺省上界念成节点声明，是替使用者编了一条没人说过的话。
+        ceilingDeclared: policy !== undefined && policy.ceilingMs !== null && policy.ceilingMs !== undefined,
+        startedAt,
+        lastBeatAt: startedAt,
+        timer: undefined,
+      }
+      pending.set(id, entry)
+      arm(id)
+      send(request)
+    })
+    return {
+      id,
+      promise,
+      // 续期只认还在飞的那一条：请求已经结算时这里必须什么都不做，
+      // 否则一次迟到的进度会把已失败的调用重新挂回表上，变成"没人等但永远在计时"。
+      renew: () => {
+        const entry = pending.get(id)
+        if (entry === undefined) return
+        entry.lastBeatAt = Date.now()
+        arm(id)
+      },
+    }
   }
 
   return {
@@ -186,28 +317,13 @@ export function createDocumentBridge(
       const entry = pending.get(message.id)
       if (entry === undefined) return true
       pending.delete(message.id)
-      clearTimeout(entry.timer)
+      clearTimer(entry)
       if (message.ok) entry.resolve(message.value)
       else entry.reject(new BridgeError(message.error?.reason ?? 'unknown', message.error?.detail ?? ''))
       return true
     },
-    call(method: BridgeMethod, ...args: readonly unknown[]): Promise<unknown> {
-      if (handshake === null) return Promise.reject(new BridgeError('not-ready', '还没拿到宿主握手应答'))
-      if (!handshake.granted.includes(groupOf(method))) {
-        const row = handshake.degraded.find((item) => item.capability === groupOf(method))
-        return Promise.reject(new BridgeError('refused', row?.reason ?? `${groupOf(method)} 组未被授予`))
-      }
-      const request = { schema: BRIDGE_SCHEMA, kind: 'request' as const, id: `d${++seq}`, method, args }
-      if (exceedsMessageBudget(request)) return Promise.reject(new BridgeError('too-large', `请求体超过桥上界（${method}）`))
-      return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          pending.delete(request.id)
-          reject(new BridgeError('timeout', `${method} 在 ${timeoutMs}ms 内没有应答`))
-        }, timeoutMs)
-        pending.set(request.id, { resolve, reject, timer, method })
-        send(request)
-      })
-    },
+    beginCall,
+    call: (method: BridgeMethod, ...args: readonly unknown[]): Promise<unknown> => beginCall(method, args).promise,
     abortAll(reason: string): void {
       failPending(new BridgeError('aborted', reason))
       handshake = null

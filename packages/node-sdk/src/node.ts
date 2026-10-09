@@ -202,6 +202,15 @@ export interface NodeDefinition {
   resultExport?: string
   reportsProgress?: boolean
   publishesOutputPath?: boolean
+  /**
+   * 这个节点的一次运行**最多**允许多久（毫秒）。`0` = 明确不限。
+   *
+   * 缺省是不写这一格，读作"不设硬上限"：桥对 `runner.run` 用心跳判卡死
+   * （`BRIDGE_RUN_IDLE_TIMEOUT_MS`），所以一个不报进度的节点卡在 30 秒无事件时照样会红，
+   * 不需要这里再兜一层。写一个正数的用途是**自我收紧**：一个明知该在两分钟内结束的节点，
+   * 不想让使用者等满心跳那么久才发现它转进了死循环。
+   */
+  runTimeoutMs?: number
   help?: NodeHelp
 }
 
@@ -334,6 +343,15 @@ export function validateNodeDefinition(raw: unknown): NodeValidation {
   if (raw.danger !== undefined) {
     if (!isPlainObject(raw.danger) || !inList(raw.danger.type, DANGER_KINDS)) {
       errors.push(`danger.type must be one of ${DANGER_KINDS.join(', ')} (use {type: "none"} when nothing is dangerous)`)
+    }
+  }
+
+  // 一条会决定"面板多久念一次失败"的数，形状错了必须在这里红，而不是到运行时被折成 NaN
+  // 再当成"立刻超时"——那会把每次运行都秒判失败，而错的是声明。
+  if (raw.runTimeoutMs !== undefined) {
+    const declared = raw.runTimeoutMs
+    if (typeof declared !== 'number' || !Number.isFinite(declared) || declared < 0) {
+      errors.push(`runTimeoutMs must be a finite number >= 0 (0 = 明确不限), got ${JSON.stringify(declared)}`)
     }
   }
 
