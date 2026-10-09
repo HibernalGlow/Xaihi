@@ -11,10 +11,9 @@ import type {
   VideoOptimizerCandidateOptions,
   VideoOptimizerScanOptions,
 } from "./native/index.js"
-import type { KisakiEngineClient } from "./engine-gateway.js"
-import type { KisakiEngineMethod } from "@hibernalglow/xaihi-sdk"
+import type { KisakiEngineFace, KisakiEngineMethod } from "@hibernalglow/xaihi-sdk"
 import { toNativeVideoCropDetect } from "./similar-video-crop.js"
-import type { KisakiNativeProgress, KisakiNormalizedInput, KisakiRuntime, KisakiRuntimeInfo, NativeExifCandidate, NativeVideoOptimizerCandidate } from "./core.js"
+import type { KisakiNativeProgress, KisakiNormalizedInput, KisakiRuntime, NativeExifCandidate, NativeVideoOptimizerCandidate } from "./core.js"
 
 const execFileAsync = promisify(execFile)
 
@@ -283,7 +282,7 @@ export interface KisakiRuntimeContext {
    * 缺席时不许回落成宿主进程内装载——那条边界是 ADR-0015 决定 2 判死的，
    * 回落等于把 napi 的 async/rayon 风险搬回使用者的会话里。
    */
-  engine?: () => Promise<KisakiEngineClient>
+  engine?: () => Promise<KisakiEngineFace>
 }
 
 /**
@@ -380,7 +379,7 @@ async function runOrThrow(program: string, args: string[]): Promise<void> {
  * 因为帧协议里没有"父侧可以插话"这种东西。
  */
 async function runEngineScan<TResult>(
-  engine: KisakiEngineClient,
+  engine: KisakiEngineFace,
   method: KisakiEngineMethod,
   options: object,
   threadCount: number,
@@ -413,7 +412,7 @@ async function runEngineScan<TResult>(
   }
 }
 
-async function runNativeVideoOptimizerCandidate(item: Parameters<KisakiRuntime["createVideoOptimizerCandidate"]>[0], input: NormalizedInput, engine: KisakiEngineClient): Promise<NativeVideoOptimizerCandidate> {
+async function runNativeVideoOptimizerCandidate(item: Parameters<KisakiRuntime["createVideoOptimizerCandidate"]>[0], input: NormalizedInput, engine: KisakiEngineFace): Promise<NativeVideoOptimizerCandidate> {
   const options: VideoOptimizerCandidateOptions = {
     sourcePath: item.path,
     mode: input.videoOptimizerMode,

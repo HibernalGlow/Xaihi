@@ -178,7 +178,11 @@ export function transformValue(value: unknown, transform: NodeTransform): unknow
  */
 export function bindInputs(definition: NodeDefinition, args: Record<string, unknown>): Record<string, unknown> {
   const inputs: Record<string, unknown> = {}
-  for (const binding of definition.inputBindings) {
+  // `inputBindings` 在归一化类型里是必填，但校验器是把原值直接交回去的（`node.ts:405` 的
+  // `value: raw as unknown as NodeDefinition`），所以清单没写这一格的节点到这里是 `undefined`。
+  // 症状否则是第一次动作 500 一句 `is not iterable`，而插件装载失败时宿主只留下 "failed to import"。
+  const bindings = definition.inputBindings ?? []
+  for (const binding of bindings) {
     inputs[binding.slot] = transformValue(args[binding.fieldId], binding.transform ?? 'identity')
   }
   return inputs

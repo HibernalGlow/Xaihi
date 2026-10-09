@@ -34,7 +34,7 @@ const settle = async (): Promise<void> => {
 function fakeFace(label: string): KisakiEngineFace {
   return {
     info: async () => ({ apiVersion: 5, sourceVersion: '12.0.0', capabilities: [label] }),
-    call: async () => ({ from: label }),
+    call: async <T,>(): Promise<T> => ({ from: label } as unknown as T),
     cancel: async () => true,
     status: () => ({ transport: 'subprocess', state: 'running', entry: `entry-${label}`, binding: `binding-${label}` }),
   }
@@ -78,6 +78,8 @@ describe('kisaki 引擎的服务边', () => {
     other.connectKisakiEngine(ctx, (engine: KisakiEngineFace) => { seen.push(engine) })
     await settle()
     expect(seen.length).toBe(1)
-    expect((await seen[0]?.status()).entry).toBe('entry-provider-side')
+    const connected = seen[0]
+    if (connected === undefined) throw new Error('回调没被调用：seen[0] 缺席')
+    expect((await connected.status()).entry).toBe('entry-provider-side')
   })
 })
