@@ -26,8 +26,11 @@
   mac-x64 只能带一份 x86_64 的 dav1d 去交叉：meson 要 **cross file**（只给 `CC` 加 `-arch x86_64` 时它仍按
   编译器 triple 认 aarch64，去编 `src/arm/64/*.S`），交给构建脚本的环境变量是 **`PKG_CONFIG_LIBDIR`**
   而不是 `PKG_CONFIG_PATH`（实测后者无效：`link-search` 仍指宿主 brew 的 1.5.4）。
-  Windows 那条不需要系统 dav1d：`SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always`（system-deps 7.0.8 的开关）
-  让 dav1d-sys 自己 meson 静态编，产 MSVC 能链的 `.lib`，产物也就没有动态依赖。
+  Windows 那条可以不让系统 dav1d 参与：`SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always`（system-deps 7.0.8 的开关）
+  让 dav1d-sys 自己 meson 静态编，产物也就没有动态依赖。但这条路上有两个必须显式给的工具，
+  都是云跑第一轮/第二轮的红点教出来的：**要有 pkg-config 二进制**去读 meson 自产那份 `.pc`，
+  以及**要逼 meson 用 MSVC**（`CC=cl` + VS Developer Shell 的 `PATH/INCLUDE/LIB`）——否则它自己会找到
+  镜像里的 gcc，产出 MinGW ABI 的静态库，被 MSVC 的 `link.exe` 链时炸 `___chkstk_ms` / `__mingw_vfprintf`。
 - **发布腿要能证伪"编出来就能用"**：实测 rc=0 的 darwin-x64 产物引用 8 个 dav1d 符号而 `otool -L` 里没有
   dav1d（链接器发现库的架构不对就跳过它，macOS 允许 dylib 留未定义符号）⇒ 那种货不能进包。
   现在 `--publish` 先拿 `nm -u` 与装载项对账，再改写到 `@rpath` + `LC_RPATH @loader_path` 并重新 ad-hoc 签
@@ -40,7 +43,34 @@
   这条腿的红绿说的是"Xaihi 在 Linux 上编得出来、测得过"。
 - **mac 未签名是选择不是绕过**：见 patch 0023 那段。
 
+## 云上读数（native 矩阵，三轮跑到四条腿全绿）
+
+| 轮次 | run | 判决 | 红点 |
+|---|---|---|---|
+| 1 | `38161576761`（12m57s） | linux ✓ / darwin-arm64 ✓ / darwin-x64 ✓ / **win ✗** | `dav1d-sys/build.rs:82` unwrap：「The pkg-config command could not be found.」——`BUILD_INTERNAL=always` 只是不探测系统库，读 meson 自产那份 `.pc` 仍要有 pkg-config 二进制 |
+| 2 | `38162650407`（~20 min） | 三条 ✓ / **win ✗** | `link.exe` 退出 1120：`libdav1d.a` 带着未解析的 `___chkstk_ms`（GCC 栈探测）与 `__mingw_vfprintf`（MinGW stdio）⇒ meson 在 runner 上自己找到了 gcc（镜像里 Strawberry Perl/MSYS2 都带），产的是 MinGW ABI 的静态库 |
+| 3 | `38164994269` | **四条全 success** | — |
+
+第三轮的产物与回读（日志原文，不是推断）：
+
+- `win32-x64`：`cl = C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\bin\HostX64\x64\cl.exe`；
+  产物 `xaihi_kisaki_node.dll` 31,879,680 字节 `sha256 5890a086…`；`--publish … --no-dav1d` 落地，
+  且**没**打印「这台机读不回装载项」那句 ⇒ runner 上 `nm -u` 可用并读到 0 个 dav1d 未定义符号
+  ⇒ 「静态吃进来了、不需要带 dll」是量到的，不是照抄声明。修法：进 VS Developer Shell（`vswhere` 定位，
+  与上游 `desktop-toolchain-preflight.ts:46-69` 同一把尺），把 `PATH/INCLUDE/LIB` 交给后续步骤并设 `CC=cl`。
+- `darwin-arm64`：21,443,808 字节 `c821210e…`；`改写装载项：/opt/homebrew/opt/dav1d/lib/libdav1d.7.dylib → @rpath/libdav1d.7.dylib`，
+  回读 `otool -L` 就是 `@rpath/…`，`codesign --verify` 过。
+- `darwin-x64（试验腿）`：25,913,968 字节 `067e47ad…`；装载探针按规矩跳过（标 compile-verified only），
+  改写源是 runner 自己那份交叉 dav1d（`_temp/dav1d-x64-prefix/lib/…→ @rpath`），回读同样是 `@rpath`。
+- `linux-x64`：回读 `NEEDED libdav1d.so.7` —— soname 是脚本从**产物自己**读的（不是表里写死的名字），
+  这台 Ubuntu 24.04 给的正是 `.so.7`。
+
+体积记账：第二轮起 `builds/<sha>/` 那份暂存缓存不再进 artifact（同样的字节已在 `.node` 里），
+darwin-arm64 从 37.8 MB 降到 27.05 MB、darwin-x64 从 21.9 MB 降到 10.9 MB；BUILD-INFO 改在回读步骤 `cat` 进日志。
+跨机器的产物尺寸/哈希本来就不同（runner 的 rustc-LLVM 与本机 1.98.1 不是一份），不拿它当一致性的证据。
+
 ## 与上游 DSH API 的关系（带 file:line，路径相对 `desktop/dsh/apps/desktop/`）
+
 
 - 目标集与主机闸门：`scripts/package-target.ts:50,61-83,176,179-190,206,237`。
 - 必填项只从文件读、未知键拒：`scripts/desktop-package-environment.mjs:16-19,29-60,47-50`；
@@ -66,5 +96,16 @@
 - `desktop/standalone/{development-app,startup-policy}.test.ts` 读的是重放后的上游源码 ⇒ 任何要在 CI 跑
   它们的腿，必须先 `node desktop/sync-dsh.mjs`（当前只在 preflight 用只读的 `--check`）。
 - Linux 那份 `.node` 的 `$ORIGIN` RPATH 没解（不维护平台），`native.yml` 的 linux 腿注释里写明了这一半。
-- Windows 腿的 `--no-dav1d` 在这台机上读不回装载项（没有 nm/dumpbin），脚本会打一行"那是声明不是实测"；
-  真判据要等 windows-latest 那一跑。
+- Windows 腿的"没有动态依赖"已经在 windows-latest 上量到：runner 有 `nm`，`nm -u` 读到 0 个 dav1d
+  未定义符号，脚本因此没打那句"读不回装载项"的免责声明（那条分支只在 `nm` 与装载项都取不到时才印）。
+- 打包必填的身份值已进 secrets：`DSH_DESKTOP_APP_ID=com.hibernalglow.xaihi`（过 `desktop-release-environment.mjs:65`
+  的反 DNS 正则）、`DSH_DESKTOP_AUTO_UPDATE_ENV=test`、`DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=https://xaihi.invalid`
+  与 `..._CONFIG={"allowedAuthOrigins":["https://xaihi.invalid"]}`（形状拿上游 `resolveDesktopPolicyEnvironment`
+  现跑验过，含一条"带 path 必须被拒"的对照）。选 `.invalid`（RFC 6761 保留域）是因为**我们没有升级服务**：
+  它保证解析不到，也不冒充有一个端点、不把流量打到别人的真实域名。这条选择的安全性也量过：
+  `src/mandatory-update-policy.ts:201-204` 对传输/JSON 失败只 `failures++` 并把 `error` 置 `unavailable`，
+  初始态 `blocking:false` ⇒ 没有策略端点时壳照常起（fail-open）。
+- `desktop.yml`（安装包腿）**还没有任何云上读数**：它是 `workflow_dispatch`，而 GitHub 要求可派发的
+  workflow 文件存在于默认分支 ⇒ 要等这些内容进 `main`。同理 `ci.yml` 补的那 8 条门禁要开 PR 才跑；
+  本机只跑了其中不吃 `dist/` 的 6 条（各 rc=0），`check:nodebundle/cliface/tuiface` 没跑——它们要先
+  `pnpm -r run build` 重写正在被宿主加载的产物。
