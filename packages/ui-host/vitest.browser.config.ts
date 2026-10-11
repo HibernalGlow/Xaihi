@@ -12,8 +12,6 @@ export default defineConfig({
       ...BROWSER_GRAPH_ALIASES,
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       'zod': fileURLToPath(import.meta.resolve('zod')),
-      '@xyflow/react/dist/style.css': fileURLToPath(new URL('./src/vendor/xyflow-stub.css', import.meta.url)),
-      '@xyflow/react': fileURLToPath(new URL('./src/vendor/xyflow-stub.tsx', import.meta.url)),
     },
   },
   optimizeDeps: {

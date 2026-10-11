@@ -61,6 +61,8 @@
         "zh": "检索 ZIP/CBZ 归档库：索引归档与成员、按条件查询、按需分析图像头信息、投影矩形图。索引内核是进程外的 Go 可执行文件，本节点不把 native 拉进宿主进程。",
         "en": "Search ZIP/CBZ libraries: index archives and members, query with filters, analyse image headers on demand, and project a treemap. The index core is an out-of-process Go binary; this node never loads native code into the host."
       },
+      "icon": "Search",
+      "category": "file",
       "actions": [
         {
           "id": "api_info",

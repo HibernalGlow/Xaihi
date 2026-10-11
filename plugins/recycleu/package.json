@@ -69,9 +69,11 @@
         "en": "Recycleu"
       },
       "description": {
-        "zh": "立即清空 Windows 回收站，或按有限时长定时清空。",
-        "en": "Empty the Windows recycle bin immediately or on a bounded timer."
+        "zh": "立即清空 Windows 回收站或 macOS 废纸篓，或按有限时长定时清空。",
+        "en": "Empty the Windows recycle bin or the macOS Trash immediately, or on a bounded timer."
       },
+      "icon": "Trash2",
+      "category": "system",
       "actions": [
         {
           "id": "status",

@@ -1,17 +1,8 @@
-import type { MarkuData, MarkuModuleId, MarkuWorkflow, MarkuWorkflowRunData } from "@xiranite/node-marku/core"
+import type { MarkuData, MarkuModuleId } from "@xiranite/node-marku/core"
 
 export type MarkuPhase = "idle" | "running" | "completed" | "error"
 
 export type MarkuDisplayTab = "output" | "diff" | "history" | "logs"
-
-export type MarkuCardMode = "normal" | "workflow"
-
-/** React Flow camera only; never part of the workflow library. */
-export interface MarkuWorkflowViewport {
-  x: number
-  y: number
-  zoom: number
-}
 
 export interface MarkuCardState {
   inputText?: string
@@ -27,16 +18,6 @@ export interface MarkuCardState {
   phase?: MarkuPhase
   progress?: number
   progressText?: string
-  /** Missing mode means Normal so old cards keep their behavior. */
-  mode?: MarkuCardMode
-  /** Library reference of the workflow the draft was loaded from; empty for unsaved drafts. */
-  activeWorkflowId?: string
-  selectedWorkflowStepId?: string
-  /** Editable workflow copy; the saved library lives in node configuration. */
-  workflowDraft?: MarkuWorkflow | null
-  workflowViewport?: MarkuWorkflowViewport
-  /** Transient run results for the workflow results view. */
-  workflowRun?: MarkuWorkflowRunData | null
 }
 
 export interface MarkuStatusMeta {

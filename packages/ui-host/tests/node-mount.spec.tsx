@@ -96,7 +96,7 @@ afterEach(() => {
  * 不是再调一次被测函数得到）。
  * 本文件所有计数都从它推，不再各写一个数字：手抄的期望只能有一处。
  */
-const REGISTERED = ['bandia', 'bitv', 'classf', 'classq', 'cleanf', 'crashu', 'dissolvef', 'encodeb', 'enginev', 'findz', 'formatv', 'gifu', 'kisaki', 'linedup', 'linku', 'marku', 'migratef', 'mvz', 'nameu', 'rawfilter', 'recycleu', 'repacku', 'samea', 'sleept', 'smartzip', 'timeu', 'trename']
+const REGISTERED = ['bitv', 'classf', 'classq', 'cleanf', 'crashu', 'dissolvef', 'encodeb', 'enginev', 'findz', 'formatv', 'gifu', 'kisaki', 'linedup', 'linku', 'marku', 'migratef', 'mvz', 'nameu', 'recycleu', 'repacku', 'samea', 'sleept', 'smartzip', 'timeu', 'trename']
 
 describe('注册表 → 面板条目', () => {
 

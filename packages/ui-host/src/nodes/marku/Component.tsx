@@ -1,23 +1,18 @@
-// Thin orchestrator for the Marku card: state wiring, node execution and mode
-// switching live here; Normal-mode views sit in normal-views.tsx and the
-// Workflow mode is lazy-loaded so React Flow never enters the Normal bundle.
-import { Suspense, lazy, useEffect, useRef, useState } from "react"
+// Thin orchestrator for the Marku card: state wiring and node execution live
+// here; the Normal-mode views sit in normal-views.tsx.
+import { useEffect, useRef, useState } from "react"
 import type { NodeComponentProps, NodeRunResult } from "@xiranite/contract"
-import type { MarkuAction, MarkuData, MarkuInput, MarkuWorkflowLibrary } from "@xiranite/node-marku/core"
-import { normalizeMarkuWorkflowLibrary } from "@xiranite/node-marku/workflow"
+import type { MarkuAction, MarkuData, MarkuInput } from "@xiranite/node-marku/core"
 import { NodeHeroGlow } from "@/components/ui/node-hero-glow"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
 import { findModuleMeta } from "./constants"
-import { actionLabel, buildInput, parseConfig, splitPaths, statusFromState } from "./model"
+import { actionLabel, buildInput, splitPaths, statusFromState } from "./model"
 import { CollapsedView, CompactView, FullView, PortraitCompactView } from "./normal-views"
 import type { MarkuCardState } from "./types"
 import { CONFIG_FIELDS } from "./types"
-import { enterWorkflowMode, exitWorkflowMode } from "./workflow-state"
 
-const WorkflowPanel = lazy(() => import("./WorkflowPanel"))
-
-type MarkuNodeConfig = Partial<MarkuCardState> & { workflowLibrary?: unknown }
+type MarkuNodeConfig = Partial<MarkuCardState>
 
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
@@ -30,8 +25,6 @@ export function Component({ compId, host }: NodeComponentProps) {
   const [defaults, setDefaults] = useState<Partial<MarkuCardState> | undefined>(undefined)
   const [configFilePath, setConfigFilePath] = useState<string | undefined>(undefined)
   const [configDirty, setConfigDirty] = useState(false)
-  const [library, setLibrary] = useState<MarkuWorkflowLibrary>(() => normalizeMarkuWorkflowLibrary(undefined))
-  const librarySaveQueueRef = useRef<Promise<void>>(Promise.resolve())
 
   const logs = data.logs ?? []
   const result = data.result ?? null
@@ -41,7 +34,6 @@ export function Component({ compId, host }: NodeComponentProps) {
   const dryRun = data.dryRun ?? true
   const progress = data.progress ?? 0
   const status = statusFromState(data, running)
-  const workflowMode = data.mode === "workflow"
   const compactSurface = surface.mode === "compact" || surface.mode === "portrait"
   const forceCollapsedSurface = compactSurface && surface.height > 0 && surface.height < 160
   const portraitCompact = surface.mode === "portrait" || (surface.mode === "compact" && surface.width < 560 && surface.height >= 300)
@@ -49,18 +41,7 @@ export function Component({ compId, host }: NodeComponentProps) {
   useEffect(() => {
     host.getNodeConfig?.<MarkuNodeConfig>()
       .then((response) => {
-        const { workflowLibrary, ...cardDefaults } = response.config ?? {}
-        const nextLibrary = normalizeMarkuWorkflowLibrary(workflowLibrary)
-        if (response.config) setDefaults(cardDefaults)
-        setLibrary(nextLibrary)
-        const current = dataRef.current
-        if (current.mode === "workflow" && !current.workflowDraft) {
-          const currentModule = findModuleMeta(current.module)
-          patch(enterWorkflowMode(current, nextLibrary, {
-            module: currentModule.id,
-            config: parseConfig(current.configText),
-          }))
-        }
+        if (response.config) setDefaults(response.config)
         setConfigFilePath(response.path)
       })
       .catch(() => undefined)
@@ -110,21 +91,13 @@ export function Component({ compId, host }: NodeComponentProps) {
     if (logs.length) await host.clipboard?.writeText?.(logs.join("\n"))
   }
 
-  async function copyText(text: string) {
-    if (text) await host.clipboard?.writeText?.(text)
-  }
-
   async function execute(action: MarkuAction) {
     if (running) return
     const current = dataRef.current
     const input = buildInput(action, current)
 
-    if ((action === "run" || action === "text" || action === "workflow") && !input.inputText && !input.paths?.length) {
+    if ((action === "run" || action === "text") && !input.inputText && !input.paths?.length) {
       patch({ phase: "error", progress: 0, progressText: "请先输入 Markdown 文本或扫描路径。" })
-      return
-    }
-    if (action === "workflow" && !current.workflowDraft?.steps.length) {
-      patch({ phase: "error", progress: 0, progressText: "工作流至少需要一个步骤。" })
       return
     }
     if (action === "undo" && !current.result?.undoId && !current.result?.history.length) {
@@ -156,7 +129,6 @@ export function Component({ compId, host }: NodeComponentProps) {
         progress: response.success ? 100 : 0,
         progressText: response.message,
         result: response.data ?? null,
-        ...(action === "workflow" ? { workflowRun: response.data?.workflow ?? null } : {}),
       })
       pushLog(response.message)
     } catch (error) {
@@ -200,32 +172,6 @@ export function Component({ compId, host }: NodeComponentProps) {
     })
   }
 
-  function enterWorkflow() {
-    const current = dataRef.current
-    patch(enterWorkflowMode(current, library, { module: moduleMeta.id, config: parseConfig(current.configText) }))
-  }
-
-  function exitWorkflow() {
-    patch(exitWorkflowMode())
-  }
-
-  /** Persists the library via the config service (shallow merge keeps other keys). */
-  async function saveLibrary(next: MarkuWorkflowLibrary) {
-    setLibrary(next)
-    const persist = async () => {
-      await host.saveNodeConfig?.({ workflowLibrary: next })
-    }
-    const pending = librarySaveQueueRef.current.catch(() => undefined).then(persist)
-    librarySaveQueueRef.current = pending
-    try {
-      await pending
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      patch({ phase: "error", progressText: `保存工作流失败：${message}` })
-      pushLog(`Workflow library save failed: ${message}`)
-    }
-  }
-
   const viewProps = {
     configDirty,
     configFilePath,
@@ -242,7 +188,6 @@ export function Component({ compId, host }: NodeComponentProps) {
     status,
     onCopyLogs: copyLogs,
     onCopyOutput: copyOutput,
-    onEnterWorkflow: enterWorkflow,
     onExecute: execute,
     onModuleChange: (value: string) => patch({ module: value }),
     onOpenConfigFile: host.openConfigFile,
@@ -262,24 +207,6 @@ export function Component({ compId, host }: NodeComponentProps) {
         <div className="relative flex min-h-0 w-full flex-col">
           {surface.mode === "collapsed" || forceCollapsedSurface ? (
             <CollapsedView {...viewProps} />
-          ) : workflowMode ? (
-            <Suspense fallback={<div className="flex h-full items-center justify-center text-xs text-muted-foreground">正在加载工作流编辑器…</div>}>
-              <WorkflowPanel
-                compact={compactSurface}
-                data={data}
-                library={library}
-                progress={progress}
-                running={running}
-                status={status}
-                onCopyText={copyText}
-                onExecute={execute}
-                onExitWorkflow={exitWorkflow}
-                onPastePath={pastePath}
-                onPasteText={pasteText}
-                onPatch={patch}
-                onSaveLibrary={saveLibrary}
-              />
-            </Suspense>
           ) : compactSurface ? (
             portraitCompact ? <PortraitCompactView {...viewProps} /> : <CompactView {...viewProps} />
           ) : (

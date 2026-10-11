@@ -51,12 +51,10 @@ export default defineConfig({
       'tests/**/*.spec.ts',
       'tests/**/*.spec.tsx',
       'src/lib/design-theme/**/*.test.ts',
-      // 以下 12 个是搬运批次带进来的上游节点测试里**实测能跑**的那一批
+      // 以下 10 个是搬运批次带进来的上游节点测试里**实测能跑**的那一批
       // （38 文件 / 300 断言，`docs/port/ui-tests-inventory.md` 有前后对照）。
       'src/nodes/findz/workspace-layout.test.ts',
       'src/nodes/logx/browser-boundary.test.ts',
-      'src/nodes/marku/workflow-result-projection.test.ts',
-      'src/nodes/marku/workflow-state.test.ts',
       'src/nodes/shared/LocalAudioPreviewDialog.test.tsx',
       'src/nodes/shared/LocalImagePreview.test.tsx',
       'src/nodes/shared/LocalImagePreviewDialog.test.tsx',
@@ -76,6 +74,29 @@ export default defineConfig({
       // 载体路径的存取/迁移与"没载体退回本地遗留键"三条腿（7 条断言实测绿）。它也是
       // `NodeUiConfigProvider` 装配契约的唯一行为判据。
       'src/nodes/shared/NodeConfigPopover.test.tsx',
+      // 2026-10-08 加：图标全变成 `?` 那一次（`5a1abee` 把注册表换成生成物时丢了 `icon`/`category`，
+      // 27 个节点全中，而 `check:noderegistry` 只比字节一致、看不见"字段没了"）。这一份量的是
+      // **图标名查得到表、并且渲得出自己的图形**——"字段在不在"由生成器管（缺就 rc=1）。
+      // 4 条断言实测绿；两次阳性对照各跑过一次（都是改产物里 bandia 那一条，改完重生成回原字节）：
+      // icon 换成不存在的名字 ⇒ 第 2、4 条红；换成 `CircleHelp` ⇒ 同样第 2、4 条红，消息各自点名
+      // `bandia.icon="..."`。第 1、3 条在两种扰动下都保持绿，说明红的是判据不是环境。
+      'src/components/modules/moduleIconCatalogue.test.ts',
+      // 2026-10-09 加：字母索引条的"隐藏空字母"这一条。判据是纯函数（`getVisibleInitials` 挑出真正
+      // 有节点的首字母、`getNextAlphabetIndex` 只停在可见字母上），走界面那条路要 happy-dom 加
+      // Radix Popover，量不动；而它改错了的表现是"滚动停在看不见的格子上 / 弹层脱锚"，在真机上
+      // 很难复现，所以必须钉在这里。文件早就在树里（随搬运批次进来），此前一直不在 `include` 里
+      // ⇒ 它断言过的三件事今天之前都没跑过。实测 11 条绿。两次阳性对照各跑过一次：
+      // `getVisibleInitials` 的过滤放宽成恒真 ⇒ 第 5、6、7 条红；`getNextAlphabetIndex` 最后一步
+      // 换回按 26 取模 ⇒ 第 8、9 条红（两次都是改完立刻回原样、再跑回 11 绿）。
+      'src/components/workspace/AlphabetNodeRail.test.ts',
+      // 2026-10-09 加：这次改动把一个偏好同时加进**四份手写枚举**（store 的 persist 清单、宿主的
+      // `AppConfigSync` 清单 + 它的 normalize、`selectWorkspaceActions` 的转发表），而这一份正是
+      // 唯一能看见"只改了一处"的判据（它自带 `brandNewPreference` 那条伪造对照）。此前它一直不在
+      // `include` 里，等于那四份清单的对齐靠人眼。实测 10 条绿；阳性对照跑过一次：把新偏好从宿主
+      // 那份清单删掉 ⇒ 第 1 条红并点名 `alphabetIndexHideEmpty`，改回即绿。
+      'src/store/persistedUiPreferences.test.ts',
+      // Explicit links must not swallow the first view change after a remount.
+      'src/components/workspace/WorkspaceUrlState.test.tsx',
     ],
     server: {
       deps: {

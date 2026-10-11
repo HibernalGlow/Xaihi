@@ -72,6 +72,8 @@
         "zh": "扫描视频文件夹，添加/移除 .nov 后缀，并检查带前缀的重复项。",
         "en": "Scan video folders, add/remove .nov suffixes, and check prefixed duplicates."
       },
+      "icon": "Video",
+      "category": "video",
       "actions": [
         {
           "id": "scan",

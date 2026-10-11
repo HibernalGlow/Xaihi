@@ -69,6 +69,8 @@
         "zh": "将文件夹扫描为重命名 JSON，校验翻译目标，执行重命名并撤销。",
         "en": "Scan folders into rename JSON, validate translated targets, rename, and undo."
       },
+      "icon": "FilePenLine",
+      "category": "file",
       "actions": [
         {
           "id": "scan",

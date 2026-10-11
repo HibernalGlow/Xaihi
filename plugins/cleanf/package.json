@@ -72,6 +72,8 @@
         "zh": "预览并清理空文件夹、备份文件、临时文件夹、垃圾文件和常用清理预设。",
         "en": "Preview and remove empty folders, backup files, temp folders, trash files, and cleanup presets."
       },
+      "icon": "Brush",
+      "category": "file",
       "actions": [
         {
           "id": "clean",

@@ -72,6 +72,8 @@
         "zh": "使用 ffprobe 分析视频码率并安全分类文件。",
         "en": "Analyze video bitrate with ffprobe and classify files safely."
       },
+      "icon": "Gauge",
+      "category": "video",
       "actions": [
         {
           "id": "status",

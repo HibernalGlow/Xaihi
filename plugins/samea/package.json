@@ -72,6 +72,8 @@
         "zh": "Extract artist metadata from archive names and organize matching archives.",
         "en": "Extract artist metadata from archive names and organize matching archives."
       },
+      "icon": "ScanSearch",
+      "category": "file",
       "actions": [
         {
           "id": "plan",

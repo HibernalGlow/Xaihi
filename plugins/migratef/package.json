@@ -69,6 +69,8 @@
         "zh": "以 preserve、flat、direct 三种模式移动或复制文件，并提供撤销历史。",
         "en": "Move or copy files with preserve, flat, and direct modes plus undo history."
       },
+      "icon": "FolderSync",
+      "category": "file",
       "actions": [
         {
           "id": "plan",

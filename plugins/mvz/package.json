@@ -72,6 +72,8 @@
         "zh": "根据 findz 输出，对归档内的文件执行删除、解压、移动或重命名。",
         "en": "Delete, extract, move, or rename files inside archives from findz output."
       },
+      "icon": "Package",
+      "category": "file",
       "actions": [
         {
           "id": "extract",

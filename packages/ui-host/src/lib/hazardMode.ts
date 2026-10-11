@@ -26,9 +26,9 @@ import type { ComponentInstance } from "@/types/workspace"
 
 /** 使用 dryRun 字段控制试运行的节点集合。 */
 const DRY_RUN_MODULE_IDS = new Set([
-  "bandia", "bitv", "classf", "classq", "crashu", "enginev",
+  "bitv", "classf", "classq", "crashu", "enginev",
   "formatv", "gifu", "marku", "migratef",
-  "mvz", "nameu", "rawfilter", "repacku", "simiu", "smartzip",
+  "mvz", "nameu", "repacku", "simiu", "smartzip",
   "timeu", "trename",
 ])
 

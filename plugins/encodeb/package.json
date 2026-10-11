@@ -69,6 +69,8 @@
         "zh": "通过重新解码路径组件，预览并修复乱码文件名。",
         "en": "Preview and recover garbled filenames by re-decoding path components."
       },
+      "icon": "FileText",
+      "category": "file",
       "actions": [
         {
           "id": "find",

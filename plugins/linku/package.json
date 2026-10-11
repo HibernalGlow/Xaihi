@@ -69,6 +69,8 @@
         "zh": "创建、移动、导入、还原、列出并恢复符号链接记录。",
         "en": "Create, move, import, restore, list, and recover symlink records."
       },
+      "icon": "Link",
+      "category": "file",
       "actions": [
         {
           "id": "info",
