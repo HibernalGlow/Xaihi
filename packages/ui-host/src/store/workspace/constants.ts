@@ -16,8 +16,8 @@ import { MIGRATED_CUSTOM_THEMES } from "./migratedCustomThemes"
 /** 组件可参与的视图模式（排除 dashboard，因为 dashboard 不承载组件实例）。 */
 export type ComponentViewMode = Exclude<ViewMode, "dashboard">
 
-export const VIEW_MODES: ViewMode[] = ["dashboard", "cards", "dockview", "flow", "lane", "bento"]
-export const COMPONENT_VIEW_MODES: ComponentViewMode[] = ["cards", "dockview", "flow", "lane", "bento"]
+export const VIEW_MODES: ComponentViewMode[] = ["cards", "flow", "lane"]
+export const COMPONENT_VIEW_MODES: ComponentViewMode[] = ["cards", "flow", "lane"]
 
 /** Store 首次启动默认状态。 */
 export const INITIAL_STATE: WSState = {
@@ -35,7 +35,13 @@ export const INITIAL_STATE: WSState = {
   // 卡片布局 / 浮窗 / 背景颗粒等默认值对齐使用者从 Xiranite 迁移的配置
   // （2026-10-05 副本 [app.ui.workspace]；主题数据内联于 ./migratedCustomThemes.ts）。
   viewMode: "cards",
-  cardLayout: "focus",
+  cardLayout: "trellis",
+  defaultView: null,
+  trellisMapPosition: "toolbar",
+  viewSwitchLoop: false,
+  uiPreferenceSave: { state: "local" },
+  trellisNavigation: null,
+  viewModeTouched: false,
   // ADR-0019：多工作空间退役，工作空间塌缩成单例——恒为 ws-alpha 一条，
   // hydrate 时存量多空间快照也塌缩为第一条（级联丢弃其余）。
   workspaces: [
@@ -94,6 +100,8 @@ export const INITIAL_STATE: WSState = {
   alphabetIndexOpacity: 93,
   alphabetIndexStyle: "solid",
   alphabetIndexWaveIntensity: 69,
+  // 默认关：26 格全长（每格宽度固定），字母位置不随插件增删而挪动。
+  alphabetIndexHideEmpty: false,
   cardClickAction: "focus",
   cardDoubleClickAction: "fullscreen",
   tabDisplayStyle: "pill",

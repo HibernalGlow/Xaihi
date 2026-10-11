@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useWorkspaceActions, useWorkspaceShallowSelector, useWorkspaceVisibleComponents } from "@/store/workspaceStore"
 import { ComponentCard } from "./ComponentCard"
@@ -13,10 +13,17 @@ import { cn } from "@/lib/utils"
 
 /**
  * CardView — 卡片形态渲染器。
- * 仅在 viewMode === "cards" 时挂载。grid/stack/split/focus 子布局由 cardLayout 决定。
- * free 模式已删除。
+ * 仅在 viewMode === "cards" 时挂载。Trellis 是默认分形布局，focus 保留为经典聚焦布局。
+
  */
+const TrellisView = lazy(() => import("./TrellisView").then((m) => ({ default: m.TrellisView })))
+
 export function CardView() {
+  const trellis = useWorkspaceShallowSelector((state) => state.cardLayout === "trellis")
+  return trellis ? <Suspense fallback={<div className="flex-1 ws-canvas-bg" aria-busy="true" />}><TrellisView /></Suspense> : <ClassicCardView />
+}
+
+function ClassicCardView() {
   const { cardLayout, focusedComponentId, fullscreenComponentId } = useWorkspaceShallowSelector((state) => ({
     cardLayout: state.cardLayout,
     focusedComponentId: state.focusedComponentId,
@@ -137,7 +144,7 @@ export function CardView() {
     () =>
       computeLayout({
         components: cardComponents,
-        layout: cardLayout,
+        layout: "focus",
         focusedId: focusedComponentId,
         fullscreenId: fullscreenComponentId,
         W: size.w,

@@ -16,6 +16,7 @@
  * @module xaihi-core
  */
 
+import { openTrellisStore, trellisLayoutsHandler, TRELLIS_LAYOUT_PATH, type TrellisDomainFacility } from './trellis-layouts.ts'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
@@ -458,6 +459,12 @@ export function apply(ctx: HostContext, config: Config): void {
   // （ADR-0011 的路线行记着这两条实测）。这条路由用同一份桥的线上形状回答"问宿主"的那批动词，
   // 能碰的命名空间只有 Xaihi 自己的行 + `xaihi-core`——闸在 `host-routes.ts` 的 `fenceSettings`。
   // 设置面套一层"写点即采"（`settings-history.ts`）：桥上的每次成功写都留一份快照。
+  const trellisStore = openTrellisStore(ctx.get('storageDomain') as unknown as TrellisDomainFacility | undefined)
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact', path: TRELLIS_LAYOUT_PATH, handler: trellisLayoutsHandler(trellisStore),
+  }), 'xaihi-core: Trellis layout data route')
+  ctx.effect(() => () => { void trellisStore.then((store) => store.close()) }, 'xaihi-core: Trellis storage lifetime')
+
   const settingsHistory = openSettingsHistoryStore(ctx.get('storageDomain') as unknown as SettingsHistoryDomainLike | undefined)
   const bridgeSettings = withHistoryCapture(
     () => ctx.get('settings' as never) as SettingsServiceLike | undefined,

@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react"
 import { useWorkspaceShallowSelector } from "@/store/workspaceStore"
+import { TrellisToolbarHost } from "./TrellisToolbarSlot"
 import { TopBar } from "./TopBar"
 import { WorkspaceUrlState } from "./WorkspaceUrlState"
 import { BackendStatusBanner } from "./BackendStatusBanner"
@@ -9,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { startupDebug, startupDebugAsync } from "@/lib/startupDebug"
 
 // Keep default cards view and secondary chrome out of the first WorkspaceLayout
-// transform. View-mode lazy loading already existed for dock/flow/lane/bento;
+// transform. View-mode lazy loading also covers flow/lane;
 // cards/overlays were still eager and dominated first-open cost.
 const CardView = lazy(() => startupDebugAsync("lazy:card-view", () => import("./CardView")).then((module) => ({ default: module.CardView })))
 const OverlayHost = lazy(() => startupDebugAsync("lazy:overlay-host", () => import("./OverlayHost")).then((module) => ({ default: module.OverlayHost })))
@@ -18,10 +19,8 @@ const AlphabetNodeRail = lazy(() => import("./AlphabetNodeRail").then((module) =
 const DefaultContextMenuItems = lazy(() =>
   import("@/components/context-menu/defaults").then((module) => ({ default: module.DefaultContextMenuItems })),
 )
-const DockviewView = lazy(() => import("./DockviewView").then((module) => ({ default: module.DockviewView })))
 const FlowView = lazy(() => import("./FlowView").then((module) => ({ default: module.FlowView })))
 const LaneView = lazy(() => import("./lane/LaneView").then((module) => ({ default: module.LaneView })))
-const BentoView = lazy(() => import("./BentoView").then((module) => ({ default: module.BentoView })))
 const UsageDashboard = lazy(() => import("@/components/views/UsageDashboard").then((module) => ({ default: module.UsageDashboard })))
 
 export function WorkspaceLayout() {
@@ -48,7 +47,7 @@ export function WorkspaceLayout() {
   } as React.CSSProperties
 
   return (
-    <div
+    <TrellisToolbarHost><div
       className={cn("flex h-screen flex-col overflow-hidden bg-background text-foreground", themeClass, bgClass, bgCoverClass)}
       style={bgStyles}
     >
@@ -68,10 +67,8 @@ export function WorkspaceLayout() {
           <Suspense fallback={<div className="min-h-0 flex-1 ws-canvas-bg" />}>
             {chrome.viewMode === "dashboard" && <UsageDashboard />}
             {chrome.viewMode === "cards" && <CardView />}
-            {chrome.viewMode === "dockview" && <DockviewView />}
             {chrome.viewMode === "flow" && <FlowView />}
             {chrome.viewMode === "lane" && <LaneView />}
-            {chrome.viewMode === "bento" && <BentoView />}
           </Suspense>
         </div>
         <Suspense fallback={null}>
@@ -80,6 +77,6 @@ export function WorkspaceLayout() {
           <AlphabetNodeRail />
         </Suspense>
       </main>
-    </div>
+    </div></TrellisToolbarHost>
   )
 }

@@ -51,8 +51,8 @@ const WORKSPACE_SNAPSHOT_QUERY_KEY = ["workspace", "snapshot"] as const
  * 名字得过得了 `NODE_ID_PATTERN`（小写字母/数字/`_`/`-`），所以用连字符形式。
  */
 const WORKSPACE_SNAPSHOT_NODE = "xaihi-workspace"
-const QA_VIEW_MODES = new Set<ViewMode>(["dashboard", "cards", "dockview", "flow", "lane", "bento"])
-const QA_CARD_LAYOUTS = new Set<CardLayout>(["grid", "stack", "split", "focus"])
+const QA_VIEW_MODES = new Set<ViewMode>(["cards", "flow", "lane"])
+const QA_CARD_LAYOUTS = new Set<CardLayout>(["focus", "trellis"])
 
 function workspaceSnapshotQueryKey(hosted: boolean) {
   return [...WORKSPACE_SNAPSHOT_QUERY_KEY, hosted ? "hosted" : "unhosted"] as const
@@ -122,9 +122,7 @@ function toComponentDTO(component: ComponentInstance, now: number): ComponentDTO
     data: component.data,
     flowPosition: component.flowPosition,
     flowSize: component.flowSize,
-    bentoLayout: component.bentoLayout,
     laneSize: component.laneSize,
-    dockPanel: component.dockPanel,
     laneId: component.laneId,
     hiddenIn: component.hiddenIn,
     tags: component.tags,
@@ -369,10 +367,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
  *   - xqa.resize(query, surfaceOrOptions)     应用 surface 预设或自定义尺寸
  *   - xqa.deploy(moduleId, mode)              在指定视图部署新组件
  *   - xqa.fullscreen(query) / xqa.focus(query)  全屏 / 聚焦指定组件
- *   - xqa.bento(query, layout)                设置 bento 视图的网格位置
  *   - xqa.flowSize(query, size)               设置 flow 视图的尺寸
  *   - xqa.show(query, mode) / xqa.hideView(mode, keepIds)  显示/隐藏组件
- *   - xqa.dock(query?)                        切换到 dockview 并停靠
  *   - xqa.cardLayout(layout)                  设置 cards 视图的布局
  */
 interface XiraniteQaController {
@@ -384,8 +380,6 @@ interface XiraniteQaController {
   cardLayout: (layout: CardLayout) => ReturnType<typeof summarizeWorkspaceState>
   focus: (query: string) => ReturnType<typeof summarizeWorkspaceState>
   fullscreen: (query: string) => ReturnType<typeof summarizeWorkspaceState>
-  dock: (query?: string) => ReturnType<typeof summarizeWorkspaceState>
-  bento: (query: string, layout: Partial<{ x: number; y: number; w: number; h: number }>) => ReturnType<typeof summarizeWorkspaceState>
   flowSize: (query: string, size: Partial<{ width: number; height: number }>) => ReturnType<typeof summarizeWorkspaceState>
   show: (query: string, mode?: ViewMode) => ReturnType<typeof summarizeWorkspaceState>
   hideView: (mode: ViewMode, keepIds?: string[]) => ReturnType<typeof summarizeWorkspaceState>
@@ -415,12 +409,10 @@ interface QaResizeOptions {
   focus?: boolean
   fullscreen?: boolean
   flow?: Partial<{ x: number; y: number; width: number; height: number }>
-  bento?: Partial<{ x: number; y: number; w: number; h: number }>
 }
 
 interface QaStageOptions extends QaResizeOptions {
   fresh?: boolean
-  dockPanel?: string
   tags?: string[]
   data?: Record<string, unknown>
   theme?: AppTheme
@@ -435,7 +427,6 @@ type QaCommandResult = ReturnType<typeof summarizeWorkspaceState> & {
 
 const QA_SURFACE_PRESETS: Record<QaSurfacePreset, {
   flow: { width: number; height: number }
-  bento: { w: number; h: number }
   cardLayout: CardLayout
   collapsed: boolean
   focus: boolean
@@ -443,39 +434,34 @@ const QA_SURFACE_PRESETS: Record<QaSurfacePreset, {
 }> = {
   collapsed: {
     flow: { width: 260, height: 120 },
-    bento: { w: 3, h: 2 },
-    cardLayout: "grid",
+    cardLayout: "trellis",
     collapsed: true,
     focus: false,
     fullscreen: false,
   },
   compact: {
     flow: { width: 360, height: 260 },
-    bento: { w: 4, h: 3 },
-    cardLayout: "grid",
+    cardLayout: "trellis",
     collapsed: false,
     focus: false,
     fullscreen: false,
   },
   portrait: {
     flow: { width: 390, height: 720 },
-    bento: { w: 3, h: 10 },
-    cardLayout: "grid",
+    cardLayout: "trellis",
     collapsed: false,
     focus: false,
     fullscreen: false,
   },
   regular: {
     flow: { width: 560, height: 420 },
-    bento: { w: 6, h: 4 },
-    cardLayout: "grid",
+    cardLayout: "trellis",
     collapsed: false,
     focus: false,
     fullscreen: false,
   },
   expanded: {
     flow: { width: 860, height: 560 },
-    bento: { w: 8, h: 6 },
     cardLayout: "focus",
     collapsed: false,
     focus: true,
@@ -483,7 +469,6 @@ const QA_SURFACE_PRESETS: Record<QaSurfacePreset, {
   },
   workspace: {
     flow: { width: 1120, height: 720 },
-    bento: { w: 12, h: 8 },
     cardLayout: "focus",
     collapsed: false,
     focus: false,
@@ -501,12 +486,11 @@ const QA_SURFACE_PRESETS: Record<QaSurfacePreset, {
 function installWorkspaceQaController(): () => void {
   const controller: XiraniteQaController = {
     help: () => [
-      "window.xqa.view('dashboard' | 'cards' | 'dockview' | 'flow' | 'lane' | 'bento')",
-      "window.xqa.stage('repacku', { view: 'bento', surface: 'expanded', fresh: true })",
+      "window.xqa.view('cards' | 'flow' | 'lane')",
+      "window.xqa.stage('repacku', { view: 'cards', surface: 'expanded', fresh: true })",
       "window.xqa.resize('repacku', 'compact', 'flow')",
-      "window.xqa.bento('repacku', { x: 0, y: 0, w: 8, h: 6 })",
       "window.xqa.flowSize('repacku', { width: 720, height: 520 })",
-      "window.xqa.hideView('bento', ['comp-id-to-keep'])",
+      "window.xqa.hideView('cards', ['comp-id-to-keep'])",
       "window.xqa.fullscreen('repacku') / window.xqa.focus('repacku')",
     ],
     state: () => summarizeWorkspaceState(useWorkspaceStore.getState()),
@@ -540,25 +524,6 @@ function installWorkspaceQaController(): () => void {
       store.setViewMode("cards")
       store.setComponentVisibility(component.id, "cards", true)
       store.setFullscreen(component.id)
-      return summarizeWorkspaceState(useWorkspaceStore.getState())
-    },
-    dock: (query) => {
-      const store = useWorkspaceStore.getState()
-      if (query) {
-        const component = requireQaComponent(query)
-        store.setComponentState(component.id, "docked")
-      }
-      store.setFullscreen(null)
-      store.focusComponent(null)
-      return summarizeWorkspaceState(useWorkspaceStore.getState())
-    },
-    bento: (query, layout) => {
-      const component = requireQaComponent(query)
-      const current = component.bentoLayout ?? { x: 0, y: 0, w: 4, h: 4 }
-      const store = useWorkspaceStore.getState()
-      store.setViewMode("bento")
-      store.setComponentVisibility(component.id, "bento", true)
-      store.setComponentBentoLayout(component.id, { ...current, ...layout })
       return summarizeWorkspaceState(useWorkspaceStore.getState())
     },
     flowSize: (query, size) => {
@@ -641,9 +606,7 @@ function summarizeWorkspaceComponents(store: WSStore) {
       hiddenIn: component.hiddenIn,
       flowPosition: component.flowPosition,
       flowSize: component.flowSize,
-      bentoLayout: component.bentoLayout,
       laneSize: component.laneSize,
-      dockPanel: component.dockPanel,
       laneId: component.laneId,
     }))
 }
@@ -654,7 +617,7 @@ function summarizeWorkspaceComponents(store: WSStore) {
  * 流程：
  * 1. options.fresh 为 true 时先删除所有匹配的现有组件，再重新部署
  * 2. 否则尝试 findQaComponent，找不到才 deploy
- * 3. 调用 applyQaStage 把 view/surface/flow/bento/collapsed/focus/fullscreen
+ * 3. 调用 applyQaStage 把 view/surface/flow/collapsed/focus/fullscreen
  *    等选项应用到组件上
  * 4. 返回带 selected 字段的结果，便于测试断言目标组件的最终状态
  */
@@ -711,15 +674,6 @@ function deployQaComponent(moduleId: string, view: ViewMode, options: QaStageOpt
         y: options.flow.y ?? 100,
       }
       : undefined,
-    bentoLayout: options.bento
-      ? {
-        x: options.bento.x ?? 0,
-        y: options.bento.y ?? 0,
-        w: options.bento.w ?? QA_SURFACE_PRESETS[options.surface ?? "regular"].bento.w,
-        h: options.bento.h ?? QA_SURFACE_PRESETS[options.surface ?? "regular"].bento.h,
-      }
-      : undefined,
-    dockPanel: options.dockPanel,
     tags: options.tags,
   })
 
@@ -738,7 +692,7 @@ function deployQaComponent(moduleId: string, view: ViewMode, options: QaStageOpt
 
 /**
  * 把 stage 选项应用到指定组件：切换视图、设置可见性、写入 data、
- * 根据 view 模式应用 cardLayout/dock/flow/bento 布局，最后处理
+ * 根据 view 模式应用 cardLayout/flow 布局，最后处理
  * collapsed/focus/fullscreen 三个独立开关。
  */
 function applyQaStage(componentId: string, view: ViewMode, options: QaStageOptions): void {
@@ -756,10 +710,6 @@ function applyQaStage(componentId: string, view: ViewMode, options: QaStageOptio
     if (cardLayout) store.setCardLayout(cardLayout)
   }
 
-  if (view === "dockview") {
-    store.setComponentState(componentId, "docked")
-    if (options.dockPanel) store.setComponentDockPanel(componentId, options.dockPanel)
-  }
 
   if (view === "flow") {
     const current = requireQaComponent(componentId)
@@ -773,16 +723,6 @@ function applyQaStage(componentId: string, view: ViewMode, options: QaStageOptio
     store.setComponentFlowSize(componentId, width, height)
   }
 
-  if (view === "bento") {
-    const current = requireQaComponent(componentId)
-    const currentLayout = current.bentoLayout ?? { x: 0, y: 0, w: 4, h: 4 }
-    store.setComponentBentoLayout(componentId, {
-      x: options.bento?.x ?? currentLayout.x,
-      y: options.bento?.y ?? currentLayout.y,
-      w: options.bento?.w ?? surface?.bento.w ?? currentLayout.w,
-      h: options.bento?.h ?? surface?.bento.h ?? currentLayout.h,
-    })
-  }
 
   const collapsed = options.collapsed ?? surface?.collapsed
   if (collapsed !== undefined) setQaComponentCollapsed(componentId, collapsed)

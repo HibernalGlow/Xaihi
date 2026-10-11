@@ -30,7 +30,7 @@ const logger = createLogger("node.host")
 type ComponentVisibilityMode = Exclude<ViewMode, "dashboard">
 
 const componentStates = new Set<ComponentState>(["docked", "floating", "focused", "fullscreen", "compact"])
-const viewModes = new Set<ComponentVisibilityMode>(["cards", "dockview", "flow", "lane", "bento"])
+const viewModes = new Set<ComponentVisibilityMode>(["cards", "flow", "lane"])
 
 /**
  * 这份文档不在宿主里时那句统一的原因。

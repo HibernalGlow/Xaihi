@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Expand,
   ExternalLink,
+  Filter,
   Grid,
   Image,
   Maximize2,
@@ -77,6 +78,7 @@ export function WorkspaceSection() {
     alphabetIndexOpacity: workspace.alphabetIndexOpacity,
     alphabetIndexStyle: workspace.alphabetIndexStyle,
     alphabetIndexWaveIntensity: workspace.alphabetIndexWaveIntensity,
+    alphabetIndexHideEmpty: workspace.alphabetIndexHideEmpty,
     restoreWorkspaceComponents: workspace.restoreWorkspaceComponents,
   }))
 
@@ -401,6 +403,7 @@ export function WorkspaceSection() {
               <p className="mt-1 text-[11px] text-muted-foreground">{t("settings:wheel.actionsDesc")}</p>
             </div>
             <WheelSectorSettings
+              showGeometry={false}
               order={state.wheelActionOrder}
               hiddenActions={state.wheelHiddenActions}
               onPreferencesChange={workspaceActions.setWheelPreferences}
@@ -565,6 +568,19 @@ export function WorkspaceSection() {
               <p className="text-[11px] text-muted-foreground">{t("settings:alphabetIndex.visibleDesc")}</p>
             </div>
             <Switch checked={state.alphabetIndexVisible} onCheckedChange={workspaceActions.setAlphabetIndexVisible} />
+          </div>
+
+          <div className="flex items-center gap-3 rounded-sm border border-border/40 bg-muted/15 px-3 py-2">
+            <Filter className="size-3.5 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground">{t("settings:alphabetIndex.hideEmpty")}</p>
+              <p className="text-[11px] text-muted-foreground">{t("settings:alphabetIndex.hideEmptyDesc")}</p>
+            </div>
+            <Switch
+              aria-label={t("settings:alphabetIndex.hideEmpty")}
+              checked={state.alphabetIndexHideEmpty}
+              onCheckedChange={workspaceActions.setAlphabetIndexHideEmpty}
+            />
           </div>
 
           <div className={cn("flex flex-col gap-4 transition-opacity", !state.alphabetIndexVisible && "opacity-60")}>

@@ -5,7 +5,8 @@ export type ContextMenuBuilder = (ctx: ContextMenuContext) => ContextMenuItemDef
 
 export interface ContextMenuAPI {
   register: (scope: string, builder: ContextMenuBuilder) => () => void
-  show: (x: number, y: number, items: ContextMenuItemDef[]) => void
+  show: (x: number, y: number, items: ContextMenuItemDef[], onClose?: () => void) => void
+  build: (scope: string, context: ContextMenuContext) => ContextMenuItemDef[]
   confirm: (item: ContextMenuItemDef, returnFocus?: HTMLElement) => Promise<boolean>
 }
 

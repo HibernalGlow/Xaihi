@@ -136,6 +136,7 @@ interface OpenMenu {
   y: number
   items: ContextMenuItemDef[]
   returnFocus?: HTMLElement
+  onClose?: () => void
 }
 
 interface PendingConfirmation {
@@ -151,10 +152,13 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
   // the menu unmounts (Radix may close the menu on item select in some envs).
   const [confirm, setConfirm] = useState<PendingConfirmation | null>(null)
 
-  const show = useCallback((x: number, y: number, items: ContextMenuItemDef[]) => {
+  const show = useCallback((x: number, y: number, items: ContextMenuItemDef[], onClose?: () => void) => {
     if (items.length === 0) return
-    setOpenMenu({ x, y, items })
+    setOpenMenu({ x, y, items, onClose })
   }, [])
+
+  useEffect(() => () => { openMenu?.onClose?.() }, [openMenu])
+  const build = useCallback((scope: string, context: ContextMenuContext) => buildersRef.current.get(scope)?.at(-1)?.(context) ?? [], [])
 
   const register = useCallback((scope: string, builder: ContextMenuBuilder) => {
     const registrations = buildersRef.current.get(scope) ?? []
@@ -173,6 +177,8 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null
+      // The layout adapter has already opened one combined host menu.
+      if (e.defaultPrevented && target?.closest('[data-xaihi-context-menu-owner="trellis"]')) return
       const isEditable = !!target && isEditableTarget(target)
       const path = e.composedPath()
       if (!isEditable && shouldDeferToTldrawContextMenu(path)) return
@@ -257,7 +263,7 @@ export function ContextMenuProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const api = useMemo<ContextMenuAPI>(() => ({ register, show, confirm: requestConfirmation }), [register, requestConfirmation, show])
+  const api = useMemo<ContextMenuAPI>(() => ({ register, show, build, confirm: requestConfirmation }), [register, requestConfirmation, show, build])
 
   return (
     <ContextMenuBuilderContext.Provider value={api}>

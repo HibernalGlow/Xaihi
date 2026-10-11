@@ -144,7 +144,7 @@ export default defineConfig(({ command }) => ({
       '/xaihi': { target: HOST_ORIGIN, changeOrigin: true },
     },
     watch: {
-      ignored: ['**/dist-ui/**', '**/dist-nodeface/**', '**/dist-realm/**', '**/lib/**', '**/locale/**'],
+      ignored: ['**/dist-ui/**', '**/dist-nodeface/**', '**/dist-realm/**', '**/ui-host/lib/**', '**/locale/**'],
     },
     warmup: { clientFiles: ['./index.html', './src/document/main.tsx'] },
   },

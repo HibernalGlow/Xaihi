@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest"
 import type { ComponentInstance, ViewMode } from "@/types/workspace"
 import { isComponentVisibleInView } from "./componentVisibility"
 
-const COMPONENT_VIEW_MODES: ViewMode[] = ["cards", "dockview", "flow", "lane", "bento"]
+const COMPONENT_VIEW_MODES: ViewMode[] = ["cards", "flow", "lane"]
 
 function createComponent(overrides: Partial<ComponentInstance> = {}): ComponentInstance {
   return {
@@ -16,7 +16,6 @@ function createComponent(overrides: Partial<ComponentInstance> = {}): ComponentI
     workspaceId: "workspace-1",
     flowPosition: { x: 0, y: 0 },
     flowSize: { width: 320, height: 240 },
-    dockPanel: "default",
     createdAt: 1,
     updatedAt: 1,
     ...overrides,
@@ -37,7 +36,7 @@ describe("isComponentVisibleInView", () => {
     const component = createComponent()
 
     expect(isComponentVisibleInView(component, "cards")).toBe(true)
-    expect(isComponentVisibleInView(component, "dockview")).toBe(true)
+    expect(isComponentVisibleInView(component, "lane")).toBe(true)
     expect(isComponentVisibleInView(createComponent({ hiddenIn: { cards: true } }), "cards")).toBe(false)
   })
 

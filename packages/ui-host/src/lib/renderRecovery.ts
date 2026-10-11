@@ -2,8 +2,7 @@
  * 顶层渲染崩溃的恢复动作。
  *
  * 崩溃面自己就在 React 树里，而「原样刷新」会把崩溃时正打开的那个视图再加载一遍：
- * 首屏渲染哪块内容只由 URL query 决定（`viewMode` 不进 localStorage，且
- * `WorkspaceUrlState` 用 `clearOnDefault:false` 保证 `?view=` 永远写回地址栏），
+ * 首屏由显式 URL 视图参数或启动默认偏好决定，
  * 自动恢复的节点窗口又由持久化偏好决定。于是同一个坏 chunk 每次都赢，
  * Reload 变成死循环。这里按代价从低到高分两级：先只回到默认视图，
  * 仍然崩溃才关掉节点自动恢复并清掉泳道会话。
@@ -19,6 +18,8 @@ import { useWorkspaceStore } from "@/store/workspaceStore"
  */
 const VIEW_PINNING_PARAMS = [
   "view",
+  "layout",
+  "navigation",
   "workspace",
   "settings",
   "floatingComponent",

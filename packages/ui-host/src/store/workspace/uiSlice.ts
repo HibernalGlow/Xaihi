@@ -11,6 +11,8 @@ import { normalizeSwimlanePreferences } from "@/components/workspace/swimlane/mo
 import { normalizeChromeActionOrder, normalizeChromeHiddenActions } from "@/components/workspace/chromeActionPreferences"
 import { clampWheelPitch, clampWheelRadius } from "@/actions/wheelPreferences"
 
+import { currentDefaultView, normalizeDefaultView, normalizeTrellisMapPosition, startupView } from "@/lib/workspaceViewPreference"
+
 export function createUiSlice(set: SetWorkspaceStore): WorkspaceUiActions {
   return {
     /**
@@ -43,7 +45,11 @@ export function createUiSlice(set: SetWorkspaceStore): WorkspaceUiActions {
     }), false, "SET_THEME_SELECTION"),
     /** 从后端/持久化恢复 UI 偏好（仅覆盖传入字段，缺失字段保留默认）。 */
     hydrateUiPreferences: (preferences) => set(
-      sanitizeUiPreferences(preferences),
+      (state) => {
+        const next = sanitizeUiPreferences(preferences)
+        const defaultView = normalizeDefaultView(next.defaultView === undefined ? state.defaultView : next.defaultView)
+        return { ...next, ...(!state.viewModeTouched && defaultView ? startupView(defaultView) : {}) }
+      },
       false,
       "HYDRATE_UI_PREFERENCES",
     ),
@@ -85,8 +91,12 @@ export function createUiSlice(set: SetWorkspaceStore): WorkspaceUiActions {
     // 加字段之前的旧形状）都先过同一个解析器。不这么做，「切换配方」那条
     // `{...config, id}` 的展开就会把缺字段的状态原样带进 store 并持久化下去。
     setDesignTheme: (designTheme) => set({ designTheme: normalizeDesignThemeConfig(designTheme) }, false, "SET_DESIGN_THEME"),
-    setViewMode: (mode) => set({ viewMode: mode }, false, "SET_VIEW_MODE"),
-    setCardLayout: (layout) => set({ cardLayout: layout }, false, "SET_CARD_LAYOUT"),
+    setViewMode: (mode) => set({ viewMode: mode, viewModeTouched: true }, false, "SET_VIEW_MODE"),
+    setCardLayout: (layout) => set({ cardLayout: layout, viewModeTouched: true }, false, "SET_CARD_LAYOUT"),
+    setTrellisNavigation: (trellisNavigation) => set({ trellisNavigation }, false, "SET_TRELLIS_NAVIGATION"),
+    setViewSwitchLoop: (viewSwitchLoop) => set({ viewSwitchLoop }, false, "SET_VIEW_SWITCH_LOOP"),
+    setTrellisMapPosition: (trellisMapPosition) => set({ trellisMapPosition }, false, "SET_TRELLIS_MAP_POSITION"),
+    setCurrentViewAsDefault: () => set((state) => state.viewMode === "dashboard" ? {} : ({ defaultView: currentDefaultView(state.viewMode, state.cardLayout, state.trellisNavigation) }), false, "SET_DEFAULT_VIEW"),
     setOverlay: (overlay) => set({ overlay }, false, "SET_OVERLAY"),
     setOverlayMode: (overlayMode) => set({ overlayMode }, false, "SET_OVERLAY_MODE"),
     setOverlayWidth: (overlayWidth) => set({ overlayWidth }, false, "SET_OVERLAY_WIDTH"),
@@ -140,6 +150,7 @@ export function createUiSlice(set: SetWorkspaceStore): WorkspaceUiActions {
     setAlphabetIndexOpacity: (alphabetIndexOpacity) => set({ alphabetIndexOpacity }, false, "SET_ALPHABET_INDEX_OPACITY"),
     setAlphabetIndexStyle: (alphabetIndexStyle) => set({ alphabetIndexStyle }, false, "SET_ALPHABET_INDEX_STYLE"),
     setAlphabetIndexWaveIntensity: (alphabetIndexWaveIntensity) => set({ alphabetIndexWaveIntensity }, false, "SET_ALPHABET_INDEX_WAVE_INTENSITY"),
+    setAlphabetIndexHideEmpty: (alphabetIndexHideEmpty) => set({ alphabetIndexHideEmpty }, false, "SET_ALPHABET_INDEX_HIDE_EMPTY"),
     setCardClickAction: (cardClickAction) => set({ cardClickAction }, false, "SET_CARD_CLICK_ACTION"),
     setCardDoubleClickAction: (cardDoubleClickAction) => set({ cardDoubleClickAction }, false, "SET_CARD_DOUBLE_CLICK_ACTION"),
     setTabDisplayStyle: (tabDisplayStyle) => set({ tabDisplayStyle }, false, "SET_TAB_DISPLAY_STYLE"),
@@ -182,6 +193,9 @@ function sanitizeUiPreferences(preferences: Partial<WorkspaceUiPreferences>): Pa
     sanitized.laneWorkspacePreferences = Object.fromEntries(Object.entries(sanitized.laneWorkspacePreferences).map(([workspaceId, value]) => [workspaceId, normalizeSwimlanePreferences(value)]))
   }
   // 高级主题来自宿主持久化，字段可能缺半或被手改过；解析器认不出的部分一律回默认。
+  if (sanitized.viewSwitchLoop !== undefined) sanitized.viewSwitchLoop = sanitized.viewSwitchLoop === true
+  if (sanitized.trellisMapPosition !== undefined) sanitized.trellisMapPosition = normalizeTrellisMapPosition(sanitized.trellisMapPosition)
+  if (sanitized.defaultView !== undefined) sanitized.defaultView = normalizeDefaultView(sanitized.defaultView)
   if (sanitized.designTheme !== undefined) {
     sanitized.designTheme = normalizeDesignThemeConfig(sanitized.designTheme)
   }

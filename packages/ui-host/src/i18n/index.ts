@@ -21,7 +21,7 @@ export const LANGUAGES: { key: Language; label: string; nativeLabel: string }[] 
 
 const STORAGE_KEY = "i18n.lang"
 /** 命名空间列表：每个对应 locale JSON 中的一个顶层 key。 */
-const NS_KEYS = ["common", "topbar", "settings", "registry", "overlay", "view", "module"] as const
+const NS_KEYS = ["common", "topbar", "settings", "registry", "overlay", "view", "module", "contextMenu"] as const
 
 const localeLoaders: Record<Language, () => Promise<{ default: Record<string, unknown> }>> = {
   en: () => import("./locales/en.json"),

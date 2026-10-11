@@ -25,7 +25,7 @@ interface Props {
   hasFocused: boolean
   cardLayout: CardLayout
   isLayoutResizing: boolean
-  positioning?: "absolute" | "masonry"
+  positioning?: "absolute"
 }
 
 const stateLabelKey: Record<ComputedLayout["state"], string> = {
@@ -60,7 +60,6 @@ function ComponentCardInner({ comp, layout, cardLayout: _cardLayout, isLayoutRes
   const isFullscreen = layout.state === "fullscreen"
   const isCompact = layout.state === "compact"
   const isFocusedState = layout.state === "focused"
-  const isMasonry = positioning === "masonry"
 
   function toggleCollapse() {
     workspaceActions.toggleCollapse(comp.id)
@@ -76,7 +75,7 @@ function ComponentCardInner({ comp, layout, cardLayout: _cardLayout, isLayoutRes
   }
 
   function exitFocus() {
-    workspaceActions.setCardLayout("grid")
+    workspaceActions.setCardLayout("focus")
     workspaceActions.focusComponent(null)
   }
 
@@ -166,13 +165,13 @@ function ComponentCardInner({ comp, layout, cardLayout: _cardLayout, isLayoutRes
       onClick={handleCardClick}
       onDoubleClick={handleCardDoubleClick}
       style={{
-        position: isMasonry ? "relative" : "absolute",
+        position: "absolute",
         left: 0,
         top: 0,
-        width: isMasonry ? "100%" : layout.w,
+        width: layout.w,
         height: layout.h,
         opacity: layout.opacity,
-        transform: isMasonry ? `scale(${layout.scale})` : `translate3d(${layout.x}px, ${layout.y}px, 0) scale(${layout.scale})`,
+        transform: `translate3d(${layout.x}px, ${layout.y}px, 0) scale(${layout.scale})`,
         transformOrigin: "top left",
         zIndex: layout.z,
         pointerEvents: layout.interactive ? "auto" : "none",
@@ -180,7 +179,6 @@ function ComponentCardInner({ comp, layout, cardLayout: _cardLayout, isLayoutRes
       className={cn(
         "xiranite-component-surface group relative flex flex-col overflow-hidden rounded-md bg-card/72 text-card-foreground outline outline-1 outline-transparent",
         !isLayoutResizing && "comp-card--animated backdrop-blur-md transition-[transform,width,height,opacity,background-color,box-shadow,outline-color] duration-200 ease-out",
-        isMasonry && "break-inside-avoid",
         isFullscreen && "comp-card--fullscreen",
         (isFocusedState || isFullscreen)
           ? "bg-card/88 outline-primary/55 shadow-[0_0_0_1px_var(--ws-accent-glow),0_24px_60px_-24px_var(--ws-accent-glow)]"

@@ -1,6 +1,15 @@
 {
   "common": {
-    "appName": "XIRANITE",
+    "alphabetLauncher": {
+      "nodes": "Nodes",
+      "label": "Alphabetical node launcher",
+      "expand": "Expand the alphabetical node launcher",
+      "letters": "Node initials",
+      "matches": "{{letter}} · {{count}} nodes",
+      "empty": "No nodes beginning with {{letter}}",
+      "added": "{{name}} was added to the current view."
+    },
+    "appName": "XAIHI",
     "version": "v{{version}}",
     "search": "Search",
     "searchPlaceholder": "SEARCH...",
@@ -66,6 +75,22 @@
     }
   },
   "topbar": {
+    "compactView": {
+      "loop": "Loop view switching",
+      "loopHint": "Wrap at either end when swiping; off by default.",
+      "setDefault": "Use current view at startup",
+      "isDefault": "Current view is the startup default",
+      "save": {"pending":"Saving…","saved":"Saved for next launch.","error":"Not saved. Retry, or reload to review conflicting settings."},
+      "defaultHint": "Open this mode next time. Shared links can open a different view.",
+
+      "current": "Current view: {{name}}",
+      "views": "Views",
+      "layouts": "Card layouts",
+      "gesture": "Click to choose · Slide sideways",
+      "release": "Release to switch",
+      "releaseAction": "Release to run",
+      "down": "Slide down for layouts"
+    },
     "viewMode": {
       "dashboard": "DASHBOARD",
       "dashboardHint": "Usage analytics",
@@ -88,7 +113,9 @@
       "split": "SPLIT",
       "splitHint": "two columns",
       "focus": "FOCUS",
-      "focusHint": "hero + strip"
+      "focusHint": "hero + strip",
+      "trellis": "FRACTAL",
+      "trellisHint": "recursive splits · Focus / Free Zoom"
     },
     "theme": {
       "label": "Theme",
@@ -552,13 +579,13 @@
       "cardElevationDesc": "Subtle top-border shine on elevated surfaces"
     },
     "wheel": {
-      "actions": "Wheel sectors",
-      "actionsDesc": "Drag to reorder; actions moved to Hidden do not appear on the top-right wheel",
-      "visibleActions": "On the wheel",
+      "actions": "Top-right quick actions",
+      "actionsDesc": "Drag to reorder; actions moved to Hidden do not appear in top-right quick actions",
+      "visibleActions": "Visible actions",
       "hiddenActions": "Hidden",
       "dragAction": "Drag {{action}}",
       "resetActions": "Restore defaults",
-      "overflow": "{{count}} actions exceed the sector limit and are not shown",
+      "overflow": "{{count}} actions exceed the display limit and are not shown",
       "radius": "Radius",
       "spacing": "Sector spacing",
       "radiusValue": "{{value}} px",
@@ -625,6 +652,8 @@
       "description": "A compact launcher at the bottom of the workspace. Hover a letter to browse matching nodes, then click a node to add it.",
       "visible": "Show alphabet index",
       "visibleDesc": "Keep the launcher available at the bottom of the workspace.",
+      "hideEmpty": "Hide empty letters",
+      "hideEmptyDesc": "Keep only initials that match a node; the rest collapse off the rail.",
       "style": "Style",
       "styles": {
         "glass": "Glass",
@@ -926,6 +955,75 @@
     "drag": "Drag to move panel"
   },
   "view": {
+    "trellis": {
+      "mapOptions": "Area navigation",
+      "mapPosition": "Placement",
+      "mapPositions": {"toolbar": "Toolbar popover (recommended)", "bottom-left": "Bottom left", "bottom-right": "Bottom right", "hidden": "Hidden"},
+      "mapHint": "Show the map on demand without covering your workspace.",
+
+      "explanation": {
+        "focus": "Focus: double-click a panel or tab bar to fit it to the viewport; double-click again to return. Esc or Parent steps out through the layout hierarchy. Useful for working within one panel or group.",
+        "free": "Free Zoom: keeps Focus navigation and adds pinch, pan, and box-zoom gestures. When zooming or panning ends, the view snaps to a fitting panel or group. Useful for exploring multiple areas."
+      },
+      "serviceUnavailable": "This host does not provide layout storage yet. Your layout is retained in this session; reconnect after the host updates.",
+      "workspace": "Fractal workspace",
+      "toolbar": "Fractal layout tools",
+      "navigation": "Navigation mode",
+      "focus": "Focus",
+      "free": "Free Zoom",
+      "maximize": "Focus panel / restore framing",
+      "back": "Previous framing",
+      "forward": "Next framing",
+      "parent": "Parent level (Esc)",
+      "overview": "Overview / return",
+      "map": "Layout navigator",
+      "locatePanel": "Frame {{name}}",
+      "saveView": "Save viewpoint",
+      "viewName": "Viewpoint name",
+      "viewpoints": "Viewpoints {{count}}",
+      "removeView": "Remove viewpoint {{name}}",
+      "hidden": "Hidden {{count}}",
+      "restore": "Restore {{name}}",
+      "help": "Gestures and attribution",
+      "empty": "Add nodes to organize your fractal workspace.",
+      "windowHint": "Open this node outside the workspace. For a floating panel inside the canvas, use the panel menu.",
+      "windowUnavailable": "This host does not provide separate node windows. Canvas floating panels remain available.",
+      "attribution": "Layout and navigation by Dan Fessler’s Trellis 0.3.0, used for personal noncommercial purposes. Original license texts ship with Xaihi.",
+      "conflict": "{{writer}} saved revision {{revision}}. Your layout remains in this session. Choose which version to use.",
+      "useRemote": "Use saved layout",
+      "keepLocal": "Save my layout",
+      "saveError": "Layout was not saved: {{reason}}. Your edits remain in this session.",
+      "retry": "Reconnect",
+      "phase": {
+        "queued": "Queued",
+        "running": "Running",
+        "completed": "Completed",
+        "error": "Error",
+        "cancelled": "Cancelled"
+      },
+      "storage": {
+        "session": "Saved for this session only",
+        "loading": "Loading layout…",
+        "saved": "Saved",
+        "saving": "Saving…",
+        "error": "Not saved",
+        "conflict": "Revision conflict"
+      },
+      "gestures": {
+        "organize": "Drag tabs together to group them, or to an edge to split recursively. Drag the empty tab bar to move a group. Resize with dividers; double-click to balance. Float or hide from the panel menu; restore hidden groups from the toolbar.",
+        "focus": "Double-click the tab bar to focus a panel; repeat to return. Esc steps to the parent. Use the toolbar for history, overview and named viewpoints.",
+        "free": "Ordinary scrolling belongs to node content. Pinch to zoom the canvas. Hold ⌘+⌥ (Ctrl+Alt on Windows / Linux) and drag to pan; add V to scale, or Shift to frame a rectangle. Hold the same modifiers and scroll to navigate levels."
+      },
+      "menu": {
+        "maximize": "Focus / restore framing",
+        "float": "Float inside canvas",
+        "dock": "Dock panel",
+        "move": "Move into tab group",
+        "split-right": "Split right",
+        "split-below": "Split below",
+        "hide": "Hide panel"
+      }
+    },
     "deletions": {
       "title": "Deleted files",
       "subtitle": "Cross-node deletion ledger",
@@ -1514,115 +1612,6 @@
       "pathRequired": "Pick a Wallpaper Engine workshop folder first, or complete a scan first.",
       "deleteRequiresSelection": "Select at least one item in the gallery before deleting.",
       "exportRequiresPath": "Export requires a target file path."
-    },
-    "bandia": {
-      "name": "Bandia",
-      "description": "Batch extract, compress, repack, and export archive paths with Bandizip.",
-      "title": "bandia",
-      "run": "Run",
-      "pasteInput": "Paste input",
-      "exportEfu": "Export EFU",
-      "copyResults": "Copy results",
-      "copyLogs": "Copy logs",
-      "reset": "Reset",
-      "extract": "Extract",
-      "compress": "Compress",
-      "dryRun": "dry-run",
-      "live": "live",
-      "delete": "delete",
-      "trash": "trash",
-      "parallel": "parallel",
-      "deleteSource": "delete source",
-      "workers": "workers",
-      "prefix": "prefix",
-      "overwrite": "overwrite",
-      "outputDir": "output dir",
-      "archivePaths": "archive paths",
-      "sourcePaths": "source paths",
-      "placeholderArchivePaths": "one .zip/.7z/.rar path per line",
-      "placeholderSourcePaths": "folders/files to compress, one per line",
-      "mappings": "mappings",
-      "done": "done",
-      "failed": "failed",
-      "efu": "efu",
-      "progress": {
-        "start": "{{action}} started"
-      },
-      "noResult": "No result",
-      "starting": "starting",
-      "ok": "ok",
-      "fail": "fail",
-      "meta": "{{mode}} / {{state}} / {{archives}} archive(s) / {{mappings}} mapping(s)",
-      "modes": {
-        "extract": "extract",
-        "compress": "compress"
-      },
-      "extractModes": {
-        "auto": "auto",
-        "normal": "normal"
-      },
-      "status": {
-        "idle": "Ready",
-        "running": "Running",
-        "success": "Done",
-        "error": "Failed"
-      },
-      "desc": {
-        "idle": "Paste paths or mappings to dry-run.",
-        "running": "Bandia is processing the current queue.",
-        "success": "Last task completed.",
-        "error": "Last task failed, check results and logs."
-      },
-      "actions": {
-        "stop": "Stop",
-        "exportEfu": "Export EFU",
-        "copyResults": "Copy results",
-        "clearState": "Clear state",
-        "confirmExecute": "Confirm execute",
-        "runLabel": "{{mode}}{{action}}"
-      },
-      "labels": {
-        "task": "Task",
-        "taskHint": "Pick extract, compress, or repack; dangerous writes are dry-run by default.",
-        "switches": "Key switches",
-        "advanced": "Advanced options"
-      },
-      "confirm": {
-        "title": "Confirm live Bandia?",
-        "description": "Dry-run is off and source deletion options are enabled. Confirm paths, mappings, and trash strategy before continuing."
-      },
-      "summary": {
-        "failed": "{{count}} failed",
-        "archives": "{{count}} archive(s) / {{mode}}",
-        "items": "{{count}} item(s) / {{mode}}"
-      },
-      "subtitle": {
-        "full": "{{label}} / {{mode}} / {{count}} item(s)"
-      },
-      "tabs": {
-        "results": "Results",
-        "logs": "Logs"
-      },
-      "aria": {
-        "running": "bandia running"
-      },
-      "error": {
-        "noRunEnv": "No local run capability in this environment; use desktop mode or CLI.",
-        "stopRequested": "Stop requested"
-      },
-      "empty": "No result",
-      "mode": {
-        "dry": "Dry run",
-        "live": "Live",
-        "execute": "Run",
-        "liveExecute": "Live execute"
-      },
-      "actionLabel": {
-        "extract": "Extract",
-        "compress": "Compress",
-        "repack": "Repack",
-        "export_efu": "Export"
-      }
     },
     "cleanf": {
       "name": "Cleanf",
@@ -3189,32 +3178,9 @@
       "failLabel": "fail",
       "noOperation": "No operation yet"
     },
-    "rawfilter": {
-      "name": "Rawfilter",
-      "description": "Group similar archives and move duplicate/raw versions to trash or multi.",
-      "title": "rawfilter",
-      "meta": "{{phase}} / {{count}} archive(s)",
-      "plan": "Plan",
-      "run": "Run",
-      "copyPlan": "Copy plan",
-      "copyLogs": "Copy logs",
-      "reset": "Reset",
-      "folder": "folder",
-      "pasteFolder": "Paste folder",
-      "similarity": "similarity",
-      "nameOnly": "name only",
-      "shortcuts": "shortcuts",
-      "trashOnly": "trash only",
-      "groups": "groups",
-      "trash": "trash",
-      "multi": "multi",
-      "links": "links",
-      "errors": "errors",
-      "noPlanYet": "No plan yet"
-    },
     "recycleu": {
       "name": "Recycleu",
-      "description": "Empty the Windows recycle bin immediately or on a finite/unlimited timer.",
+      "description": "Empty the Windows recycle bin or the macOS Trash immediately or on a finite/unlimited timer.",
       "title": "recycleu",
       "meta": "{{phase}} / {{interval}}s interval",
       "start": "Start",

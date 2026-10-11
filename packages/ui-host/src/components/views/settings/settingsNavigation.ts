@@ -86,6 +86,7 @@ export const SETTINGS_SEARCH_FIELDS: readonly SettingsSearchField[] = [
   field("floating-window-style", "workspace", "floating-window-caption", "settings:floatingWindowCaption.style", ["settings:floatingWindowCaption.styleWindows", "settings:floatingWindowCaption.styleCapsule", "settings:floatingWindowCaption.styleTrafficLight"], ["window caption controls"]),
   field("floating-window-auto-collapse", "workspace", "floating-window-caption", "settings:floatingWindowCaption.autoCollapse", ["settings:floatingWindowCaption.autoCollapseDesc"], ["capsule idle"]),
   field("alphabet-index-visible", "workspace", "alphabet", "settings:alphabetIndex.visible", ["settings:alphabetIndex.visibleDesc"], ["launcher node rail"]),
+  field("alphabet-index-hide-empty", "workspace", "alphabet", "settings:alphabetIndex.hideEmpty", ["settings:alphabetIndex.hideEmptyDesc"], ["launcher hide empty letters filter"]),
   field("alphabet-index-style", "workspace", "alphabet", "settings:alphabetIndex.style", ["settings:alphabetIndex.styles.glass", "settings:alphabetIndex.styles.solid", "settings:alphabetIndex.styles.minimal"], ["launcher"]),
   field("alphabet-index-opacity", "workspace", "alphabet", "settings:alphabetIndex.opacity", undefined, ["launcher transparency"]),
   field("alphabet-index-wave", "workspace", "alphabet", "settings:alphabetIndex.wave", undefined, ["launcher hover animation"]),

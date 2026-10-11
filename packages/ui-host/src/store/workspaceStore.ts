@@ -20,6 +20,7 @@
  * 与两个 selector 工厂（selectWorkspaceState/selectWorkspaceActions），用于
  * 在不暴露完整 store 的情况下订阅子集，减少不必要的重渲染。
  */
+import { normalizeCardLayout, normalizeDefaultView, normalizeTrellisMapPosition, normalizeLayoutView, startupView } from "@/lib/workspaceViewPreference"
 import { create } from "zustand"
 import { createJSONStorage, devtools, persist } from "zustand/middleware"
 import { useShallow } from "zustand/react/shallow"
@@ -49,6 +50,9 @@ export function selectWorkspaceUiPreferences(state: WSStore): WorkspaceUiPrefere
     fontPreset: state.fontPreset,
     designTheme: state.designTheme,
     cardLayout: state.cardLayout,
+    defaultView: state.defaultView,
+    trellisMapPosition: state.trellisMapPosition,
+    viewSwitchLoop: state.viewSwitchLoop,
     overlayMode: state.overlayMode,
     overlayWidth: state.overlayWidth,
     overlayFloatingMetrics: state.overlayFloatingMetrics,
@@ -86,6 +90,7 @@ export function selectWorkspaceUiPreferences(state: WSStore): WorkspaceUiPrefere
     alphabetIndexOpacity: state.alphabetIndexOpacity,
     alphabetIndexStyle: state.alphabetIndexStyle,
     alphabetIndexWaveIntensity: state.alphabetIndexWaveIntensity,
+    alphabetIndexHideEmpty: state.alphabetIndexHideEmpty,
     cardClickAction: state.cardClickAction,
     cardDoubleClickAction: state.cardDoubleClickAction,
     tabDisplayStyle: state.tabDisplayStyle,
@@ -114,6 +119,16 @@ export function selectWorkspaceUiPreferences(state: WSStore): WorkspaceUiPrefere
 export function mergePersistedWorkspaceUi(persisted: unknown, current: WSStore): WSStore {
   const state = (persisted ?? {}) as Partial<WSState>
   const merged = { ...current, ...state }
+  merged.trellisMapPosition = normalizeTrellisMapPosition(state.trellisMapPosition)
+  merged.viewSwitchLoop = state.viewSwitchLoop === true
+  merged.defaultView = normalizeDefaultView(state.defaultView)
+  Object.assign(merged, startupView(merged.defaultView))
+  // Legacy current-layout preferences are migrated only when no explicit default exists.
+  if (!merged.defaultView) {
+    merged.cardLayout = normalizeCardLayout(state.cardLayout ?? current.cardLayout)
+    merged.viewMode = normalizeLayoutView(state.viewMode ?? current.viewMode)
+  }
+  merged.viewModeTouched = false
   merged.designTheme = normalizeDesignThemeConfig(state.designTheme ?? current.designTheme)
   return merged
 }
@@ -216,6 +231,12 @@ function selectWorkspaceState(store: WSStore): WSState {
     designTheme: store.designTheme,
     viewMode: store.viewMode,
     cardLayout: store.cardLayout,
+    defaultView: store.defaultView,
+    trellisMapPosition: store.trellisMapPosition,
+    viewSwitchLoop: store.viewSwitchLoop,
+    uiPreferenceSave: store.uiPreferenceSave,
+    trellisNavigation: store.trellisNavigation,
+    viewModeTouched: store.viewModeTouched,
     workspaces: store.workspaces,
     activeWorkspaceId: store.activeWorkspaceId,
     components: store.components,
@@ -291,6 +312,10 @@ export function selectWorkspaceActions(store: WSStore): WorkspaceActions {
     setDesignTheme: store.setDesignTheme,
     setViewMode: store.setViewMode,
     setCardLayout: store.setCardLayout,
+    setTrellisNavigation: store.setTrellisNavigation,
+    setTrellisMapPosition: store.setTrellisMapPosition,
+    setViewSwitchLoop: store.setViewSwitchLoop,
+    setCurrentViewAsDefault: store.setCurrentViewAsDefault,
     setWorkspaceFlowCanvas: store.setWorkspaceFlowCanvas,
     setWorkspaceFlowCamera: store.setWorkspaceFlowCamera,
     deployComponent: store.deployComponent,
@@ -302,12 +327,10 @@ export function selectWorkspaceActions(store: WSStore): WorkspaceActions {
     moveComponent: store.moveComponent,
     setComponentFlowPos: store.setComponentFlowPos,
     setComponentFlowSize: store.setComponentFlowSize,
-    setComponentBentoLayout: store.setComponentBentoLayout,
     setComponentLaneSize: store.setComponentLaneSize,
     setComponentData: store.setComponentData,
     patchComponentData: store.patchComponentData,
     updateComponent: store.updateComponent,
-    setComponentDockPanel: store.setComponentDockPanel,
     setComponentVisibility: store.setComponentVisibility,
     toggleComponentVisibility: store.toggleComponentVisibility,
     setComponentTags: store.setComponentTags,
@@ -361,6 +384,7 @@ export function selectWorkspaceActions(store: WSStore): WorkspaceActions {
     setAlphabetIndexOpacity: store.setAlphabetIndexOpacity,
     setAlphabetIndexStyle: store.setAlphabetIndexStyle,
     setAlphabetIndexWaveIntensity: store.setAlphabetIndexWaveIntensity,
+    setAlphabetIndexHideEmpty: store.setAlphabetIndexHideEmpty,
     setCardClickAction: store.setCardClickAction,
     setCardDoubleClickAction: store.setCardDoubleClickAction,
     setTabDisplayStyle: store.setTabDisplayStyle,

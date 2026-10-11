@@ -1,7 +1,7 @@
 /**
  * Lane (泳道) slice —— 负责工作区中"泳道"容器的全部状态变更。
  *
- * 泳道是 lane 视图模式（多列垂直卡片堆叠）和 bento 视图模式（多列自由排版）
+ * 泳道是 lane 视图模式（多列垂直卡片堆叠）
  * 共享的横向分栏容器；每个泳道维护自己的 widthRatio、collapsed、hidden、
  * cardOrder（卡片在前端的展示顺序，与 components 数组解耦）等独立状态。
  *
@@ -131,7 +131,7 @@ function setLaneCardOrderState(state: WSState, id: string, cardOrder: string[]):
 /**
  * 一次性写入整个工作区的"泳道顺序 + 每条泳道内卡片顺序"。
  *
- * 这是 lane/bento 视图批量重排后的提交动作，避免逐条调用 reorderLane /
+ * 这是 lane 视图批量重排后的提交动作，避免逐条调用 reorderLane /
  * setLaneCardOrder 产生多次 store 更新。同时会根据 cardOrderByLane 反向
  * 同步 component.laneId，保证数据一致性。
  *

@@ -146,9 +146,125 @@
 }
 
 /* ── Slider (M3 slider) ──────────────────────────────────────────────────
-   slider.tsx:42 (track h-1.5 rounded-full bg-muted), :46-48 (range bg-primary),
-   :58 (thumb size-4 border-primary).
-   M3 set: slider → active/inactive track 4px, handle 20px, state layer 40px. */
+   这一族以前**只有一段注释**：旧注释写着「M3 set: slider → active/inactive track
+   4px, handle 20px, state layer 40px」，下面一条声明都没有，全仓 `--md-comp-slider-*`
+   引用数为 0，而同期 135 条 design-theme 尺全绿——因为 `tokenCoverage.test.ts` 双向核对的
+   是「引擎发放 == CSS 引用」，两边都不引用就是「一致」。现在值全部走字典 token，
+   由 `specCoverage.test.ts` 的「声称即义务」钉住，改回零消费会当场红。
+
+   字典 slider 集（84 集 / 3160 条里的一集，`tokens.generated.ts` 机读自
+   `@material/web@2.5.0` 的 v0_192）给的是：active/inactive track 4px + corner-full、
+   handle 20×20 corner-full、state layer 40px、inactive track = surface-container-highest。
+
+   ⚠️ 两处刻意不用 comp token 的地方：
+   - 阴影走 `--md-sys-elevation-shadow-1`，**不用** `--md-comp-slider-handle-elevation`：
+     后者是 `ref:md-sys-elevation:level1`，v0_192 那一组只有 dp 数字（0/1/3/6/8/12），
+     当 box-shadow 用会是一条非法声明（CSS 可用的两层阴影在 labs/gb 那份生成物里，
+     引擎以 `--md-sys-elevation-shadow-*` 发）。
+   - thumb 的 1px 描边不动（slider.tsx:58 的 `border border-primary`）：字典里没有
+     handle 描边宽度的 token，M3 的 handle 是实心圆点，而 primary 描边压在 primary
+     底色上视觉为零。自创 `border-width: 0` 是往字典里没写的地方伸手。
+
+   让位：slider 是六个组件皮肤族之一，`src/index.css:1121-1250` 用 `!important` 占住
+   track/range/thumb 的 height/width/background/border/box-shadow/border-radius/overflow/transition。
+   优先级是「组件皮肤 > 高级主题」（用户 2026-10-05 定），所以每一块都带
+   `:not([data-slider-style])`——皮肤在场时整族让位，皮肤选「不接管」时 M3 的形态回来。 */
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-geometry="on"] [data-slot="slider-track"] {
+  border-radius: var(--md-comp-slider-inactive-track-shape);
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-geometry="on"] [data-slot="slider"][data-orientation="horizontal"] [data-slot="slider-track"] {
+  height: var(--md-comp-slider-active-track-height);
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-geometry="on"] [data-slot="slider"][data-orientation="vertical"] [data-slot="slider-track"] {
+  width: var(--md-comp-slider-active-track-height);
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-geometry="on"] [data-slot="slider-thumb"] {
+  width: var(--md-comp-slider-handle-width);
+  height: var(--md-comp-slider-handle-height);
+  border-radius: var(--md-comp-slider-handle-shape);
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-color="on"] [data-slot="slider-track"] {
+  background-color: var(--md-comp-slider-inactive-track-color);
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-color="on"] [data-slot="slider-range"] {
+  background-color: var(--md-comp-slider-active-track-color);
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-color="on"] [data-slot="slider-thumb"] {
+  background-color: var(--md-comp-slider-handle-color);
+  border-color: var(--md-comp-slider-handle-color);
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-color="on"] [data-slot="slider"][data-disabled] [data-slot="slider-thumb"] {
+  background-color: var(--md-comp-slider-disabled-handle-color);
+  opacity: var(--md-comp-slider-disabled-handle-opacity);
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-color="on"] [data-slot="slider"][data-disabled] [data-slot="slider-range"] {
+  background-color: var(--md-comp-slider-disabled-active-track-color);
+  opacity: var(--md-comp-slider-disabled-active-track-opacity);
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-elevation="on"] [data-slot="slider-thumb"] {
+  box-shadow: var(--md-sys-elevation-shadow-1);
+}
+
+/* 40dp 状态层：字典 slider 集给 `state-layer-size: 40px`，比 20px 的 handle 大一圈，
+   所以不能用 `md3-components.css:205` 那套 `inset: 0` 的写法（那是给「填满自身」的
+   控件准备的）。Radix 的 thumb 自己是 absolute 定位，已经是一个包含块，因此用负 inset
+   从 handle 往外扩，扩出的量由两个 token 相除得到，不写 -10px 这个字面量。
+   颜色也直接 `color-mix` 在本元素上，不借 `--md3-state-layer-hover`：那个别名在
+   `:root` 上就结算完了（`md3-components.css:167-181`），在子元素上改
+   `--md3-state-layer-color` 不会让它重算，而 slider 的状态层色规范给的是 primary
+   不是默认的 on-surface。 */
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-states="on"] [data-slot="slider-thumb"] {
+  isolation: isolate;
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-states="on"] [data-slot="slider-thumb"]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc((var(--md-comp-slider-handle-width) - var(--md-comp-slider-state-layer-size)) / 2);
+  border-radius: var(--md-comp-slider-handle-shape);
+  pointer-events: none;
+  background-color: transparent;
+  transition: background-color var(--md-sys-motion-duration-short4)
+    var(--md-sys-motion-easing-standard);
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-states="on"] [data-slot="slider-thumb"]:hover::before {
+  background-color: color-mix(
+    in oklab,
+    var(--md-comp-slider-hover-state-layer-color)
+      calc(var(--md-comp-slider-hover-state-layer-opacity) * 100%),
+    transparent
+  );
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-states="on"] [data-slot="slider-thumb"]:focus-visible::before {
+  background-color: color-mix(
+    in oklab,
+    var(--md-comp-slider-focus-state-layer-color)
+      calc(var(--md-comp-slider-focus-state-layer-opacity) * 100%),
+    transparent
+  );
+}
+
+:root[data-app-design="md3"]:not([data-slider-style])[data-design-states="on"] [data-slot="slider-thumb"]:active::before {
+  background-color: color-mix(
+    in oklab,
+    var(--md-comp-slider-pressed-state-layer-color)
+      calc(var(--md-comp-slider-pressed-state-layer-opacity) * 100%),
+    transparent
+  );
+}
 
 /* ── Progress (M3 linear progress indicator) ─────────────────────────────
    progress.tsx:18 (h-2 rounded-full bg-primary/20), :30 (indicator bg-primary).

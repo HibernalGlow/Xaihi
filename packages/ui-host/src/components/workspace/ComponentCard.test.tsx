@@ -55,7 +55,7 @@ describe("ComponentCard interactions", () => {
         canvasRef={{ current: null }}
         isFocused={false}
         hasFocused={false}
-        cardLayout="grid"
+        cardLayout="focus"
         isLayoutResizing={false}
       />,
     )

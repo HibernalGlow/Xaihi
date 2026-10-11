@@ -1,5 +1,6 @@
 import { useEffect, useState, type ComponentType, type MouseEvent } from "react"
-import { AnimatePresence, motion } from "motion/react"
+import { CompactViewSwitch } from "./CompactViewSwitch"
+import { TrellisToolbarSlot } from "./TrellisToolbarSlot"
 import { useTranslation } from "react-i18next"
 import { getRuntime } from "@/backend/client"
 import { getRuntimeConnectionInfo } from "@/backend/runtimeConnectionInfo"
@@ -15,16 +16,16 @@ import { DESIGN_THEME_ENTRIES } from "@/lib/design-theme/registry"
 import type { ViewMode, CardLayout, AppCustomTheme } from "@/types/workspace"
 import { AppMenuRoot, AppMenuRow, type AppMenuPage } from "@/components/workspace/AppMenuRoot"
 import {
-  Settings, Grid, SplitSquareVertical, AlignJustify, Target,
-  Gauge, LayoutDashboard, Workflow, Share2, ChevronDown, Check,
+  Settings, Target,
+  Gauge, LayoutDashboard, Workflow, ChevronDown, Check,
   Sun, Moon, Monitor, Palette,
-  LayoutTemplate,
+  PanelsTopLeft, Columns3,
   ArrowLeft, ShieldAlert, Flame,
 } from "lucide-react"
 import { WindowControlIcon } from "./WindowControlIcon"
 import { captionBandInlinePx } from "./captionBand"
 import { syncActionContext, type ActionContext } from "@/actions"
-import { ActionPieMenu } from "@/components/workspace/ActionPieMenu"
+import { ActionCompactMenu } from "@/components/workspace/ActionCompactMenu"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger("window.controls")
@@ -45,9 +46,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 const TITLEBAR_NO_DRAG_SELECTOR = [
   ".xiranite-app-region-no-drag",
@@ -63,39 +64,15 @@ function isNoDragTarget(target: EventTarget | null): boolean {
   return target instanceof Element && !!target.closest(TITLEBAR_NO_DRAG_SELECTOR)
 }
 
-/** 泳道模式图标 — 与 Lane 内部用同一个 SVG，画泳道外框 + lane 矩形。 */
-function LaneModeIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 15 10"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M11.75 0.75H2.75C1.64543 0.75 0.75 1.64543 0.75 2.75V6.75C0.75 7.85457 1.64543 8.75 2.75 8.75H11.75C12.8546 8.75 13.75 7.85457 13.75 6.75V2.75C13.75 1.64543 12.8546 0.75 11.75 0.75Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <rect x="0.75" y="0.75" width="5" height="8" rx="2" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  )
-}
-
 const VIEW_OPTIONS: { key: ViewMode; labelKey: string; hintKey: string; icon: ComponentType<{ className?: string }> }[] = [
   { key: "cards",    labelKey: "topbar:viewMode.cards",    hintKey: "topbar:viewMode.cardsHint",    icon: LayoutDashboard },
-  { key: "dockview", labelKey: "topbar:viewMode.dockview", hintKey: "topbar:viewMode.dockviewHint", icon: Share2 },
   { key: "flow",     labelKey: "topbar:viewMode.flow",     hintKey: "topbar:viewMode.flowHint",     icon: Workflow },
-  { key: "lane",     labelKey: "topbar:viewMode.lane",     hintKey: "topbar:viewMode.laneHint",     icon: LaneModeIcon },
-  { key: "bento",    labelKey: "topbar:viewMode.bento",    hintKey: "topbar:viewMode.bentoHint",    icon: LayoutTemplate },
+  { key: "lane",     labelKey: "topbar:viewMode.lane",     hintKey: "topbar:viewMode.laneHint",     icon: Columns3 },
 ]
 
 const CARD_LAYOUT_OPTIONS: { key: CardLayout; labelKey: string; hintKey: string; icon: ComponentType<{ className?: string }> }[] = [
-  { key: "grid",  labelKey: "topbar:cardLayout.grid",  hintKey: "topbar:cardLayout.gridHint",  icon: Grid },
-  { key: "stack", labelKey: "topbar:cardLayout.stack", hintKey: "topbar:cardLayout.stackHint", icon: AlignJustify },
-  { key: "split", labelKey: "topbar:cardLayout.split", hintKey: "topbar:cardLayout.splitHint", icon: SplitSquareVertical },
   { key: "focus", labelKey: "topbar:cardLayout.focus", hintKey: "topbar:cardLayout.focusHint", icon: Target },
+  { key: "trellis", labelKey: "topbar:cardLayout.trellis", hintKey: "topbar:cardLayout.trellisHint", icon: PanelsTopLeft },
 ]
 
 const THEME_PRESETS = THEME_PRESET_OPTIONS
@@ -122,6 +99,10 @@ export function TopBar() {
   const state = useWorkspaceShallowSelector((workspace) => ({
     viewMode: workspace.viewMode,
     cardLayout: workspace.cardLayout,
+    defaultView: workspace.defaultView,
+    trellisNavigation: workspace.trellisNavigation,
+    uiPreferenceSave: workspace.uiPreferenceSave,
+    viewSwitchLoop: workspace.viewSwitchLoop,
     theme: workspace.theme,
     themeSelections: workspace.themeSelections,
     customThemes: workspace.customThemes,
@@ -225,7 +206,7 @@ export function TopBar() {
       className={cn(
         "xiranite-app-region-drag",
         "xiranite-topbar",
-        "relative z-[1500] flex h-12 min-w-0 flex-shrink-0 select-none items-center gap-3 overflow-visible border-b border-border bg-background px-4",
+        "relative z-[1500] flex h-12 min-w-0 flex-shrink-0 select-none items-center gap-1.5 overflow-visible border-b border-border bg-background px-4",
       )}
     >
       {/* ── 品牌 + 工作区切换入口 ── */}
@@ -340,78 +321,19 @@ export function TopBar() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── ViewMode 切换：cards / dockview / flow 三种主形态 ── */}
-      <div className="xiranite-app-region-no-drag flex shrink-0 items-center border-l border-border/60 pl-3">
-        <ToggleGroup
-          type="single"
-          value={state.viewMode}
-          onValueChange={(value) => {
-            if (value) workspaceActions.setViewMode(value as ViewMode)
-          }}
-          variant="outline"
-          size="sm"
-          className="rounded-md border border-border/60 bg-muted/20 p-0.5"
-          spacing={1}
-        >
-          {VIEW_OPTIONS.map(({ key, labelKey, hintKey, icon: Icon }) => (
-            <ToggleGroupItem
-              key={key}
-              value={key}
-              data-view-mode={key}
-              title={`${t(labelKey)}: ${t(hintKey)}`}
-              aria-label={`${t(labelKey)}: ${t(hintKey)}`}
-              className="size-7 px-0 text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-primary data-[state=on]:shadow-xs"
-            >
-              <Icon className="size-3.5" />
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+      <div className="xaihi-app-region-no-drag flex min-w-0 shrink items-center gap-1 border-l border-border/60 pl-1">
+        {state.viewMode !== "dashboard" && <CompactViewSwitch viewMode={state.viewMode} cardLayout={state.cardLayout} views={VIEW_OPTIONS} layouts={CARD_LAYOUT_OPTIONS}
+          loop={state.viewSwitchLoop} onLoopChange={workspaceActions.setViewSwitchLoop} defaultView={state.defaultView} navigation={state.trellisNavigation} saveStatus={state.uiPreferenceSave} onSetDefault={workspaceActions.setCurrentViewAsDefault}
+          onView={workspaceActions.setViewMode} onLayout={workspaceActions.setCardLayout} />}
+        {state.viewMode === "cards" && state.cardLayout === "trellis" && <TrellisToolbarSlot />}
       </div>
-
-      {/* ── Cards 子布局：仅 viewMode === "cards" 时显示 ── */}
-      <AnimatePresence initial={false}>
-        {state.viewMode === "cards" && (
-          <motion.div
-            className="xiranite-app-region-no-drag flex shrink-0 items-center border-l border-border/60 pl-3"
-            initial={{ opacity: 0, width: 0, x: -6 }}
-            animate={{ opacity: 1, width: "auto", x: 0 }}
-            exit={{ opacity: 0, width: 0, x: -6 }}
-            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <ToggleGroup
-              type="single"
-              value={state.cardLayout}
-              onValueChange={(value) => {
-                if (value) workspaceActions.setCardLayout(value as CardLayout)
-              }}
-              variant="outline"
-              size="sm"
-              className="rounded-md border border-border/60 bg-muted/20 p-0.5"
-              spacing={1}
-            >
-              {CARD_LAYOUT_OPTIONS.map(({ key, labelKey, hintKey, icon: Icon }) => (
-                <ToggleGroupItem
-                  key={key}
-                  value={key}
-                  data-card-layout={key}
-                  title={`${t(labelKey)}: ${t(hintKey)}`}
-                  aria-label={`${t(labelKey)}: ${t(hintKey)}`}
-                  className="size-7 px-0 text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-primary data-[state=on]:shadow-xs"
-                >
-                  <Icon className="size-3.5" />
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Spacer */}
       <div className="flex-1" />
 
       {/* ── 弹出层入口（取代侧栏）── */}
       <div className="xiranite-app-region-no-drag flex items-center gap-1">
-        <ActionPieMenu context={actionContext} />
+        <ActionCompactMenu context={actionContext} />
         {/* ── 主题快速切换下拉 ── */}
         <Popover open={themeMenuOpen} onOpenChange={setThemeMenuOpen}>
           <PopoverTrigger asChild>
@@ -636,7 +558,6 @@ function AppMenuViews({ onBack, onSelect, t, value }: {
         {VIEW_OPTIONS.map(({ key, labelKey, icon: Icon }) => (
           <AppMenuRow key={key} active={value === key} icon={Icon} label={t(labelKey)} onSelect={() => onSelect(key)} />
         ))}
-        <AppMenuRow active={value === "dashboard"} icon={Gauge} label={t("topbar:viewMode.dashboard")} onSelect={() => onSelect("dashboard")} />
       </div>
     </div>
   )
