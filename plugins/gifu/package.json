@@ -72,6 +72,8 @@
         "zh": "使用原生媒体运行时，将图片归档转换为 GIF、WebP、APNG、WebM 或 MP4。",
         "en": "Convert image archives to GIF, WebP, APNG, WebM, or MP4 with the native media runtime."
       },
+      "icon": "Film",
+      "category": "image",
       "actions": [
         {
           "id": "inspect",

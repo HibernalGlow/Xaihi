@@ -72,6 +72,8 @@
         "zh": "对多行文本去重并按过滤行剔除，返回保留与剔除两部分及计数。",
         "en": "Deduplicate multiline text and drop lines matching filters, returning kept and removed sets with counts."
       },
+      "icon": "Filter",
+      "category": "text",
       "actions": [
         {
           "id": "filter",

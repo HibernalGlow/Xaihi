@@ -72,6 +72,8 @@
         "zh": "递归检测所有文件，并在不丢失路径分类的前提下分流到 already、del 或 wait。",
         "en": "Classify detected files into already, del, or wait without losing path context."
       },
+      "icon": "Workflow",
+      "category": "file",
       "actions": [
         {
           "id": "plan",

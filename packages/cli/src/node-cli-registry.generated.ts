@@ -4,12 +4,6 @@
 
 export const GENERATED_NODE_CLI_REGISTRY = [
   {
-    id: "bandia",
-    packageName: "@hibernalglow/xaihi-bandia",
-    bin: "bandia",
-    description: "Batch extract, compress, repack, and export archive paths with Bandizip.",
-  },
-  {
     id: "bitv",
     packageName: "@hibernalglow/xaihi-bitv",
     bin: "bitv",
@@ -112,16 +106,10 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     description: "Preview and apply archive filename cleanup for artist folders.",
   },
   {
-    id: "rawfilter",
-    packageName: "@hibernalglow/xaihi-rawfilter",
-    bin: "rawfilter",
-    description: "Group similar archives and move duplicate/raw versions to trash or multi.",
-  },
-  {
     id: "recycleu",
     packageName: "@hibernalglow/xaihi-recycleu",
     bin: "recycleu",
-    description: "Empty the Windows recycle bin immediately or on a bounded timer.",
+    description: "Empty the Windows recycle bin or the macOS Trash immediately, or on a bounded timer.",
   },
   {
     id: "repacku",

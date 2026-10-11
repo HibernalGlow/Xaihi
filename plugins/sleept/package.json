@@ -69,6 +69,8 @@
         "zh": "读取本机睡眠/休眠设置与谁在阻止休眠，临时阻止系统休眠，或让机器立即进入睡眠（Windows 可选休眠）。仅覆盖 macOS 与 Windows。",
         "en": "Read sleep/hibernate settings and which processes hold sleep off, temporarily prevent system sleep, or put the machine to sleep now (hibernate on Windows). Covers macOS and Windows only."
       },
+      "icon": "Clock",
+      "category": "system",
       "actions": [
         {
           "id": "status",

@@ -72,6 +72,8 @@
         "zh": "把一个目录里的子文件夹按\"嵌套 / 媒体 / 压缩包 / 直接文件\"四种策略归并到上层，先出计划再落地，并留下可撤销的 undo journal。",
         "en": "Dissolve subfolders of a directory up one level using nested / media / archive / direct strategies. Plan first, then apply, with an undo journal."
       },
+      "icon": "FolderInput",
+      "category": "file",
       "actions": [
         {
           "id": "plan",

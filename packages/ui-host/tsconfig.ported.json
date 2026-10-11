@@ -274,9 +274,6 @@
       "@xiranite/node-marku/contract": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/contract.ts"
       ],
-      "@xiranite/node-marku/workflow": [
-        "/Users/glow/Base/Code/Freya/Xaihi/plugins/marku/src/workflow.ts"
-      ],
       "@xiranite/node-nameu/contract": [
         "/Users/glow/Base/Code/Freya/Xaihi/plugins/nameu/src/contract.ts"
       ],

@@ -69,6 +69,8 @@
         "zh": "查找关键词文件夹并将同级项移入 wait 文件夹。",
         "en": "Find keyword folders and move sibling items into wait folders."
       },
+      "icon": "FolderTree",
+      "category": "file",
       "actions": [
         {
           "id": "plan",

@@ -1,7 +1,7 @@
 // Normal-mode surface views extracted from Component.tsx so the card entry
 // stays a thin orchestrator. These views are presentation-only: all state and
 // side effects arrive through the explicit MarkuViewProps contract.
-import { Copy, FileCode, History, Play, RotateCcw, ShieldAlert, Undo2, Workflow } from "lucide-react"
+import { Copy, FileCode, History, Play, RotateCcw, ShieldAlert, Undo2 } from "lucide-react"
 import type { MarkuAction, MarkuData } from "@xiranite/node-marku/core"
 import { FloatingWindowNodeHeader } from "@/components/workspace/FloatingWindowFrame"
 import { Badge } from "@/components/ui/badge"
@@ -39,7 +39,6 @@ export interface MarkuViewProps {
   status: MarkuStatusMeta
   onCopyLogs: () => void
   onCopyOutput: () => void
-  onEnterWorkflow: () => void
   onExecute: (action: MarkuAction) => void
   onModuleChange: (value: string) => void
   onOpenConfigFile?: () => Promise<void> | void
@@ -183,7 +182,6 @@ function ToolbarActions(props: MarkuViewProps & { compact?: boolean }) {
   return (
     <div className={cn("flex min-w-0 items-center gap-1", props.compact && "justify-between")}>
       {!props.compact && <PrimaryActionButton props={props} />}
-      <ActionIconButton disabled={props.running} icon={Workflow} label="工作流模式" onClick={props.onEnterWorkflow} />
       <ActionIconButton disabled={props.running} icon={History} label="读取历史" onClick={() => props.onExecute("history")} />
       <ActionIconButton disabled={props.running} icon={Undo2} label="撤销最近" onClick={() => props.onExecute("undo")} />
       <ActionIconButton disabled={!props.result?.outputText && !props.result?.diffText && !props.result?.diffs.length} icon={Copy} label="复制输出" onClick={props.onCopyOutput} />

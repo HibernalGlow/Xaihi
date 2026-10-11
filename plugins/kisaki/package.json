@@ -72,6 +72,8 @@
         "zh": "文件分析去重工作台（基于 Czkawka 原生 Rust 核心）。",
         "en": "Advanced duplicate file, media similarity, and disk optimization workbench."
       },
+      "icon": "ScanSearch",
+      "category": "file",
       "actions": [
         {
           "id": "scan",
@@ -93,8 +95,75 @@
             "zh": "→ 移动",
             "en": "→ Move"
           }
+        },
+        {
+          "id": "rename",
+          "label": {
+            "zh": "✎ 重命名",
+            "en": "✎ Rename"
+          }
+        },
+        {
+          "id": "clean-exif",
+          "label": {
+            "zh": "⌫ 清理 EXIF",
+            "en": "⌫ Clean EXIF"
+          }
+        },
+        {
+          "id": "optimize-video",
+          "label": {
+            "zh": "⇩ 优化视频",
+            "en": "⇩ Optimize video"
+          }
+        },
+        {
+          "id": "save",
+          "label": {
+            "zh": "⤓ 保存结果",
+            "en": "⤓ Save results"
+          }
+        },
+        {
+          "id": "simiu-apply",
+          "label": {
+            "zh": "⇄ 应用 Simiu 集合",
+            "en": "⇄ Apply Simiu sets"
+          }
+        },
+        {
+          "id": "simiu-undo",
+          "label": {
+            "zh": "↺ 撤销 Simiu 集合",
+            "en": "↺ Undo Simiu sets"
+          }
         }
       ],
+      "danger": {
+        "type": "actionIn",
+        "dangerous": [
+          "rename",
+          "clean-exif",
+          "optimize-video",
+          "save",
+          "simiu-apply",
+          "simiu-undo"
+        ]
+      },
+      "dangerPrompt": {
+        "title": {
+          "zh": "确认写盘",
+          "en": "Confirm write"
+        },
+        "body": {
+          "zh": "这一步会改动磁盘上的文件（重命名 / 去掉 EXIF / 转码视频 / 导出结果 / 应用或撤销 Simiu 集合）。预演档不会碰文件。",
+          "en": "This step writes to disk (rename / strip EXIF / transcode video / export results / apply or undo Simiu sets). The dry-run path never touches files."
+        },
+        "confirmLabel": {
+          "zh": "执行",
+          "en": "Run"
+        }
+      },
       "fields": [
         {
           "id": "tool",
@@ -103,7 +172,6 @@
             "en": "Scan tool"
           },
           "kind": "select",
-          "isActionSelector": true,
           "options": [
             { "value": "duplicate-files", "label": { "zh": "重复文件", "en": "Duplicate Files" } },
             { "value": "empty-folders", "label": { "zh": "空文件夹", "en": "Empty Folders" } },

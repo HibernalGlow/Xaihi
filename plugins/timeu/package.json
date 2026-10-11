@@ -72,6 +72,8 @@
         "zh": "从 JSON 记录备份和恢复文件时间戳。",
         "en": "Back up and restore file timestamps from JSON records."
       },
+      "icon": "Clock3",
+      "category": "file",
       "actions": [
         {
           "id": "scan",

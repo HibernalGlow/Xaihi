@@ -69,6 +69,8 @@
         "zh": "运行 Markdown 清理与转换模块，并提供预览差异。",
         "en": "Run Markdown cleanup and conversion modules with preview diff."
       },
+      "icon": "FileCode",
+      "category": "text",
       "actions": [
         {
           "id": "text",

@@ -69,6 +69,8 @@
         "zh": "为画师文件夹预览并执行归档文件名清理。",
         "en": "Preview and apply archive filename cleanup for artist folders."
       },
+      "icon": "FilePenLine",
+      "category": "file",
       "actions": [
         {
           "id": "scan",

@@ -72,6 +72,8 @@
         "zh": "使用自动检测 7-Zip 的 TypeScript 归档工作流。",
         "en": "TypeScript archive workflows with automatic 7-Zip discovery."
       },
+      "icon": "Archive",
+      "category": "file",
       "actions": [
         {
           "id": "status",

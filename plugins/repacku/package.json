@@ -72,6 +72,8 @@
         "zh": "分析文件夹结构，并将匹配的文件夹重新打包为 zip 归档。",
         "en": "Analyze folder structures and repack matching folders into zip archives."
       },
+      "icon": "Package",
+      "category": "file",
       "actions": [
         {
           "id": "analyze",

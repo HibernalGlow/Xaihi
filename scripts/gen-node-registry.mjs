@@ -17,6 +17,12 @@
  * 3. 每条节点都带 `manifest`，`def` 由界面侧的 `entry.ts` 从这里取 —— ADR-0007 决定 4
  *    要的就是"连接点是纯数据叶子"，而 Xaihi 的纯数据叶子正是 `package.json#xaihi`。
  *
+ * `category` 与 `icon` 是上游 `NodeDef` 就有的两个界面字段（上游从 `node-definitions/<id>.json`
+ * 读，本仓从 `xaihi.node` 读，同一份语义）。缺任何一条都是**硬失败**而不是跳过：
+ * 跳过会让节点从工作台消失，而"消失"正是这张表上一轮把图标全弄成 `?` 的原因。
+ * 图标名能不能解析成真的 lucide 组件，由 `moduleIconCatalogue.test.ts` 那把尺管（它 import
+ * 的是注册表本身，不会和这里对不上）。
+ *
  * 用法：
  *   node scripts/gen-node-registry.mjs            # 生成
  *   node scripts/gen-node-registry.mjs --check    # 门禁：不一致即红
@@ -38,6 +44,7 @@ function collect() {
 
   const usable = []
   const skipped = []
+  const incomplete = []
   for (const id of dirs) {
     const hasEntry = existsSync(join(NODES, id, 'entry.ts'))
     const manifestPath = join(ROOT, 'plugins', id, 'package.json')
@@ -56,9 +63,20 @@ function collect() {
       skipped.push(`${id}: plugins/${id} 没有 xaihi.node 清单`)
       continue
     }
-    usable.push({ id, manifest: node, version: pkg.version ?? '0.0.0' })
+    const missing = ['category', 'icon'].filter((key) => typeof node[key] !== 'string' || node[key].trim() === '')
+    if (missing.length > 0) {
+      incomplete.push(`${id}: xaihi.node 缺 ${missing.join(' / ')}（工作台渲染不出图标，只会是 ? 兜底）`)
+      continue
+    }
+    usable.push({
+      id,
+      manifest: node,
+      version: pkg.version ?? '0.0.0',
+      category: node.category,
+      icon: node.icon,
+    })
   }
-  return { usable, skipped, all: dirs }
+  return { usable, skipped, incomplete, all: dirs }
 }
 
 function emit(usable) {
@@ -67,7 +85,7 @@ function emit(usable) {
     const title = node.title?.en ?? entry.id
     const description = node.description?.en ?? ''
     const keywords = [entry.id, ...(node.actions ?? []).map((action) => action.id)]
-    return `  {\n    id: ${JSON.stringify(entry.id)},\n    name: ${JSON.stringify(title)},\n    version: ${JSON.stringify(entry.version)},\n    description: ${JSON.stringify(description)},\n    keywords: ${JSON.stringify(keypoints(keywords))},\n    manifest: ${JSON.stringify(node)},\n  },`
+    return `  {\n    id: ${JSON.stringify(entry.id)},\n    name: ${JSON.stringify(title)},\n    version: ${JSON.stringify(entry.version)},\n    category: ${JSON.stringify(entry.category)},\n    description: ${JSON.stringify(description)},\n    icon: ${JSON.stringify(entry.icon)},\n    keywords: ${JSON.stringify(keypoints(keywords))},\n    manifest: ${JSON.stringify(node)},\n  },`
   })
 
   const loaders = usable.map((entry) =>
@@ -85,6 +103,8 @@ function emit(usable) {
 //   1. 只登记"界面与宿主清单两边都在"的节点；
 //   2. 帮助载荷用 nodeHelpFromManifest 从嵌进来的清单现推，不按包名动态 import；
 //   3. 类型就地声明，不从 @xiranite/contract 拿（那个包没进 workspace）。
+// 第 4 条是这轮补的：category 与 icon 从 xaihi.node 读，清单没写就生成失败——
+// 静默兜底成 CircleHelp（那个 ? 圆圈）在这张表上发生过一次，27 个节点全中。
 
 import { nodeHelpFromManifest } from '@hibernalglow/xaihi-sdk'
 
@@ -93,7 +113,11 @@ export interface PackageModuleDef {
   id: string
   name: string
   version: string
+  /** 上游 NodeDef 就有的分类，注册表视图按它分组与过滤。 */
+  category: string
   description: string
+  /** \`moduleIconRegistry\` 里的 lucide 名，不是路径也不是内联 SVG。 */
+  icon: string
   keywords: string[]
   /** \`package.json#xaihi.node\` 的原样内容 —— 界面侧 \`def\` 的唯一来源（ADR-0007 决定 4）。 */
   manifest: unknown
@@ -131,12 +155,20 @@ ${helpLoaders.join('\n')}
 const keypoints = (list) => [...new Set(list.filter((word) => typeof word === 'string' && word.length > 0))].slice(0, 8)
 
 const check = process.argv.includes('--check')
-const { usable, skipped, all } = collect()
-const generated = emit(usable)
-const current = existsSync(OUT) ? readFileSync(OUT, 'utf8') : ''
+const { usable, skipped, incomplete, all } = collect()
 
 if (skipped.length > 0) console.log(`gen-node-registry: 跳过 ${skipped.length} 条（界面/清单不齐）`)
 for (const line of skipped) console.log(`  - ${line}`)
+if (incomplete.length > 0) {
+  // 与 skipped 分道：少界面字段是可以修的清单错误，少半边才是还没搬。
+  console.error(`gen-node-registry: ${incomplete.length} 条清单缺界面字段（生成失败，不放它变成界面上的 ?）`)
+  for (const line of incomplete) console.error(`  × ${line}`)
+  process.exit(1)
+}
+
+const generated = emit(usable)
+const current = existsSync(OUT) ? readFileSync(OUT, 'utf8') : ''
+
 console.log(`gen-node-registry: ${all.length} 个界面目录 → ${usable.length} 条注册 [${usable.map((entry) => entry.id).join(', ')}]`)
 
 if (check) {

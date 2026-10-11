@@ -72,6 +72,8 @@
         "zh": "匹配相似文件夹名称，并可选地移动匹配到的文件夹。",
         "en": "Match similar folder names and optionally move matched folders."
       },
+      "icon": "Zap",
+      "category": "file",
       "actions": [
         {
           "id": "scan",

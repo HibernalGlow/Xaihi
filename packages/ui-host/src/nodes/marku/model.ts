@@ -1,5 +1,5 @@
-// Pure card model helpers shared by the Normal and Workflow views. Keep this
-// module free of React so the logic stays testable without a renderer.
+// Pure card model helpers shared by the Normal views. Keep this module free of
+// React so the logic stays testable without a renderer.
 import type { MarkuAction, MarkuInput } from "@xiranite/node-marku/core"
 import type { MarkuCardState, MarkuPhase, MarkuStatusMeta } from "./types"
 
@@ -16,7 +16,6 @@ export function buildInput(action: MarkuAction, data: MarkuCardState): MarkuInpu
     enableUndo: data.enableUndo ?? true,
     historyPath: data.historyPath,
     undoId: data.result?.undoId,
-    workflow: action === "workflow" ? data.workflowDraft ?? undefined : undefined,
   }
 }
 
@@ -66,7 +65,6 @@ export function actionLabel(action: MarkuAction): string {
   if (action === "run") return "处理"
   if (action === "text") return "文本处理"
   if (action === "undo") return "撤销"
-  if (action === "workflow") return "工作流执行"
   return "读取历史"
 }
 
