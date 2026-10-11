@@ -173,8 +173,20 @@ export function transformValue(value: unknown, transform: NodeTransform): unknow
 
 /**
  * 按 `inputBindings` 把字段值绑成执行输入。
+ *
+ * **两种调用者说的是两种名字**，这条缝必须都认：
+ * - 模型/工具面给的是**字段 id**（`parametersFor` 就是按 `field.id` 生成参数表的）；
+ * - 界面/命令面给的是**槽位名**（搬来的 `Component.tsx` 直接组内核形状：cleanf 发
+ *   `{ paths: [...], preview: true }`，而清单里那两条绑定是 `pathsText→paths`）。
+ *
+ * 字段 id 优先；字段缺席而已给的槽位名是另一个名字时**原样采纳**那个值，不再做第二次变换。
+ * 不这么写的症状是"界面上填的一切被悄悄清空"：`bindInputs` 从缺席的字段 id 绑出一个空值，
+ * 调用方那句 `{ ...raw, ...bindInputs(...) }` 再用它覆盖掉界面真发过来的槽位——实测 cleanf
+ * 界面发 `paths: ['/Users/glow/Downloads']` 时内核回 `No valid paths provided.`，同一份输入
+ * 换成 `pathsText` 就扫出 9 项。
+ *
  * @param definition - 已校验的节点定义。
- * @param args - 模型给的参数。
+ * @param args - 调用方给的参数（字段 id 形状或槽位名形状）。
  */
 export function bindInputs(definition: NodeDefinition, args: Record<string, unknown>): Record<string, unknown> {
   const inputs: Record<string, unknown> = {}
@@ -183,7 +195,11 @@ export function bindInputs(definition: NodeDefinition, args: Record<string, unkn
   // 症状否则是第一次动作 500 一句 `is not iterable`，而插件装载失败时宿主只留下 "failed to import"。
   const bindings = definition.inputBindings ?? []
   for (const binding of bindings) {
-    inputs[binding.slot] = transformValue(args[binding.fieldId], binding.transform ?? 'identity')
+    const fromField = args[binding.fieldId]
+    // 字段 id 与槽位名同名时这两个分支重合，取谁都不变 ⇒ 同一名字那一批调用者的行为一字未动。
+    inputs[binding.slot] = fromField === undefined && args[binding.slot] !== undefined
+      ? args[binding.slot]
+      : transformValue(fromField, binding.transform ?? 'identity')
   }
   return inputs
 }
@@ -318,10 +334,15 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
           onEvent?.({ type: 'progress', progress: percent, ...p })
         } catch {}
       },
-      preview: (p) => {
-        baseRun.preview(p)
+      preview: (payload) => {
+        baseRun.preview(payload)
         try {
-          onEvent?.({ type: 'log', message: p.message, ...p })
+          // `preview` 的载荷形状**由节点自己决定**（`operations.ts:152` 就是 `unknown`），
+          // 所以这里必须先收窄再取 `message`——直接 `p.message` / `...p` 会让本文件的
+          // typecheck 在 HEAD 上就红（TS18046 / TS2698）。
+          const record = typeof payload === 'object' && payload !== null ? payload as Record<string, unknown> : {}
+          const message = record.message
+          onEvent?.({ type: 'log', message: typeof message === 'string' ? message : String(message ?? ''), ...record })
         } catch {}
       },
       resultView: (payload) => {
