@@ -66,6 +66,7 @@ jobs:
             os: windows-latest
             # dav1d 交给 dav1d-sys 自己从源码静态编（build.rs 里 add_build_internal 用的就是
             # -Ddefault_library=static）：MSVC 那条腿因此不需要任何 dav1d 的 import lib。
+            # 但静态编出来那份必须**用 MSVC 编**，否则 link.exe 认不了（见下面那步的 LNK2001 读数）。
             dav1d: internal
             publishArgs: '--no-dav1d'
             experimental: false
@@ -156,6 +157,28 @@ jobs:
       - name: 交叉腿要装 target 的 std
         if: matrix.triple == 'darwin-x64'
         run: rustup target add x86_64-apple-darwin
+
+      - name: 把 MSVC 环境显式交给后续步骤（Windows 腿）
+        # 云上第二轮（run 38162650407）的读数：pkg-config 补上后 dav1d 整条编完，
+        # 红在 link.exe：libdav1d.a 里带着 ___chkstk_ms（GCC 的栈探测）与 __mingw_vfprintf（MinGW 的 stdio）
+        # 两个未解析外部符号 ⇒ meson 在 runner 上自己找到了 gcc（镜像里 Strawberry Perl/MSYS2 都带），
+        # 产的是 MinGW ABI 的静态库，而 Rust 的 cdylib 用 MSVC 的 link.exe 链它。
+        # 所以这里进 VS Developer Shell 并把 PATH/INCLUDE/LIB 交出去，再把 meson 的编译器钉成 cl。
+        if: matrix.dav1d == 'internal'
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          if (-not $vs) { Write-Error "vswhere 没找到 Visual Studio"; exit 1 }
+          Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments '-arch=x64' | Out-Null
+          # 只证一件事：这一步之后 cl 在 PATH 上（meson 就是靠 PATH 挑编译器的）
+          Write-Host ("cl = " + (Get-Command cl.exe).Source)
+          "PATH=$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "INCLUDE=$env:INCLUDE" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "LIB=$env:LIB" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "LIBPATH=$env:LIBPATH" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CC=cl" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CXX=cl" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: 编原生引擎并落发布用的真字节
         run: node scripts/build-kisaki-native.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --publish ${{ matrix.publishArgs }}
