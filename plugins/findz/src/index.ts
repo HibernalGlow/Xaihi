@@ -146,9 +146,22 @@ export function toFindzInput(action: FindzAction, inputs: Record<string, unknown
   if (action === 'scan' || action === 'close_library') return { action, libraryId }
 
   if (action === 'analyze') {
-    const kind = text(inputs.scopeKind)
+    // 两条调用者说的是两种形状：清单声明的是平铺的 `scopeKind` + `deepRetry`（工具/命令面），
+    // 而搬来的卡片界面直接发**内核形状的嵌套对象**（`packages/ui-host/src/nodes/findz/Component.tsx:108,280`
+    // 的 `analysisScope:{kind,memberIds,deepRetry}`）。只读平铺那两条的症状是：针对单个成员的
+    // "深度重试"被**静默降级**成全量普通分析（实测发嵌套 scope：内核照常执行、对 scope 毫无反应）。
+    // 这里两条都收；`FindzAnalysisScope` 本来就有 `archiveIds`/`memberIds` 两格，一并带过去。
+    const nested = typeof inputs.analysisScope === 'object' && inputs.analysisScope !== null
+      ? inputs.analysisScope as Record<string, unknown>
+      : {}
+    const kind = text(inputs.scopeKind) || text(nested.kind)
     const analysisScope: FindzAnalysisScope = { kind: kind === 'archives' || kind === 'members' ? kind : 'all' }
-    if (inputs.deepRetry === true) analysisScope.deepRetry = true
+    if (Array.isArray(nested.archiveIds)) analysisScope.archiveIds = nested.archiveIds.map((item) => Number(item))
+    if (Array.isArray(nested.memberIds)) analysisScope.memberIds = nested.memberIds.map((item) => Number(item))
+    // 声明的平铺槽优先：它**给过**（`asBoolean` 缺席交回 `undefined`）就听它的，哪怕它是 `false`——
+    // 一个显式的"不要深度重试"不许被嵌套那份的 `true` 顶掉。
+    const deepRetry = inputs.deepRetry === undefined ? nested.deepRetry === true : inputs.deepRetry === true
+    if (deepRetry) analysisScope.deepRetry = true
     return { action, libraryId, analysisScope }
   }
 

@@ -282,6 +282,8 @@ describe('smartzip 宿主接线（apply → defineNode → 真内核）', () => 
         return () => {}
       },
       get: (key: string) => (key === 'subprocess' ? fakeSubprocess(1) : undefined),
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     apply(ctx as never, fakeConfig({}))
     expect(registered.map((tool) => tool['name'])).toEqual([
@@ -307,6 +309,8 @@ describe('smartzip 宿主接线（apply → defineNode → 真内核）', () => 
         return () => {}
       },
       get: (key: string) => (key === 'subprocess' ? fakeSubprocess(1) : undefined),
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     apply(ctx as never, fakeConfig({}))
     const listener = listeners[0]!
@@ -329,6 +333,8 @@ describe('smartzip 宿主接线（apply → defineNode → 真内核）', () => 
       effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: () => () => {},
       get: (key: string) => (key === 'subprocess' ? fakeSubprocess(1) : undefined),
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     apply(ctx as never, fakeConfig({ passwords: 'hunter-two' }))
     const tool = registered.find((entry) => entry['name'] === 'smartzip_status')!
@@ -347,6 +353,8 @@ describe('smartzip 宿主接线（apply → defineNode → 真内核）', () => 
       effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: () => () => {},
       get: (key: string) => (key === 'subprocess' ? fakeSubprocess(1) : undefined),
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     apply(ctx as never, fakeConfig({ dryRun: false }))
     const tool = registered.find((entry) => entry['name'] === 'smartzip_extract')!

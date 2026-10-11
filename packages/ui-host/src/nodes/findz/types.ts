@@ -9,6 +9,8 @@ export type FindzT = (key: string, fallback: string, vars?: Record<string, unkno
 
 export interface FindzCardState {
   libraryRoot?: string
+  /** 使用者填的库 id（`open_library` 要的那一格）；空着就用根目录名洗出来的建议值。 */
+  libraryIdDraft?: string
   libraryId?: string
   pathPrefix?: string
   text?: string

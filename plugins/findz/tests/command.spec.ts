@@ -42,6 +42,8 @@ function fakeContext(): { ctx: never; commands: RegisteredCommand[] } {
     commands: { register: (command: RegisteredCommand) => { commands.push(command); return () => undefined } },
     on: () => () => undefined,
     get: () => undefined,
+    // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是命令注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+    inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     effect: (create: () => () => void) => { create(); return () => undefined },
   }
   return { ctx: ctx as never, commands }

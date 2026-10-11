@@ -127,7 +127,19 @@ function ownNodeDefinition(): unknown {
  * @param args - 本次调用的原始参数（`inputs` 里没有整块路径文本，所以要它）。
  */
 function inputFrom(action: RepackuAction, inputs: Record<string, unknown>, args: Record<string, unknown>, config: Config): RepackuInput {
-  const boundPaths = Array.isArray(inputs.paths) ? inputs.paths.map((item) => String(item)) : []
+  // 搬来的卡片界面发的是**单数 `path`**（`packages/ui-host/src/nodes/repacku/Component.tsx:741`），
+  // 它既不是 `pathsText` 也不是绑好的 `paths` 槽 ⇒ 只读那两条会把使用者选的文件夹整段丢掉，
+  // 内核于是回 `repacku: Path is required.`（实测：同一份值换成 `pathsText` 或 `paths` 都进得去）。
+  // 内核自己吃 `paths ∪ path ∪ pathText`（`core.ts:32`），所以这里把 `path` 也收进来。
+  // 注意顺序：`bindInputs` **总会**写 `inputs.paths`（字段 id 缺席时写空数组），所以判据必须是
+  // "非空数组"，不能只判 `Array.isArray` —— 只判后者时下面这条 `path` 回退是死代码，
+  // 实测症状与修之前一字不差（还是 `repacku: Path is required.`）。
+  const bound = Array.isArray(inputs.paths) ? inputs.paths.map((item) => String(item)) : []
+  const boundPaths = bound.length > 0
+    ? bound
+    : typeof inputs.path === 'string' && inputs.path.trim() !== ''
+      ? [inputs.path.trim()]
+      : []
   const defaultRoot = config.defaultRoot.get().trim()
   const minCount = typeof inputs.minCount === 'number' && Number.isFinite(inputs.minCount) ? inputs.minCount : config.minCount.get()
   return {

@@ -71,9 +71,14 @@ function ownNodeDefinition(): unknown {
  */
 function inputFrom(action: TimeuAction, inputs: Record<string, unknown>, config: Config): TimeuInput {
   const recordPath = String(inputs.recordPath ?? '') || config.recordPath.get()
+  // 清单里这格叫 `listText`，而搬来的卡片界面发的是**已切好的数组 `paths`**
+  // （`packages/ui-host/src/nodes/timeu/Component.tsx:488`）。只读 `listText` 的话
+  // `pathSlots` 拿到 `undefined` ⇒ 内核回 `At least one file or directory path is required.`
+  // （实测：同一份值换成 `listText` 就进得去）。两条腿都交给 `pathSlots`，形状各自成立。
+  const declared = typeof inputs.listText === 'string' && inputs.listText.trim() !== '' ? inputs.listText : inputs.paths
   return {
     action,
-    ...pathSlots(inputs.listText),
+    ...pathSlots(declared),
     ...(recordPath === '' ? {} : { recordPath }),
     recursive: typeof inputs.recursive === 'boolean' ? inputs.recursive : config.recursive.get(),
     includeDirectories: typeof inputs.includeDirectories === 'boolean' ? inputs.includeDirectories : config.includeDirectories.get(),

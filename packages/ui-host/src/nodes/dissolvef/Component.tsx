@@ -104,7 +104,11 @@ export function Component({ compId, host }: NodeComponentProps) {
     }
 
     const input: DissolvefInput = {
-      action: action === "dissolve" ? (direct ? "direct" : "dissolve") : action,
+      // 动作就是动作：`direct` 是**模式**（内核 `core.ts:144` 的 `input.direct ?? action === "direct"`，
+      // 下面 `direct` 那一格已经带了它）。原来这里把模式伪装成动作名发 `action:"direct"`，
+      // 而清单/handler 只有 plan|dissolve|undo|history ⇒ 直连模式按下去必回
+      // `no handler for action "direct"`（实测）。
+      action,
       path: dataRef.current.pathText,
       historyPath: dataRef.current.historyPath,
       undoId: dataRef.current.undoId,

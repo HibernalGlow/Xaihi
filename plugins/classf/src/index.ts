@@ -129,9 +129,16 @@ function boolOf(args: Record<string, unknown>, field: string): boolean | undefin
  * 想要 legacy 形状的调用方走 `paths` 之外的显式三条队列开关（定义里有字段）。
  */
 function inputFrom(action: ClassfAction, args: Record<string, unknown>, inputs: Record<string, unknown>, config: Config): ClassfInput {
-  const paths = listOf(args.pathsText)
-  const crashuSources = listOf(args.crashuSourcesText)
-  const blacklistKeywords = listOf(args.blacklistKeywordsText)
+  // 这三格读**字段 id** 的原始值（`args.pathsText`），因为清单那条 `delimited` 绑定只按逗号切，
+  // 换行分隔的多行文本会变成一个带换行的假路径（落差同 formatv/samea）。
+  // 但界面那一侧发的是**槽位名**（`paths` / `crashuSourcePaths` / `blacklistKeywords`，
+  // `Component.tsx:627/628/639`），字段 id 那一路在那边永远缺席 ⇒ 面板跑的 classf 路径恒为空、
+  // 内核于是去读剪贴板，落进缺口 G5（实测：面板形状回 `读剪贴板没有缝（缺口 G5）`，
+  // 换成 `pathsText` 同一份数据就 `selectedCount: 1`）。
+  // 所以这里**字段 id 优先、缺席时回落到绑好的槽位**：两条调用者的路都能到内核。
+  const paths = listOf(args.pathsText ?? inputs.paths)
+  const crashuSources = listOf(args.crashuSourcesText ?? inputs.crashuSourcePaths)
+  const blacklistKeywords = listOf(args.blacklistKeywordsText ?? inputs.blacklistKeywords)
   const groupMin = typeof inputs.sameaGroupMinOccurrences === 'number' ? inputs.sameaGroupMinOccurrences : undefined
   const groupAlready = boolOf(args, 'sameaGroupAlreadyEnabled')
   const groupWait = boolOf(args, 'sameaGroupWaitEnabled')
