@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Sun, 11 Oct 2026 20:00:00 +0800
+Subject: [PATCH] P5: native file selection and local path actions for Xaihi windows
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -22,6 +22,9 @@
+   browserRelease: 'dsh-desktop:browser-release',
+   browserOpenRequested: 'dsh-desktop:browser-open-requested',
+   directoryPick: 'dsh-desktop:directory-pick',
++  xaihiFilesPick: 'xaihi-desktop:files-pick',
++  xaihiPathOpen: 'xaihi-desktop:path-open',
++  xaihiPathReveal: 'xaihi-desktop:path-reveal',
+   deviceInfo: 'dsh-desktop:device-info',
+   localeBootstrap: 'dsh-desktop:locale-bootstrap',
+   localeChanged: 'dsh-desktop:locale-changed',
+diff --git a/apps/desktop/src/preload-app.ts b/apps/desktop/src/preload-app.ts
+--- a/apps/desktop/src/preload-app.ts
++++ b/apps/desktop/src/preload-app.ts
+@@ -101,6 +101,12 @@
+   contextBridge.exposeInMainWorld('__DSH_HOST_PATHS__', {
+     pathFor: (file: File) => webUtils.getPathForFile(file),
+   })
++  if (process.isMainFrame) contextBridge.exposeInMainWorld('__XAIHI_LOCAL_FILES__', {
++    pickFiles: (options?: { title?: string }) => ipcRenderer.invoke(DESKTOP_IPC.xaihiFilesPick, 'files', options?.title) as Promise<string[]>,
++    pickDirectories: () => ipcRenderer.invoke(DESKTOP_IPC.xaihiFilesPick, 'directories') as Promise<string[]>,
++    openPath: (path: string) => ipcRenderer.invoke(DESKTOP_IPC.xaihiPathOpen, path) as Promise<void>,
++    revealPath: (path: string) => ipcRenderer.invoke(DESKTOP_IPC.xaihiPathReveal, path) as Promise<void>,
++  })
+   contextBridge.exposeInMainWorld('dshDesktopBoot', {
+     ready: () => ipcRenderer.invoke(DESKTOP_IPC.boot) as Promise<unknown>,
+     failed: (message: string) => ipcRenderer.invoke(DESKTOP_IPC.bootFailed, message) as Promise<void>,
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -851,6 +851,39 @@
+     }
+     return isMainDocument
+   }
++  // Xaihi patch 0021 (P5): 文件选择沿已有主帧/窗口归属守卫进入原生对话框。
++  const fileDialogs = new WeakMap<BrowserWindow, Promise<string[]>>()
++  ipcMain.handle(DESKTOP_IPC.xaihiFilesPick, async (event, kind: unknown, title: unknown) => {
++    assertXaihiWindowSender(event)
++    if (kind !== 'files' && kind !== 'directories') throw new Error('xaihi desktop: invalid file selection kind')
++    if (title !== undefined && (typeof title !== 'string' || title.length > 512)) throw new Error('xaihi desktop: invalid file selection title')
++    const owner = BrowserWindow.fromWebContents(event.sender)
++    if (owner === null || owner.isDestroyed()) throw new Error('xaihi desktop: file picker owner is unavailable')
++    const pending = fileDialogs.get(owner)
++    if (pending !== undefined) return pending
++    const task = dialog.showOpenDialog(owner, {
++      ...(typeof title === 'string' ? { title } : {}),
++      properties: kind === 'files' ? ['openFile', 'multiSelections'] : ['openDirectory', 'multiSelections'],
++    }).then(result => result.canceled || owner.isDestroyed() ? [] : result.filePaths)
++      .finally(() => { fileDialogs.delete(owner) })
++    fileDialogs.set(owner, task)
++    return task
++  })
++  const localPath = (value: unknown): string => {
++    if (typeof value !== 'string' || value.includes('\0') || !/^(?:\/|[a-zA-Z]:[\\/]|\\\\)/u.test(value)) {
++      throw new Error('xaihi desktop: expected an absolute local path')
++    }
++    return value
++  }
++  ipcMain.handle(DESKTOP_IPC.xaihiPathOpen, async (event, path: unknown) => {
++    assertXaihiWindowSender(event)
++    const error = await shell.openPath(localPath(path))
++    if (error) throw new Error(error)
++  })
++  ipcMain.handle(DESKTOP_IPC.xaihiPathReveal, (event, path: unknown) => {
++    assertXaihiWindowSender(event)
++    shell.showItemInFolder(localPath(path))
++  })
+   // Xaihi patch 0010: `windowId` 必须是整数，且指得到我们自己登记的那张表里的窗。
+   // "unknown window" 这一格是给调用方的真话：它猜中的是别人的窗，不是我们没有窗。
+   const needXaihiWindow = (event: IpcMainInvokeEvent, windowId: unknown): BrowserWindow => {

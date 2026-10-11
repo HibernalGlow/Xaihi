@@ -1,0 +1,61 @@
+html, body, #xaihi-ui-root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+[data-xaihi-product] { display: flex; flex-direction: column; width: 100%; height: 100%; background: var(--background); }
+[data-xaihi-product] > [role] { flex: none; padding: 8px; }
+[data-xaihi-product] [data-floating-window-titlebar] { -webkit-app-region: drag; min-height: 40px; }
+[data-xaihi-product] [data-floating-window-titlebar] :is(button,input,textarea,select,a,[role="button"],[role="combobox"],[data-window-caption-button]) { -webkit-app-region: no-drag; }
+
+/* 顶部整条透明区域都可拖动；交互控件保留点击、选择与输入能力。 */
+[data-standalone-application-titlebar] { min-height: 44px; padding: 0 8px; background: transparent; }
+[data-standalone-application-titlebar] [data-floating-window-titlebar] { min-height: 44px; align-items: center; }
+[data-standalone-application-titlebar] [data-standalone-window-drag-space] { -webkit-app-region: drag; }
+[data-xaihi-product] [data-floating-window-titlebar] :is([data-slot="select-trigger"],[role="slider"],[contenteditable="true"]) { -webkit-app-region: no-drag; }
+
+/* 独立产品的可选配色。工作台配色保持原有 CSS 变量，独立配色只覆盖产品所用的语义槽。 */
+:root[data-standalone-palette="jade"],
+[data-xaihi-product][data-standalone-palette="jade"] {
+  --primary: oklch(0.69 0.15 160) !important;
+  --primary-foreground: oklch(0.98 0.01 160) !important;
+  --accent: oklch(0.90 0.08 160) !important;
+  --accent-foreground: oklch(0.25 0.04 160) !important;
+  --ring: oklch(0.69 0.15 160) !important;
+}
+:root.dark[data-standalone-palette="jade"],
+.dark [data-xaihi-product][data-standalone-palette="jade"] {
+  --primary: oklch(0.78 0.14 160) !important;
+  --primary-foreground: oklch(0.16 0.03 160) !important;
+  --accent: oklch(0.30 0.07 160) !important;
+  --accent-foreground: oklch(0.91 0.08 160) !important;
+  --ring: oklch(0.78 0.14 160) !important;
+}
+:root[data-standalone-palette="violet"],
+[data-xaihi-product][data-standalone-palette="violet"] {
+  --primary: oklch(0.61 0.19 300) !important;
+  --primary-foreground: oklch(0.98 0.01 300) !important;
+  --accent: oklch(0.92 0.06 300) !important;
+  --accent-foreground: oklch(0.28 0.07 300) !important;
+  --ring: oklch(0.61 0.19 300) !important;
+}
+:root.dark[data-standalone-palette="violet"],
+.dark [data-xaihi-product][data-standalone-palette="violet"] {
+  --primary: oklch(0.77 0.17 300) !important;
+  --primary-foreground: oklch(0.16 0.03 300) !important;
+  --accent: oklch(0.31 0.08 300) !important;
+  --accent-foreground: oklch(0.92 0.08 300) !important;
+  --ring: oklch(0.77 0.17 300) !important;
+}
+:root[data-standalone-palette="amber"],
+[data-xaihi-product][data-standalone-palette="amber"] {
+  --primary: oklch(0.70 0.15 72) !important;
+  --primary-foreground: oklch(0.22 0.04 72) !important;
+  --accent: oklch(0.93 0.08 82) !important;
+  --accent-foreground: oklch(0.30 0.06 72) !important;
+  --ring: oklch(0.70 0.15 72) !important;
+}
+:root.dark[data-standalone-palette="amber"],
+.dark [data-xaihi-product][data-standalone-palette="amber"] {
+  --primary: oklch(0.80 0.15 78) !important;
+  --primary-foreground: oklch(0.20 0.04 72) !important;
+  --accent: oklch(0.34 0.08 72) !important;
+  --accent-foreground: oklch(0.94 0.10 82) !important;
+  --ring: oklch(0.80 0.15 78) !important;
+}

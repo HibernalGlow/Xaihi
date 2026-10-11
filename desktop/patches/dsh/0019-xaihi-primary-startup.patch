@@ -1,0 +1,120 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Sun, 11 Oct 2026 20:00:00 +0800
+Subject: [PATCH] P6: select Xaihi product before desktop onboarding
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -43,6 +43,7 @@
+ import { pruneCrashReports, RendererConsoleTail, writeCrashReport, type CrashReportSource } from './crash-report.ts'
+ import { openWelcomeWindow } from './welcome-window.ts'
+ import { WELCOME_IPC, needsWelcome, type WelcomeNotice } from './welcome-api.ts'
++import { xaihiPrimaryDocument } from './xaihi-startup-policy.ts'
+ import { connectDesktopWelcome, type DesktopWelcomeBackend } from './welcome-backend.ts'
+ import { DesktopUpdateJournal } from './update-journal.ts'
+ import { DesktopUpdatePreparationError } from './update-error.ts'
+@@ -536,19 +537,22 @@
+     navigation = next
+     return next.promise
+   }
++  let primaryWorkspaceUrl = applicationUrl
+   const resolveTargetWorkspaceUrl = async (): Promise<string> => {
+     if (hostUrl !== undefined && hostCookie !== undefined) {
+       try {
+         const manifestTarget = new URL('/xaihi/manifest.json', hostUrl)
+         const manifestRes = await fetch(manifestTarget, { headers: { cookie: hostCookie } })
+         if (manifestRes.ok) {
+-          const manifest = (await manifestRes.json()) as { ui?: { documentUrl?: string } }
+-          if (typeof manifest?.ui?.documentUrl === 'string' && manifest.ui.documentUrl.startsWith('/xaihi/ui/')) {
+-            return `${SCHEME}://app${manifest.ui.documentUrl}`
++          const target = xaihiPrimaryDocument(await manifestRes.json())
++          if (target !== undefined) {
++            primaryWorkspaceUrl = target
++            return target
+           }
+         }
+       } catch {}
+     }
++    primaryWorkspaceUrl = applicationUrl
+     return applicationUrl
+   }
+   const platformView = new DesktopPlatformView(join(app.getAppPath(), 'lib', 'preload-platform-account.cjs'),
+@@ -566,6 +570,7 @@
+         hostUrl = ready.url
+         if (ready.injections === undefined) throw new Error('Desktop Host did not provide boot injections')
+         injections = ready.injections
++        await resolveTargetWorkspaceUrl()
+         welcomeBackend = await connectDesktopWelcome(ready.url, (input, init) => net.fetch(input, init), async () => (await session.defaultSession.cookies.get({ url: ready.url })).map(cookie => `${cookie.name}=${cookie.value}`).join('; '))
+         analyticsEnabled = await welcomeBackend.analyticsEnabled().catch(() => false)
+         if (!reportedLaunch) { reportedLaunch = true; void track('desktop_app_launch', {}) }
+@@ -584,7 +589,7 @@
+             focusPrimaryWindow()
+           }
+           if (state.status === 'credential-stored' && attempt?.phase === 'succeeded' && welcomeWindow !== undefined) void enterWorkspace({ activate: false }).catch(() => undefined)
+-          if (previousAccountStatus === 'credential-stored' && state.status === 'signed-out') {
++          if (primaryWorkspaceUrl === applicationUrl && previousAccountStatus === 'credential-stored' && state.status === 'signed-out') {
+             void readWelcomeState().then(async (value) => {
+               if (needsWelcome(value) && !quitting) {
+                 enteredWorkspace = false
+@@ -599,7 +604,7 @@
+           // The stream reconnects; a transport failure does not change account state.
+         }, () => {
+           void readWelcomeState().then(async (value) => {
+-            if (!needsWelcome(value) || quitting) return
++            if (primaryWorkspaceUrl !== applicationUrl || !needsWelcome(value) || quitting) return
+             pendingWelcomeNotice = 'session-expired'
+             enteredWorkspace = false
+             await showWelcome()
+@@ -680,7 +685,6 @@
+ 
+   const reconcileBackend = (): Promise<void> => {
+     startup ??= (async () => {
+-      await navigateMain(applicationUrl)
+       await backend.start(async () => {
+         await Promise.all([manager.applyRelease(), prepareHostEnvironment()])
+       })
+@@ -1512,6 +1516,16 @@
+   }
+   const openInitialWindow = async (): Promise<void> => {
+     if (quitting || recovery.active) return
++    // Xaihi 产品不依赖 DSH 账号。首次启动也必须先选择产品入口。
++    if (await resolveTargetWorkspaceUrl() !== applicationUrl) {
++      const preference = await welcomeBackend?.readLocalePreference()
++      if (isQuitting() || backend.state.phase !== 'ready') return
++      locale = resolveDesktopStartupLocale(preference ?? null, systemLanguages)
++      windowsLanguage = locale.id
++      refreshApplicationMenu()
++      await enterWorkspace()
++      return
++    }
+     const state = await readWelcomeState()
+     if (isQuitting() || backend.state.phase !== 'ready') return
+     locale = resolveDesktopStartupLocale(state.localePreference, systemLanguages)
+@@ -1531,7 +1545,7 @@
+     const window = welcomeWindow ?? mainWindow
+     if (window === undefined || window.isDestroyed()) {
+       try { createMainWindow() } catch (error) { reportFatal(error, 'main'); return }
+-      void (backend.state.phase === 'ready' ? openInitialWindow() : navigateMain(applicationUrl)).catch((error: unknown) => { reportFatal(error, 'main') })
++      void (backend.state.phase === 'ready' ? openInitialWindow() : reconcileBackend()).catch((error: unknown) => { reportFatal(error, 'main') })
+       return
+     }
+     // Startup and sign-out select the visible window before activation may reveal the workspace.
+diff --git a/apps/desktop/src/xaihi-startup-policy.ts b/apps/desktop/src/xaihi-startup-policy.ts
+new file mode 100644
+--- /dev/null
++++ b/apps/desktop/src/xaihi-startup-policy.ts
+@@ -0,0 +1,10 @@
++/** Xaihi 产品入口：仅接受 core 提供的完整、无查询参数的本地文档路径。 */
++import { resolveXaihiDocumentTarget } from './xaihi-window-policy.ts'
++
++export function xaihiPrimaryDocument(manifest: unknown): string | undefined {
++  if (manifest === null || typeof manifest !== 'object' || !('ui' in manifest)) return undefined
++  const ui = manifest.ui
++  if (ui === null || typeof ui !== 'object' || !('documentUrl' in ui) || typeof ui.documentUrl !== 'string') return undefined
++  if (!/^\/xaihi\/ui\/[0-9a-f]{12}\/index\.html$/u.test(ui.documentUrl)) return undefined
++  return resolveXaihiDocumentTarget({ url: `dsh-app://app${ui.documentUrl}`, openerUrl: 'dsh-app://app/' })
++}

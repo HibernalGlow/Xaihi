@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Sun, 11 Oct 2026 20:30:00 +0800
+Subject: [PATCH] P6: preserve the standalone product application name
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -84,6 +84,8 @@
+ 
+ // Platform-conventional logs directory (macOS ~/Library/Logs/<name>, otherwise under userData);
+ // set before ready so the first fatal report already resolves under it.
++const xaihiProductTitle = process.env.XAIHI_DESKTOP_PRODUCT_TITLE?.trim()
++if (xaihiProductTitle && /^[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}$/u.test(xaihiProductTitle)) app.setName(xaihiProductTitle)
+ app.setAppLogsPath()
+ 
+ function currentDesktopLocale(): ReturnType<typeof resolveDesktopLocale> {
+@@ -1274,7 +1276,7 @@
+   const applicationIconPath = development ? join(app.getAppPath(), 'resources', 'icon-windows.png')
+     : join(process.resourcesPath, 'icon.png')
+   app.setAboutPanelOptions({
+-    applicationName: 'DeepSeek Harness',
++    applicationName: xaihiProductTitle || 'DeepSeek Harness',
+     applicationVersion: app.getVersion(),
+     // The release has no separate build number; omit Electron's bundle version.
+     version: '',
+diff --git a/apps/desktop/scripts/development-app.ts b/apps/desktop/scripts/development-app.ts
+--- a/apps/desktop/scripts/development-app.ts
++++ b/apps/desktop/scripts/development-app.ts
+@@ -79,6 +79,9 @@
+     DSH_DESKTOP_OPEN_DEVTOOLS: options.openDevtools,
+     ELECTRON_ENABLE_LOGGING: '1',
+   }
++  if (options.appName !== undefined && options.appName.trim() !== '') {
++    environment.XAIHI_DESKTOP_PRODUCT_TITLE = options.appName.trim()
++  }
+   if (options.primaryRuntimeDir !== undefined && options.primaryRuntimeDir !== '') {
+     environment.DSH_DESKTOP_PRIMARY_RUNTIME_DIR = options.primaryRuntimeDir
+   }

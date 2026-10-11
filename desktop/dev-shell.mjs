@@ -24,7 +24,9 @@ const VENDOR = join(DESKTOP, 'dsh')
 const DEFAULT_HOME = join(REPO, '..', '.scratch', 'dsh-xaihi-desktop-home')
 const PINNED = '0.2.0-rc.2'
 /** 装配清单：顺序有讲究（core 第一个建 profile，其余跟上）。 */
-const SOURCES = [
+const PRODUCT_CONFIG = process.env.XAIHI_DESKTOP_PRODUCT_CONFIG
+const PRODUCT = PRODUCT_CONFIG ? JSON.parse(readFileSync(resolve(PRODUCT_CONFIG), 'utf8')) : undefined
+const SOURCES = PRODUCT?.bundles ?? [
   { spec: './packages/core', label: 'xaihi-core' },
   { spec: './packages/ui-host', label: 'xaihi-ui' },
   { spec: `@deepseek-ai/dsh-web-app@${PINNED}`, label: 'web-app（网关与宿主装配；点名版本，latest 标签撒谎）' },
@@ -32,15 +34,15 @@ const SOURCES = [
   { spec: './plugins/sleept', label: 'sleept' },
   { spec: './plugins/dissolvef', label: 'dissolvef' },
 ]
-const UI_BUNDLE_DIR = join(REPO, 'packages', 'ui-host', 'dist-ui')
+const UI_BUNDLE_DIR = PRODUCT ? join(DESKTOP, '.products', PRODUCT.id, 'ui') : join(REPO, 'packages', 'ui-host', 'dist-ui')
 
 const argv = process.argv.slice(3)
 const valueOf = (name) => {
   const i = argv.indexOf(`--${name}`)
   return i === -1 ? undefined : argv[i + 1]
 }
-const HOME = resolve(valueOf('home') ?? DEFAULT_HOME)
-const PROFILE = valueOf('profile') ?? 'xaihi'
+const HOME = resolve(valueOf('home') ?? (PRODUCT ? join(REPO, '..', '.scratch', `dsh-xaihi-${PRODUCT.id}-home`) : DEFAULT_HOME))
+const PROFILE = valueOf('profile') ?? PRODUCT?.id ?? 'xaihi'
 const profileDir = () => join(HOME, 'profiles', PROFILE)
 const profileManifest = () => join(profileDir(), 'package.json')
 
@@ -74,7 +76,7 @@ function fixAllowBuilds () {
   const ws = join(profileDir(), 'pnpm-workspace.yaml')
   if (!existsSync(ws)) return '没有 pnpm-workspace.yaml（还没 add 过）'
   const text = readFileSync(ws, 'utf8')
-  const patched = text.replace(/^(allowBuilds:\n(?:.*\n)*?)([ \t]+)(\S+): set this to true or false[ \t]*$/mu, '$1$2$3: true')
+  const patched = text.replace(/^([ \t]+)([^:\n]+): set this to true or false[ \t]*$/gmu, '$1$2: true')
   if (patched !== text) {
     writeFileSync(ws, patched)
     return '已把 allowBuilds 占位串填成 true'
@@ -95,7 +97,7 @@ function ensureBundles (needed) {
 
 const PATCH_ENTRY = '# dev-shell 装配：工作台文档的产物目录必须显式给 core（默认空串 ⇒ 503）。\n'
   + '- id: xaihi-core\n  config:\n    verbose: false\n'
-  + `    uiBundleDir: ${UI_BUNDLE_DIR}\n`
+  + `    uiBundleDir: ${JSON.stringify(UI_BUNDLE_DIR)}\n`
 
 /**
  * 写 profile 的补丁层。注意 `[]` 与块序列不能并存：新建的 profile 里那一行就是 `[]`，
@@ -105,7 +107,13 @@ const PATCH_ENTRY = '# dev-shell 装配：工作台文档的产物目录必须�
 function ensureProfilePatch () {
   const patch = join(profileDir(), 'cordis.patch.yml')
   const current = existsSync(patch) ? readFileSync(patch, 'utf8') : ''
-  if (current.includes('uiBundleDir')) return 'uiBundleDir 已配'
+  if (current.includes('uiBundleDir')) {
+    const matches = current.match(/^[ \t]+uiBundleDir:.*$/gmu) ?? []
+    if (matches.length !== 1) fail('uiBundleDir 出现多次或不是标准字段，无法自动更新产品入口')
+    const updated = current.replace(/(^[ \t]+uiBundleDir:).*$/mu, `$1 ${JSON.stringify(UI_BUNDLE_DIR)}`)
+    if (updated !== current) writeFileSync(patch, updated)
+    return 'uiBundleDir 已对齐当前产品产物'
+  }
   const trimmed = current.trimEnd()
   const written = /^\[\s*\]\s*$/mu.test(trimmed)
     ? `${trimmed.replace(/^\[\s*\]\s*$/mu, PATCH_ENTRY)}`
@@ -203,6 +211,13 @@ if (mode === 'launch') {
     stdio: 'inherit',
     env: {
       ...process.env,
+      ...(PRODUCT ? {
+        [PRODUCT.native.environment]: join(DESKTOP, '.products', PRODUCT.id, 'native', PRODUCT.native.binding.replaceAll('{platform}', process.platform).replaceAll('{arch}', process.arch)),
+        XAIHI_DESKTOP_NATIVE_ENVIRONMENT: PRODUCT.native.environment,
+        XAIHI_DESKTOP_NATIVE_PATH: join(DESKTOP, '.products', PRODUCT.id, 'native', PRODUCT.native.binding.replaceAll('{platform}', process.platform).replaceAll('{arch}', process.arch)),
+        XAIHI_DESKTOP_PRODUCT_TITLE: PRODUCT.title,
+        DSH_DESKTOP_USER_DATA_DIR: join(HOME, 'electron-user-data'),
+      } : {}),
       DSH_HOME: HOME,
       XAIHI_DESKTOP_PROFILE: PROFILE,
       DSH_DESKTOP_OPEN_DEVTOOLS: process.env.DSH_DESKTOP_OPEN_DEVTOOLS ?? '0',
@@ -230,11 +245,16 @@ if (mode === 'profile') {
   mkdirSync(join(HOME, 'profiles'), { recursive: true })
   for (const source of SOURCES) {
     const target = source.spec.startsWith('.') ? resolve(REPO, source.spec) : source.spec
-    const added = dsh(['plugin', '--profile', PROFILE, 'add', target], { allowFail: true })
-    console.log(`dev-shell: add ${source.label} ⇒ ${added.ok ? 'ok' : '失败（记下来，不静默跳过）'}`)
-    if (!added.ok) console.log(added.out.split('\n').slice(-4).map((l) => `    ${l}`).join('\n'))
-    // 第一次 add 之后 profile 的 pnpm-workspace.yaml 才存在，占位串必须在后续 add 之前填掉。
-    console.log(`dev-shell: ${fixAllowBuilds()}`)
+    let added = dsh(['plugin', '--profile', PROFILE, 'add', target], { allowFail: true })
+    const corrected = fixAllowBuilds()
+    console.log(`dev-shell: ${corrected}`)
+    // pnpm 首次发现构建依赖会留下占位串；修正后必须重试同一安装，不能跳过它。
+    if (!added.ok && corrected.startsWith('已把')) {
+      added = dsh(['plugin', '--profile', PROFILE, 'add', target], { allowFail: true })
+    }
+    if (!added.ok) fail(`add ${source.label} 失败：\n${added.out.split('\n').slice(-6).join('\n')}`)
+    console.log(`dev-shell: add ${source.label} ⇒ ok`)
+
   }
   const enabled = ensureBundles(['@deepseek-ai/dsh-web-app'])
   console.log(`dev-shell: 启用集补了 ${enabled.added.join(', ') || '（无，已在列）'}`)

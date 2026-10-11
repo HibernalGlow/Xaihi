@@ -1,0 +1,17 @@
+{
+  "id": "kisaki",
+  "title": "Kisaki",
+  "remote": "kisaki",
+  "exportName": "Panel",
+  "entry": "desktop/products/kisaki/Panel.tsx",
+  "bundles": [
+    { "spec": "./packages/core", "label": "xaihi-core" },
+    { "spec": "./plugins/kisaki", "label": "kisaki" },
+    { "spec": "@deepseek-ai/dsh-web-app@0.2.0-rc.2", "label": "DSH 网关与标准服务" }
+  ],
+  "native": {
+    "directory": "native/artifacts/{platform}-{arch}",
+    "binding": "xaihi-kisaki.{platform}-{arch}.node",
+    "environment": "XAIHI_KISAKI_NATIVE_PATH"
+  }
+}

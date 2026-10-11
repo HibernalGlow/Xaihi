@@ -36,8 +36,13 @@
 | 0016 | **已落地**：全屏的等待放宽到一次真正的 Space 切换（8 s），本机仍进不了 ⇒ 记为环境限制、判据只钉"要么生效要么如实报" | `main.ts` 的 `waitFlag` 超时 | 0015 的配套 |
 | 0017 | **已落地**：桌面端进入工作区时，若宿主启用了 Xaihi 则优先将主窗口导航至 Xaihi 工作台文档（`dsh-app://app/xaihi/ui/...`），非 Xaihi 环境优雅降级退回官方主视图 | `main.ts` 的 `resolveTargetWorkspaceUrl` 与 `enterWorkspace` / `workspaceRecovery` | 桌面端工作台主视图 |
 | 0018 | **已落地**：开发版 macOS .app 的 HarnessDev 启动器固化 primary-runtime 路径与 profile 环境变量，让 Finder / LaunchServices 冷启动不再因缺失 DSH_DESKTOP_PRIMARY_RUNTIME_DIR 崩溃 | `scripts/development-app.ts` 的 `developmentLauncher` + `scripts/dev.ts` | 桌面端开发 App 独立启动 |
+| 0019 | **已落地**：启用 Xaihi 产品时，主壳优先进入 core 提供的本地 Xaihi 文档，跳过官方欢迎页、登录与 API key 首次启动流程；普通 DSH profile 仍保留原 onboarding | `apps/desktop/src/main.ts` 与 `src/xaihi-startup-policy.ts` | 桌面端产品入口 |
+| 0020 | **已落地**：macOS 开发 `.app` 的 Finder / LaunchServices 冷启动继续携带产品原生 binding 的环境变量与路径，保证 Kisaki Rust Node-API 不因脱离 CLI 启动而丢失 | `scripts/development-app.ts` 的 `developmentLauncher` + `scripts/dev.ts` | Kisaki 独立桌面产品 |
+| 0021 | **已落地**：受信任产品主帧可多选本地文件/目录，并调用系统打开或定位；窗口归属、绝对路径、取消与重复对话框均由桌面主进程处理。拖入路径继续使用既有 `webUtils.getPathForFile` preload 能力 | `ipc.ts`、`preload-app.ts`、`main.ts` | Kisaki 独立桌面文件能力 |
+| 0022 | **已落地**：独立产品的应用名在主进程及 Finder 启动器中保留，应用菜单和关于面板使用节点产品名 | `main.ts`、`scripts/development-app.ts` | 独立产品命名 |
+| 0023 | **已落地（单元判据：上游 24 条 spec 在重放后的树上 rc=0）**：`--unsigned` 从只收 `win-x64` 扩到 darwin。上游把 `forceCodeSigning/notarize` 写成常量、整条 darwin 包在签名钥匙串包装里，云上 runner 没有钥匙串也没有 Apple 凭证 ⇒ 未签名的 mac Nightly 产不出来。这一条让未签名腿跳过签名解析、钥匙串包装、公证两条泳道与签后校验，产物照 Windows 那条老路走 `-unsigned` 后缀 + `unsigned-artifacts/`，updater 元数据仍关（`publish: null`，不写 release record）。**Gatekeeper 会拦**：这份货的可见退化就是文件名里那个 `-unsigned` | `scripts/electron-builder-config.mjs`（unsigned 判定与 mac/dmg 两处常量）、`scripts/package-target.ts`（参数校验、钥匙串包装、产物分支）、`tests/macos-signature.spec.ts` + `tests/package-target.spec.ts`（两条钉死旧行为的用例一起改） | 上游给不了"无凭证也能出 mac 包"，且这是 CI 唯一的出包方式 |
 
-0001–0018 已落地；活体判据在 `desktop/live-check.mjs`（**89 条全绿**：R 段复位、A 段产品文档面与拒绝分支、
+0001–0023 已落地；活体判据在 `desktop/live-check.mjs`（**89 条全绿**：R 段复位、A 段产品文档面与拒绝分支、
 B 段真 Xaihi 文档进第二窗、C 段按 node 去重与标题、D 段"主窗只是隐藏时节点窗仍能继续开"加守卫没跟着放宽、
 E 段页面自己 `window.open` 走原生窗且弹出窗没长出来、F 段决定 4 的退化读回真上屏（含 iframe 反向对照）、
 H 段产品文档转达开窗 + 三条边界对照、I 段"注入冒充不了官方形状"、J 段面板形态下那一下真能开窗 + 两条对照、K 段窗到窗（节点窗自己 window.open 另一个 node）、L 段尺寸只作用在新建那一次、M 段寻址四条 + 两条登记表边界对照、N 段能力协商键集与取值、O 段尺寸推送真到达且退订真断、P 段窗控四条含"假成功必须被抓住"的一致性判据）。判据都在 `node desktop/sync-dsh.mjs --verify`：
