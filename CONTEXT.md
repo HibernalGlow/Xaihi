@@ -59,7 +59,7 @@
 
 只在节点内核**不是 JS** 时出现。判据与形状的真源是 `docs/adr/0004-non-js-core-delivery.md`。
 
-- **core host（内核宿主）**：把原生内核包成一个独立可执行文件的入口（当前只有一个：`native/findz-go/dist/findz-host`）。命名是 `<node>-host`。**不是**"宿主进程"（那是 DSH），也**不是** DLL。
+- **core host（内核宿主）**：把原生内核包成一个独立可执行文件的入口（当前只有一个：`plugins/findz/native/dist/findz-host`）。命名是 `<node>-host`。**不是**"宿主进程"（那是 DSH），也**不是** DLL。
 - **frame protocol（帧协议）**：与内核宿主说话的形状 —— 一行一个 JSON 信封，进 `{requestVersion,requestId,method,params}`、出一 `{ok,requestId,result|error}`。请求顺序即响应顺序，所以待决表是一条 FIFO，不需要 id 匹配表。
 - **greeting（问候帧）**：内核宿主启动后写出的**第一帧**，内容就是它的自述（ABI、请求版本、能力集、支持的图像格式）。节点用它完成握手，并且**`api_info` 动作也由这一帧回答** —— 它在内核里不是一个方法。这是移植里最容易漏的一处：FFI 时代它是一个自由符号（`findz_api_info`），换成帧协议后它变成了问候。写成请求帧的症状是 `unsupported_method: api.info`。
 - **platform package（平台可选依赖包）**：`@hibernalglow/xaihi-<node>-<platform>-<arch>`，装内核宿主的可执行文件。节点在**装载期**解析它，解析不到就报错，不等到第一次调用。**目前一个都还没发**。
