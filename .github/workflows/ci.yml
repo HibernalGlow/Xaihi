@@ -19,12 +19,25 @@ jobs:
           cache: pnpm
       # 干净检出：lib/ 与 dist/ 都不在版本控制里，产物必须由这一步重新生成。
       - run: pnpm install --frozen-lockfile
+      # 门禁清单与根 package.json 的 `test` 对齐（此前只跑前三条，vocab/vendored/两份注册表/
+      # contract/nodebundle/cliface/tuiface 这几条只有本地能撞到，云上一直是空白）。
       - run: pnpm check:pins
       - run: pnpm check:skills
       # bundle 包不许带 workspace:* 运行时依赖（file: 安装会在解析依赖树时被拒）。
       - run: pnpm check:installable
+      - run: pnpm check:vocab
+      - run: pnpm check:vendored
+      - run: pnpm check:cliregistry
+      - run: pnpm check:noderegistry
+      # 签进来的预编原生件（21 MB / 37 MB 那两份）以前没有任何账：清单说在就得在，尺寸与 sha256 要对得上，
+      # 盘上多出一条没记账的文件也要红。
+      - run: pnpm check:nativemanifest
+      - run: pnpm test:contract
       # 顺序是有意的：typecheck 与 test:unit 都要读 node-sdk 的 d.ts，
       # 而 purity / bundle 两条闸门断言的是产物本身，所以 build 必须在它们前面。
       - run: pnpm -r run build
+      - run: pnpm check:nodebundle
+      - run: pnpm check:cliface
+      - run: pnpm check:tuiface
       - run: pnpm -r run typecheck
       - run: pnpm -r --no-bail run test:unit

@@ -1,0 +1,433 @@
+name: 桌面端（打包与发布）
+
+# 打包一律走上游那份 `desktop/dsh/apps/desktop/scripts/package-target.ts`，本仓不另写一套
+# electron-builder 流程（AGENTS.md：桌面壳住在本仓 desktop/ 这一层，package closure 仍归上游）。
+# 下面几条是从上游源码读回来的硬事实，写在这儿是因为它们决定了哪条腿能红、哪条腿根本不该绿：
+#
+# · 合法目标只有 mac-arm64 / mac-x64 / win-x64（package-target.ts:50,61-83）；传 linux 直接
+#   `unsupported target`（:176），Linux 主机自己会 `unsupported build host`（:206）
+#   ⇒ **Linux 这条腿只能编译，上游没有 Linux 打包这回事**。
+# · win-x64 必须在 Windows x64 主机上打（:179-181），没有 wine 路径（win32 还要 vswhere 找到
+#   VC++ 工具，desktop-toolchain-preflight.ts:46-69）；mac-x64 可以在 arm64 上打（:188-190，Rosetta）。
+# · 上游原本把 `--unsigned` **只给 win-x64**（package-target.ts:237）：mac 的 forceCodeSigning/notarize 是写死的
+#   （electron-builder-config.mjs:156,163），darwin 全程包在签名钥匙串包装里（package-target.ts:369-370），
+#   没凭证时连 `--check` 都过不去（desktop-package-environment.mjs:96-111 要 identity + 公证策略 + 可读 p12）。
+#   ⇒ 我们自己加的 `desktop/patches/dsh/0023-xaihi-unsigned-macos-package.patch` 把 `--unsigned` 扩到 darwin：
+#   云上出的是**未签名 Nightly**——名字带 `-unsigned`、落 `unsigned-artifacts/`、不写 release record、
+#   updater 元数据关（publish: null）。没 Developer ID 也没公证 ⇒ Gatekeeper 会拦，
+#   这条腿的退化读得回来（后缀 + 目录 + Release 正文），不是静默降级。
+# · 发布设置只从 `apps/desktop/.env.macos` / `.env.windows` 读，同名环境变量会被剥掉
+#   （desktop-package-environment.mjs:16-19,29-60），文件里出现未知键也拒（:47-50）
+#   ⇒ 这两个文件由下面的步骤从 secrets 现场生成，不进仓（上游把它们 git-ignore）。
+# · 产品资源（`desktop/.products/<id>/` 里的 `.node` + dylib）**目前进不了安装包**：extraResources
+#   是写死的两条（electron-builder-config.mjs:129-149），没有环境变量或目录约定可挂，上游测试还钉着条数。
+#   ⇒ 安装包与产品资源各交一份货；要合成一份得新加一个 desktop/patches/dsh/*.patch。
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        type: choice
+        description: 打包哪些目标（Linux 只有编译腿，不在选项里）
+        options:
+          - all
+          - mac-arm64
+          - mac-x64
+          - win-x64
+        default: all
+      publish_release:
+        type: boolean
+        description: 打完包直接开 GitHub Release（默认只留 artifact）
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      wants_mac: ${{ steps.plan.outputs.wants_mac }}
+      wants_win: ${{ steps.plan.outputs.wants_win }}
+      has_common_env: ${{ steps.probe.outputs.has_common_env }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # gitlink 必须等于 UPSTREAM_PIN，否则重放的 patch 不是同一份货上的 patch（sync-dsh.mjs --check 里那条）。
+      - name: 上游 submodule 与 pin 对齐
+        run: node desktop/sync-dsh.mjs --check
+
+      - name: 按输入算这次要跑哪些目标
+        id: plan
+        env:
+          REQUESTED: ${{ inputs.targets }}
+        run: |
+          case "$REQUESTED" in
+            all) list='mac-arm64 mac-x64 win-x64' ;;
+            mac-arm64|mac-x64|win-x64) list="$REQUESTED" ;;
+            *) echo "::error::targets 只认 all / mac-arm64 / mac-x64 / win-x64，收到 '$REQUESTED'"; exit 1 ;;
+          esac
+          targets=$(printf '%s\n' $list | sed 's/.*/"&"/' | paste -sd, -)
+          echo "targets=[$targets]" >> "$GITHUB_OUTPUT"
+          case " $list " in
+            *' win-x64 '*) echo 'wants_win=true' >> "$GITHUB_OUTPUT" ;;
+            *) echo 'wants_win=false' >> "$GITHUB_OUTPUT" ;;
+          esac
+          case " $list " in
+            *'mac-'*) echo 'wants_mac=true' >> "$GITHUB_OUTPUT" ;;
+            *) echo 'wants_mac=false' >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: 只数凭证在不在，不回显任何值
+        id: probe
+        env:
+          APP_ID: ${{ secrets.XAIHI_DESKTOP_APP_ID }}
+          UPDATE_TEST: ${{ secrets.XAIHI_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN }}
+          UPDATE_PROD: ${{ secrets.XAIHI_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN }}
+          UPDATE_CONFIG: ${{ secrets.XAIHI_DESKTOP_MANDATORY_UPDATE_CONFIG }}
+        run: |
+          missing=''
+          [ -n "$APP_ID" ] || missing="$missing XAIHI_DESKTOP_APP_ID"
+          [ -n "$UPDATE_CONFIG" ] || missing="$missing XAIHI_DESKTOP_MANDATORY_UPDATE_CONFIG"
+          # 选中的那条 mandatory-update origin 是必填，unsigned 与 prepare-only 也要
+          # （desktop-policy-environment.mjs:18-44）：test 与 prod 至少有一条。
+          [ -n "$UPDATE_TEST$UPDATE_PROD" ] || missing="$missing XAIHI_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN|_PROD_ORIGIN"
+          if [ -z "$missing" ]; then echo 'has_common_env=true' >> "$GITHUB_OUTPUT"; else
+            echo "缺：$missing"
+            echo 'has_common_env=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      # 降级铁律（ADR-0011 决定 4）：可以退化，不许静默。
+      - name: 必填项与请求对得上吗
+        run: |
+          if [ "${{ steps.probe.outputs.has_common_env }}" != "true" ]; then
+            echo "::error::打包必填项没配齐（名单在上一步）。上游只吃 apps/desktop/.env.<平台>，缺一条就红。"
+            exit 1
+          fi
+          if [ "${{ steps.plan.outputs.wants_mac }}" = "true" ]; then
+            echo "::warning::mac 走 patch 0023 的未签名 Nightly：产物带 -unsigned、不公证，装的时候 Gatekeeper 会拦。"
+          fi
+
+  native:
+    needs: preflight
+    uses: ./.github/workflows/native.yml
+
+  # 产品资源装配：desktop/.products/kisaki/{ui,generated,native,product.json}。
+  # desktop/product.mjs 现在接 --platform/--arch（缺省取 runner 自己那份 triple）；
+  # darwin-x64 那格是在 arm64 runner 上交叉装配，靠 native.yml 先编出 x86_64 的原生件。
+  product:
+    needs: [preflight, native]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - triple: darwin-arm64
+            os: macos-latest
+            platform: darwin
+            arch: arm64
+          - triple: darwin-x64
+            os: macos-latest
+            platform: darwin
+            arch: x64
+          - triple: win32-x64
+            os: windows-latest
+            platform: win32
+            arch: x64
+          - triple: linux-x64
+            os: ubuntu-24.04
+            platform: linux
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # client.css 那条隐藏前置已经搬进 desktop/product.mjs（它自己先跑 ui 包的 build），这里不重复一遍。
+      - name: 取这一格的 Kisaki 原生件
+        uses: actions/download-artifact@v4
+        with:
+          name: kisaki-native-${{ matrix.triple }}
+          path: native/artifacts/${{ matrix.triple }}
+          merge-multiple: true
+
+      - name: 装产品资源
+        run: node desktop/product.mjs build kisaki --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+
+      - name: 回读装配结果
+        shell: bash
+        run: |
+          ls -la desktop/.products/kisaki/native
+          node -e "const p=require('./desktop/.products/kisaki/product.json');const n=p.nativeResources;console.log(n.platform,n.arch,String(n.files.length)+' 个文件')"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xaihi-product-${{ matrix.triple }}
+          path: desktop/.products/kisaki/**
+          if-no-files-found: error
+          retention-days: 14
+
+  package-win:
+    if: needs.preflight.outputs.wants_win == 'true' && needs.preflight.outputs.has_common_env == 'true'
+    needs: preflight
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 重放我们的 patch 到上游 submodule
+        run: node desktop/sync-dsh.mjs
+
+      - run: pnpm install --frozen-lockfile
+
+      # 上游的依赖闭包归上游（desktop/README.md 记的那条边界）；--ignore-scripts 与本地 dev-shell 一致。
+      - name: 装上游 workspace
+        run: pnpm install --frozen-lockfile --ignore-scripts
+        working-directory: desktop/dsh
+
+      - name: 写 apps/desktop/.env.windows（从 secrets 生成，值不落日志）
+        shell: bash
+        env:
+          APP_ID: ${{ secrets.XAIHI_DESKTOP_APP_ID }}
+          AUTO_UPDATE_ENV: ${{ secrets.XAIHI_DESKTOP_AUTO_UPDATE_ENV }}
+          UPDATE_TEST: ${{ secrets.XAIHI_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN }}
+          UPDATE_PROD: ${{ secrets.XAIHI_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN }}
+          UPDATE_CONFIG: ${{ secrets.XAIHI_DESKTOP_MANDATORY_UPDATE_CONFIG }}
+          NPM_REGISTRY: ${{ vars.XAIHI_DESKTOP_NPM_REGISTRY }}
+        run: |
+          {
+            printf 'DSH_DESKTOP_APP_ID=%s\n' "$APP_ID"
+            printf 'DSH_DESKTOP_AUTO_UPDATE_ENV=%s\n' "${AUTO_UPDATE_ENV:-test}"
+            printf 'DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=%s\n' "$UPDATE_TEST"
+            printf 'DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN=%s\n' "$UPDATE_PROD"
+            printf 'DSH_DESKTOP_MANDATORY_UPDATE_CONFIG=%s\n' "'$UPDATE_CONFIG'"
+            [ -n "$NPM_REGISTRY" ] && printf 'DSH_DESKTOP_NPM_REGISTRY=%s\n' "$NPM_REGISTRY"
+            printf 'DSH_DESKTOP_WINDOWS_SIGNATURE_CACHE_CONCURRENCY=4\n'
+            # unsigned 腿不要求 DOWNLOAD_TEST_*（desktop-package-environment.mjs:85-86 在 --unsigned 前就返回）
+            true
+          } > "$RUNNER_TEMP/env-windows.txt"
+          mv "$RUNNER_TEMP/env-windows.txt" desktop/dsh/apps/desktop/.env.windows
+          # 未知键会被拒（desktop-package-environment.mjs:47-50），所以这里只印键名。
+          sed -E 's/=.*$/=…/' desktop/dsh/apps/desktop/.env.windows
+
+      - name: 先跑上游自检（env + 工具链，不产出安装包）
+        run: pnpm --filter "@deepseek-ai/dsh-desktop" run check:package -- win-x64
+
+      - name: 打未签名的 win-x64 安装包
+        run: pnpm --filter "@deepseek-ai/dsh-desktop" run package:win:x64:unsigned
+
+      - name: 回读产物目录
+        shell: bash
+        run: ls -la desktop/dsh/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xaihi-desktop-win-x64-unsigned
+          path: desktop/dsh/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/**
+          if-no-files-found: error
+          retention-days: 30
+
+  # mac 走 patch 0023 的未签名 Nightly：不需要钥匙串、不需要 Apple 凭证，代价是 Gatekeeper 会拦。
+  package-mac:
+    if: needs.preflight.outputs.wants_mac == 'true' && needs.preflight.outputs.has_common_env == 'true'
+    needs: preflight
+    runs-on: macos-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [mac-arm64, mac-x64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 重放我们的 patch 到上游 submodule
+        run: node desktop/sync-dsh.mjs
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: 装上游 workspace
+        run: pnpm install --frozen-lockfile --ignore-scripts
+        working-directory: desktop/dsh
+
+      - name: 写 apps/desktop/.env.macos（从 secrets 生成，值不落日志）
+        shell: bash
+        env:
+          APP_ID: ${{ secrets.XAIHI_DESKTOP_APP_ID }}
+          AUTO_UPDATE_ENV: ${{ secrets.XAIHI_DESKTOP_AUTO_UPDATE_ENV }}
+          UPDATE_TEST: ${{ secrets.XAIHI_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN }}
+          UPDATE_PROD: ${{ secrets.XAIHI_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN }}
+          UPDATE_CONFIG: ${{ secrets.XAIHI_DESKTOP_MANDATORY_UPDATE_CONFIG }}
+          NPM_REGISTRY: ${{ vars.XAIHI_DESKTOP_NPM_REGISTRY }}
+        run: |
+          {
+            printf 'DSH_DESKTOP_APP_ID=%s\n' "$APP_ID"
+            printf 'DSH_DESKTOP_AUTO_UPDATE_ENV=%s\n' "${AUTO_UPDATE_ENV:-test}"
+            printf 'DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=%s\n' "$UPDATE_TEST"
+            printf 'DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN=%s\n' "$UPDATE_PROD"
+            printf 'DSH_DESKTOP_MANDATORY_UPDATE_CONFIG=%s\n' "'$UPDATE_CONFIG'"
+            printf 'DSH_DESKTOP_MACOS_PACK_CONCURRENCY=3\n'
+            [ -n "$NPM_REGISTRY" ] && printf 'DSH_DESKTOP_NPM_REGISTRY=%s\n' "$NPM_REGISTRY"
+            # 未签名腿不要 DOWNLOAD_TEST_*（desktop-package-environment.mjs:85-86 在 --unsigned 前就返回），
+            # 也不写 CSC_*/APPLE_*：patch 0023 让 darwin 跳过签名解析，写了反而会被 .env 的未知键规则牵连。
+          } > "$RUNNER_TEMP/env-macos.txt"
+          mv "$RUNNER_TEMP/env-macos.txt" desktop/dsh/apps/desktop/.env.macos
+          sed -E 's/=.*$/=…/' desktop/dsh/apps/desktop/.env.macos
+
+      # check:package 走的是同一条 parseArgs：--check 只验 env 与工具链，先在红得便宜的地方停下来。
+      - name: 先跑上游自检（env + 工具链，不产出安装包）
+        run: pnpm --filter "@deepseek-ai/dsh-desktop" run check:package -- ${{ matrix.target }}
+
+      - name: 打未签名的 ${{ matrix.target }} 安装包
+        run: pnpm --filter "@deepseek-ai/dsh-desktop" run package -- ${{ matrix.target }} --unsigned
+
+      - name: 回读产物目录
+        shell: bash
+        run: ls -la "desktop/dsh/apps/desktop/.desktop-build/targets/${{ matrix.target }}/unsigned-artifacts"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xaihi-desktop-${{ matrix.target }}-unsigned
+          path: desktop/dsh/apps/desktop/.desktop-build/targets/${{ matrix.target }}/unsigned-artifacts/**
+          if-no-files-found: error
+          retention-days: 30
+
+  # Linux：只编译，不维护，也不打包——上游 package-target 没有 Linux 这个目标（:176/:206）。
+  # 这条腿的红绿说的是「Xaihi 在 Linux 上编得出来、测得过」，不是「有 Linux 安装包」。
+  linux-compile:
+    needs: [preflight, native]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: node desktop/sync-dsh.mjs --check
+      - run: pnpm check:pins
+      - run: pnpm check:installable
+      - run: pnpm -r run build
+      - run: pnpm -r run typecheck
+      - run: pnpm -r --no-bail run test:unit
+
+  # 一条安装包都没打出来时不开 Release；mac 腿被 skip 不该把 win 腿的发布一起带走，
+  # 所以这里按 result 判断而不是靠 needs 的默认行为（默认会让 release 一起 skip）。
+  release:
+    if: >-
+      !cancelled() && inputs.publish_release &&
+      (needs.package-win.result == 'success' || needs.package-mac.result == 'success')
+    needs: [preflight, product, package-win, package-mac]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 取这次打出来的安装包
+        uses: actions/download-artifact@v4
+        with:
+          pattern: 'xaihi-desktop-*'
+          path: out/installers
+          merge-multiple: false
+          fail-on-unmatched: true
+
+      - name: 取这次装出来的产品资源（有就带上）
+        uses: actions/download-artifact@v4
+        with:
+          pattern: 'xaihi-product-*'
+          path: out/products
+          merge-multiple: false
+          fail-on-unmatched: false
+
+      - name: 归集资产
+        run: |
+          mkdir -p out/assets
+          find out/installers -type f \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' \) -exec cp -v {} out/assets/ \;
+          if [ -d out/products ]; then
+            for d in out/products/*/; do
+              [ -d "$d" ] || continue
+              name=$(basename "$d")
+              (cd out/products && zip -qr "../assets/$name-product-resources.zip" "$name")
+            done
+          fi
+          ls -la out/assets
+          test -n "$(find out/assets -maxdepth 1 -type f -print -quit)"
+
+      - name: 开 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          if [ "$REF_TYPE" = tag ]; then TAG="$REF_NAME"; else TAG="desktop-$GITHUB_SHA"; fi
+          mapfile -t ASSETS < <(find out/assets -maxdepth 1 -type f | sort)
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "Xaihi desktop $TAG" \
+            --notes "$(printf '%s\n' \
+              '桌面端安装包由 GitHub Actions 走上游 package-target 打包。' \
+              '' \
+              '- Windows：未签名（`--unsigned`），文件名带 `-unsigned`，装的时候 SmartScreen 会拦。' \
+              '- macOS：同样未签名（patch 0023 放开的 darwin `--unsigned`），不公证 ⇒ Gatekeeper 会拦；要 Developer ID 那份就在配了凭证的机器上不带 `--unsigned` 打。' \
+              '- Linux：**只编译，不维护**——上游没有 Linux 打包目标（package-target.ts:176,206）。' \
+              '' \
+              "commit: $GITHUB_SHA")" \
+            "${ASSETS[@]}"

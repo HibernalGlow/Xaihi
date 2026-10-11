@@ -1,0 +1,180 @@
+name: 原生引擎矩阵（kisaki）
+
+# 一条腿一个 OS：dav1d 是唯一一条外部动态依赖（czkawka_core 的 libavif feature → dav1d crate →
+# dav1d-sys 0.8.3），它用 system-deps + pkg-config 找库，交叉编译时**自己就拒绝**：
+# 实测 2026-10-11 本机 `--target x86_64-unknown-linux-gnu` rc=1，panic 在 dav1d-sys-0.8.3/build.rs:82
+# 「pkg-config has not been configured to support cross-compilation」。所以除 mac-x64 那条自带
+# x86_64 dav1d 的腿，其余都在同 OS 的 runner 上本机编。
+#
+# 产物落 `native/artifacts/<triple>/`，只进 workflow artifact，**不进 git**
+# （一份 .node 是 21–37 MB，四个平台一起签进仓就是把仓库当网盘）。
+# 仓里那份 `native/artifacts/manifest.json` 记的是签进来的预编货，由 ci.yml 上的
+# check:nativemanifest 在干净检出上对账；这条 workflow 不动它。
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'plugins/kisaki/native/**'
+      - 'scripts/build-kisaki-native.mjs'
+      - '.github/workflows/native.yml'
+  pull_request:
+    paths:
+      - 'Cargo.lock'
+      - 'plugins/kisaki/native/**'
+      - 'scripts/build-kisaki-native.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    # 试验腿红了不拦整块矩阵：mac-x64 要的是交叉 dav1d，这条第一次上云就是去拿读数的。
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: darwin-arm64
+            triple: darwin-arm64
+            platform: darwin
+            arch: arm64
+            os: macos-latest
+            dav1d: brew
+            publishArgs: ''
+            experimental: false
+          - label: darwin-x64（试验腿）
+            triple: darwin-x64
+            platform: darwin
+            arch: x64
+            os: macos-latest
+            dav1d: source-x64
+            # 要显式把交叉那份 x86_64 的 dylib 交给 --publish：不指的话脚本会去 brew 目录找同名库，
+            # 拿到的是 arm64 的一份（实测 lipo -archs = arm64），脚本按产物里的 soname 找，找到架构不符的就拒。
+            publishArgs: '--dav1d "$RUNNER_TEMP/dav1d-x64-prefix/lib/libdav1d.7.dylib"'
+            experimental: true
+          - label: win32-x64
+            triple: win32-x64
+            platform: win32
+            arch: x64
+            os: windows-latest
+            # dav1d 交给 dav1d-sys 自己从源码静态编（build.rs 里 add_build_internal 用的就是
+            # -Ddefault_library=static）：MSVC 那条腿因此不需要任何 dav1d 的 import lib。
+            dav1d: internal
+            publishArgs: '--no-dav1d'
+            experimental: false
+          - label: linux-x64（只编译，不维护）
+            triple: linux-x64
+            platform: linux
+            arch: x64
+            os: ubuntu-24.04
+            # 已知没解的一半：Linux 那份的 NEEDED 记的是 soname，而同目录装载要 $ORIGIN 的 RPATH，
+            # 本机没法验（不维护平台），--publish 只保证字节与库都在包里。
+            dav1d: apt
+            publishArgs: ''
+            experimental: false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: rust 工具链
+        run: rustup show && rustc --version && cargo --version
+
+      - name: dav1d（macOS 本机腿：brew）
+        if: matrix.dav1d == 'brew'
+        run: brew install dav1d pkg-config nasm meson ninja
+
+      - name: dav1d（Linux 腿：apt）
+        if: matrix.dav1d == 'apt'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libdav1d-dev pkg-config nasm meson ninja-build
+
+      - name: dav1d 从源码静态编（Windows 腿）
+        if: matrix.dav1d == 'internal'
+        shell: bash
+        run: |
+          choco install -y --no-progress nasm
+          python -m pip install --quiet meson ninja
+          # system-deps 7.0.8 的开关（src/lib.rs:190 那段）：always ⇒ 跳过 pkg-config 直接走
+          # dav1d-sys 的 build_from_src，产出 MSVC 能链的静态 dav1d.lib。
+          echo "SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always" >> "$GITHUB_ENV"
+
+      - name: dav1d（mac-x64 交叉腿：自己编一份 x86_64 的）
+        if: matrix.dav1d == 'source-x64'
+        run: |
+          brew install pkg-config nasm meson ninja
+          # 本机 brew 的 dav1d 只有 arm64（实测 lipo -archs = arm64），拿它链 x86_64 就是假货。
+          # 也不能只给 CC 加 -arch x86_64：meson 按编译器的 target triple 选 CPU family，
+          # 那样它仍认成 aarch64、仍去编 src/arm/64/*.S，nasm/clang 直接报
+          # 「unknown use of instruction mnemonic without a size suffix」（实测 2026-10-11）。
+          # 正解是 cross file 里写明 cpu_family=x86_64，并把 nasm 交给交叉机。
+          cat > "$RUNNER_TEMP/darwin-x64.cross.toml" <<'CROSS'
+          [binaries]
+          c = ['clang', '-arch', 'x86_64']
+          cpp = ['clang++', '-arch', 'x86_64']
+          ar = 'ar'
+          strip = 'strip'
+          nasm = 'nasm'
+
+          [host_machine]
+          system = 'darwin'
+          cpu_family = 'x86_64'
+          cpu = 'x86_64'
+          endian = 'little'
+          CROSS
+          git clone --depth 1 -b 1.5.0 https://code.videolan.org/videolan/dav1d.git "$RUNNER_TEMP/dav1d-x64"
+          cd "$RUNNER_TEMP/dav1d-x64"
+          meson setup --cross-file "$RUNNER_TEMP/darwin-x64.cross.toml" -Dbuildtype=release --prefix="$RUNNER_TEMP/dav1d-x64-prefix" --libdir=lib build
+          ninja -C build
+          meson install -C build
+          lipo -archs "$RUNNER_TEMP/dav1d-x64-prefix/lib/libdav1d.7.dylib"
+          # 用 LIBDIR 而不是 PATH：实测 PATH 对 dav1d-sys 的构建脚本没用（system-deps 仍解析到宿主
+          # brew 那份 1.5.4，link-search 就写成了 /opt/homebrew/Cellar/...），LIBDIR 才是**替换**搜索目录，
+          # 把 link-search 改成目标前缀。拿错架构那份的后果不是报错而是产出一堆坏货：
+          # 链不上 dav1d、otool -L 里没有它、nm -u 却留着 8 个未定义符号（scripts/build-kisaki-native.mjs 的
+          # --publish 现在会在这种货上直接红）。
+          echo "PKG_CONFIG_LIBDIR=$RUNNER_TEMP/dav1d-x64-prefix/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_ALLOW_CROSS=1" >> "$GITHUB_ENV"
+
+      - name: 交叉腿要装 target 的 std
+        if: matrix.triple == 'darwin-x64'
+        run: rustup target add x86_64-apple-darwin
+
+      - name: 编原生引擎并落发布用的真字节
+        run: node scripts/build-kisaki-native.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --publish ${{ matrix.publishArgs }}
+
+      - name: 回读产物（尺寸、架构、装载项都要看得见）
+        shell: bash
+        run: |
+          B=native/artifacts/${{ matrix.triple }}/xaihi-kisaki.${{ matrix.triple }}.node
+          ls -la "native/artifacts/${{ matrix.triple }}"
+          test -s "$B"
+          if [ "${{ matrix.platform }}" = "darwin" ]; then
+            lipo -archs "$B"
+            # 发布腿必须读得回 @rpath：记着构建机绝对路径的那份离开这台机就装不上（脚本会改写并重新 ad-hoc 签）。
+            otool -L "$B"
+            codesign --verify "$B"
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            file "$B"
+            objdump -p "$B" | grep NEEDED || true
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kisaki-native-${{ matrix.triple }}
+          path: native/artifacts/${{ matrix.triple }}/**
+          if-no-files-found: error
+          retention-days: 14
