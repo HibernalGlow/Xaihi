@@ -37,7 +37,7 @@ import {
   type BridgeMessage,
   type SettingsFace,
 } from '@hibernalglow/xaihi-sdk/bridge'
-import { createLocalRunner, nodeRegistry } from '@hibernalglow/xaihi-sdk'
+import { createLocalRunner, NODE_REGISTRY_SERVICE, nodeRegistry } from '@hibernalglow/xaihi-sdk'
 import type { NodeComponentProps, NodeRunEvent } from '@xiranite/contract'
 import i18n, { initI18n } from '@/i18n'
 import { DocumentBridgeProvider } from '@/document/bridge-context'
@@ -148,11 +148,11 @@ const ledger = (stream: Stream) => ({
 let runnerCalls: Array<{ nodeId: string; input: unknown }> = []
 let stream: Stream
 
-beforeEach(() => {
+beforeEach(async () => {
   runnerCalls = []
   // 真插件先进注册表：两组用例都靠真 Runner 跑 `sleept`，没注册的话 `NodeRegistry.run`
   // 会回一条 `not registered` 的失败（而进度那条断言照样是绿的 —— 那种假绿正是这里要防的）。
-  registerSleept()
+  await registerSleept()
   /*
    * 回显是**共享单例**，选项只在**第一次**建它时生效，所以这里先建出来并接上假流；
    * 生产代码随后那句 `documentRunProgressFeed()`（不带选项）拿到的就是这一条。
@@ -172,15 +172,36 @@ afterEach(() => {
   resetDocumentRunProgressFeed()
 })
 
-/** 真插件注册进 `nodeRegistry`（`ctx` 用真 `Context`，只替掉不在这份判据口径里的三片宿主服务）。 */
-function registerSleept(): void {
+/**
+ * 等 cordis 把注入出来的那条 fiber 跑到 ACTIVE。
+ *
+ * 节点经 `ctx.inject([NODE_REGISTRY_SERVICE], …)` 登记（`registerWithHost`），而 inject 的回调
+ * 不是同步落地的（`packages/core/tests/local-runner-integration.spec.ts` 同一拍）。生产里装载远早于
+ * 任何人按"运行"，这里是"apply 完立刻跑"的写法，所以装完必须等一拍。
+ */
+const loaded = async (): Promise<void> => {
+  for (let i = 0; i < 8; i += 1) await Promise.resolve()
+  await new Promise((resolve) => { setTimeout(resolve, 0) })
+}
+
+/**
+ * 真插件注册进 `nodeRegistry`（`ctx` 用真 `Context`，只替掉不在这份判据口径里的三片宿主服务）。
+ *
+ * 宿主那一份注册表经 `provide(NODE_REGISTRY_SERVICE, …)` 真交出去：节点只认服务名那一格
+ * （SDK 被内联，模块作用域跨包不可达），服务不到位 inject 的回调就不跑、下面那条
+ * `nodeRegistry.has('sleept')` 正是它的判据。提供的实例与断言读的**同一个** `nodeRegistry`。
+ * inject 的回调不是同步落地的，所以装完要 `await loaded()` 一拍。
+ */
+async function registerSleept(): Promise<void> {
   const ctx = new Context()
+  ctx.provide(NODE_REGISTRY_SERVICE, nodeRegistry)
   ctx.tools = { register: () => undefined } as never
   ctx.subprocess = { spawn: () => { throw new Error('这份判据里 sleept 不该真起子进程') } } as never
   // `register` 回 undefined：cordis 的 `effect` 只认「返回 void 或返回一个可抛弃的东西」，
   // 随手回一个对象会被判成 `Invalid effect` 而把整条 apply 炸掉。
   ctx.commands = { register: () => undefined } as never
   applySleept(ctx, { blockDefaultMinutes: { get: () => 60 } } as never)
+  await loaded()
   expect(nodeRegistry.has('sleept'), 'sleept 没进 NodeRegistry').toBe(true)
 }
 
@@ -276,6 +297,10 @@ describe('文档侧运行进度回显：账本 → onEvent', () => {
     const { host } = await docHost()
     const { events, onEvent } = collect()
     const call = host.runner.run('sleept', { action: 'get_stats' }, onEvent)
+    // `runner.run` 现在**先 await 一次** `runner.getInfo`（取这次运行的心跳/超时策略，见 ADR-0022），
+    // 所以"发起"不再是同步的：不等它把这次调用送进桥就喂帧，帧会落在 `followNodeRun` 订阅之前
+    // 被整段丢掉（跟读只认订阅那一刻的 runId，不回放）。等桥记下这次调用再喂，才是运行中的真实到达顺序。
+    await waitFor(() => { expect(runnerCalls.length).toBe(1) })
 
     stream.connect()
     expect(documentRunProgressFeed().transport(), '假流没被认成连上了').toBe('live')
@@ -306,6 +331,8 @@ describe('文档侧运行进度回显：账本 → onEvent', () => {
 
     const { events, onEvent } = collect()
     const call = host.runner.run('sleept', { action: 'get_stats' }, onEvent)
+    // 同前：`run` 现在先 await 一次策略查询，所以要先等它真的送进桥（跟读才挂上）再喂帧。
+    await waitFor(() => { expect(runnerCalls.length).toBe(1) })
     expect(events, '挂上那一刻已有的读数属于调用之前那一趟，转出去就是别人的进度').toEqual([])
 
     // 另一个节点同刻在跑：它的帧不许落到这条回调上。
@@ -338,6 +365,8 @@ describe('文档侧运行进度回显：账本 → onEvent', () => {
     const { host } = await docHost()
     const { events, onEvent } = collect()
     const call = host.runner.run('sleept', { action: 'get_stats' }, onEvent)
+    // 同前：等这次调用真的进了桥（跟读挂上）再喂帧。
+    await waitFor(() => { expect(runnerCalls.length).toBe(1) })
 
     const frame = ledger(stream)
     frame.started('sleept', 'sleept/get_stats#1')
