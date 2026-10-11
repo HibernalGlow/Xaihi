@@ -36,7 +36,7 @@ import {
   type BridgeMessage,
   type SettingsFace,
 } from '@hibernalglow/xaihi-sdk/bridge'
-import { createLocalRunner, nodeRegistry } from '@hibernalglow/xaihi-sdk'
+import { createLocalRunner, NODE_REGISTRY_SERVICE, nodeRegistry } from '@hibernalglow/xaihi-sdk'
 import i18n, { initI18n } from '@/i18n'
 import { DocumentBridgeProvider } from '@/document/bridge-context'
 import { useNodeHostApi } from '@/components/modules/hostApi'
@@ -94,16 +94,34 @@ afterEach(() => {
 })
 
 /**
+ * 等 cordis 把注入出来的那条 fiber 跑到 ACTIVE。
+ *
+ * 节点经 `ctx.inject([NODE_REGISTRY_SERVICE], …)` 登记（`registerWithHost`），而 inject 的回调
+ * 不是同步落地的（`packages/core/tests/local-runner-integration.spec.ts` 同一拍）。生产里装载远早于
+ * 任何人按"运行"，这里是"apply 完立刻跑"的写法，所以装完必须等一拍，否则量的是"还没轮到"。
+ */
+const loaded = async (): Promise<void> => {
+  for (let i = 0; i < 8; i += 1) await Promise.resolve()
+  await new Promise((resolve) => { setTimeout(resolve, 0) })
+}
+
+/**
  * 真插件注册进 `nodeRegistry`。
  *
  * `ctx` 用真 `Context`（`@deepseek-ai/cordis` 是 ui-host 的依赖），只把三片宿主服务替掉：
  * `tools` / `subprocess` / `commands`。它们不是这份判据的对象，而 `effect` / `on` / `get`
  * 由 Context 自己提供，不手搓 —— 手搓一个"长得像 Context 的对象"会让"插件到底调了哪些宿主面"
  * 这件事静默漂移（sleept 就在 apply 期调了 `ctx.effect`，替身缺一条就整条 apply 炸）。
+ *
+ * 宿主那一份注册表不再是"替"出来的第四片服务，而是经 `provide(NODE_REGISTRY_SERVICE, …)`
+ * 真交出去：节点只认服务名那一格（SDK 被内联，模块作用域跨包不可达），服务不到位 inject 的回调
+ * 就不跑、`nodeRegistry.has('linedup'/'sleept')` 正是这条的判据。提供的实例与断言读的**同一个**
+ * `nodeRegistry`，否则又退化成"生产里不存在的共享实例"。
  */
-function registerPlugins(): void {
+async function registerPlugins(): Promise<void> {
   const registered: unknown[] = []
   const ctx = new Context()
+  ctx.provide(NODE_REGISTRY_SERVICE, nodeRegistry)
   ctx.tools = { register: (definition: unknown) => { registered.push(definition); return definition } } as never
   ctx.subprocess = { spawn: () => { throw new Error('这份判据里 sleept 不该真起子进程') } } as never
   // `register` 回 undefined：cordis 的 `effect` 只认「返回 void 或返回一个可抛弃的东西」，
@@ -111,6 +129,7 @@ function registerPlugins(): void {
   ctx.commands = { register: () => undefined } as never
   applyLinedup(ctx, { label: { get: () => 'linedup' } } as never)
   applySleept(ctx, { blockDefaultMinutes: { get: () => 60 } } as never)
+  await loaded()
   nodeRegistry.register({
     nodeId: 'findz',
     definition: { nodeId: 'findz', title: { zh: '归档检索', en: 'Findz' }, description: { zh: '', en: '' }, actions: [], fields: [], inputBindings: [] } as never,
@@ -247,8 +266,8 @@ function cardOf<T>(compId: string): T {
 }
 
 describe('网页面板 → 本地 Runner → 结果视图：端到端', () => {
-  beforeEach(() => {
-    registerPlugins()
+  beforeEach(async () => {
+    await registerPlugins()
   })
 
   it('linedup：点「运行过滤」把原生文本送进本地 Runner，并把返回的结构化结果渲染上屏', async () => {
