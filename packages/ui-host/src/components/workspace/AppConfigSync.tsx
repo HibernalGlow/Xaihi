@@ -21,6 +21,7 @@
  * @module xaihi-ui/components/workspace/AppConfigSync
  */
 
+import { normalizeCardLayout, normalizeDefaultView, normalizeTrellisMapPosition } from "@/lib/workspaceViewPreference"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
@@ -36,7 +37,7 @@ import { normalizeDesignThemeConfig } from "@/lib/design-theme/contract"
 import { normalizePersistedBackgroundImageUrl, sanitizePersistedBackgroundImageUrl, shrinkStoredBackgroundImageUrl } from "@/lib/backgroundImage"
 import { useTheme } from "@/components/use-theme"
 import { changeLanguage, getCurrentLanguage, type Language } from "@/i18n"
-import { useWorkspaceActions, useWorkspaceShallowSelector } from "@/store/workspaceStore"
+import { useWorkspaceStore, useWorkspaceActions, useWorkspaceShallowSelector } from "@/store/workspaceStore"
 import type { OverlayFloatingMetrics, WorkspaceUiPreferences } from "@/store/workspace/types"
 import type { AppCustomTheme, AppFontPreset, AppTheme, CardLayout } from "@/types/workspace"
 import { startupDebug, startupDebugAsync } from "@/lib/startupDebug"
@@ -81,7 +82,6 @@ type BrowserLegacyConfig = Pick<AppUiConfig, "migratedFrom"> & {
 // `isOneOf` 会把它整条丢掉，store 落回默认（也是武陵）——不会出现「选了个不存在的主题」的空洞。
 const APP_THEMES = new Set<AppTheme>(["wuling"])
 const FONT_PRESET_KEYS = new Set<AppFontPreset>(FONT_PRESETS.map((preset) => preset.key))
-const CARD_LAYOUTS = new Set<CardLayout>(["grid", "stack", "split", "focus"])
 const BG_MODES = new Set<WorkspaceUiPreferences["bgMode"]>(["grid", "dot-grid", "image", "none"])
 const CHROME_POSITIONS = new Set<WorkspaceUiPreferences["chromePosition"]>(["left", "right", "island"])
 const CHROME_STYLES = new Set<WorkspaceUiPreferences["chromeStyle"]>(["default", "traffic-light"])
@@ -426,6 +426,12 @@ export function AppConfigSync() {
     }
   }, [])
 
+  const [saveAttempt, setSaveAttempt] = useState(0)
+  useEffect(() => {
+    const retry = () => setSaveAttempt((value) => value + 1)
+    window.addEventListener("xaihi-ui-preference-retry", retry)
+    return () => window.removeEventListener("xaihi-ui-preference-retry", retry)
+  }, [])
   const configKey = useMemo(
     () => stableStringify(buildAppUiConfig(
       workspace,
@@ -453,11 +459,14 @@ export function AppConfigSync() {
       const nextKey = stableStringify(nextConfig)
       if (nextKey === lastSavedKeyRef.current) return
 
+      useWorkspaceStore.setState({ uiPreferenceSave: { state: "pending" } })
       host.write(APP_CONFIG_UI_SECTION, nextConfig)
         .then(() => {
           lastSavedKeyRef.current = nextKey
+          useWorkspaceStore.setState({ uiPreferenceSave: { state: "saved" } })
         })
         .catch((error) => {
+          useWorkspaceStore.setState({ uiPreferenceSave: { state: "error", detail: error instanceof Error ? error.message : String(error) } })
           logger.warn("App UI save failed", error)
         })
     }, 600)
@@ -465,7 +474,7 @@ export function AppConfigSync() {
     return () => {
       window.clearTimeout(timer)
     }
-  }, [carrier, configKey])
+  }, [carrier, configKey, saveAttempt])
 
   return null
 }
@@ -479,6 +488,9 @@ export function selectWorkspaceUiPreferences(state: WorkspaceUiPreferences): Wor
     fontPreset: state.fontPreset,
     designTheme: state.designTheme,
     cardLayout: state.cardLayout,
+    defaultView: state.defaultView,
+    trellisMapPosition: state.trellisMapPosition,
+    viewSwitchLoop: state.viewSwitchLoop,
     overlayMode: state.overlayMode,
     overlayWidth: state.overlayWidth,
     overlayFloatingMetrics: state.overlayFloatingMetrics,
@@ -516,6 +528,7 @@ export function selectWorkspaceUiPreferences(state: WorkspaceUiPreferences): Wor
     alphabetIndexOpacity: state.alphabetIndexOpacity,
     alphabetIndexStyle: state.alphabetIndexStyle,
     alphabetIndexWaveIntensity: state.alphabetIndexWaveIntensity,
+    alphabetIndexHideEmpty: state.alphabetIndexHideEmpty,
     cardClickAction: state.cardClickAction,
     cardDoubleClickAction: state.cardDoubleClickAction,
     tabDisplayStyle: state.tabDisplayStyle,
@@ -589,7 +602,10 @@ function normalizeWorkspacePreferences(value: unknown): Partial<WorkspaceUiPrefe
   // 高级主题是嵌套表（TOML 里 [app.ui.workspace.designTheme.md3]）；整份过解析器，
   // 不接受半个对象——否则一个手抖的 seed 会把整套设计语言带成半开状态。
   if (isRecord(value.designTheme)) next.designTheme = normalizeDesignThemeConfig(value.designTheme)
-  if (isOneOf(value.cardLayout, CARD_LAYOUTS)) next.cardLayout = value.cardLayout
+  if (value.cardLayout !== undefined) next.cardLayout = normalizeCardLayout(value.cardLayout)
+  if (value.viewSwitchLoop !== undefined) next.viewSwitchLoop = value.viewSwitchLoop === true
+  if (value.trellisMapPosition !== undefined) next.trellisMapPosition = normalizeTrellisMapPosition(value.trellisMapPosition)
+  if (value.defaultView !== undefined) next.defaultView = normalizeDefaultView(value.defaultView)
   if (isOneOf(value.overlayMode, OVERLAY_MODES)) next.overlayMode = value.overlayMode
   if (typeof value.overlayWidth === "number") next.overlayWidth = value.overlayWidth
   {
@@ -636,6 +652,7 @@ function normalizeWorkspacePreferences(value: unknown): Partial<WorkspaceUiPrefe
   if (typeof value.alphabetIndexOpacity === "number") next.alphabetIndexOpacity = value.alphabetIndexOpacity
   if (isOneOf(value.alphabetIndexStyle, ALPHABET_INDEX_STYLES)) next.alphabetIndexStyle = value.alphabetIndexStyle
   if (typeof value.alphabetIndexWaveIntensity === "number") next.alphabetIndexWaveIntensity = value.alphabetIndexWaveIntensity
+  if (typeof value.alphabetIndexHideEmpty === "boolean") next.alphabetIndexHideEmpty = value.alphabetIndexHideEmpty
   if (isOneOf(value.cardClickAction, CARD_CLICK_ACTIONS)) next.cardClickAction = value.cardClickAction
   if (isOneOf(value.cardDoubleClickAction, CARD_CLICK_ACTIONS)) next.cardDoubleClickAction = value.cardDoubleClickAction
   if (isOneOf(value.tabDisplayStyle, TAB_DISPLAY_STYLES)) next.tabDisplayStyle = value.tabDisplayStyle

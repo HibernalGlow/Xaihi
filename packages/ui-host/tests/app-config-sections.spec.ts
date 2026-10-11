@@ -40,10 +40,11 @@ const ORIGIN = 'http://127.0.0.1:3199'
 interface Rig {
   carrier: ReturnType<typeof createBridgeAppConfigCarrier>
   /** 外壳那一侧真正收到的写，按顺序（`ns` + 载荷逐字）。 */
-  writes: { ns: string, patch: Record<string, unknown> }[]
+  writes: { ns: string, patch: Record<string, unknown>, revision?: number }[]
   /** 外壳那一侧收到的读次数。 */
   reads: () => number
   flushMicrotasks: () => Promise<void>
+  externalWrite: (section: string, text: string) => void
 }
 
 /**
@@ -55,8 +56,9 @@ function rig(options: {
   stored?: Record<string, string>
   describeThrows?: { reason: string, detail: string }
 } = {}): Rig {
-  const writes: { ns: string, patch: Record<string, unknown> }[] = []
+  const writes: { ns: string, patch: Record<string, unknown>, revision?: number }[] = []
   let reads = 0
+  let revision = 7
   const appUi = { ...(options.stored ?? {}) }
 
   const settings: SettingsFace = {
@@ -65,14 +67,16 @@ function rig(options: {
       if (options.describeThrows !== undefined) {
         throw Object.assign(new Error('host blew up'), options.describeThrows)
       }
-      return { namespaces: [{ ns: STATE_SETTINGS_NS, revision: 7, value: { verbose: false, appUi } }] }
+      return { namespaces: [{ ns: STATE_SETTINGS_NS, revision, value: { verbose: false, appUi } }] }
     },
-    update: async (ns, patch) => {
-      writes.push({ ns, patch })
+    update: async (ns, patch, expectedRevision) => {
+      writes.push({ ns, patch, ...(expectedRevision === undefined ? {} : { revision: expectedRevision }) })
+      if (expectedRevision !== revision) throw Object.assign(new Error(`设置版本冲突，当前为第 ${revision} 版`), { reason: "SETTINGS_CONFLICT" })
+      revision += 1
       // 服务端的合并语义（`mergeLayers`）：这里按同一口径合并，好让"窄补丁不抹掉别的段"
       // 这件事在**下一发读**里也能被看见（判据里确实读了）。
       Object.assign(appUi, (patch[APP_CONFIG_FIELD] ?? {}) as Record<string, string>)
-      return { revision: 8 }
+      return { revision }
     },
   }
 
@@ -85,6 +89,7 @@ function rig(options: {
     carrier: createBridgeAppConfigCarrier(docBridge),
     writes,
     reads: () => reads,
+    externalWrite: (section, text) => { appUi[section] = text; revision += 1 },
     flushMicrotasks: async () => {
       for (let round = 0; round < 8; round += 1) await new Promise((resolve) => setTimeout(resolve, 0))
     },
@@ -183,5 +188,28 @@ describe('工作台设置的三段过桥', () => {
     await r.flushMicrotasks()
     expect(r.writes).toHaveLength(1)
     expect(r.writes[0]?.patch).toEqual({ [APP_CONFIG_FIELD]: { [APP_CONFIG_UI_SECTION]: '{"version":3}' } })
+  })
+})
+
+describe('versioned app preference writes', () => {
+  it('serializes writes with fresh revisions even when different sections share a namespace', async () => {
+    const r = rig()
+    await Promise.all([r.carrier.write(APP_CONFIG_UI_SECTION, { defaultView: { viewMode: 'flow' } }), r.carrier.write(APP_CONFIG_THEMES_SECTION, [])])
+    expect(r.writes.map(w => w.revision)).toEqual([7, 8])
+  })
+  it('does not overwrite a same-section edit made after reading', async () => {
+    const r = rig({ stored: { ui: '{"defaultView":{"viewMode":"cards"}}' } })
+    await r.carrier.read(APP_CONFIG_UI_SECTION)
+    r.externalWrite('ui', '{"defaultView":{"viewMode":"lane"}}')
+    await expect(r.carrier.write(APP_CONFIG_UI_SECTION, { defaultView: { viewMode: 'flow' } })).rejects.toMatchObject({ reason: 'SETTINGS_CONFLICT', message: expect.stringContaining('第 8 版') })
+    expect(r.writes).toHaveLength(0)
+  })
+  it('accepts changes in another section without losing them', async () => {
+    const r = rig({ stored: { ui: '{}' } })
+    await r.carrier.read(APP_CONFIG_UI_SECTION)
+    r.externalWrite('themes', '["other-window"]')
+    await r.carrier.write(APP_CONFIG_UI_SECTION, { defaultView: { viewMode: 'lane' } })
+    expect(r.writes[0]?.revision).toBe(8)
+    expect(await r.carrier.read(APP_CONFIG_THEMES_SECTION)).toEqual(['other-window'])
   })
 })

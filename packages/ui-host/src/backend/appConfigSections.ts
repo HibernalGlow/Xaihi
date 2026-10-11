@@ -21,11 +21,8 @@
  *    `nodeUi` / 别的段。这与 `localBackendControl.ts` 那份"先读整份、只换自己一格、写回整份"
  *    是**两种都对的写法**：那一格必须整份读是因为它要保住别人的字段，而这里窄补丁在服务端
  *    合的成本更低，也不会把 `nodeState`（可能很大）搬上来一趟再搬下去。
- * 3. **写不带 `expectedRevision`**。这一格的写者只有"正在看这份工作台的那个浏览器会话"，
- *    而 `expectedRevision` 是**整个命名空间**的版本号——工作区快照（`state.patchData`，
- *    落在同一个 `xaihi-core` 上）每存一次都会把它推进，带上旧版号只会换来一串与内容无关的
- *    `SETTINGS_CONFLICT`。冲突在这里的语义本来就是"后写的赢一段"，与 Xiranite 那份文件写一样。
- *    代价写在这里：两个窗口同时改同一段时后写的覆盖先写的。
+ * 3. 写前回读当前版本，比较本段与上次读取的内容，再带 expectedRevision 发窄补丁。
+ *    同一载体的写串行执行；别的段变更可继续，同段变更与版本竞争作为可读冲突返回。
  *
  * @module xaihi-ui/backend/app-config-sections
  */
@@ -122,10 +119,13 @@ function pickSectionText(view: unknown, section: AppConfigSection): string | und
  * @returns 载体。
  */
 export function createBridgeAppConfigCarrier(bridge: DocumentBridge): AppConfigCarrier {
+  const observed = new Map<AppConfigSection, string | undefined>()
+  let writes: Promise<void> = Promise.resolve()
   return {
     async read(section) {
       const view = await bridge.call('config.getUi', STATE_SETTINGS_NS)
       const text = pickSectionText(view, section)
+      observed.set(section, text)
       // "没存过"与"存了一个 null"必须分开：前者让调用方走迁移/兜底那条路（原 REST 那版
       // 用 `config === undefined` 判），后者是使用者把这一格清空了。
       if (text === undefined) return undefined
@@ -143,7 +143,22 @@ export function createBridgeAppConfigCarrier(bridge: DocumentBridge): AppConfigC
         throw new AppConfigSectionTooLargeError(section, bytes, APP_CONFIG_SECTION_BUDGET_BYTES)
       }
       // 窄补丁（只带自己那一段）：`settings.update` 是递归合并，别人的字段与别的段都不动。
-      await bridge.call('config.save', STATE_SETTINGS_NS, { [APP_CONFIG_FIELD]: { [section]: text } })
+      const write = writes.then(async () => {
+        const view = await bridge.call('config.getUi', STATE_SETTINGS_NS)
+        if (!isRecord(view) || typeof view.revision !== 'number') {
+          throw new Error('宿主没有返回设置版本号，无法安全保存界面设置')
+        }
+        const remote = pickSectionText(view, section)
+        if (observed.has(section) && observed.get(section) !== remote && remote !== text) {
+          throw Object.assign(new Error(`设置已在另一处修改，当前为第 ${view.revision} 版。请重新加载后确认再保存。`), { reason: 'SETTINGS_CONFLICT' })
+        }
+        if (remote !== text) {
+          await bridge.call('config.save', STATE_SETTINGS_NS, { [APP_CONFIG_FIELD]: { [section]: text } }, view.revision)
+        }
+        observed.set(section, text)
+      })
+      writes = write.catch(() => {})
+      await write
     },
   }
 }
