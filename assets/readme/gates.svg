@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="548" viewBox="0 0 1200 548" role="img" aria-labelledby="title desc">
+  <title id="title">pnpm test 的 14 步门禁链，以及一步故意还没接线的 check:brand</title>
+  <desc id="desc">按执行顺序编号的 14 个步骤：版本钉死、技能可发现、bundle 可安装、词表、vendored 漂移、CLI 与节点注册表、契约、构建、产物、CLI 面、TUI 面、类型、单测。第 15 格是 check:brand，用玫红虚线标出它能跑也能证伪，但按 AGENTS.md 故意还没接进链里。</desc>
+
+  <defs>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5DE6FE" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#5DE6FE" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#5DE6FE" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="548" rx="24" fill="#0A1218"/>
+  <polygon points="0,548 0,360 230,548" fill="#5DE6FE" opacity="0.04"/>
+
+  <g id="head" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
+    <text x="56" y="52" font-size="16" letter-spacing="3" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">pnpm test · package.json:25</text>
+    <text x="56" y="94" font-size="40" fill="#DCECF3">14 步门禁链</text>
+    <text x="300" y="94" font-size="20" fill="#8FA6BC">每条尺都要配阳性对照：关掉防御就必须变红</text>
+  </g>
+  <line x1="56" y1="116" x2="1144" y2="116" stroke="url(#rule)" stroke-width="1"/>
+
+  <g id="chain" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">
+    <g>
+      <rect x="56" y="140" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="76" y="178" font-size="16" fill="#5F7C93">01</text><text x="110" y="178" fill="#DCECF3">check:pins</text>
+      <rect x="331" y="140" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="351" y="178" font-size="16" fill="#5F7C93">02</text><text x="385" y="178" fill="#DCECF3">check:skills</text>
+      <rect x="606" y="140" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="626" y="178" font-size="16" fill="#5F7C93">03</text><text x="660" y="178" fill="#DCECF3">check:installable</text>
+      <rect x="881" y="140" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="901" y="178" font-size="16" fill="#5F7C93">04</text><text x="935" y="178" fill="#DCECF3">check:vocab</text>
+    </g>
+    <g>
+      <rect x="56" y="224" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="76" y="262" font-size="16" fill="#5F7C93">05</text><text x="110" y="262" fill="#DCECF3">check:vendored</text>
+      <rect x="331" y="224" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="351" y="262" font-size="16" fill="#5F7C93">06</text><text x="385" y="262" fill="#DCECF3">check:cliregistry</text>
+      <rect x="606" y="224" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="626" y="262" font-size="16" fill="#5F7C93">07</text><text x="660" y="262" fill="#DCECF3">check:noderegistry</text>
+      <rect x="881" y="224" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="901" y="262" font-size="16" fill="#5F7C93">08</text><text x="935" y="262" fill="#DCECF3">test:contract</text>
+    </g>
+    <g>
+      <rect x="56" y="308" width="260" height="64" rx="12" fill="#12232F" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="76" y="346" font-size="16" fill="#5F7C93">09</text><text x="110" y="346" fill="#A4D2E0">-r run build</text>
+      <rect x="331" y="308" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="351" y="346" font-size="16" fill="#5F7C93">10</text><text x="385" y="346" fill="#DCECF3">check:nodebundle</text>
+      <rect x="606" y="308" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="626" y="346" font-size="16" fill="#5F7C93">11</text><text x="660" y="346" fill="#DCECF3">check:cliface</text>
+      <rect x="881" y="308" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
+      <text x="901" y="346" font-size="16" fill="#5F7C93">12</text><text x="935" y="346" fill="#DCECF3">check:tuiface</text>
+    </g>
+    <g>
+      <rect x="56" y="392" width="260" height="64" rx="12" fill="#12232F" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="76" y="430" font-size="16" fill="#5F7C93">13</text><text x="110" y="430" fill="#A4D2E0">-r run typecheck</text>
+      <rect x="331" y="392" width="260" height="64" rx="12" fill="#12232F" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="351" y="430" font-size="16" fill="#5F7C93">14</text><text x="385" y="430" fill="#A4D2E0">-r test:unit</text>
+      <rect x="606" y="392" width="260" height="64" rx="12" fill="none" stroke="#D63C82" stroke-dasharray="6 5"/>
+      <text x="626" y="430" font-size="16" fill="#E58AA8">未接线</text><text x="700" y="430" fill="#D63C82">check-brand.mjs</text>
+    </g>
+  </g>
+
+  <g id="notes" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
+    <text x="881" y="418" font-size="16" fill="#7095AD">CI 只跑 6 步：</text>
+    <text x="881" y="440" font-size="16" fill="#7095AD">01 02 03 09 13 14</text>
+    <text x="881" y="462" font-size="16" fill="#5F7C93" font-family="ui-monospace, Menlo, Consolas, monospace">.github/workflows/ci.yml</text>
+    <text x="56" y="500" font-size="16" fill="#E58AA8">scripts/check-brand.mjs 能跑、也能证伪（它不是 pnpm script），但按 AGENTS.md 故意还没接进链里 —— 看见它不在 CI 里，不要去「补上」。</text>
+  </g>
+</svg>

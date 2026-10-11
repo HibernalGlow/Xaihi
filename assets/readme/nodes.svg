@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="title desc">
+  <title id="title">27 个领域节点的版图：一颗六边形 = 一个 DSH plugin-bundle</title>
+  <desc id="desc">按注册表顺序排列的 27 个节点。填充深浅表示该节点测试文件的数量（实测），六边形内的数字就是文件数。findz 用虚线标出它是唯一没有 CLI bin 的节点；kisaki 用玫红描边标出它带原生 czkawka Rust 内核，24 个测试文件是最深的一颗。</desc>
+
+  <defs>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5DE6FE" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#5DE6FE" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#5DE6FE" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="640" rx="24" fill="#0A1218"/>
+  <polygon points="900,0 1200,0 1200,150 1010,300 880,220" fill="#5DE6FE" opacity="0.04"/>
+
+  <g id="head" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
+    <text x="56" y="52" font-size="16" letter-spacing="3" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">plugins/* · xaihi.node/v1</text>
+    <text x="56" y="94" font-size="40" fill="#DCECF3">27 个领域节点</text>
+    <text x="392" y="94" font-size="20" fill="#8FA6BC">一颗六边形 = 一个合法 plugin-bundle</text>
+  </g>
+  <line x1="56" y1="116" x2="1144" y2="116" stroke="url(#rule)" stroke-width="1"/>
+
+  <g id="grid" transform="translate(0 82)">
+      <path d="M104 88 L157.7 119 L157.7 181 L104 212 L50.3 181 L50.3 119 Z" fill="#1D4E62" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="104" y="152" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">bandia</text>
+      <text x="104" y="176" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">4</text>
+      <path d="M220 88 L273.7 119 L273.7 181 L220 212 L166.3 181 L166.3 119 Z" fill="#1D4E62" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="220" y="152" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">bitv</text>
+      <text x="220" y="176" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">4</text>
+      <path d="M336 88 L389.7 119 L389.7 181 L336 212 L282.3 181 L282.3 119 Z" fill="#1D4E62" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="336" y="152" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">classf</text>
+      <text x="336" y="176" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">4</text>
+      <path d="M452 88 L505.7 119 L505.7 181 L452 212 L398.3 181 L398.3 119 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="452" y="152" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">classq</text>
+      <text x="452" y="176" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M568 88 L621.7 119 L621.7 181 L568 212 L514.3 181 L514.3 119 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="568" y="152" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">cleanf</text>
+      <text x="568" y="176" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M684 88 L737.7 119 L737.7 181 L684 212 L630.3 181 L630.3 119 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="684" y="152" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">crashu</text>
+      <text x="684" y="176" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M800 88 L853.7 119 L853.7 181 L800 212 L746.3 181 L746.3 119 Z" fill="#122836" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="800" y="152" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">dissolvef</text>
+      <text x="800" y="176" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">2</text>
+      <path d="M162 189 L215.7 220 L215.7 282 L162 313 L108.3 282 L108.3 220 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="162" y="253" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">encodeb</text>
+      <text x="162" y="277" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M278 189 L331.7 220 L331.7 282 L278 313 L224.3 282 L224.3 220 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="278" y="253" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">enginev</text>
+      <text x="278" y="277" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M394 189 L447.7 220 L447.7 282 L394 313 L340.3 282 L340.3 220 Z" fill="#2E7E99" stroke="#69B3C8" stroke-opacity="0.85" stroke-dasharray="6 4"/>
+      <text x="394" y="253" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">findz</text>
+      <text x="394" y="277" font-size="16" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">6</text>
+      <path d="M510 189 L563.7 220 L563.7 282 L510 313 L456.3 282 L456.3 220 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="510" y="253" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">formatv</text>
+      <text x="510" y="277" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M626 189 L679.7 220 L679.7 282 L626 313 L572.3 282 L572.3 220 Z" fill="#1D4E62" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="626" y="253" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">gifu</text>
+      <text x="626" y="277" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">4</text>
+      <path d="M742 189 L795.7 220 L795.7 282 L742 313 L688.3 282 L688.3 220 Z" fill="#3E9CB8" stroke="#D63C82" stroke-width="2"/>
+      <text x="742" y="253" font-size="20" fill="#062028" font-weight="700" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">kisaki</text>
+      <text x="742" y="277" font-size="16" fill="#08303F" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">24</text>
+      <path d="M858 189 L911.7 220 L911.7 282 L858 313 L804.3 282 L804.3 220 Z" fill="#122836" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="858" y="253" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">linedup</text>
+      <text x="858" y="277" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">2</text>
+      <path d="M104 290 L157.7 321 L157.7 383 L104 414 L50.3 383 L50.3 321 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="104" y="354" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">linku</text>
+      <text x="104" y="378" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M220 290 L273.7 321 L273.7 383 L220 414 L166.3 383 L166.3 321 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="220" y="354" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">marku</text>
+      <text x="220" y="378" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M336 290 L389.7 321 L389.7 383 L336 414 L282.3 383 L282.3 321 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="336" y="354" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">migratef</text>
+      <text x="336" y="378" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M452 290 L505.7 321 L505.7 383 L452 414 L398.3 383 L398.3 321 Z" fill="#1D4E62" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="452" y="354" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">mvz</text>
+      <text x="452" y="378" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">4</text>
+      <path d="M568 290 L621.7 321 L621.7 383 L568 414 L514.3 383 L514.3 321 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="568" y="354" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">nameu</text>
+      <text x="568" y="378" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M684 290 L737.7 321 L737.7 383 L684 414 L630.3 383 L630.3 321 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="684" y="354" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">rawfilter</text>
+      <text x="684" y="378" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M800 290 L853.7 321 L853.7 383 L800 414 L746.3 383 L746.3 321 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="800" y="354" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">recycleu</text>
+      <text x="800" y="378" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+      <path d="M162 391 L215.7 422 L215.7 484 L162 515 L108.3 484 L108.3 422 Z" fill="#1D4E62" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="162" y="455" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">repacku</text>
+      <text x="162" y="479" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">4</text>
+      <path d="M278 391 L331.7 422 L331.7 484 L278 515 L224.3 484 L224.3 422 Z" fill="#122836" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="278" y="455" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">samea</text>
+      <text x="278" y="479" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">2</text>
+      <path d="M394 391 L447.7 422 L447.7 484 L394 515 L340.3 484 L340.3 422 Z" fill="#25657D" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="394" y="455" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">sleept</text>
+      <text x="394" y="479" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">5</text>
+      <path d="M510 391 L563.7 422 L563.7 484 L510 515 L456.3 484 L456.3 422 Z" fill="#1D4E62" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="510" y="455" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">smartzip</text>
+      <text x="510" y="479" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">4</text>
+      <path d="M626 391 L679.7 422 L679.7 484 L626 515 L572.3 484 L572.3 422 Z" fill="#122836" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="626" y="455" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">timeu</text>
+      <text x="626" y="479" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">2</text>
+      <path d="M742 391 L795.7 422 L795.7 484 L742 515 L688.3 484 L688.3 422 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="742" y="455" font-size="20" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">trename</text>
+      <text x="742" y="479" font-size="16" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">3</text>
+  </g>
+
+  <g id="legend" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
+    <line x1="956" y1="170" x2="956" y2="560" stroke="#22384A"/>
+    <text x="984" y="196" font-size="18" fill="#DCECF3">填充 = 测试文件数</text>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#9FC0D2">
+      <path d="M990 216 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#122836" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="990" y="264" text-anchor="middle">2</text>
+      <path d="M1024 216 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#173A4A" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="1024" y="264" text-anchor="middle">3</text>
+      <path d="M1058 216 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#1D4E62" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="1058" y="264" text-anchor="middle">4</text>
+      <path d="M1092 216 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#25657D" stroke="#69B3C8" stroke-opacity="0.5"/>
+      <text x="1092" y="264" text-anchor="middle">5</text>
+      <path d="M1126 216 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#2E7E99" stroke="#69B3C8" stroke-opacity="0.7"/>
+      <text x="1126" y="264" text-anchor="middle">6</text>
+    </g>
+
+    <text x="984" y="306" font-size="18" fill="#DCECF3">两处例外，都标出来了</text>
+    <path d="M990 322 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#2E7E99" stroke="#69B3C8" stroke-opacity="0.85" stroke-dasharray="5 4"/>
+    <text x="1018" y="344" font-size="18" fill="#8FA6BC">findz：唯一</text>
+    <text x="1018" y="368" font-size="18" fill="#8FA6BC">没有 CLI bin</text>
+    <path d="M990 392 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#3E9CB8" stroke="#D63C82" stroke-width="2"/>
+    <text x="1018" y="414" font-size="18" fill="#8FA6BC">kisaki：原生</text>
+    <text x="1018" y="438" font-size="18" fill="#8FA6BC">czkawka Rust</text>
+    <text x="1018" y="462" font-size="18" fill="#8FA6BC">内核，最深一颗</text>
+
+    <text x="984" y="506" font-size="16" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">26 / 27 有 bin</text>
+    <text x="984" y="530" font-size="16" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">registry.ts</text>
+  </g>
+
+  <g id="ribbon">
+    <line x1="56" y1="600" x2="1144" y2="600" stroke="#22384A"/>
+    <text x="56" y="628" font-size="16" fill="#69B3C8" opacity="0.45" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">01111000 01100001 01101001 01101000 01101001 00101110 01101110 01101111 01100100 01100101</text>
+    <text x="1144" y="628" font-size="16" fill="#7095AD" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">= xaihi.node…</text>
+  </g>
+</svg>
