@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react"
 import { applyCustomTheme, applyThemePreset, getActiveCustomTheme, mirrorAestivusThemeStorage, resolveThemeScheme, type ThemeMode } from "@/lib/appearance"
+import type { DesignThemeConfig } from "@/lib/design-theme/contract"
 import type { AppCustomTheme } from "@/types/workspace"
 import { applyFontPreset } from "@/lib/appearance-fonts"
 import { installNativeRangeProgressSync, syncAllNativeRangeProgress } from "@/lib/sliderSkin"
 import { applyDesignTheme, clearDesignTheme } from "@/lib/design-theme/apply"
+import { toSeedHex } from "@/lib/design-theme/md3/seed"
 import { readRootColorVar, readSystemAccentColor } from "@/lib/design-theme/domColor"
 import { useTheme } from "@/components/use-theme"
 import { useWorkspaceShallowSelector } from "@/store/workspaceStore"
@@ -49,9 +51,10 @@ function normalizeThemeVars(vars: Record<string, string> | undefined): Record<st
     .map(([key, value]) => [key.startsWith("--") ? key : `--${key}`, value.trim()]))
 }
 
-export function WorkspaceAppearance() {
-  const { theme: colorMode } = useTheme()
-  const appearance = useWorkspaceShallowSelector((state) => ({
+export function WorkspaceAppearance({ designTheme }: { designTheme?: DesignThemeConfig } = {}) {
+  const { theme, forcedTheme } = useTheme()
+  const colorMode = forcedTheme ?? theme
+  const workspaceAppearance = useWorkspaceShallowSelector((state) => ({
     theme: state.theme,
     themeSelections: state.themeSelections,
     customThemes: state.customThemes,
@@ -67,6 +70,8 @@ export function WorkspaceAppearance() {
     modulePanelStyle: state.modulePanelStyle,
     resizableHandleStyle: state.resizableHandleStyle,
   }))
+  // 独立产品覆盖只参与渲染，不写工作台 store 或全局设置。
+  const appearance = { ...workspaceAppearance, designTheme: designTheme ?? workspaceAppearance.designTheme }
 /**
  * 组件皮肤属性写盘：「不接管」必须写成**属性缺失**，不能写成一个值。
  *
@@ -145,11 +150,14 @@ function setSkinAttribute(name: "tabsStyle" | "switchStyle" | "scrollbarStyle" |
     const selection = appearance.themeSelections[scheme]
     const preset = selection.kind === "preset" ? selection.name : appearance.theme
     const activeCustomTheme = selection.kind === "custom" ? getActiveCustomTheme(appearance.customThemes, selection.name) : null
-    applyThemePreset(preset)
-    applyCustomTheme(activeCustomTheme, scheme)
+    const design = appearance.designTheme
+    // Native 应用完整 tweakcn 主题；高级主题只接收颜色输入，不继承它的圆角、字体或阴影。
+    const mapsColors = design.id !== "native" && design.dimensions.color
+    applyThemePreset(selection.kind === "none" ? undefined : preset)
+    applyCustomTheme(mapsColors ? null : activeCustomTheme, scheme, design.id !== "native")
     mirrorAestivusThemeStorage(preset, mode, appearance.customThemes, activeCustomTheme)
     return scheme
-  }, [appearance.theme, appearance.themeSelections, appearance.customThemes, colorMode, systemDark])
+  }, [appearance.theme, appearance.themeSelections, appearance.customThemes, appearance.designTheme.id, appearance.designTheme.dimensions.color, colorMode, systemDark])
 
   useEffect(() => {
     applyColorTheme()
@@ -174,10 +182,18 @@ function setSkinAttribute(name: "tabsStyle" | "switchStyle" | "scrollbarStyle" |
     const wantsSystemAccent = config.id === "md3" && config.md3.seedSource === "systemAccent"
     applyDesignTheme(config, {
       scheme,
-      themeColorVars: declaredThemeVars,
-      activeThemeSeed: wantsActiveSeed ? readRootColorVar("--primary") : null,
+      // 高级主题按源色生成自己的角色，不透传 tweakcn 的整套槽值。
+      themeColorVars: null,
+      useDefaultColors: selection.kind === "none",
+      activeThemeSeed: null,
       systemAccentAvailable: wantsSystemAccent ? readSystemAccentColor() !== null : true,
-    }, applyColorTheme)
+    }, applyColorTheme, wantsActiveSeed ? () => {
+      if (selection.kind === "none") return null
+      // 导入配色尚未写进 DOM：只解析它明确声明的 primary，不把上一轮输出当作输入。
+      return selection.kind === "custom"
+        ? toSeedHex(declaredThemeVars?.["--primary"] ?? null)
+        : readRootColorVar("--primary")
+    } : undefined)
   }, [appearance.designTheme, applyColorTheme, colorMode, systemDark])
 
   // 只在真正卸载时清理；重跑靠 applyDesignTheme 自己的「先撤再写」。

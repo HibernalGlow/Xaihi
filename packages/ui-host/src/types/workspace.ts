@@ -56,8 +56,9 @@ export type AppTheme = "wuling"
 /** 主题明暗方案。 */
 export type AppThemeScheme = "light" | "dark"
 
-/** 主题选择：preset（内置预设）或 custom（用户导入的自定义主题）。 */
+/** 颜色选择：none（高级主题默认色 / Native 基线）、preset 或 custom。 */
 export type AppThemeSelection =
+  | { kind: "none" }
   | { kind: "preset"; name: AppTheme }
   | { kind: "custom"; name: string }
 

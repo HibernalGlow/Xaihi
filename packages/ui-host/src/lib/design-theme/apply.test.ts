@@ -75,6 +75,27 @@ describe("design theme application", () => {
     expect(restore).toHaveBeenCalledTimes(1)
   })
 
+  test("reads the active seed after restoring the color theme", () => {
+    let colorThemeRestored = false
+    const restore = vi.fn(() => {
+      colorThemeRestored = true
+    })
+    const readActiveThemeSeed = vi.fn(() => colorThemeRestored ? "#28bf9d" : "#2457d6")
+
+    resolveDesignTheme.mockReturnValueOnce(emit(["--primary", "#2457d6"]))
+    applyDesignTheme(configWith(), context)
+
+    resolveDesignTheme.mockReturnValueOnce(emit(["--md-sys-shape-corner-medium", "12px"]))
+    applyDesignTheme(configWith(), context, restore, readActiveThemeSeed)
+
+    expect(restore).toHaveBeenCalledTimes(1)
+    expect(readActiveThemeSeed).toHaveBeenCalledTimes(1)
+    expect(resolveDesignTheme).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ activeThemeSeed: "#28bf9d" }),
+    )
+  })
+
   test("clearing removes exactly what we wrote and nothing else", () => {
     document.documentElement.style.setProperty("--from-color-theme", "oklch(0.5 0.1 120)")
     resolveDesignTheme.mockReturnValue(emit(["--primary", "#333333"]))

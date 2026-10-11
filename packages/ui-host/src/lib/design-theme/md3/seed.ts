@@ -22,7 +22,7 @@ export interface SeedResolution {
   /** 真正参与取色的 seed，永远是 `#rrggbb`。 */
   seed: string
   /** 用户要求的那个来源，不受回落影响——回落时它和实际用的来源是两件事。 */
-  source: Md3SeedSource
+  source: Md3SeedSource | "default"
   /** `true` = `source` 没解出来，用了 `config.md3.seed`。 */
   fallback: boolean
 }
@@ -66,6 +66,10 @@ export function resolveSeed(
 
   if (source === "manual") {
     return { seed: fallbackSeed, source, fallback: false }
+  }
+
+  if (source === "activeTheme" && context.useDefaultColors) {
+    return { seed: fallbackSeed, source: "default", fallback: false }
   }
 
   if (source === "activeTheme") {
