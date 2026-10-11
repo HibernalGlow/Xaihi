@@ -4,7 +4,11 @@
 # 再指 `../plugins/...` 会被 Cargo 直接拒（"is not hierarchically below the workspace root"）；
 # 而根清单这份，从 crate 目录里 `cargo metadata` 也回 workspace_root=<仓根>，不会各长一个 target。
 [workspace]
-members = ["plugins/kisaki/native/core", "plugins/kisaki/native/node"]
+members = [
+  "plugins/kisaki/native/core",
+  "plugins/kisaki/native/node",
+  "native/trash-host",
+]
 resolver = "3"
 
 [workspace.package]

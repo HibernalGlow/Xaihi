@@ -74,40 +74,60 @@ describe('recycleu CLI', () => {
       executed: boolean
       planned: string[][]
       refused: string
+      notes?: string[]
     }
     expect(payload.action).toBe('clean_now')
     expect(payload.executed).toBe(false)
-    // 计划就是上游那条 PowerShell 命令，**argv 逐元素照抄** `<noxide>/packages/nodes/recycleu/src/platform.ts:74-80`：
-    // `-Command` 的值是整条带 `$ProgressPreference` 前缀的串（`platform.ts:73`），
-    // `Clear-RecycleBin …` 从来不是一个独立的 argv 元素——所以上一条 `toContainEqual` 按上游形状根本不可能成立。
-    // 四个 flag 各自都在尺里：少了 `-NoProfile` 使用者的 PowerShell profile 就会掺进这次执行，
-    // 盘符没被 `normalizeDriveLetter` 收干净（`c:` 原样进串）也立刻红。
-    expect(payload.planned[0]).toEqual([
-      'powershell.exe',
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      "$ProgressPreference = 'SilentlyContinue'; Clear-RecycleBin -DriveLetter C -Force -ErrorAction Stop",
-    ])
+    if (process.platform === 'win32') {
+      // 计划就是上游那条 PowerShell 命令，**argv 逐元素照抄** `<noxide>/packages/nodes/recycleu/src/platform.ts:74-80`：
+      // `-Command` 的值是整条带 `$ProgressPreference` 前缀的串（`platform.ts:73`），
+      // `Clear-RecycleBin …` 从来不是一个独立的 argv 元素——所以上一条 `toContainEqual` 按上游形状根本不可能成立。
+      // 四个 flag 各自都在尺里：少了 `-NoProfile` 使用者的 PowerShell profile 就会掺进这次执行，
+      // 盘符没被 `normalizeDriveLetter` 收干净（`c:` 原样进串）也立刻红。
+      expect(payload.planned[0]).toEqual([
+        'powershell.exe',
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        "$ProgressPreference = 'SilentlyContinue'; Clear-RecycleBin -DriveLetter C -Force -ErrorAction Stop",
+      ])
+    } else if (process.platform === 'darwin') {
+      // macOS 这条腿是本仓自己加的（ADR-0022）：没有盘符这一层，所以带 `--drive` 的这一次
+      // **什么都不该发**，而且说的是"不适用"而不是"参数写错了"。期望值手工抄自 `src/exec.ts`
+      // 的 `MAC_TRASH_SCRIPT`，不是从被测函数输出里读回来的。
+      expect(payload.planned).toEqual([])
+      expect(payload.notes?.join(' ')).toContain('废纸篓')
+      const bare = createHost()
+      await runProgram(['clean', '--json'], bare)
+      expect(JSON.parse(bare.stdoutText()).planned).toEqual([
+        [
+          'osascript',
+          '-e',
+          'tell application "Finder"\nset n to count (items of trash)\nif n is 0 then\nreturn "empty"\nend if\nempty the trash\nreturn "cleaned"\nend tell',
+        ],
+      ])
+    }
     expect(host.stderrText()).toContain('ctx.subprocess')
     expect(host.stderrText()).toContain('approval')
 
-    // 同一份 argv 的另一半判据在上游 `platform.ts:64`：`c:` 要收成 `-DriveLetter C`
-    // （大写、冒号不带）。这里期望值仍是手抄的原文，不是拿上一条的输出比出来的。
-    const lower = createHost()
-    await runProgram(['clean', '--drive', 'c:', '--json'], lower)
-    expect(JSON.parse(lower.stdoutText()).planned[0]).toEqual([
-      'powershell.exe',
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      "$ProgressPreference = 'SilentlyContinue'; Clear-RecycleBin -DriveLetter C -Force -ErrorAction Stop",
-    ])
-    expect(process.exitCode).toBe(2)
+    if (process.platform === 'win32') {
+      // 同一份 argv 的另一半判据在上游 `platform.ts:64`：`c:` 要收成 `-DriveLetter C`
+      // （大写、冒号不带）。这里期望值仍是手抄的原文，不是拿上一条的输出比出来的。
+      const lower = createHost()
+      await runProgram(['clean', '--drive', 'c:', '--json'], lower)
+      expect(JSON.parse(lower.stdoutText()).planned[0]).toEqual([
+        'powershell.exe',
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        "$ProgressPreference = 'SilentlyContinue'; Clear-RecycleBin -DriveLetter C -Force -ErrorAction Stop",
+      ])
+      expect(process.exitCode).toBe(2)
+    }
   })
 
   it('盘符不合法也照样先拒绝（阳性对照：去掉未接分支这条就会红）', async () => {

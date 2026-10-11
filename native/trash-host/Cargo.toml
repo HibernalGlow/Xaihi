@@ -1,0 +1,32 @@
+[package]
+name = "xaihi-trash-host"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+# 一个薄 bin：把"移入系统回收站 + 拿回撤销所需的那张收据"这件事做成一条进程。
+# 为什么是 bin 而不是 napi addon：ADR-0025 决定 2 / ADR-0015 决定 2 —— native panic 的
+# 故障半径是整个宿主进程，所以它只能跑在子进程里，由节点经 `ctx.subprocess` 拉起。
+[[bin]]
+name = "xaihi-trash-host"
+path = "src/main.rs"
+
+[dependencies]
+# `trash` 5.2.6 已经在本仓的 Cargo.lock 里（由 czkawka_core 12.0.0 带进来），
+# 这里只是把它提成直接依赖，**不新增供应链面**。默认 feature 与 lock 里那份一致（含 chrono）。
+trash = "5.2.6"
+serde_json = "1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# 版本与 feature 逐字照抄 `trash` 自己那份（~/.cargo/registry/.../trash-5.2.6/Cargo.toml），
+# 这样用的是 lock 里已有的 objc2 0.6.4 / objc2-foundation 0.3.2，不产生第二个版本。
+objc2 = "0.6.2"
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "NSError",
+  "NSFileManager",
+  "NSString",
+  "NSURL",
+] }

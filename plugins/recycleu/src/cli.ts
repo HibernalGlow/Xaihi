@@ -29,7 +29,7 @@
 import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { DEFAULT_RECYCLEU_STATE, runRecycleu, type RecycleuInput, type RecycleuResult, type RecycleuRuntime } from './core.ts'
-import { CANCELLATION_GAP, planRecycleuEmpty } from './exec.ts'
+import { CANCELLATION_GAP, planRecycleuEmptyFor } from './exec.ts'
 import {
   createCliHost,
   defineCommand,
@@ -213,9 +213,8 @@ async function runStatus (json: boolean, host: CliHost): Promise<void> {
  * `clean` / `start`：算出要发的命令给你看，然后拒绝执行（退出码 2）。
  *
  * 拒绝理由点名两件事：执行缝（`ctx.subprocess`，`src/exec.ts`）与批准缝
- * （清单里 `danger.actionIn` 把 `clean_now` / `start` 标成危险，
- * `node-definitions/recycleu.json` 的 `dangerPrompt.body` 说的是"之后无法再从 Windows
- * 恢复其中的文件"——bin 直接执行等于绕过批准）。
+ * （清单里 `danger.actionIn` 把 `clean_now` / `start` 标成危险，危险文案说的就是
+ * "之后系统无法恢复其中的文件"——bin 直接执行等于绕过批准）。
  */
 async function runUnwired (
   action: 'clean_now' | 'start',
@@ -226,20 +225,22 @@ async function runUnwired (
   json: boolean,
   host: CliHost,
 ): Promise<void> {
-  const plannedCommand = drive === undefined ? planRecycleuEmpty(undefined) : planRecycleuEmpty(drive)
+  const plannedCommand = drive === undefined ? planRecycleuEmptyFor(process.platform) : planRecycleuEmptyFor(process.platform, drive)
   const argv = plannedCommand?.argv
   const notes: string[] = []
   if (drive !== undefined && argv === undefined) {
-    notes.push(`--drive "${drive}" 不是单个盘符，内核会回 status: failed（这里只记账，不改退出码）`)
+    notes.push(process.platform === 'darwin'
+      ? `本机是 darwin：废纸篓没有"每个盘一份"这一层，--drive "${drive}" 会被内核判为 status: failed（留空才是清本机废纸篓）`
+      : `--drive "${drive}" 不是单个盘符，内核会回 status: failed（这里只记账，不改退出码）`)
   }
   const interval = numberOr(rawInterval, notes, '--interval')
   const cycles = numberOr(rawCycles, notes, '--cycles')
   if (action === 'start' && cycles === 0) {
     notes.push(`--cycles 0（跑到手动取消）额外缺一条缝：${CANCELLATION_GAP}`)
   }
-  // 非 Windows 不是"这台机器失败了"，是"这件事在这里不存在"：上游回的是
-  // `status:"unsupported"`（`src/exec.ts` 里那句原文），所以这里只附一句、不改退出码。
-  if (process.platform !== 'win32') {
+  // 平台腿要说准：darwin 现在有自己的 argv（`src/exec.ts` 的 `planMacRecycleuEmpty`），
+  // 只有两者都不是的平台才真的"连命令都不发"。
+  if (process.platform !== 'win32' && process.platform !== 'darwin') {
     notes.push(`本机是 ${process.platform}：内核会直接回 status "unsupported"，连命令都不发`)
   }
   const reason = '本包的执行一律走 DSH 的 `ctx.subprocess`（`src/exec.ts`），而清空回收站被清单标成危险动作'
@@ -264,7 +265,7 @@ async function runUnwired (
 
   const columns = terminalColumns(host)
   const lines = argv === undefined
-    ? [`${rich(host, '命令', 'cyan')}  （盘符不合法，内核这次不会发命令）`]
+    ? [`${rich(host, '命令', 'cyan')}  （内核这次不会发命令，原因见下面「注意」）`]
     : [`${rich(host, '命令', 'cyan')}  ${argv.join(' ')}`]
   if (action === 'start') {
     lines.push(`${rich(host, '周期', 'cyan')}  interval=${String(interval ?? '（缺省 10）')} cycles=${String(cycles ?? '（缺省 360）')}`)
