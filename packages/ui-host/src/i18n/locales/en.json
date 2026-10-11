@@ -75,6 +75,16 @@
     }
   },
   "topbar": {
+    "appMenu": {
+      "label": "Application menu",
+      "panels": "Panels",
+      "layouts": "Layouts",
+      "runtime": "Runtime settings",
+      "exit": "Quit application",
+      "gesture": "Drag vertically · Right to expand",
+      "nested": "Right to expand · Left to return"
+    },
+    "dashboardReturn": "Back to workspace",
     "compactView": {
       "loop": "Loop view switching",
       "loopHint": "Wrap at either end when swiping; off by default.",
@@ -88,6 +98,7 @@
       "layouts": "Card layouts",
       "gesture": "Click to choose · Slide sideways",
       "release": "Release to switch",
+      "settingsNested": "Up/down: category · Right: details · Left: back",
       "releaseAction": "Release to run",
       "down": "Slide down for layouts"
     },

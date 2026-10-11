@@ -7,8 +7,9 @@ import { initI18n } from '@/i18n'
 const mocked = vi.hoisted(() => ({
   views: [] as ActionView[],
   preferences: { wheelActionOrder: [] as string[], wheelHiddenActions: [] as string[], viewSwitchLoop: false },
-  execute: vi.fn(() => true), setLoop: vi.fn(),
+  execute: vi.fn(() => true), setLoop: vi.fn(), setRoute: vi.fn(),
 }))
+vi.mock('nuqs', async () => ({ ...await vi.importActual<typeof import('nuqs')>('nuqs'), useQueryStates: () => [{}, mocked.setRoute] }))
 vi.mock('@/actions', () => ({
   useActionViews: () => mocked.views,
   getActionIcon: () => undefined,
@@ -29,6 +30,7 @@ function setup() {
   return { button, ...result }
 }
 beforeEach(() => {
+  mocked.setRoute.mockClear()
   mocked.views = Array.from({ length: 8 }, (_, i) => ({ id: `action-${i}`, category: 'workspace', labelKey: `Action ${i}`, presentation: 'command', order: i, enabled: true, toggled: false, badge: 0, indicator: 'none' })) as ActionView[]
   mocked.preferences = { wheelActionOrder: [], wheelHiddenActions: [], viewSwitchLoop: false }
   mocked.execute.mockClear(); mocked.setLoop.mockClear()
@@ -101,5 +103,42 @@ describe('top-right shared action picker', () => {
     fireEvent.keyDown(button, { key: 'Escape' }); mocked.views = []
     rerender(<ActionCompactMenu context={context} />)
     expect((button as HTMLButtonElement).disabled).toBe(true)
+  })
+  it('uses a single icon, exposes vertical settings categories and opens the exact second-level route', async () => {
+    mocked.views = [{ id: 'workspace.settings', category: 'workspace', labelKey: 'overlay:settings', presentation: 'command', order: 0, enabled: true, toggled: false, badge: 0, indicator: 'none' }]
+    const { button } = setup()
+    expect(button.querySelectorAll('[data-xaihi-view-dot]')).toHaveLength(0)
+    expect(button.querySelectorAll('svg')).toHaveLength(1)
+    fireEvent.click(button)
+    const stage = document.querySelector<HTMLButtonElement>('[data-xaihi-picker-child="runtime"]')!
+    expect(stage).not.toBeNull(); fireEvent.click(stage)
+    const step = document.querySelector<HTMLButtonElement>('[data-xaihi-picker-detail="memory-protection"]')!
+    fireEvent.click(step)
+    expect(mocked.execute).toHaveBeenCalledExactlyOnceWith('workspace.settings')
+    expect(mocked.setRoute).toHaveBeenCalledExactlyOnceWith({ settings: 'runtime', settingsStep: 'memory-protection' })
+  })
+  it('keeps one native gesture through category, detail, back, up and horizontal selection', async () => {
+    mocked.views = [
+      { id: 'workspace.settings', category: 'workspace', labelKey: 'overlay:settings', presentation: 'command', order: 0, enabled: true, toggled: false, badge: 0, indicator: 'none' },
+      { id: 'action-next', category: 'workspace', labelKey: 'Next', presentation: 'command', order: 1, enabled: true, toggled: false, badge: 0, indicator: 'none' },
+    ]
+    const { button } = setup()
+    fireEvent.pointerDown(button, pointer(100)); fireEvent.pointerMove(button, pointer(100,70))
+    const row = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>('[data-xaihi-picker-child="appearance"]')!
+      expect(element?.getBoundingClientRect().height).toBeGreaterThan(0); return element
+    })
+    const y = row.getBoundingClientRect().top + 21
+    fireEvent.pointerMove(button, pointer(100, y)); fireEvent.pointerMove(button, pointer(155,y))
+    await waitFor(() => expect(document.querySelector('[data-xaihi-picker-detail="theme"]')).not.toBeNull())
+    fireEvent.pointerMove(button, pointer(155,y+42))
+    await waitFor(() => expect(document.querySelector('[data-xaihi-picker-detail="design-language"]')?.getAttribute('aria-pressed')).toBe('true'))
+    fireEvent.pointerMove(button, pointer(100,y+42))
+    await waitFor(() => expect(document.querySelector('[data-xaihi-picker-detail]')).toBeNull())
+    fireEvent.pointerMove(button, pointer(100,20)); fireEvent.pointerMove(button, pointer(156,20))
+    await waitFor(() => expect(document.querySelector('[data-action-id="action-next"]')?.getAttribute('aria-pressed')).toBe('true'))
+    expect(mocked.execute).not.toHaveBeenCalled(); fireEvent.pointerUp(button, pointer(156,20))
+    expect(mocked.execute).toHaveBeenCalledExactlyOnceWith('action-next')
+    expect(mocked.setRoute).not.toHaveBeenCalled()
   })
 })

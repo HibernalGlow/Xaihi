@@ -10,7 +10,7 @@ import {
 } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { Rnd, type RndDragCallback, type RndResizeCallback } from "react-rnd"
-import { GripHorizontal, PanelRightClose, PictureInPicture2, X } from "lucide-react"
+import { ArrowLeft, GripHorizontal, PanelRightClose, PictureInPicture2, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useWorkspaceActions, useWorkspaceSelector } from "@/store/workspaceStore"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -35,7 +35,10 @@ const FileDeletionHistoryView = lazy(() =>
   import("@/components/views/FileDeletionHistoryView").then((module) => ({ default: module.FileDeletionHistoryView })),
 )
 
+const UsageDashboard = lazy(() => import("@/components/views/UsageDashboard").then(module => ({ default: module.UsageDashboard })))
+
 const TITLE_KEYS = {
+  dashboard: "topbar:viewMode.dashboard",
   registry: "overlay:registry",
   settings: "overlay:settings",
   operations: "overlay:operations",
@@ -149,6 +152,17 @@ export function OverlayHost() {
     : { duration: 0.18, ease: [0.16, 1, 0.3, 1] as const }
 
   if (!overlay) return null
+  if (overlay === "dashboard") return (
+    <section data-xaihi-dashboard className="absolute inset-0 z-30 flex min-h-0 flex-col bg-background" aria-label={t("topbar:viewMode.dashboard")}>
+      <header className="flex h-11 shrink-0 items-center gap-3 border-b border-border/60 px-3">
+        <Button variant="ghost" size="sm" onClick={() => workspaceActions.setOverlay(null)}>
+          <ArrowLeft className="size-4" />{t("topbar:dashboardReturn")}
+        </Button>
+        <span className="text-xs text-muted-foreground">{t("topbar:viewMode.dashboard")}</span>
+      </header>
+      <div className="flex min-h-0 flex-1 overflow-hidden"><Suspense fallback={<OverlayLoading />}><UsageDashboard /></Suspense></div>
+    </section>
+  )
 
   const panelContent = (
     <OverlayPanelFrame

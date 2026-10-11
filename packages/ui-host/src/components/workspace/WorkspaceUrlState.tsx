@@ -8,6 +8,7 @@ const workspaceUrlParsers = {
   layout: parseAsStringLiteral(["focus", "trellis"] as const),
   navigation: parseAsStringLiteral(["focus", "free"] as const),
   settings: parseAsString,
+  settingsStep: parseAsString,
 }
 
 /** Explicit share/deep links override the startup preference, including child modes. */
@@ -17,6 +18,7 @@ export function WorkspaceUrlState() {
   const actions = useWorkspaceActions()
   const last = useRef<string | null>(null)
   const initialized = useRef(false)
+  const lastSettings = useRef<string | null>(null)
   const settingsSection = parseSettingsSectionId(url.settings)
   const signature = JSON.stringify([url.view, url.layout, url.navigation])
   useEffect(() => {
@@ -34,10 +36,13 @@ export function WorkspaceUrlState() {
   }, [signature, url.view, url.layout, url.navigation, actions])
 
   useEffect(() => {
-    if (settingsSection && state.overlay !== "settings") actions.setOverlay("settings")
-  }, [settingsSection, state.overlay, actions])
+    if (lastSettings.current === url.settings) return
+    lastSettings.current = url.settings
+    if (settingsSection) actions.setOverlay("settings")
+  }, [settingsSection, url.settings, actions])
   useEffect(() => {
-    if (state.overlay !== "settings" && url.settings) void setUrlState({ settings: null })
+    if (useWorkspaceStore.getState().overlay !== state.overlay) return
+    if (state.overlay !== "settings" && url.settings) void setUrlState({ settings: null, settingsStep: null })
   }, [setUrlState, url.settings, state.overlay])
 
   useEffect(() => {
@@ -45,12 +50,12 @@ export function WorkspaceUrlState() {
     // URL hydration writes synchronously. Wait for React to render that snapshot;
     // a persistent "suppress next update" flag can swallow the first user change after remount.
     const live = useWorkspaceStore.getState()
-    if (live.viewMode !== state.viewMode || live.cardLayout !== state.cardLayout || live.trellisNavigation !== state.navigation) return
+    if (live.viewMode !== state.viewMode || live.cardLayout !== state.cardLayout || live.trellisNavigation !== state.navigation || live.overlay !== state.overlay) return
     if (!state.touched) return
-    const next = { view: state.viewMode, layout: state.viewMode === 'cards' ? state.cardLayout : null,
+    const next = { view: state.overlay === 'dashboard' ? 'dashboard' as const : state.viewMode, layout: state.viewMode === 'cards' ? state.cardLayout : null,
       navigation: state.viewMode === 'cards' && state.cardLayout === 'trellis' ? state.navigation : null }
     const nextSignature = JSON.stringify([next.view, next.layout, next.navigation])
     if (signature !== nextSignature) { last.current = nextSignature; void setUrlState(next) }
-  }, [state.viewMode, state.cardLayout, state.navigation, state.touched, signature, setUrlState])
+  }, [state.viewMode, state.cardLayout, state.navigation, state.overlay, state.touched, signature, setUrlState])
   return null
 }

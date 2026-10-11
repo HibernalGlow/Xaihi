@@ -14,13 +14,13 @@ import { getActiveCustomTheme, resolveThemeScheme, THEME_PRESET_OPTIONS } from "
 import type { AppDesignThemeId } from "@/lib/design-theme/contract"
 import { DESIGN_THEME_ENTRIES } from "@/lib/design-theme/registry"
 import type { ViewMode, CardLayout, AppCustomTheme } from "@/types/workspace"
-import { AppMenuRoot, AppMenuRow, type AppMenuPage } from "@/components/workspace/AppMenuRoot"
+import { AppCompactMenu } from "./AppCompactMenu"
 import {
   Settings, Target,
   Gauge, LayoutDashboard, Workflow, ChevronDown, Check,
   Sun, Moon, Monitor, Palette,
   PanelsTopLeft, Columns3,
-  ArrowLeft, ShieldAlert, Flame,
+  ShieldAlert, Flame,
 } from "lucide-react"
 import { WindowControlIcon } from "./WindowControlIcon"
 import { captionBandInlinePx } from "./captionBand"
@@ -98,6 +98,7 @@ const COLOR_MODES: { key: ColorMode; labelKey: string; icon: ComponentType<{ cla
 export function TopBar() {
   const state = useWorkspaceShallowSelector((workspace) => ({
     viewMode: workspace.viewMode,
+    dashboardOpen: workspace.overlay === "dashboard",
     cardLayout: workspace.cardLayout,
     defaultView: workspace.defaultView,
     trellisNavigation: workspace.trellisNavigation,
@@ -113,8 +114,6 @@ export function TopBar() {
   const workspaceActions = useWorkspaceActions()
   const { t } = useTranslation()
   const { theme: colorMode, setTheme: setColorMode } = useTheme()
-  const [wsMenuOpen, setWsMenuOpen] = useState(false)
-  const [appMenuPage, setAppMenuPage] = useState<AppMenuPage>("root")
   const [hazardConfirmOpen, setHazardConfirmOpen] = useState(false)
   const [themeMenuOpen, setThemeMenuOpen] = useState(false)
   const [isMaximized, setIsMaximized] = useState(false)
@@ -123,12 +122,13 @@ export function TopBar() {
   // 动作上下文由渲染器推进注册表：动作自己不认识 store，只读这份快照（ADR-0081）。
   const actionContext: ActionContext = {
     viewMode: state.viewMode,
+    dashboardOpen: state.dashboardOpen,
     activeOperationCount: activeOperations,
     devRuntimeActive: runtimeInfo.frontendSource === "vite-dev",
   }
   useEffect(() => {
     syncActionContext(actionContext)
-  }, [actionContext.viewMode, actionContext.activeOperationCount, actionContext.devRuntimeActive])
+  }, [actionContext.viewMode, actionContext.dashboardOpen, actionContext.activeOperationCount, actionContext.devRuntimeActive])
   const { capabilities, controlMain, controlMainPending } = useWindowControls()
   const canControlMainWindow = capabilities?.nativeWindowControls === true
   // The host says who paints the caption buttons. On macOS it is the OS: `tauri.macos.conf.json` keeps a
@@ -171,7 +171,6 @@ export function TopBar() {
   }
 
   function closeApp() {
-    setWsMenuOpen(false)
     if (canControlMainWindow) {
       void controlMainWindow("close")
       return
@@ -180,7 +179,6 @@ export function TopBar() {
   }
 
   async function openDevTools() {
-    setWsMenuOpen(false)
     try {
       const result = await (await getRuntime()).windows.openDevTools()
       if (!result.success) logger.info("Developer tools open failed", { message: result.message })
@@ -193,7 +191,6 @@ export function TopBar() {
     disableAllNodeDryRuns(state.components, workspaceActions.patchComponentData)
     workspaceActions.setHazardMode(true)
     setHazardConfirmOpen(false)
-    setWsMenuOpen(false)
   }
 
   return (
@@ -210,86 +207,19 @@ export function TopBar() {
       )}
     >
       {/* ── 品牌 + 工作区切换入口 ── */}
-      <Popover
-        open={wsMenuOpen}
-        onOpenChange={(open) => {
-          setWsMenuOpen(open)
-          if (open) setAppMenuPage("root")
-        }}
-      >
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            className="xiranite-app-region-no-drag h-10 shrink-0 gap-2 px-2 text-left hover:bg-muted/50"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block font-mono text-sm font-bold leading-none tracking-tight text-primary">{t("common:appName")}</span>
-              <span className="mt-0.5 block font-mono text-[9px] leading-none text-muted-foreground/60">{t("common:version", { version: "0.5.0" })}</span>
-            </span>
-            <ChevronDown className={cn("text-muted-foreground/60 transition-transform", wsMenuOpen && "rotate-180")} />
-          </Button>
-        </PopoverTrigger>
-
-        {wsMenuOpen && (
-          <PopoverContent align="start" sideOffset={8} className="xiranite-app-region-no-drag w-80 overflow-hidden p-0">
-            {appMenuPage === "root" ? (
-              <AppMenuRoot
-                hazardMode={state.hazardMode}
-                onExit={closeApp}
-                onHazard={() => state.hazardMode ? workspaceActions.setHazardMode(false) : setHazardConfirmOpen(true)}
-                onNavigate={setAppMenuPage}
-                onOpenDashboard={() => {
-                  workspaceActions.setViewMode("dashboard")
-                  setWsMenuOpen(false)
-                }}
-                onOpenHistory={() => {
-                  workspaceActions.setOverlay("history")
-                  setWsMenuOpen(false)
-                }}
-                onOpenDeletions={() => {
-                  workspaceActions.setOverlay("deletions")
-                  setWsMenuOpen(false)
-                }}
-                onOpenOperations={() => {
-                  workspaceActions.setOverlay("operations")
-                  setWsMenuOpen(false)
-                }}
-                onOpenRegistry={() => {
-                  workspaceActions.setOverlay("registry")
-                  setWsMenuOpen(false)
-                }}
-                openDevToolsLabel={t("settings:webview2.openDevTools")}
-                onOpenDevTools={openDevTools}
-                onOpenSettings={() => {
-                  workspaceActions.setOverlay("settings")
-                  setWsMenuOpen(false)
-                }}
-              />
-            ) : appMenuPage === "views" ? (
-              <AppMenuViews
-                onBack={() => setAppMenuPage("root")}
-                onSelect={(viewMode) => {
-                  workspaceActions.setViewMode(viewMode)
-                  setWsMenuOpen(false)
-                }}
-                t={t}
-                value={state.viewMode}
-              />
-            ) : appMenuPage === "layouts" ? (
-              <AppMenuLayouts
-                onBack={() => setAppMenuPage("root")}
-                onSelect={(layout) => {
-                  workspaceActions.setViewMode("cards")
-                  workspaceActions.setCardLayout(layout)
-                  setWsMenuOpen(false)
-                }}
-                t={t}
-                value={state.cardLayout}
-              />
-            ) : null}
-          </PopoverContent>
-        )}
-      </Popover>
+      <div className="xaihi-app-region-no-drag shrink-0">
+        <AppCompactMenu version="0.5.0" hazardMode={state.hazardMode} viewMode={state.viewMode} cardLayout={state.cardLayout}
+          views={VIEW_OPTIONS} layouts={CARD_LAYOUT_OPTIONS} loop={state.viewSwitchLoop}
+          onView={workspaceActions.setViewMode} onLayout={workspaceActions.setCardLayout}
+          onSettings={() => workspaceActions.setOverlay("settings")}
+          onRegistry={() => workspaceActions.setOverlay("registry")}
+          onOperations={() => workspaceActions.setOverlay("operations")}
+          onHistory={() => workspaceActions.setOverlay("history")}
+          onDeletions={() => workspaceActions.setOverlay("deletions")}
+          onDashboard={() => workspaceActions.setViewMode("dashboard")}
+          onDevTools={openDevTools} onExit={closeApp}
+          onHazard={() => state.hazardMode ? workspaceActions.setHazardMode(false) : setHazardConfirmOpen(true)} />
+      </div>
 
       {state.hazardMode ? <HazardStatusBadge onDisable={() => workspaceActions.setHazardMode(false)} /> : null}
 
@@ -545,51 +475,3 @@ function HazardStatusBadge({ onDisable }: { onDisable: () => void }) {
   )
 }
 
-function AppMenuViews({ onBack, onSelect, t, value }: {
-  onBack: () => void
-  onSelect: (view: ViewMode) => void
-  t: (key: string) => string
-  value: ViewMode
-}) {
-  return (
-    <div className="p-1.5">
-      <AppMenuBack label="面板" onBack={onBack} />
-      <div className="grid gap-0.5 px-1 pb-1">
-        {VIEW_OPTIONS.map(({ key, labelKey, icon: Icon }) => (
-          <AppMenuRow key={key} active={value === key} icon={Icon} label={t(labelKey)} onSelect={() => onSelect(key)} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function AppMenuLayouts({ onBack, onSelect, t, value }: {
-  onBack: () => void
-  onSelect: (layout: CardLayout) => void
-  t: (key: string) => string
-  value: CardLayout
-}) {
-  return (
-    <div className="p-1.5">
-      <AppMenuBack label="布局" onBack={onBack} />
-      <div className="grid gap-0.5 px-1 pb-1">
-        {CARD_LAYOUT_OPTIONS.map(({ key, labelKey, icon: Icon }) => (
-          <AppMenuRow key={key} active={value === key} icon={Icon} label={t(labelKey)} onSelect={() => onSelect(key)} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function AppMenuBack({ label, onBack }: { label: string; onBack: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onBack}
-      className="flex h-9 w-full items-center gap-2 rounded-md px-2.5 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-    >
-      <ArrowLeft className="size-3.5" />
-      <span>{label}</span>
-    </button>
-  )
-}

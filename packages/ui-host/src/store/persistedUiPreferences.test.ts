@@ -263,6 +263,20 @@ describe("startup view selection", () => {
   test.each(["grid", "stack", "split"])("retired card layout %s migrates to Trellis", (cardLayout) => {
     expect(mergePersistedWorkspaceUi({ cardLayout }, useWorkspaceStore.getState()).cardLayout).toBe("trellis")
   })
+  test.each(["cards", "flow", "lane"] as const)("dashboard preserves %s and its child mode on return", (viewMode) => {
+    const before = useWorkspaceStore.getState()
+    try {
+      useWorkspaceStore.setState({ viewMode, cardLayout: "trellis", trellisNavigation: "free", overlay: null })
+      const actions = selectWorkspaceActions(useWorkspaceStore.getState())
+      actions.setViewMode("dashboard")
+      expect(useWorkspaceStore.getState()).toMatchObject({ viewMode, overlay: "dashboard", cardLayout: "trellis", trellisNavigation: "free" })
+      actions.setOverlay(null)
+      expect(useWorkspaceStore.getState()).toMatchObject({ viewMode, overlay: null, cardLayout: "trellis", trellisNavigation: "free" })
+      actions.setViewMode("dashboard")
+      actions.setViewMode(viewMode === "flow" ? "lane" : "flow")
+      expect(useWorkspaceStore.getState().overlay).toBeNull()
+    } finally { useWorkspaceStore.setState(before) }
+  })
   test("dashboard cannot replace the chosen startup view", () => {
     const before = useWorkspaceStore.getState()
     try {

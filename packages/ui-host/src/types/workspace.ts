@@ -22,7 +22,7 @@ export type DefaultWorkspaceView =
 export type CardClickAction = "none" | "focus" | "fullscreen"
 
 /** 侧栏覆盖层类型：registry（模块注册表）/ settings（设置）/ operations（操作历史）/ history（运行历史）。 */
-export type OverlayKind = "registry" | "settings" | "operations" | "history" | "deletions" | null
+export type OverlayKind = "dashboard" | "registry" | "settings" | "operations" | "history" | "deletions" | null
 
 /** 侧栏面板的展现模式：docked 为推开式固定侧栏，floating 为悬浮遮罩。 */
 export type OverlayMode = "docked" | "floating"

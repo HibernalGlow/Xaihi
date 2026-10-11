@@ -13,6 +13,7 @@ export const BUILT_IN_ACTION_IDS = [
   "workspace.operations",
   "workspace.runtime",
   "workspace.registry",
+  "workspace.settings",
   "theme.switcher",
 ] as const
 
@@ -43,6 +44,7 @@ export interface ActionContext {
   viewMode: ViewMode
   activeOperationCount: number
   devRuntimeActive: boolean
+  dashboardOpen?: boolean
 }
 
 /** 标签可以是静态 i18n key，也可以按上下文选（开发运行时那条要区分 vite/打包）。 */

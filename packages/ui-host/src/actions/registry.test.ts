@@ -43,7 +43,7 @@ beforeEach(() => {
 })
 
 describe("内建动作注册表", () => {
-  test("七个内建动作全部注册，且未注册的 id 不在表里", () => {
+  test("内建动作全部注册，且未注册的 id 不在表里", () => {
     const registered = getRegisteredActionIds()
     for (const id of BUILT_IN_ACTION_IDS) {
       expect(registered).toContain(id)
@@ -122,18 +122,19 @@ describe("执行语义", () => {
     expect(setOverlayMock).not.toHaveBeenCalled()
   })
 
-  test("上下文真的进了 run：dashboard 在两种 viewMode 下走两个方向", () => {
+  test("上下文真的进了 run：dashboard 独立打开与关闭，保留工作区视图", () => {
     expect(executeAction("workspace.dashboard")).toBe(true)
     expect(setViewModeMock).toHaveBeenLastCalledWith("dashboard")
 
     syncActionContext({
-      viewMode: "dashboard",
+      viewMode: "flow",
+      dashboardOpen: true,
       activeOperationCount: 0,
       devRuntimeActive: false,
     })
     expect(viewFor("workspace.dashboard")?.toggled).toBe(true)
     expect(executeAction("workspace.dashboard")).toBe(true)
-    expect(setViewModeMock).toHaveBeenLastCalledWith("cards")
+    expect(setOverlayMock).toHaveBeenLastCalledWith(null)
   })
 
   test("角标与激活态由上下文驱动", () => {
@@ -212,4 +213,13 @@ describe("全局键位", () => {
       unregisterAction("test.keyed-action")
     }
   })
+})
+
+ test("dashboard overlay changes refresh action views even when the workspace view stays the same", () => {
+  syncActionContext({ viewMode: "cards", dashboardOpen: false, activeOperationCount: 0, devRuntimeActive: false })
+  expect(getActionViews().find(view => view.id === "workspace.dashboard")?.toggled).toBe(false)
+  syncActionContext({ viewMode: "cards", dashboardOpen: true, activeOperationCount: 0, devRuntimeActive: false })
+  expect(getActionViews().find(view => view.id === "workspace.dashboard")?.toggled).toBe(true)
+  syncActionContext({ viewMode: "cards", dashboardOpen: false, activeOperationCount: 0, devRuntimeActive: false })
+  expect(getActionViews().find(view => view.id === "workspace.dashboard")?.toggled).toBe(false)
 })

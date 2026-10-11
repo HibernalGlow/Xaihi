@@ -103,6 +103,7 @@ export function unregisterAction(id: ActionId): boolean {
 export function syncActionContext(next: ActionContext): void {
   const changed =
     next.viewMode !== context.viewMode
+    || next.dashboardOpen !== context.dashboardOpen
     || next.activeOperationCount !== context.activeOperationCount
     || next.devRuntimeActive !== context.devRuntimeActive
   context = next

@@ -7,7 +7,7 @@
  * `src/components/ui/fuse-button.tsx`、`sling-button.tsx` 换掉 `@hugeicons` 的做法一致。
  */
 import type { ComponentType } from "react"
-import { Activity, Code2, Gauge, History, Palette, Plus, Trash2 } from "lucide-react"
+import { Activity, Code2, Gauge, History, Palette, Plus, Settings2, Trash2 } from "lucide-react"
 
 import { resolveModuleIcon } from "@/components/modules/moduleIconRegistry"
 
@@ -21,6 +21,7 @@ export const ACTION_ICONS: Record<ActionId, ComponentType<{ className?: string }
   "workspace.operations": Activity,
   "workspace.runtime": Code2,
   "workspace.registry": Plus,
+  "workspace.settings": Settings2,
   "theme.switcher": Palette,
 }
 

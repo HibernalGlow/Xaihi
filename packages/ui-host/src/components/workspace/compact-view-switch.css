@@ -8,3 +8,8 @@
 
 .xaihi-picker-main-lane { scrollbar-width: none; }
 .xaihi-picker-main-lane::-webkit-scrollbar { display: none; }
+
+.xaihi-view-menu[data-orientation="vertical"] { width: min(94vw, 272px); }
+.xaihi-view-menu[data-orientation="vertical"][data-expanded="true"] { width: min(94vw, 560px); }
+.xaihi-view-menu[data-orientation="vertical"] [data-xaihi-picker-main] { min-height: 42px; height: 42px; flex-direction: row; justify-content: flex-start; padding-inline: 10px; font-size: 12px; gap: 10px; }
+.xaihi-view-menu[data-orientation="vertical"] .xaihi-picker-main-lane { scrollbar-width: thin; }
