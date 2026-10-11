@@ -91,7 +91,9 @@ export function createUiSlice(set: SetWorkspaceStore): WorkspaceUiActions {
     // 加字段之前的旧形状）都先过同一个解析器。不这么做，「切换配方」那条
     // `{...config, id}` 的展开就会把缺字段的状态原样带进 store 并持久化下去。
     setDesignTheme: (designTheme) => set({ designTheme: normalizeDesignThemeConfig(designTheme) }, false, "SET_DESIGN_THEME"),
-    setViewMode: (mode) => set({ viewMode: mode, viewModeTouched: true }, false, "SET_VIEW_MODE"),
+    setViewMode: (mode) => set((state) => mode === "dashboard"
+      ? { overlay: "dashboard", viewModeTouched: true }
+      : { viewMode: mode, viewModeTouched: true, ...(state.overlay === "dashboard" ? { overlay: null } : {}) }, false, "SET_VIEW_MODE"),
     setCardLayout: (layout) => set({ cardLayout: layout, viewModeTouched: true }, false, "SET_CARD_LAYOUT"),
     setTrellisNavigation: (trellisNavigation) => set({ trellisNavigation }, false, "SET_TRELLIS_NAVIGATION"),
     setViewSwitchLoop: (viewSwitchLoop) => set({ viewSwitchLoop }, false, "SET_VIEW_SWITCH_LOOP"),

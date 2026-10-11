@@ -75,6 +75,16 @@
     }
   },
   "topbar": {
+    "appMenu": {
+      "label": "应用菜单",
+      "panels": "面板",
+      "layouts": "布局",
+      "runtime": "运行时设置",
+      "exit": "退出应用",
+      "gesture": "上下选择 · 向右展开",
+      "nested": "向右展开 · 向左返回"
+    },
+    "dashboardReturn": "返回工作区",
     "compactView": {
       "loop": "循环切换",
       "loopHint": "开启后，左右滑动可首尾循环；默认关闭。",
@@ -88,6 +98,7 @@
       "layouts": "卡片子布局",
       "gesture": "点击选择 · 左右滑动",
       "release": "松手切换",
+      "settingsNested": "上下选分类 · 右滑进入 · 左滑返回",
       "releaseAction": "松手执行",
       "down": "向下滑动选子模式"
     },

@@ -21,13 +21,13 @@ const DefaultContextMenuItems = lazy(() =>
 )
 const FlowView = lazy(() => import("./FlowView").then((module) => ({ default: module.FlowView })))
 const LaneView = lazy(() => import("./lane/LaneView").then((module) => ({ default: module.LaneView })))
-const UsageDashboard = lazy(() => import("@/components/views/UsageDashboard").then((module) => ({ default: module.UsageDashboard })))
 
 export function WorkspaceLayout() {
   const chrome = useWorkspaceShallowSelector((state) => ({
     theme: state.theme,
     activeCustomThemeName: state.activeCustomThemeName,
     viewMode: state.viewMode,
+    dashboardOpen: state.overlay === "dashboard",
     bgMode: state.bgMode,
     bgImageUrl: state.bgImageUrl,
     bgOpacity: state.bgOpacity,
@@ -65,7 +65,6 @@ export function WorkspaceLayout() {
           className="flex min-h-0 min-w-0 flex-1 animate-in fade-in duration-150"
         >
           <Suspense fallback={<div className="min-h-0 flex-1 ws-canvas-bg" />}>
-            {chrome.viewMode === "dashboard" && <UsageDashboard />}
             {chrome.viewMode === "cards" && <CardView />}
             {chrome.viewMode === "flow" && <FlowView />}
             {chrome.viewMode === "lane" && <LaneView />}
@@ -73,8 +72,7 @@ export function WorkspaceLayout() {
         </div>
         <Suspense fallback={null}>
           <OverlayHost />
-          <SelectionToolbar />
-          <AlphabetNodeRail />
+          {!chrome.dashboardOpen && <><SelectionToolbar /><AlphabetNodeRail /></>}
         </Suspense>
       </main>
     </div></TrellisToolbarHost>

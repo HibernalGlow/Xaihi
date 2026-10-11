@@ -1,7 +1,7 @@
 /**
  * L1 内建动作（ADR-0081 的三层来源里最里面那层）。
  *
- * 这七个动作今天散在 `TopBar.tsx` 的六个手写 `DockIcon` 与一个主题 Popover 触发器里；
+ * 这些动作原先散在 `TopBar.tsx` 的六个手写 `DockIcon` 与一个主题 Popover 触发器里；
  * 搬到这里之后，顶栏、轮盘、命令面板与键位读的都是这一份。
  *
  * 动作不直接读 store 的 hook，而是走 `selectWorkspaceActions(getState())` 这个非 React 读法，
@@ -15,16 +15,17 @@ function actions() {
   return workspaceStoreActions()
 }
 
-/** 模块级注册：谁 import `@/actions` 谁就拿到这七个，不需要额外的启动调用。 */
+/** 模块级注册：谁 import `@/actions` 谁就拿到内建动作，不需要额外的启动调用。 */
 registerAction({
   id: "workspace.dashboard",
   category: "workspace",
   labelKey: "topbar:viewMode.dashboard",
   presentation: "command",
   order: 10,
-  isToggled: (context: ActionContext) => context.viewMode === "dashboard",
+  isToggled: (context: ActionContext) => context.dashboardOpen === true,
   run: (context: ActionContext) => {
-    actions().setViewMode(context.viewMode === "dashboard" ? "cards" : "dashboard")
+    if (context.dashboardOpen) actions().setOverlay(null)
+    else actions().setViewMode("dashboard")
   },
 })
 
@@ -86,6 +87,15 @@ registerAction({
   run: () => {
     actions().setOverlay("registry")
   },
+})
+
+registerAction({
+  id: "workspace.settings",
+  category: "workspace",
+  labelKey: "overlay:settings",
+  presentation: "command",
+  order: 65,
+  run: () => actions().setOverlay("settings"),
 })
 
 registerAction({

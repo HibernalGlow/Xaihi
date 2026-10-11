@@ -10,6 +10,7 @@ const urlState = vi.hoisted(() => ({
   navigation: "free" as "free" | null,
   workspace: null as string | null,
   settings: null as string | null,
+  settingsStep: null as string | null,
 }))
 const storeState = vi.hoisted(() => ({
   viewMode: "cards" as "cards" | "flow",
@@ -19,7 +20,7 @@ const storeState = vi.hoisted(() => ({
   activeWorkspaceId: "ws-1",
   backendReady: true,
   workspaces: [{ id: "ws-1" }],
-  overlay: null as null | "settings",
+  overlay: null as null | "settings" | "dashboard",
 }))
 
 vi.mock("nuqs", async () => {
@@ -33,6 +34,7 @@ vi.mock("nuqs", async () => {
         layout: urlState.layout,
         navigation: urlState.navigation,
         settings: urlState.settings,
+        settingsStep: urlState.settingsStep,
       },
       setUrlState,
     ],
@@ -62,6 +64,7 @@ describe("WorkspaceUrlState settings deep link", () => {
     setOverlay.mockClear()
     setUrlState.mockClear()
     urlState.settings = null
+    urlState.settingsStep = null
     storeState.overlay = null
     storeState.viewMode = "cards"
     storeState.viewModeTouched = true
@@ -105,13 +108,25 @@ describe("WorkspaceUrlState settings deep link", () => {
     })
   })
 
-  it("[settings.deeplink.clear] clears settings query when overlay is closed", async () => {
+  it("closes settings without reopening it and clears the exact step link", async () => {
     urlState.settings = "runtime"
+    urlState.settingsStep = "connection"
+    storeState.overlay = "settings"
+    const { rerender } = render(<WorkspaceUrlState />)
+    setOverlay.mockClear()
     storeState.overlay = null
-    render(<WorkspaceUrlState />)
-
-    await waitFor(() => {
-      expect(setUrlState).toHaveBeenCalledWith({ settings: null })
-    })
+    rerender(<WorkspaceUrlState />)
+    await waitFor(() => expect(setUrlState).toHaveBeenCalledWith({ settings: null, settingsStep: null }))
+    expect(setOverlay).not.toHaveBeenCalled()
+  })
+  it("writes a dashboard link while preserving the selected workspace view, then restores the view link", async () => {
+    storeState.viewMode = "flow"; urlState.view = "flow"; urlState.layout = null; urlState.navigation = null
+    const { rerender } = render(<WorkspaceUrlState />)
+    storeState.overlay = "dashboard"
+    rerender(<WorkspaceUrlState />)
+    await waitFor(() => expect(setUrlState).toHaveBeenCalledWith({ view: "dashboard", layout: null, navigation: null }))
+    expect(storeState.viewMode).toBe("flow")
+    setUrlState.mockClear(); storeState.overlay = null; rerender(<WorkspaceUrlState />)
+    expect(setOverlay).not.toHaveBeenCalled()
   })
 })
