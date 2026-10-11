@@ -166,12 +166,17 @@ function WallpaperTile(props: {
 }
 
 function resolvePreviewPath(item: EngineVWallpaper): string {
-  const preview = item.preview.trim()
+  // 面板把跑完的 wallpapers 存回 state、下次直接读回来渲染（`Component.tsx:64`），
+  // 而那份 state 可能来自旧版本或别的写入者，缺字段是常态而不是异常。一个缺 `preview`
+  // 的条目不许把整块面板打成渲染失败——实测现场就是
+  // `Node "enginev" failed to render — Cannot read properties of undefined (reading 'trim')`。
+  const preview = `${item.preview ?? ""}`.trim()
   if (!preview) return ""
   if (isRemoteUrl(preview)) return preview
   if (/^[A-Za-z]:[\\/]/.test(preview) || preview.startsWith("/") || preview.startsWith("\\\\")) return preview
-  const separator = item.path.includes("\\") ? "\\" : "/"
-  return `${item.path.replace(/[\\/]+$/, "")}${separator}${preview.replace(/^[\\/]+/, "")}`
+  const base = `${item.path ?? ""}`
+  const separator = base.includes("\\") ? "\\" : "/"
+  return `${base.replace(/[\\/]+$/, "")}${separator}${preview.replace(/^[\\/]+/, "")}`
 }
 
 function isRemoteUrl(value: string): boolean {
@@ -179,7 +184,7 @@ function isRemoteUrl(value: string): boolean {
 }
 
 function compactPath(value: string): string {
-  const normalized = value.replace(/\\/g, "/")
+  const normalized = `${value ?? ""}`.replace(/\\/g, "/")
   const parts = normalized.split("/").filter(Boolean)
   return parts.length > 3 ? `.../${parts.slice(-3).join("/")}` : value
 }

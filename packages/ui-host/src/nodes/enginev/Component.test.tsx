@@ -236,6 +236,16 @@ describe("app-owned enginev Component", () => {
     expect(image.getAttribute("src")).toBe("http://local.test/local-files?path=D%3A%2Fworkshop%2F111%2Fpreview.png")
   })
 
+  test("回归：state 里的旧形状条目缺 preview/path 时，画廊照常渲染而不是整块炸掉", () => {
+    surfaceState.mode = "workspace"
+    const legacy = { folderName: "999", workshopId: "999", title: "Legacy Item" } as unknown as EngineVWallpaper
+    const host = createHost({ workshopPath: "D:/workshop", wallpapers: [legacy, wallpaper] })
+
+    expect(() => render(<Component compId="comp-enginev" host={host} />)).not.toThrow()
+    expect(screen.getByText("Legacy Item")).toBeTruthy()
+    expect(screen.getByAltText("Ocean Loop")).toBeTruthy()
+  })
+
   test("applies gallery filters live without running a filter workflow", () => {
     surfaceState.mode = "workspace"
     const host = createHost({ action: "scan", workshopPath: "D:/workshop", titleFilter: "Ocean", wallpapers: [wallpaper] })
