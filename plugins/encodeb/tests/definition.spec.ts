@@ -80,6 +80,8 @@ function fakeContext(): { ctx: never; registered: RegisteredTool[] } {
     effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     on: () => () => undefined,
     get: () => undefined,
+    // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+    inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
   }
   return { ctx: ctx as never, registered }
 }
@@ -120,9 +122,11 @@ describe('encodb 的清单与定义', () => {
       expect(node as unknown as Record<string, unknown>).not.toHaveProperty(hostKey)
     }
     // 阳性对照：定义顶层键集就这些。多一个键（例如有人把 `dashboard` 搬回来）立刻红。
+    // `category` / `icon` 是后来加进来的两格（生成器从 `xaihi.node` 读它们，见 `packageModules.generated.ts`
+    // 的文件头），所以它们在这张名单里是**声明过的**，不是漂移。
     expect(Object.keys(node).sort()).toEqual([
-      'actions', 'danger', 'dangerPrompt', 'definitionVersion', 'description', 'fields',
-      'groups', 'help', 'inputBindings', 'nodeId', 'previewExport', 'publishesOutputPath',
+      'actions', 'category', 'danger', 'dangerPrompt', 'definitionVersion', 'description', 'fields',
+      'groups', 'help', 'icon', 'inputBindings', 'nodeId', 'previewExport', 'publishesOutputPath',
       'reportsProgress', 'resultExport', 'title',
     ])
     // 阳性对照：清单 schema 写错一个字符，`validateManifest` 就必须拒绝而不是放过。

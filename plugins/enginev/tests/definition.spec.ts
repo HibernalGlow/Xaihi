@@ -322,6 +322,8 @@ describe('enginev 宿主接线（apply → defineNode → 真内核 + 真盘）'
         return () => {}
       },
       get: () => undefined,
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     apply(ctx as never, fakeConfig({}))
     expect(registered.map((tool) => tool['name'])).toEqual([
@@ -365,6 +367,8 @@ describe('enginev 宿主接线（apply → defineNode → 真内核 + 真盘）'
       effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: (_event: string, _listener: unknown) => () => {},
       get: () => undefined,
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     apply(ctx as never, fakeConfig({ workshopPath: workshop }))
     const scan = registered.find((tool) => tool['name'] === 'enginev_scan')

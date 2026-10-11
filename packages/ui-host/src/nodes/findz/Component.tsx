@@ -83,13 +83,19 @@ export function Component({ host }: FindzProps) {
   const openLibrary = useCallback(async () => {
     const root = card.libraryRoot?.trim()
     if (!root) return
+    // `open_library` 要的是**库 id**（清单把它声明成必填，插件那一侧也拿它当索引文件名：
+    // `plugins/findz/src/index.ts:114` 的 `LIBRARY_ID`）。卡片原来只发 `library:{root}`，
+    // 于是永远回 `findz: libraryId is required`（实测）。这里按同一个形参发两格：
+    // id 由输入框给，空着就用根目录名洗出来的建议值。
+    const suggested = suggestLibraryId(root)
+    const libraryId = (card.libraryIdDraft ?? suggested).trim() || suggested
     setBusy(true)
     setError(undefined)
     try {
-      const data = await invoke({ action: "open_library", library: { root } })
+      const data = await invoke({ action: "open_library", libraryId, libraryRoot: root })
       if (!data.library) throw new Error(t("errors.libraryMissing", "Findz did not return a library."))
       setLibrary(data.library)
-      patch({ libraryRoot: root, libraryId: data.library.libraryId, pathPrefix: undefined, selectedArchiveId: undefined, pageCursor: undefined })
+      patch({ libraryRoot: root, libraryIdDraft: libraryId, libraryId: data.library.libraryId, pathPrefix: undefined, selectedArchiveId: undefined, pageCursor: undefined })
       setPageTrail([])
       setMembers(undefined)
       await refresh(data.library.libraryId, { libraryRoot: root, libraryId: data.library.libraryId, pathPrefix: undefined })
@@ -98,7 +104,7 @@ export function Component({ host }: FindzProps) {
     } finally {
       setBusy(false)
     }
-  }, [card.libraryRoot, invoke, patch, refresh])
+  }, [card.libraryIdDraft, card.libraryRoot, invoke, patch, refresh, t])
 
   const startTask = useCallback(async (action: "scan" | "analyze", analysisScope?: FindzAnalysisScope) => {
     if (!card.libraryId) return
@@ -249,7 +255,7 @@ export function Component({ host }: FindzProps) {
             resizeLabel: t("workspace.laneActions.resizeSource", "Resize Source lane"),
             defaultWidth: 340,
             content: <div className="flex h-full min-h-0 flex-col" data-testid="findz-source-lane">
-              <FindzWorkspaceHeader root={card.libraryRoot ?? ""} library={library} task={task} busy={busy} onRootChange={(libraryRoot) => patch({ libraryRoot })} onOpen={() => void openLibrary()} onScan={() => void startTask("scan")} onAnalyze={() => void startTask("analyze")} onPause={() => void controlTask("pause")} onResume={() => void controlTask("resume")} onCancel={() => void controlTask("cancel")} />
+              <FindzWorkspaceHeader root={card.libraryRoot ?? ""} libraryId={card.libraryIdDraft ?? suggestLibraryId(card.libraryRoot ?? "")} library={library} task={task} busy={busy} onRootChange={(libraryRoot) => patch({ libraryRoot })} onLibraryIdChange={(libraryIdDraft) => patch({ libraryIdDraft })} onOpen={() => void openLibrary()} onScan={() => void startTask("scan")} onAnalyze={() => void startTask("analyze")} onPause={() => void controlTask("pause")} onResume={() => void controlTask("resume")} onCancel={() => void controlTask("cancel")} />
               <div className="min-h-0 flex-1 overflow-y-auto p-3">
                 <section aria-label={t("workspace.lanes.query", "Search and filters")} className="border bg-muted/20" data-testid="findz-query-lane">
                   <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
@@ -299,6 +305,24 @@ export function Component({ host }: FindzProps) {
 
 function errorMessage(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause)
+}
+
+/**
+ * 库 id 的**建议值**：把根目录名洗成一个像文件名的 token。
+ *
+ * 合法形状由插件说了算（`plugins/findz/src/index.ts:114` 的 `LIBRARY_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/`，
+ * 它会被拿去当索引文件名）；这里只负责给一个可读的默认值，输入框里改得动，插件那边仍然会校验。
+ * 建议值取**目录名而不是整条路径**：同一台机上两个不同父目录下的同名目录会撞同一个索引 ⇒ 由使用者改 id 来区分
+ * （所以那一格在界面上是可见、可编辑的，不做静默派生）。
+ */
+function suggestLibraryId(root: string): string {
+  const base = root.replace(/[/\\]+$/, "").split(/[/\\]/).pop() ?? ""
+  const cleaned = base
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/[^A-Za-z0-9]+/, "")
+    .replace(/[-.]{2,}/g, "-")
+    .replace(/[-.]+$/, "")
+  return cleaned === "" ? "library" : cleaned
 }
 
 function changesQueryState(patch: Partial<FindzCardState>): boolean {

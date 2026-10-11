@@ -8,12 +8,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { taskProgressPercent } from "./format"
 
-export function FindzWorkspaceHeader({ root, library, task, busy, onRootChange, onOpen, onScan, onAnalyze, onPause, onResume, onCancel }: {
+export function FindzWorkspaceHeader({ root, libraryId, library, task, busy, onRootChange, onLibraryIdChange, onOpen, onScan, onAnalyze, onPause, onResume, onCancel }: {
   root: string
+  /** `open_library` 要的库 id：清单把它声明成必填，插件拿它当索引文件名。 */
+  libraryId: string
   library?: FindzLibrarySummary
   task?: FindzTask
   busy: boolean
   onRootChange(value: string): void
+  onLibraryIdChange(value: string): void
   onOpen(): void
   onScan(): void
   onAnalyze(): void
@@ -28,6 +31,7 @@ export function FindzWorkspaceHeader({ root, library, task, busy, onRootChange, 
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
         <Input aria-label={t("workspace.header.rootLabel", "Findz library root")} value={root} placeholder={t("workspace.header.rootPlaceholder", "Local ZIP / CBZ library root")} onChange={(event) => onRootChange(event.target.value)} />
+        <Input className="max-w-[11rem]" aria-label={t("workspace.header.libraryIdLabel", "Library id")} value={libraryId} placeholder={t("workspace.header.libraryIdPlaceholder", "Index name")} onChange={(event) => onLibraryIdChange(event.target.value)} />
         <Button size="sm" disabled={!root.trim() || busy} onClick={onOpen}>{t("workspace.header.openLibrary", "Open library")}</Button>
       </div>
       <div className="flex shrink-0 items-center gap-1">

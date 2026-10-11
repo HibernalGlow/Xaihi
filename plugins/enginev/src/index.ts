@@ -94,11 +94,21 @@ function ownNodeDefinition(): unknown {
  */
 function inputFrom(action: EngineVAction, args: Record<string, unknown>, inputs: Record<string, unknown>, config: Config): EngineVInput {
   const input: EngineVInput = { action }
-  const workshopPath = text(inputs.workshopPath) || config.workshopPath.get()
+  // 搬来的卡片界面走的是**上游那份内核形状**：`path`（不是清单的 `workshopPath`）、
+  // 嵌套的 `filters:{title,contentRating,type}`、`ids`、`wallpapers`
+  // （`packages/ui-host/src/nodes/enginev/Component.tsx:924-944`）。
+  // 清单声明的却是**展开后的平铺槽**（`workshopPath` / `filters.title` / 受 `idsText` 守卫的 `ids`
+  // / 没有 `wallpapers`），所以这四格在面板那条路上全部到不了内核——实测：
+  // `{action:"scan",path:"/tmp/x"}` 回 `Workshop path is required.`，换成 `workshopPath` 才进得去；
+  // `{action:"filter",wallpapers:[…]}` 回 `Workshop path or wallpapers are required.`
+  // （内核自己的别名链是 `workshopPath ?? workshop_path ?? path`，`core.ts:241`）。
+  // 这里**内核自己的别名都收**，面板与工具两条路都能到。
+  const workshopPath = text(inputs.workshopPath) || text(inputs.path) || config.workshopPath.get()
   if (workshopPath !== '') input.workshopPath = workshopPath
   const filters = filtersOf(args, inputs)
   if (Object.keys(filters).length > 0) input.filters = filters
-  if (has('idsText', args)) input.ids = listFrom(inputs.ids)
+  if (has('idsText', args) || has('ids', args)) input.ids = listFrom(inputs.ids)
+  if (Array.isArray(inputs.wallpapers)) input.wallpapers = inputs.wallpapers as EngineVInput['wallpapers']
   const template = text(inputs.template) || config.template.get()
   if (template !== '') input.template = template
   const maxWorkers = typeof inputs.maxWorkers === 'number' ? inputs.maxWorkers : config.maxWorkers.get()
@@ -124,14 +134,18 @@ function has(field: string, args: Record<string, unknown>): boolean {
 /** 清单里那四条点号绑定读回成内核的 `filters` 对象；空值不留键（`clean()` 本来就把空白当没给）。 */
 function filtersOf(args: Record<string, unknown>, inputs: Record<string, unknown>): EngineVFilterOptions {
   const filters: EngineVFilterOptions = {}
-  const title = text(inputs['filters.title'])
-  const contentRating = text(inputs['filters.contentRating'])
-  const type = text(inputs['filters.type'])
+  // 面板发的是**嵌套对象** `filters:{…}`（见 `inputFrom` 那条注释），清单声明的却是 `filters.title`
+  // 这类**字面点号槽**；`bindInputs` 只按字面键查 `args['filters.title']`，嵌套形状永远查不到。
+  // 所以这里两条都收：声明的那四格优先，缺席时读面板那份嵌套对象。
+  const nested = typeof args.filters === 'object' && args.filters !== null ? args.filters as Record<string, unknown> : {}
+  const title = text(inputs['filters.title']) || text(nested.title)
+  const contentRating = text(inputs['filters.contentRating']) || text(nested.contentRating)
+  const type = text(inputs['filters.type']) || text(nested.type)
   if (title !== '') filters.title = title
   if (contentRating !== '') filters.contentRating = contentRating
   if (type !== '') filters.type = type
-  if (has('tagsText', args)) {
-    const tags = listFrom(inputs['filters.tags'])
+  if (has('tagsText', args) || Array.isArray(nested.tags)) {
+    const tags = listFrom(inputs['filters.tags'] ?? nested.tags)
     if (tags.length > 0) filters.tags = tags
   }
   return filters

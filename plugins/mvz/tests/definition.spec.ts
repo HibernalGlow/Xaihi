@@ -314,6 +314,8 @@ describe('mvz 宿主接线（apply → defineNode → ctx.subprocess）', () => 
         return () => {}
       },
       get: (name: string) => (name === 'subprocess' ? seam : undefined),
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     apply(ctx as never, fakeConfig({}))
     expect(registered.map((tool) => tool['name'])).toEqual(['mvz_extract', 'mvz_move', 'mvz_delete', 'mvz_rename'])
@@ -364,6 +366,8 @@ describe('mvz 宿主接线（apply → defineNode → ctx.subprocess）', () => 
       effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: () => () => {},
       get: () => undefined,
+      // cordis 的 ctx.inject：依赖到位就跑回调；这条用例判的是"缝缺席时装载被拒"，不是宿主注册表。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     expect(() => apply(ctx as never, fakeConfig({}))).toThrow(/ctx\.subprocess/)
     expect(registered).toEqual([])
@@ -414,6 +418,8 @@ describe('mvz 的 Config 读回', () => {
       effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: () => () => {},
       get: (name: string) => (name === 'subprocess' ? seam : undefined),
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     apply(ctx as never, fakeConfig({ separator: '::' }))
     const execute = toolExecute(registered, 'mvz_delete')

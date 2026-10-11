@@ -65,6 +65,8 @@ function fakeContext(): {
     commands: { register: (command: RegisteredCommand) => { commands.push(command); return () => undefined } },
     on: () => () => undefined,
     get: () => undefined,
+    // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具/命令注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+    inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     effect: (create: () => () => void) => { disposers.push(create()); return () => undefined },
   }
   return { ctx: ctx as never, registered, commands, disposers }
@@ -226,6 +228,33 @@ describe('toFindzInput', () => {
     })
     expect(toFindzInput('analyze', { libraryId: 'manga', scopeKind: 'members', deepRetry: true }, '/tmp/index')).toEqual({
       action: 'analyze', libraryId: 'manga', analysisScope: { kind: 'members', deepRetry: true },
+    })
+  })
+
+  // 卡片界面走的是**内核形状的嵌套对象**（`packages/ui-host/src/nodes/findz/Component.tsx:108,280`），
+  // 只认平铺的 `scopeKind`/`deepRetry` 时会把它整段丢掉：症状是"针对单个成员的深度重试"
+  // 被静默降级成全量普通分析（实测发嵌套 scope，内核照常执行、对 scope 毫无反应）。
+  it('analyze 也收界面那份嵌套 analysisScope，memberIds 一路带到内核', () => {
+    expect(toFindzInput('analyze', {
+      libraryId: 'manga',
+      analysisScope: { kind: 'members', memberIds: [7, 9], deepRetry: true },
+    }, '/tmp/index')).toEqual({
+      action: 'analyze',
+      libraryId: 'manga',
+      analysisScope: { kind: 'members', memberIds: [7, 9], deepRetry: true },
+    })
+  })
+
+  it('两条形状都给时以声明的平铺槽为准（阳性对照：嵌套那份的 true 不许顶掉显式的 false）', () => {
+    expect(toFindzInput('analyze', {
+      libraryId: 'manga',
+      scopeKind: 'archives',
+      deepRetry: false,
+      analysisScope: { kind: 'members', memberIds: [7], deepRetry: true },
+    }, '/tmp/index')).toEqual({
+      action: 'analyze',
+      libraryId: 'manga',
+      analysisScope: { kind: 'archives', memberIds: [7] },
     })
   })
 

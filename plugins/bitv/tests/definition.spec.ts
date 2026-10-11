@@ -328,16 +328,18 @@ describe('bitv 清单的 SDK 侧形状', () => {
     expect(parametersFor(revived.value, 'classify').targetPath).toMatchObject({ required: true })
   })
 
-  it('G8 两头都钉住：清单声明预演，宿主收到"省略"时是 false，而闸门因此要亮', () => {
+  it('G8 两头都钉住：清单声明预演，宿主收到"省略"时是 undefined（不折成 false），而闸门照样要亮', () => {
     const node = definition()
     // ① 清单声明的默认是预演（表单那一侧会填它）。
     expect(field('dryRun').default).toEqual({ boolean: true })
-    // ② 同一条腿，`bindInputs` 对模型省略的布尔的折法：false（不是"没给"）。
+    // ② 同一条腿，`bindInputs` 对**省略**的布尔交回 `undefined`，不是折成 false：
+    //    契约见 `define-node.ts` 的 `transformValue`——"没给"与"给了 false"必须是两件事，
+    //    折成 false 会让适配器那一层的 `?? 配置默认` 永远走不到（bitv 的 `transferMode` 就是这条）。
     const bound = bindInputs(node, { action: 'classify', paths: ['D:/videos'], targetPath: 'D:/sorted' })
-    expect(bound.dryRun).toBe(false)
-    expect(bound.recursive).toBe(false)
-    // ③ 于是这一步是危险的那一次：内核那句 `dryRun !== false` 在这里帮不上忙，
-    //    值已经被人折过了，拦它的是 `danger.all`。
+    expect(bound.dryRun).toBeUndefined()
+    expect(bound.recursive).toBeUndefined()
+    // ③ 闸门读的是"使用者有没有说预演"：省略 ⇒ `fieldTrue(dryRun)` 不成立 ⇒ `danger.all` 仍然亮 ask。
+    //    这一条与内核那侧的 `dryRun !== false` 是两条独立判据，不依赖折叠后的值。
     expect(dangerFor(node, undefined, 'classify', bound)).toBeDefined()
     // ④ 显式给了预演就不危险。
     expect(dangerFor(node, undefined, 'classify', { dryRun: true })).toBeUndefined()
@@ -382,6 +384,8 @@ describe('bitv 宿主接线（apply → defineNode → 真内核 + ctx.subproces
         return () => {}
       },
       get: (name: string) => (name === 'subprocess' ? seam.seam : undefined),
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
 
     apply(ctx as never, fakeConfig())
@@ -423,7 +427,9 @@ describe('bitv 宿主接线（apply → defineNode → 真内核 + ctx.subproces
   })
 
   it('缝不在 ⇒ apply 当场拒绝装载，并点名 ctx.subprocess', () => {
-    const ctx = { tools: { register: () => () => {} }, on: () => () => {}, get: () => undefined }
+    const ctx = { tools: { register: () => () => {} }, on: () => () => {}, get: () => undefined,
+      // cordis 的 ctx.inject：依赖到位就跑回调；这条用例判的是"缝缺席时装载被拒"，不是宿主注册表。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} } }
     expect(() => apply(ctx as never, fakeConfig())).toThrow(/ctx\.subprocess is not provided/)
   })
 
@@ -441,6 +447,8 @@ describe('bitv 宿主接线（apply → defineNode → 真内核 + ctx.subproces
       effect: (callback: () => unknown) => { const dispose = callback(); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
       on: () => () => {},
       get: (name: string) => (name === 'subprocess' ? seam.seam : undefined),
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     // 清单的绑定是 `trim`，"没给"到内核手里就是空串；`transferModeOf` 的白名单把它当"没给"。
     apply(ctx as never, fakeConfig({ transferMode: '' }))

@@ -330,9 +330,10 @@ describe('gifu 清单的 SDK 侧形状', () => {
     expect(dangerFor(def, undefined, 'plan', { dryRun: false })).toBeUndefined()
     expect(dangerFor(def, undefined, 'make', { dryRun: true })).toBeUndefined()
     expect(dangerFor(def, undefined, 'make', { dryRun: false })?.zh).toContain('gifu')
-    // 缺口 G8 那一格钉住：模型**省略** dryRun 时 `asBoolean` 折成 false（内核与清单的默认都是 true），
-    // 而危险判定读的是原始参数：省略 ⇒ fieldTrue 不成立 ⇒ negated 成立 ⇒ ask 必须亮。
-    expect(transformValue(undefined, 'asBoolean')).toBe(false)
+    // G8 那一格今天钉的是**新契约**：省略 ⇒ `asBoolean` 交回 `undefined`（不是 false），
+    // 这样适配器才落得回"内核与清单都默认 true"；危险判定读的是原始参数：
+    // 省略 ⇒ fieldTrue 不成立 ⇒ negated 成立 ⇒ ask 照样亮。
+    expect(transformValue(undefined, 'asBoolean')).toBeUndefined()
     expect(dangerFor(def, undefined, 'make', {})).toBeDefined()
   })
 
@@ -347,14 +348,15 @@ describe('gifu 清单的 SDK 侧形状', () => {
   })
 
   it('工具名是 <nodeId>_<actionId>，帮助页由清单推导，并且不印本包没注册的斜杠命令', () => {
-    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'xgifu' })
+    // bin 是裸 `<id>`（ADR-0017 决定 3：命令行统一去掉 `x` 前缀），所以这里也按裸名问。
+    const help = nodeHelpFromManifest(ownNode() as never, { bin: 'gifu' })
     expect(help.title).toBe('Gifu')
-    expect(help.commands.map((command) => command.command)).toEqual(['xgifu', '/gifu'])
+    expect(help.commands.map((command) => command.command)).toEqual(['gifu', '/gifu'])
     // 本包 `inject = ['tools', 'subprocess']`，没有 `commands` ⇒ src/help.ts 不许传 command
     // 那一格（缺口 G7）。尺：源码里不许出现 `command: '/gifu'`。
     const source = readFileSync(fileURLToPath(new URL('../src/help.ts', import.meta.url)), 'utf8')
     expect(source).not.toContain(`command: '/gifu'`)
-    expect(source).toContain(`bin: 'xgifu'`)
+    expect(source).toContain(`bin: 'gifu'`)
   })
 })
 
@@ -374,6 +376,8 @@ describe('gifu 宿主接线（apply → defineNode → 真内核 + ctx.subproces
         return () => {}
       },
       get: (name: string) => (name === 'subprocess' ? seam : undefined),
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     apply(ctx as never, fakeConfig({}))
     expect(registered.map((tool) => tool['name'])).toEqual(['gifu_inspect', 'gifu_plan', 'gifu_make'])
@@ -418,6 +422,8 @@ describe('gifu 宿主接线（apply → defineNode → 真内核 + ctx.subproces
       tools: { register: () => () => {} },
       on: (_event: string, _listener: unknown) => () => {},
       get: (_name: string) => undefined,
+      // cordis 的 ctx.inject：依赖到位就跑回调；这条用例判的是"缝缺席时装载被拒"，不是宿主注册表。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     expect(() => apply(ctx as never, fakeConfig({}))).toThrow(/ctx\.subprocess is not provided/)
   })

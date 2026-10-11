@@ -315,7 +315,7 @@ describe('cleanf 清单的 SDK 侧形状', () => {
     expect(dangerFor(def, undefined, 'clean', {})).toBeDefined()
   })
 
-  it('bindInputs 把省略的布尔折成 false（缺口 G8），delimited 把换行串粘成一条（接线层再拆）', () => {
+  it('bindInputs 对省略的布尔交回 undefined（不折成 false，G8 的今天契约），delimited 把换行串粘成一条（接线层再拆）', () => {
     const validated = validateNodeDefinition(ownNode())
     if (!validated.ok) throw new Error('清单不合法')
     const bound = bindInputs(validated.value, {
@@ -323,7 +323,8 @@ describe('cleanf 清单的 SDK 侧形状', () => {
       presetsText: 'empty_folders,backup_files',
       exclude: '  .git  ',
     })
-    expect(bound.preview).toBe(false)
+    // 省略 ⇒ `undefined`：适配器（`src/index.ts` 的 `inputFrom`）才落得回 `config.preview`。
+    expect(bound.preview).toBeUndefined()
     expect(bound.exclude).toBe('.git')
     expect(bound.presets).toEqual(['empty_folders', 'backup_files'])
     // 上游声明的 delimited 只切逗号：换行串会被粘成**一条**路径。
@@ -356,6 +357,8 @@ describe('cleanf 宿主接线（apply → defineNode → 真内核 + 真文件�
         return () => {}
       },
       get: () => undefined,
+      // cordis 的 ctx.inject：依赖到位就跑回调；这些用例的判据是工具注册，不是宿主注册表（`get` 永远给 undefined ⇒ 回调里读不到注册表，注册不落到宿主那份）。
+      inject: (_deps: readonly string[], callback: (scoped: { get: (name: string) => unknown }) => unknown) => { const dispose = callback({ get: () => undefined }); return typeof dispose === 'function' ? (dispose as () => void) : () => {} },
     }
     apply(ctx as never, fakeConfig({}))
     expect(registered.map((tool) => tool['name'])).toEqual(['cleanf_clean', 'cleanf_undo'])

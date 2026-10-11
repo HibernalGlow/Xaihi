@@ -116,12 +116,18 @@ const splitPaths = (value: unknown): string[] =>
  * 布尔与字符串都按**原始参数在不在**决定用不用配置默认：`defineNode` 的绑定变换会把缺席的
  * 布尔折成 `false`、缺席的文本折成空串，直接读绑定结果就等于让配置永远靠边站
  * （`dryRun` 那样会变成"没填就真改名"，与上游 `dry_run ?? true` 相反）。
+ *
+ * `paths` 例外地**两条腿都收**：字段 id 那一路（`args.pathsText`，模型/工具与文本域给的形状）
+ * 优先，缺席时回落到绑好的槽位 `inputs.paths`——搬来的卡片界面直接组内核形状、发的就是
+ * `paths`（`packages/ui-host/src/nodes/formatv/Component.tsx:109-115`），只读字段 id 的话
+ * 面板跑 `scan` 会永远回内核那句 `At least one path is required.`（实测：同一份数据换成
+ * `pathsText` 就 `success:true`）。两条腿都过 `pathsFrom`，所以数组与多行文本都不被 `delimited` 粘。
  */
 function inputFrom(action: FormatvAction, args: Record<string, unknown>, inputs: Record<string, unknown>, config: Config): FormatvInput {
   const prefixName = String(inputs.prefixName ?? '').trim() || config.prefixName.get()
   return {
     action,
-    paths: pathsFrom(args.pathsText),
+    paths: pathsFrom(args.pathsText ?? inputs.paths),
     recursive: args.recursive === undefined ? config.recursive.get() : args.recursive === true,
     ...(prefixName === '' ? {} : { prefixName }),
     dryRun: args.dryRun === undefined ? config.dryRun.get() : args.dryRun === true,
