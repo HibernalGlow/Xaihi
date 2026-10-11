@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { rspack } from '@rspack/core'
 import { assertAliasTargets, BROWSER_GRAPH_ALIASES } from './build-aliases.mjs'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Xaihi 文档那一侧（React 19）的浏览器产物。
@@ -23,7 +24,7 @@ import { assertAliasTargets, BROWSER_GRAPH_ALIASES } from './build-aliases.mjs'
  * 产物名必须与 core 那两条路由常量一致（`UI_ENTRY_SCRIPT` / `UI_ENTRY_STYLE`），
  * 否则文档壳引到 404，而症状是"界面空白"。
  */
-const here = path.dirname(new URL(import.meta.url).pathname)
+const here = path.dirname(fileURLToPath(new URL(import.meta.url)))
 const require = createRequire(import.meta.url)
 const react19 = path.dirname(require.resolve('react-19/package.json'))
 const reactDom19 = path.dirname(require.resolve('react-dom-19/package.json'))

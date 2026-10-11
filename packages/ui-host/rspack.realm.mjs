@@ -1,4 +1,5 @@
 import { documentBase } from './rspack.document.mjs'
+import { fileURLToPath } from 'node:url'
 
 /**
  * **只用于验证 realm 管道**的那份产物：entry 不认识搬运树（`src/document/realm-entry.tsx`），
@@ -13,5 +14,5 @@ import { documentBase } from './rspack.document.mjs'
 export default {
   ...documentBase,
   entry: { main: './src/document/realm-entry.tsx' },
-  output: { ...documentBase.output, path: new URL('dist-realm/', import.meta.url).pathname },
+  output: { ...documentBase.output, path: fileURLToPath(new URL('dist-realm/', import.meta.url)) },
 }
