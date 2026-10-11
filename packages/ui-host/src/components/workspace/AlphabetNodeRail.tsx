@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react"
+import { useReducedMotion } from "motion/react"
 import { ExternalLink } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { MODULE_REGISTRY } from "@/components/modules/registry"
@@ -74,6 +75,7 @@ export function getNextAlphabetIndex(
 
 export function AlphabetNodeRail() {
   const { t } = useTranslation()
+  const reduceMotion = useReducedMotion()
   const workspaceActions = useWorkspaceActions()
   const { openComponent } = useWindowControls()
   const appearance = useWorkspaceShallowSelector((state) => ({
@@ -183,6 +185,11 @@ export function AlphabetNodeRail() {
       collapse()
       return
     }
+    if (event.key === "ArrowDown" && !(event.target as Element).closest('[data-testid="alphabet-node-results"]')) {
+      event.preventDefault()
+      document.querySelector<HTMLElement>('[data-testid="alphabet-node-results"] [cmdk-item]')?.focus()
+      return
+    }
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return
     event.preventDefault()
     const next = event.key === "Home" ? visibleIndexes[0]
@@ -271,7 +278,9 @@ export function AlphabetNodeRail() {
       workspaceActions.removeComponent(componentId)
       setAnnounce(t("common:unableToOpenInNewWindow", { name: module.name }))
     })
-  }, [appearance.activeWorkspaceId, appearance.zCounter, openComponent, t, workspaceActions])
+    if (keyboardInteractionRef.current) restoreTriggerFocusRef.current = true
+    collapse()
+  }, [appearance.activeWorkspaceId, appearance.zCounter, collapse, openComponent, t, workspaceActions])
 
   if (!appearance.visible) return null
   // 一个可见字母都没有（只可能发生在"隐藏空字母"开着、且没有任何节点时）：留着一条空壳既点不出东西
@@ -281,6 +290,7 @@ export function AlphabetNodeRail() {
   return (
     <BuoyantNodeRail
       expanded={expanded}
+      announcement={announce}
       widthRatio={railWidthRatio}
       surfaceClassName={RAIL_STYLE_CLASSES[appearance.style]}
       onExpand={() => {
@@ -289,7 +299,7 @@ export function AlphabetNodeRail() {
       }}
       aria-label={t("common:alphabetLauncher.label")}
       data-testid="alphabet-node-rail"
-      onPointerEnter={keepOpen}
+      onPointerEnter={(event) => { if (event.pointerType !== "touch") keepOpen() }}
       onPointerDownCapture={() => { keyboardInteractionRef.current = false }}
       onKeyDownCapture={handleKeyDown}
       onPointerLeave={scheduleClose}
@@ -306,12 +316,19 @@ export function AlphabetNodeRail() {
       }}>
         <div className="flex h-7 w-full items-center px-1">
           <div
-            className="grid w-full items-center"
+            className="relative grid w-full items-center"
             style={{ gridTemplateColumns: `repeat(${visibleInitials.length}, minmax(0, 1fr))` }}
             aria-label={t("common:alphabetLauncher.letters")}
             role="listbox"
             aria-activedescendant={`alphabet-node-letter-${activeInitial}`}
           >
+            <PopoverAnchor asChild>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 h-6 -translate-y-1/2"
+                style={{ left: `${visibleInitials.indexOf(activeInitial) / visibleInitials.length * 100}%`, width: `${100 / visibleInitials.length}%` }}
+              />
+            </PopoverAnchor>
             {visibleInitials.map((letter) => {
               const index = ALPHABET.indexOf(letter)
               const active = index === settledIndex
@@ -323,6 +340,7 @@ export function AlphabetNodeRail() {
                   : 1
               const letterButton = (
                 <Button
+                  key={letter}
                   id={`alphabet-node-letter-${letter}`}
                   type="button"
                   variant="ghost"
@@ -335,12 +353,12 @@ export function AlphabetNodeRail() {
                         ? "text-foreground/80 hover:bg-muted hover:text-foreground"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
-                  style={{ transform: `scale(${active ? 1 + appearance.waveIntensity / 1000 : nearScale})` }}
+                  style={{ transform: `scale(${reduceMotion ? 1 : active ? 1 + appearance.waveIntensity / 1000 : nearScale})` }}
                   tabIndex={expanded && active ? 0 : -1}
                   aria-selected={active}
                   aria-label={t("common:alphabetLauncher.matches", { letter, count: getModulesForInitial(letter, allModules()).length })}
                   title={t("common:alphabetLauncher.matches", { letter, count: getModulesForInitial(letter, allModules()).length })}
-                  onPointerEnter={() => selectInitial(index)}
+                  onPointerEnter={(event) => { if (event.pointerType !== "touch") selectInitial(index) }}
                   onFocus={() => selectInitial(index)}
                   onClick={() => selectInitial(index)}
                   data-letter-index={index}
@@ -350,7 +368,7 @@ export function AlphabetNodeRail() {
                   {letter}
                 </Button>
               )
-              return active ? <PopoverAnchor key={letter} asChild>{letterButton}</PopoverAnchor> : <span key={letter}>{letterButton}</span>
+              return letterButton
             })}
           </div>
         </div>
@@ -363,6 +381,10 @@ export function AlphabetNodeRail() {
           style={{ opacity: appearance.opacity / 100 }}
           onOpenAutoFocus={(event) => event.preventDefault()}
           onCloseAutoFocus={(event) => event.preventDefault()}
+          onInteractOutside={(event) => {
+            // The letters are a sibling of the portalled list, and belong to the same launcher.
+            if ((event.target as Element).closest('[data-testid="alphabet-node-rail"]')) event.preventDefault()
+          }}
           onPointerEnter={keepOpen}
           onPointerLeave={scheduleClose}
           onFocusCapture={handleFocus}
@@ -379,6 +401,7 @@ export function AlphabetNodeRail() {
                   <CommandItem
                     key={module.id}
                     value={`${module.name} ${module.id}`}
+                    tabIndex={0}
                     className="group/result h-8 min-h-8 items-center py-1 text-xs"
                     onSelect={() => selectModule(module)}
                     data-testid={`alphabet-node-result-${module.id}`}
@@ -409,7 +432,6 @@ export function AlphabetNodeRail() {
           </Command>
         </PopoverContent>
       </Popover>
-      <span className="sr-only" aria-live="polite">{announce}</span>
     </BuoyantNodeRail>
   )
 }
