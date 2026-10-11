@@ -269,8 +269,8 @@ if (!quiet) {
   }
 }
 
-// 两条不问认证、不靠 rev 猜的面：文档壳（可以没有产物，但退化必须读得回来）与运行账本。
-const documentResponse = await requestRaw(port, '/xaihi/ui/000000000000/index.html')
+// 文档正向检查必须使用清单声明的真实 rev。未配置时仍向文档路由读取可见拒因。
+const documentResponse = await requestRaw(port, manifest.ui?.documentUrl || '/xaihi/ui/000000000000/index.html')
 const documentProblem = judgeUiDocument(documentResponse)
 if (documentProblem) failures.push(`文档壳：${documentProblem}`)
 const historyResponse = await requestRaw(port, '/xaihi/history.json')

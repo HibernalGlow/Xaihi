@@ -36,7 +36,7 @@ import { NodeUiConfigProvider } from "@/nodes/shared/NodeUiConfigContext"
 import { createBridgeNodeUiConfigCarrier } from "@/backend/nodeUiConfig"
 import { NodeSettingsFaceProvider } from "@/nodes/shared/NodeSettingsFaceContext"
 import { createBridgeNodeSettingsFace } from "@/backend/nodeSettingsFace"
-import { useDocumentBridge } from "@/document/bridge-context"
+import { useDocumentBridge, useBridgeReady } from "@/document/bridge-context"
 import { startupDebug, startupDebugAsync } from "@/lib/startupDebug"
 import { registerNodeTrays } from "@/desktop/tray/trayCoordinator"
 
@@ -76,6 +76,7 @@ export interface ModuleProps {
 
 export function ModuleRenderer({ moduleId, compId }: { moduleId: string; compId: string }) {
   "use memo"
+  useSyncExternalStore(subscribeEntryBindings, getEntryBindingsVersion)
   const { t } = useTranslation()
 
   if (resolveEntryLoader(moduleId)) {
@@ -112,6 +113,7 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
   // boundary must recreate the child element even when its props are stable.
   const [entry, setEntry] = useState<PackageModuleEntry | null | undefined>(undefined)
   const [loadRevision, setLoadRevision] = useState(0)
+  const [loadError, setLoadError] = useState("")
   // Re-resolve when a plugin is bound or unbound: this is what unmounts a remote's React tree on
   // disable (§4's second unload step) instead of leaving it on screen until something else renders.
   const bindingsVersion = useSyncExternalStore(subscribeEntryBindings, getEntryBindingsVersion)
@@ -124,6 +126,7 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
   // 这两个 hook 必须在任何提前 return 之前调用，否则 entry 从 undefined 变成已加载
   // 的那一刻 hook 数量变多，React 直接 #310 崩掉整棵树。
   const bridge = useDocumentBridge()
+  const bridgeReady = useBridgeReady(bridge)
   const nodeUiConfig = useMemo(() => (bridge ? createBridgeNodeUiConfigCarrier(bridge) : undefined), [bridge])
   // 节点配置（`xaihi-<node>` 命名空间）的读 / 写缝，与上面那份载体同一套递进方式。
   const nodeSettingsFace = useMemo(() => (bridge ? createBridgeNodeSettingsFace(bridge) : undefined), [bridge])
@@ -131,6 +134,7 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
   useEffect(() => {
     let cancelled = false
     setEntry(undefined)
+    setLoadError("")
     const loader = resolveEntryLoader(moduleId)
     if (!loader) {
       setEntry(null)
@@ -148,7 +152,7 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
       })
       .catch((error) => {
         logger.error("Failed to load module entry", { moduleId }, error)
-        if (!cancelled) setEntry(null)
+        if (!cancelled) { setLoadError(error instanceof Error ? error.message : String(error)); setEntry(null) }
       })
     return () => {
       cancelled = true
@@ -162,6 +166,7 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-xs text-muted-foreground">
         <span className="font-mono">Module &quot;{moduleId}&quot; failed to load</span>
+        <span role="alert" className="break-words">{loadError}</span>
         <Button
           size="sm"
           variant="outline"
@@ -179,6 +184,11 @@ function PackageNodeRenderer({ moduleId, compId }: { moduleId: string; compId: s
 
   if (!isRenderableNodeEntry(entry)) {
     return <HeadlessNodeFallback moduleId={moduleId} entry={entry} />
+  }
+
+  // contract.version 来自握手；未落地时不投影、不猜版本，也不让 getter 抛出树外。
+  if (bridge && !bridgeReady) {
+    return <div role="status" className="p-4 text-xs text-muted-foreground">Xaihi: 等待宿主握手，节点 {moduleId} 尚未挂载。</div>
   }
 
   const grant = hostForModule(host, moduleId)

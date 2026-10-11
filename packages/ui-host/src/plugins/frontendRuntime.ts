@@ -1,5 +1,5 @@
 /**
- * The Xiranite frontend plugin runtime: a single Module Federation 2.0 instance owned by the host.
+ * The Xaihi frontend plugin runtime: a single Module Federation 2.0 instance owned by the host.
  *
  * Scope of this file (POC): prove that a plugin built **outside this repository** can be registered
  * at runtime and mounted inside the host's own JS realm with the host's React. It deliberately does
@@ -26,9 +26,11 @@ import * as react from "react"
 import * as reactDom from "react-dom"
 
 import { version as reactVersion } from "react"
+import type { PanelContribution } from "@hibernalglow/xaihi-sdk"
+import { observatory, publishObservatory, recordProbe } from "../client/loader/probe"
 
 import type { NodeCapabilityId } from "@xiranite/contract"
-import { declarePluginTrust, integrityRuntimePlugin, type IntegrityPins } from "./frontendIntegrity"
+import { declarePluginTrust, forgetPluginTrust, integrityRuntimePlugin, type IntegrityPins } from "./frontendIntegrity"
 
 /**
  * The options shape `createInstance` takes.
@@ -42,6 +44,8 @@ type HostRuntimeOptions = NonNullable<Parameters<typeof createInstance>[0]>
 /** The plugin id a frontend contribution is registered under. */
 export interface FrontendPluginSpec {
   id: string
+  /** DSH 清单贡献的兼容面板；完整节点仍使用 AppNodeEntry。 */
+  panels?: readonly PanelContribution[]
   /** `mf-manifest.json` URL or a direct `remoteEntry.js` URL. */
   entry: string
   /**
@@ -105,7 +109,7 @@ const frontendPlugins = new Map<string, FrontendPluginSpec>()
  * loaded, so a remote that asks for `react` gets this exact instance — that is the whole point of
  * running plugins in the host realm rather than in an iframe.
  */
-function hostShared(): HostRuntimeOptions["shared"] {
+function hostShared(): NonNullable<HostRuntimeOptions["shared"]> {
   const shareConfig = { singleton: true, requiredVersion: `^${reactVersion}`} as const
   const entries: Array<[string, unknown]> = [
     ["react", react],
@@ -124,7 +128,7 @@ let instance: ReturnType<typeof createInstance> | undefined
 function runtime() {
   if (!instance) {
     instance = createInstance({
-      name: "xiranite-host",
+      name: "xaihi_host",
       remotes: [],
       shared: hostShared(),
       // The loader consults this before fetching anything, which is what makes a verified byte
@@ -143,11 +147,15 @@ function runtime() {
  * pins/origins the installer declared are known.
  */
 export function registerFrontendPlugin(spec: FrontendPluginSpec): void {
+  const previous = frontendPlugins.get(spec.id)
   frontendPlugins.set(spec.id, spec)
-  declarePluginTrust(spec.id, { integrity: spec.integrity, allowedOrigins: spec.allowedOrigins })
+  declarePluginTrust(spec.id, { integrity: spec.integrity ?? {}, allowedOrigins: spec.allowedOrigins ?? [] })
   const remoteName = spec.alias ?? spec.id
+  observatory.remotes = [...new Set([...frontendPlugins.values()].map((item) => item.alias ?? item.id))]
+  publishObservatory(globalThis as unknown as Record<string, unknown>)
+  if (previous?.entry === spec.entry && previous.entryType === spec.entryType && previous.shareScope === spec.shareScope && previous.alias === spec.alias) return
   runtime().registerRemotes(
-    [{ name: remoteName, alias: remoteName, entry: spec.entry, type: spec.entryType, shareScope: spec.shareScope }],
+    [{ name: remoteName, alias: remoteName, entry: spec.entry, type: spec.entryType, ...(spec.shareScope ? { shareScope: spec.shareScope } : {}) }],
     { force: true },
   )
 }
@@ -171,6 +179,9 @@ export function unregisterFrontendPlugin(id: string): FrontendPluginSpec | undef
   const spec = frontendPlugins.get(id)
   if (!spec) return undefined
   frontendPlugins.delete(id)
+  forgetPluginTrust(id)
+  observatory.remotes = [...new Set([...frontendPlugins.values()].map(item => item.alias ?? item.id))]
+  publishObservatory(globalThis as unknown as Record<string, unknown>)
   return spec
 }
 
@@ -185,5 +196,11 @@ export async function loadRemoteModule<TModule>(remoteId: string, expose: string
   }
   // The map is keyed by plugin id (that is what install/uninstall address); the runtime is keyed by
   // the remote's own name, so the prefix here has to come from the spec, not the argument.
-  return (await runtime().loadRemote<TModule>(`${spec.alias ?? spec.id}/${expose}`)) as TModule
+  const remote = spec.alias ?? spec.id
+  const module = await runtime().loadRemote<TModule>(`${remote}/${expose}`)
+  if (frontendPlugins.get(remoteId) !== spec) throw new Error(`Xaihi remote ${remoteId} changed during loading`)
+  if (module == null) throw new Error(`Xaihi remote ${remote}/${expose} resolved to nothing`)
+  recordProbe(react, `${remote}/${expose}`, { remote, exportName: expose }, module as Record<string, unknown>)
+  publishObservatory(globalThis as unknown as Record<string, unknown>)
+  return module
 }

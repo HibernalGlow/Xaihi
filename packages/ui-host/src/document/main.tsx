@@ -31,6 +31,7 @@ import App from '@/App'
 import { startRealm } from './realm.ts'
 import { DocumentBridgeProvider } from './bridge-context.tsx'
 import { mountSettingsFace } from './settings-face.ts'
+import { DshRemotePlugins } from './remote-plugins'
 import '@/client/generated/client.css'
 import '@/index.css'
 
@@ -62,6 +63,7 @@ if (container) {
       <NuqsAdapter>
         <QueryClientProvider client={queryClient}>
           <DocumentBridgeProvider bridge={realm?.bridge ?? null}>
+            <DshRemotePlugins />
             <App />
           </DocumentBridgeProvider>
         </QueryClientProvider>

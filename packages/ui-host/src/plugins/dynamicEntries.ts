@@ -17,6 +17,7 @@ import type { AppNodeEntry, HeadlessNodePackage } from "@xiranite/contract"
 import { packageModuleLoaders } from "@/components/modules/packageModules.generated"
 import { loadRemoteModule, registeredFrontendPlugins, type FrontendPluginSpec } from "./frontendRuntime"
 import { contributedModuleSource } from "./contributions"
+import { normalizeRemoteEntry } from "./dsh-panel-entry"
 
 export type PackageModuleEntry = AppNodeEntry | HeadlessNodePackage
 export type PackageModuleLoader = () => Promise<{ default: PackageModuleEntry }>
@@ -130,7 +131,7 @@ export function resolveEntryLoader(moduleId: string): PackageModuleLoader | unde
       )
       // A remote may expose the entry directly or as `default`; normalising here keeps the consumer's
       // `mod.default` contract identical for both sources.
-      const entry = (loaded as { default?: PackageModuleEntry }).default ?? (loaded as PackageModuleEntry)
+      const entry = normalizeRemoteEntry(moduleId, loaded, spec.panels?.find(panel => panel.id === moduleId))
       return { default: entry }
     }
   }

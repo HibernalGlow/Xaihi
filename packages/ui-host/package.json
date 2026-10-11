@@ -41,6 +41,7 @@
     "typecheck:strict": "node ../../scripts/check-types.mjs --fail-on-all",
     "test:unit": "vitest run",
     "test:browser": "vitest run -c vitest.browser.config.ts",
+    "test:mf2": "node scripts/test-mf2.mjs",
     "clean": "rm -rf lib"
   },
   "engines": {
