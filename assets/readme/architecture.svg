@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">Xaihi 的机制：27 个 plugin-bundle 装进 DSH 宿主，由 xaihi-core 聚合成三条对外路由</title>
+  <desc id="desc">左侧是 DSH 宿主与 27 个 plugin-bundle，中间 xaihi-core 负责发现与登记，右侧是它对外的三条路由：工作台文档、节点 remote、操作事件流。每条路由后面都注了源码行号。</desc>
+
+  <defs>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5DE6FE" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#5DE6FE" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#5DE6FE" stop-opacity="0"/>
+    </linearGradient>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#69B3C8"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="560" rx="24" fill="#0A1218"/>
+  <polygon points="1040,0 1200,0 1200,190 1080,90" fill="#5DE6FE" opacity="0.04"/>
+
+  <g id="head" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
+    <text x="56" y="52" font-size="16" letter-spacing="3" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">HOW IT WORKS · packages/core/src</text>
+    <text x="56" y="94" font-size="40" fill="#DCECF3">一次装载，三条对外路由</text>
+    <text x="500" y="94" font-size="20" fill="#8FA6BC">Xaihi 不 fork DSH，也不重建它已有的能力</text>
+  </g>
+  <line x1="56" y1="116" x2="1144" y2="116" stroke="url(#rule)" stroke-width="1"/>
+
+  <g id="boxes" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
+    <!-- A: host -->
+    <g>
+      <rect x="56" y="150" width="280" height="120" rx="14" fill="#0E1A22" stroke="#22384A"/>
+      <text x="80" y="184" font-size="20" fill="#DCECF3">DSH 宿主</text>
+      <text x="80" y="212" font-size="18" fill="#8FA6BC">dsh 0.2.0-rc.2</text>
+      <text x="80" y="238" font-size="18" fill="#8FA6BC">--profile xaihi</text>
+    </g>
+
+    <!-- B: bundles -->
+    <g>
+      <rect x="56" y="392" width="280" height="120" rx="14" fill="#0E1A22" stroke="#22384A"/>
+      <text x="80" y="426" font-size="20" fill="#DCECF3">27 × plugin-bundle</text>
+      <text x="80" y="454" font-size="18" fill="#8FA6BC">package.json#xaihi.node</text>
+      <text x="80" y="480" font-size="18" fill="#8FA6BC">+ dsh.bundle.patch</text>
+    </g>
+
+    <!-- C: core hub -->
+    <g>
+      <rect x="440" y="262" width="280" height="150" rx="14" fill="#12232F" stroke="#D63C82" stroke-opacity="0.65" stroke-width="1.5"/>
+      <text x="464" y="296" font-size="20" fill="#DCECF3">xaihi-core</text>
+      <text x="464" y="324" font-size="18" fill="#8FA6BC">发现 bundle 并登记</text>
+      <text x="464" y="350" font-size="18" fill="#8FA6BC">聚合清单与产物指纹</text>
+      <text x="464" y="376" font-size="18" fill="#8FA6BC">把动作挂到 tools 上</text>
+      <text x="700" y="296" font-size="16" fill="#E58AA8" text-anchor="end" font-family="ui-monospace, Menlo, Consolas, monospace">registry.ts:83</text>
+    </g>
+
+    <!-- D: workbench document -->
+    <g>
+      <rect x="800" y="150" width="344" height="120" rx="14" fill="#0E1A22" stroke="#22384A"/>
+      <text x="824" y="184" font-size="20" fill="#DCECF3">工作台文档</text>
+      <text x="824" y="212" font-size="18" fill="#5DE6FE" font-family="ui-monospace, Menlo, Consolas, monospace">/xaihi/ui/&lt;rev&gt;/index.html</text>
+      <text x="824" y="238" font-size="18" fill="#8FA6BC">27 个面板 · 6 套设计语言</text>
+      <text x="1120" y="184" font-size="16" fill="#5F7C93" text-anchor="end" font-family="ui-monospace, Menlo, Consolas, monospace">routes.ts:106</text>
+    </g>
+
+    <!-- E: node remotes -->
+    <g>
+      <rect x="800" y="290" width="344" height="120" rx="14" fill="#0E1A22" stroke="#22384A"/>
+      <text x="824" y="324" font-size="20" fill="#DCECF3">节点 remote</text>
+      <text x="824" y="352" font-size="18" fill="#5DE6FE" font-family="ui-monospace, Menlo, Consolas, monospace">/xaihi/remotes/&lt;slug&gt;/&lt;rev&gt;/</text>
+      <text x="824" y="378" font-size="18" fill="#8FA6BC">只留给第三方 · ADR-0014</text>
+      <text x="1120" y="324" font-size="16" fill="#5F7C93" text-anchor="end" font-family="ui-monospace, Menlo, Consolas, monospace">registry.ts:152</text>
+    </g>
+
+    <!-- F: operations stream -->
+    <g>
+      <rect x="800" y="430" width="344" height="110" rx="14" fill="#0E1A22" stroke="#22384A"/>
+      <text x="824" y="464" font-size="20" fill="#DCECF3">操作事件流</text>
+      <text x="824" y="492" font-size="18" fill="#5DE6FE" font-family="ui-monospace, Menlo, Consolas, monospace">/xaihi/operations/stream</text>
+      <text x="824" y="518" font-size="18" fill="#8FA6BC">SSE，不再开第二条</text>
+      <text x="1120" y="464" font-size="16" fill="#5F7C93" text-anchor="end" font-family="ui-monospace, Menlo, Consolas, monospace">operations.ts:238</text>
+    </g>
+  </g>
+
+  <g id="traces" fill="none" stroke="#69B3C8" stroke-width="1.5">
+    <path d="M196 392 L196 270" marker-end="url(#arw)"/>
+    <path d="M336 210 L388 210 L388 300 L434 300" marker-end="url(#arw)"/>
+    <path d="M720 300 L760 300 L760 210 L794 210" marker-end="url(#arw)"/>
+    <path d="M720 337 L794 337" marker-end="url(#arw)"/>
+    <path d="M720 374 L760 374 L760 470 L794 470" marker-end="url(#arw)"/>
+  </g>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif" font-size="16" fill="#7095AD">
+    <text x="208" y="340">pnpm plugin:add</text>
+    <text x="352" y="196">装载</text>
+    <text x="726" y="286">serves</text>
+  </g>
+</svg>
