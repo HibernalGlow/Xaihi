@@ -26,8 +26,9 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSyn
 import { join, resolve } from 'node:path'
 import { tmpdir, homedir } from 'node:os'
 import http from 'node:http'
+import { fileURLToPath } from 'node:url'
 
-const repoRoot = resolve(new URL('..', import.meta.url).pathname)
+const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const RUNTIME_PKGS = ['shared', 'contract', 'api', 'cli-runtime']
 const SCOPE = '@hibernalglow'
 const LOCAL_REG_PORT = 4873

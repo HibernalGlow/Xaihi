@@ -31,8 +31,9 @@
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = dirname(new URL('.', import.meta.url).pathname)
+const ROOT = dirname(fileURLToPath(new URL('.', import.meta.url)))
 const LIB = join(ROOT, 'lib')
 const NODE_REQUIRE = /require\(["']node:[^"']+["']\)|require\(["'](url|fs|path|module)["']\)/
 const RELATIVE_REQUIRE = /require\(["']\.\/[^"']+["']\)/
