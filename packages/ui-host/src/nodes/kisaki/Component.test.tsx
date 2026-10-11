@@ -44,6 +44,20 @@ describe("Kisaki node", () => {
     expect(screen.queryByRole("button", { name: /(?:minimize|maximize|close|最小化窗口|最大化窗口|关闭窗口)/i })).toBeNull()
   })
 
+  test("gracefully renders when host.env throws refused snapshot error", () => {
+    const host = createHost({ tool: "duplicate-files" })
+    Object.defineProperty(host, "env", {
+      get() {
+        throw new Error("refused: 宿主没随握手带环境快照（暗/亮与平台未知）")
+      },
+    })
+    render(<Component compId="czkawka-env-refused" host={host} />)
+    const root = screen.getByTestId("czkawka-surface")
+    expect(root).toBeTruthy()
+    expect(root.dataset.hostTheme).toBeUndefined()
+  })
+
+
   test("reacts to the Xiranite language and renders the shared English scanner copy", async () => {
     await i18n.changeLanguage("en")
     render(<Component compId="czkawka-en" host={createHost({ tool: "duplicate-files", analysisPanelTab: "analysis" })} />)

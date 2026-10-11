@@ -15,9 +15,16 @@ export function Component({ compId, host }: NodeComponentProps<KisakiCardState, 
   const view = useKisakiWorkbench({ compId, host, surface, t, language })
   const compact = surface.mode === "compact" || surface.mode === "portrait" || surface.width < 760
 
+  let hostTheme: string | undefined
+  try {
+    hostTheme = host.env?.theme
+  } catch {
+    // 宿主没随握手带环境快照时平稳退化（ADR-0011 决定 4），不阻断节点渲染
+  }
+
   return (
     <TooltipProvider>
-      <div ref={surface.ref} data-testid="czkawka-surface" data-surface-mode={surface.mode} data-surface-width={surface.width} data-host-theme={host.env.theme} className="@container/czkawka flex h-full min-h-0 w-full overflow-hidden bg-transparent text-foreground">
+      <div ref={surface.ref} data-testid="czkawka-surface" data-surface-mode={surface.mode} data-surface-width={surface.width} data-host-theme={hostTheme} className="@container/czkawka flex h-full min-h-0 w-full overflow-hidden bg-transparent text-foreground">
         {surface.mode === "collapsed" ? <Collapsed {...view} /> : compact ? <Compact {...view} /> : <Full {...view} />}
       </div>
     </TooltipProvider>
