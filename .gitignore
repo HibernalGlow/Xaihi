@@ -53,3 +53,15 @@ node_modules/
 # 2026-10-11 实测那一条是 21.4 MB 且 `manifest.json` 与指针都没跟上（＝无人引用的孤儿构建），
 # 留在盘上只是省一次 `cargo build`，进 git 历史就再也删不掉。
 /native/artifacts/*/builds/
+# 桌面壳的产品构建目录：`desktop/dev-shell.mjs:37` 与 `:209` 把 `PRODUCT` 的原生库与 UI
+# 都指向 `desktop/.products/<id>/`，那是 `desktop/products/<id>/` 那份源码编出来的落点。
+# 2026-10-11 实测一次 kisaki 构建在这里留下 390 个文件、29 MB。
+/desktop/.products/
+# rspack 的模块联合会话诊断（`.mf/diagnostics/latest.json`），每次起构建重写，没有读者。
+/packages/ui-host/.mf/
+# 编译器漏在源码旁边的声明文件：`tsc` 带 `declaration` 跑一次就在同目录写一份 `<name>.d.ts`。
+# 只钉 `src/` 顶层那一批——三份手写的环境声明（`packages/ui-host/src/types/*.d.ts`）与
+# `plugins/kisaki/src/native/binding.generated.d.ts` 都在更深一层，仍在 git 眼前。
+# 2026-10-11 实测一次桌面壳构建漏出 29 份，全仓「已跟踪却命中忽略」的文件数=0。
+/packages/*/src/*.d.ts
+/plugins/*/src/*.d.ts
