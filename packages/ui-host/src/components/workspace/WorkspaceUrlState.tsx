@@ -1,78 +1,56 @@
 import { useEffect, useRef } from "react"
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs"
 import { parseSettingsSectionId } from "@/components/views/settings/settingsNavigation"
-import { getWorkspaceState, useWorkspaceActions, useWorkspaceShallowSelector } from "@/store/workspaceStore"
-import type { ViewMode } from "@/types/workspace"
-
-const VIEW_MODES = ["dashboard", "cards", "dockview", "flow", "lane", "bento"] as const satisfies readonly ViewMode[]
+import { useWorkspaceActions, useWorkspaceShallowSelector, useWorkspaceStore } from "@/store/workspaceStore"
 
 const workspaceUrlParsers = {
-  view: parseAsStringLiteral(VIEW_MODES).withDefault("cards"),
-  /** Global settings deep link: `?settings=workspace` opens the settings overlay on that stage. */
+  view: parseAsStringLiteral(["dashboard", "cards", "flow", "lane"] as const),
+  layout: parseAsStringLiteral(["focus", "trellis"] as const),
+  navigation: parseAsStringLiteral(["focus", "free"] as const),
   settings: parseAsString,
 }
 
-/**
- * ADR-0019：多工作空间退役后 URL 只承载视图与设置深链；
- * 原来的 `?workspace=<id>` 参数随多空间概念一并删除。
- */
+/** Explicit share/deep links override the startup preference, including child modes. */
 export function WorkspaceUrlState() {
-  const [{ view, settings }, setUrlState] = useQueryStates(workspaceUrlParsers, {
-    history: "replace",
-    shallow: true,
-    clearOnDefault: false,
-  })
-  const state = useWorkspaceShallowSelector((workspaceState) => ({
-    viewMode: workspaceState.viewMode,
-    overlay: workspaceState.overlay,
-  }))
-  const workspaceActions = useWorkspaceActions()
-  const lastUrlStateRef = useRef<ViewMode | null>(null)
-  const suppressStoreToUrlRef = useRef(false)
-  const settingsSection = parseSettingsSectionId(settings)
+  const [url, setUrlState] = useQueryStates(workspaceUrlParsers, { history: "replace", shallow: true })
+  const state = useWorkspaceShallowSelector((s) => ({ viewMode: s.viewMode, cardLayout: s.cardLayout, navigation: s.trellisNavigation, touched: s.viewModeTouched, overlay: s.overlay }))
+  const actions = useWorkspaceActions()
+  const last = useRef<string | null>(null)
+  const initialized = useRef(false)
+  const settingsSection = parseSettingsSectionId(url.settings)
+  const signature = JSON.stringify([url.view, url.layout, url.navigation])
+  useEffect(() => {
+    if (last.current === signature) return
+    const first = last.current === null
+    last.current = signature
+    initialized.current = true
+    // An unqualified launch leaves startup settings in control.
+    if (first && !url.view && !url.layout && !url.navigation) return
+    if (url.view) actions.setViewMode(url.view)
+    else if (url.layout || url.navigation) actions.setViewMode("cards")
+    if (url.layout) actions.setCardLayout(url.layout)
+    else if (url.navigation) actions.setCardLayout("trellis")
+    if (url.navigation) actions.setTrellisNavigation(url.navigation)
+  }, [signature, url.view, url.layout, url.navigation, actions])
 
   useEffect(() => {
-    const urlChanged = lastUrlStateRef.current !== view
-    if (urlChanged) lastUrlStateRef.current = view
-
-    let appliedUrlState = false
-    const currentStoreState = getWorkspaceState()
-
-    if (urlChanged && view !== currentStoreState.viewMode) {
-      workspaceActions.setViewMode(view)
-      appliedUrlState = true
-    }
-
-    if (appliedUrlState) {
-      suppressStoreToUrlRef.current = true
-    }
-  }, [workspaceActions, view])
-
-  // Deep link: valid ?settings=<sectionId> opens the global settings overlay.
+    if (settingsSection && state.overlay !== "settings") actions.setOverlay("settings")
+  }, [settingsSection, state.overlay, actions])
   useEffect(() => {
-    if (!settingsSection) return
-    if (state.overlay === "settings") return
-    workspaceActions.setOverlay("settings")
-  }, [settingsSection, state.overlay, workspaceActions])
-
-  // Drop the settings query when the overlay is closed so the URL does not re-open it.
-  useEffect(() => {
-    if (state.overlay === "settings") return
-    if (!settings) return
-    void setUrlState({ settings: null })
-  }, [setUrlState, settings, state.overlay])
+    if (state.overlay !== "settings" && url.settings) void setUrlState({ settings: null })
+  }, [setUrlState, url.settings, state.overlay])
 
   useEffect(() => {
-    if (suppressStoreToUrlRef.current) {
-      suppressStoreToUrlRef.current = false
-      return
-    }
-
-    if (view !== state.viewMode) {
-      lastUrlStateRef.current = state.viewMode
-      void setUrlState({ view: state.viewMode })
-    }
-  }, [setUrlState, state.viewMode, view])
-
+    if (!initialized.current) return
+    // URL hydration writes synchronously. Wait for React to render that snapshot;
+    // a persistent "suppress next update" flag can swallow the first user change after remount.
+    const live = useWorkspaceStore.getState()
+    if (live.viewMode !== state.viewMode || live.cardLayout !== state.cardLayout || live.trellisNavigation !== state.navigation) return
+    if (!state.touched) return
+    const next = { view: state.viewMode, layout: state.viewMode === 'cards' ? state.cardLayout : null,
+      navigation: state.viewMode === 'cards' && state.cardLayout === 'trellis' ? state.navigation : null }
+    const nextSignature = JSON.stringify([next.view, next.layout, next.navigation])
+    if (signature !== nextSignature) { last.current = nextSignature; void setUrlState(next) }
+  }, [state.viewMode, state.cardLayout, state.navigation, state.touched, signature, setUrlState])
   return null
 }

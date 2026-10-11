@@ -1,0 +1,89 @@
+.xaihi-trellis {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: var(--background); color: var(--foreground);
+}
+.xaihi-trellis .trellis {
+  --trellis-bg: var(--background); --trellis-stage: var(--muted);
+  --trellis-panel: var(--card); --trellis-tabbar: var(--muted);
+  --trellis-tab-active: var(--card); --trellis-tab-hover: var(--accent);
+  --trellis-text: var(--foreground); --trellis-text-muted: var(--muted-foreground);
+  --trellis-border: var(--border); --trellis-accent: var(--primary);
+  --trellis-accent-contrast: var(--primary-foreground); --trellis-slot: var(--muted);
+  --trellis-menu: var(--popover); --trellis-menu-hover: var(--accent);
+  --trellis-radius: var(--radius); --trellis-tab-radius: var(--radius);
+  --trellis-font: var(--font-app-sans, system-ui); --trellis-tabbar-height: 36px;
+  --trellis-gap: 6px;
+}
+.xaihi-trellis-toolbar {
+  display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
+  padding: 5px 8px; border-bottom: 1px solid var(--border); background: var(--card);
+  flex-shrink: 0;
+}
+.xaihi-trellis-toolbar button { font-size: 11px; gap: 5px; }
+.xaihi-trellis-toolbar button > svg { width: 18px !important; height: 18px !important; min-width: 18px; flex-shrink: 0; }
+.xaihi-trellis-modes { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius); }
+.xaihi-trellis-modes button { height: 26px; padding-inline: 9px; }
+.xaihi-trellis-divider { height: 18px; width: 1px; background: var(--border); margin-inline: 5px; }
+.xaihi-trellis-spacer { flex: 1; }
+.xaihi-trellis-save-status { display: flex; align-items: center; gap: 4px; color: var(--muted-foreground); font-size: 10px; padding-inline: 6px; }
+.xaihi-trellis-canvas { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.xaihi-trellis-node { position: relative; height: 100%; min-height: 0; overflow: hidden; background: var(--card); }
+.xaihi-trellis-node > :first-child { height: 100%; }
+.xaihi-trellis-node-tools { display: flex; gap: 2px; }
+.xaihi-trellis-empty, .xaihi-trellis-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 14px; color: var(--muted-foreground); font-size: 12px; padding: 24px; }
+.xaihi-trellis-name { width: 100%; border: 1px solid var(--input); border-radius: var(--radius); padding: 6px 8px; font-size: 12px; background: var(--background); color: var(--foreground); }
+.xaihi-trellis-name:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.xaihi-trellis-notice { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 8px 12px; font-size: 12px; border-bottom: 1px solid var(--border); background: var(--muted); }
+.xaihi-trellis-notice span { flex: 1; min-width: 180px; }
+.xaihi-trellis-map { position: absolute; right: 12px; bottom: 12px; width: 112px; height: 84px; z-index: 2; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); opacity: .7; transition: opacity .15s; }
+.xaihi-trellis-map:hover, .xaihi-trellis-map:focus-within { opacity: 1; }
+.xaihi-trellis-map-panel { fill: var(--muted); stroke: var(--muted-foreground); stroke-width: .5; cursor: pointer; }
+.xaihi-trellis-map-panel:hover, .xaihi-trellis-map-panel:focus-visible { fill: var(--accent); stroke: var(--primary); outline: none; }
+.xaihi-trellis-map-camera { fill: transparent; stroke: var(--primary); stroke-width: 1.5; pointer-events: none; }
+.xaihi-trellis-drop, .xaihi-trellis-exit { position: absolute; left: 50%; transform: translateX(-50%); z-index: 5; }
+.xaihi-trellis-drop { top: 12px; padding: 8px 12px; border: 1px solid var(--primary); border-radius: var(--radius); background: var(--card); color: var(--primary); font-size: 12px; pointer-events: none; }
+.xaihi-trellis-exit { bottom: 16px; }
+@media (max-width: 640px) { .xaihi-trellis-map { width: 80px; height: 60px; } .xaihi-trellis-save-status { margin-left: auto; } }
+@media (prefers-reduced-motion: reduce) { .xaihi-trellis-map { transition: none; } }
+/* Controls render through a portal into the single app caption bar. */
+.xaihi-toolbar-slot { -webkit-app-region: no-drag; }
+.xaihi-app-region-no-drag { -webkit-app-region: no-drag; }
+.xaihi-toolbar-slot .xaihi-trellis-toolbar { flex-wrap: nowrap; padding: 0; border: 0; background: transparent; gap: 0; }
+.xaihi-toolbar-slot .xaihi-trellis-save-status { padding-inline: 4px; white-space: nowrap; }
+.xaihi-trellis-status-dot { width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: var(--muted-foreground); }
+.xaihi-trellis-status-saved { background: var(--primary); }
+.xaihi-trellis-status-error, .xaihi-trellis-status-conflict { background: var(--destructive); }
+.xaihi-trellis-status-session { background: var(--muted-foreground); }
+/* Quiet hierarchy: mode, navigation cluster, then secondary workspace tools. */
+.xaihi-toolbar-slot .xaihi-trellis-toolbar { gap: 3px; }
+.xaihi-trellis-navigation-group { display: flex; align-items: center; gap: 1px; padding: 2px; border-radius: 10px; background: color-mix(in srgb, var(--muted) 65%, transparent); }
+.xaihi-toolbar-slot .xaihi-trellis-toolbar button { width: 30px; height: 30px; border-radius: 8px; color: var(--muted-foreground); }
+.xaihi-toolbar-slot .xaihi-trellis-toolbar button:not(:disabled):hover,
+.xaihi-toolbar-slot .xaihi-trellis-toolbar button[data-state="open"] { background: var(--accent); color: var(--foreground); }
+.xaihi-toolbar-slot .xaihi-trellis-toolbar button:disabled { opacity: .3; }
+.xaihi-toolbar-slot .xaihi-trellis-toolbar button > svg { stroke-width: 1.75; }
+.xaihi-toolbar-slot .xaihi-trellis-divider { height: 16px; margin-inline: 3px; opacity: .6; }
+.xaihi-trellis-map-anchor { position: absolute; bottom: 16px; width: 112px; height: 84px; z-index: 2; }
+.xaihi-trellis-map-bottom-left { left: 12px; }
+.xaihi-trellis-map-bottom-right { right: 12px; }
+.xaihi-trellis-map-anchor .xaihi-trellis-map { inset: 0; }
+.xaihi-trellis-map-inline { position: static; display: block; width: 100%; height: 144px; opacity: 1; }
+@media (max-width: 640px) {
+  .xaihi-toolbar-slot .xaihi-trellis-toolbar { gap: 1px; }
+  .xaihi-toolbar-slot .xaihi-trellis-toolbar button { width: 27px; height: 28px; }
+  .xaihi-toolbar-slot .xaihi-trellis-divider { margin-inline: 1px; }
+  .xaihi-trellis-map-anchor { width: 80px; height: 60px; }
+  .xaihi-trellis-map-inline { width: 100%; height: 144px; }
+}
+
+/* Primary navigation stays visible; secondary controls scroll without shrinking their icons. */
+.xaihi-toolbar-slot { min-width: 164px; }
+.xaihi-toolbar-slot .xaihi-trellis-toolbar { width: 100%; }
+.xaihi-trellis-navigation-group { flex-shrink: 0; }
+.xaihi-trellis-secondary-tools { display: flex; align-items: center; gap: 3px; min-width: 30px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.xaihi-trellis-secondary-tools::-webkit-scrollbar { display: none; }
+.xaihi-trellis-secondary-tools > * { flex-shrink: 0; }
+@media (max-width: 640px) {
+  .xaihi-toolbar-slot { min-width: 145px; }
+  .xaihi-trellis-secondary-tools { gap: 1px; min-width: 27px; }
+}

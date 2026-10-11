@@ -81,7 +81,6 @@ export function FloatingComponentWindow({ compId, windowId, moduleIdFallback, wo
       workspaceId: workspaceIdFallback ?? activeWorkspaceId,
       flowPosition: { x: 100, y: 100 },
       flowSize: { width: 384, height: 320 },
-      dockPanel: "default",
       createdAt: now,
       updatedAt: now,
     }

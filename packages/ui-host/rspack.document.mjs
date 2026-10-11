@@ -8,7 +8,7 @@ import { assertAliasTargets, BROWSER_GRAPH_ALIASES } from './build-aliases.mjs'
  * Xaihi 文档那一侧（React 19）的浏览器产物。
  *
  * 为什么这一份用 rspack 而不是本包其余两份用的 tsdown：搬进来的界面树里有
- * 真 CSS 与 `?url` 资源引用（实测 `src/index.css`、`dockview.css`、`gridstack.min.css`、
+ * 真 CSS 与 `?url` 资源引用（实测 `src/index.css`、
  * `findz/treemap.css`、`src/assets/tldraw-zh-cn.json?url`），tsdown 直答
  * "`@tsdown/css` is not installed" 与 `UNLOADABLE_DEPENDENCY`，而这两类rspack 原生就吃
  * （`type: 'css/mini-extract'` 与 `type: 'asset'` + resourceQuery）。
@@ -147,9 +147,6 @@ export const documentBase = {
       // 所以子路径逐条给绝对文件，不指望前缀匹配。
       'react-dom/client': require.resolve('react-dom-19/client'),
       'react-dom/server': require.resolve('react-dom-19/server'),
-      '@xyflow/react/dist/style.css': path.join(here, 'src/vendor/xyflow-stub.css'),
-      '@xyflow/react$': path.join(here, 'src/vendor/xyflow-stub.tsx'),
-      '@xyflow/react': path.join(here, 'src/vendor/xyflow-stub.tsx'),
       ...aliasesFromTsconfig(),
       ...browserGraphAliases(),
     },
@@ -184,6 +181,7 @@ export const documentBase = {
   },
   experiments: { css: true },
   plugins: [
+    new rspack.CopyRspackPlugin({ patterns: [{ from: path.join(here, "licenses/trellis"), to: "licenses/trellis" }] }),
     new rspack.DefinePlugin({
       'import.meta.env': '({ DEV: false, PROD: true, MODE: "production", VITE_APP_VERSION: "0.0.0", VITE_XIRANITE_FRONTEND_DEV_URL: "", VITE_XIRANITE_BACKEND_URL: "", VITE_XIRANITE_BACKEND_TOKEN: "" })',
       'import.meta.env.DEV': JSON.stringify(false),

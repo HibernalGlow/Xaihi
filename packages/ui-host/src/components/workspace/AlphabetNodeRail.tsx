@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react"
 import { ExternalLink } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { MODULE_REGISTRY } from "@/components/modules/registry"
@@ -11,11 +11,15 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useWindowControls } from "@/hooks/useWindowControls"
 import { useWorkspaceActions, useWorkspaceShallowSelector } from "@/store/workspaceStore"
+import { BuoyantNodeRail } from "./BuoyantNodeRail"
 import type { ComponentInstance, ModuleDef } from "@/types/workspace"
 
 export const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")
 
 const DEFAULT_INITIAL_INDEX = ALPHABET.indexOf("A")
+
+/** 26 个全集的**下标**。步进函数的默认停靠集合就是它，等于「不要过滤」那一路的旧行为。 */
+const ALL_ALPHABET_INDEXES: number[] = ALPHABET.map((_, index) => index)
 
 const RAIL_STYLE_CLASSES = {
   glass: "border-border/70 bg-card/90 shadow-md shadow-black/10 backdrop-blur-md",
@@ -34,9 +38,38 @@ export function getModulesForInitial(initial: string, modules: readonly ModuleDe
   return modules.filter((module) => module.name.toLocaleUpperCase().startsWith(normalized))
 }
 
-export function getNextAlphabetIndex(index: number, direction: number): number {
+/**
+ * 索引条上真正列出来的首字母。
+ *
+ * `hideEmpty` 关着时就是全长 26 格（位置固定，字母不随插件增删而挪位）；开着时只留
+ * **至少有一个节点**的首字母。判据复用悬停那栏的同一个 `getModulesForInitial`——
+ * 两处各写一份"哪个字母有节点"就会漂移（"内部字母不算首字母"是这条规则的一部分，
+ * `getModulesForInitial` 的既有用例已经钉住了它）。
+ */
+export function getVisibleInitials(modules: readonly ModuleDef[], hideEmpty: boolean): string[] {
+  if (!hideEmpty) return ALPHABET
+  return ALPHABET.filter((letter) => getModulesForInitial(letter, modules).length > 0)
+}
+
+/**
+ * 在**允许停靠的**字母之间滚动一格。
+ *
+ * `allowed` 是下标的列表（升序），默认全集 ⇒ 行为与加这个参数之前逐字一致。
+ * 传进过滤后的集合时，滚轮/方向键自然跳过被收起来的字母，不会停在看不见的格子上。
+ */
+export function getNextAlphabetIndex(
+  index: number,
+  direction: number,
+  allowed: readonly number[] = ALL_ALPHABET_INDEXES,
+): number {
+  const first = allowed[0]
+  if (first === undefined) return index
+  // 当前停的地方不在集合里（刚打开隐藏空字母、或插件增删改了首字母集合）：落到最前那一个，
+  // 由调用方下一次滚动带着方向继续走。这里返回 `index` 之外的任何值都比"停在看不见的格子"诚实。
+  const position = allowed.indexOf(index)
+  if (position === -1) return first
   const step = direction < 0 ? -1 : 1
-  return (index + step + ALPHABET.length) % ALPHABET.length
+  return allowed[(position + step + allowed.length) % allowed.length] ?? index
 }
 
 export function AlphabetNodeRail() {
@@ -50,59 +83,137 @@ export function AlphabetNodeRail() {
     opacity: state.alphabetIndexOpacity,
     style: state.alphabetIndexStyle,
     waveIntensity: state.alphabetIndexWaveIntensity,
+    hideEmpty: state.alphabetIndexHideEmpty,
     zCounter: state.zCounter,
   }))
   const [activeIndex, setActiveIndex] = useState(DEFAULT_INITIAL_INDEX)
   const [open, setOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const [announce, setAnnounce] = useState("")
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const keyboardInteractionRef = useRef(false)
+  const restoreTriggerFocusRef = useRef(false)
   const suppressDeployForModuleRef = useRef<string | null>(null)
-  const activeInitial = ALPHABET[activeIndex] ?? "A"
   const contributed = useContributedModules()
-  const matchingModules = useMemo(
+  const visibleInitials = useMemo(
     // `allModules()` owns the merge so no listing restates it; `contributed` is still the dependency
     // because it is what makes this component re-render when a plugin contributes or un-contributes.
+    () => getVisibleInitials(allModules(), appearance.hideEmpty),
+    [appearance.hideEmpty, contributed],
+  )
+  const visibleIndexes = useMemo(
+    () => visibleInitials.map((letter) => ALPHABET.indexOf(letter)),
+    [visibleInitials],
+  )
+  // 被收起来的那个字母不许当停靠点：先落到最前一个可见字母（state 随后由下面的 effect 跟上），
+  // 否则 `activeInitial` 会让 `PopoverAnchor` 整条缺席——弹出层会脱锚落在屏幕角落。
+  const settledIndex = visibleIndexes.includes(activeIndex)
+    ? activeIndex
+    : visibleIndexes[0] ?? activeIndex
+  const activeInitial = ALPHABET[settledIndex] ?? "A"
+  const matchingModules = useMemo(
     () => getModulesForInitial(activeInitial, allModules()),
     [activeInitial, contributed],
   )
-  const popoverAlign = activeIndex <= 8 ? "start" : activeIndex >= 17 ? "end" : "center"
+  const popoverAlign = settledIndex <= 8 ? "start" : settledIndex >= 17 ? "end" : "center"
+  // 每格宽度固定：字母少了就把整条按比例收短（居中），不去把剩下的字母摊开成一排空旷的格子。
+  const railWidthRatio = visibleInitials.length / ALPHABET.length
+
+  useEffect(() => {
+    if (visibleIndexes.includes(activeIndex)) return
+    const fallback = visibleIndexes[0]
+    if (fallback === undefined) return
+    setActiveIndex(fallback)
+  }, [visibleIndexes, activeIndex])
 
   useEffect(() => () => {
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
   }, [])
+
+  const collapse = useCallback(() => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = null
+    setOpen(false)
+    setExpanded(false)
+  }, [])
+
+  useEffect(() => {
+    if (expanded || !restoreTriggerFocusRef.current) return
+    // Restoring focus must not immediately wake the capsule again.
+    const trigger = document.querySelector<HTMLButtonElement>('[data-testid="alphabet-node-capsule"]')
+    trigger?.focus({ preventScroll: true })
+    restoreTriggerFocusRef.current = false
+  }, [expanded])
 
   const keepOpen = useCallback(() => {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current)
       closeTimerRef.current = null
     }
+    setExpanded(true)
   }, [])
 
   const scheduleClose = useCallback(() => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
     closeTimerRef.current = setTimeout(() => {
-      setOpen(false)
-      closeTimerRef.current = null
-    }, 140)
-  }, [])
+      const focused = document.activeElement
+      if (keyboardInteractionRef.current && focused?.closest('[data-testid="alphabet-node-rail"], [data-testid="alphabet-node-results"]')) return
+      collapse()
+    }, 360)
+  }, [collapse])
+
+  const handleFocus = useCallback((event: FocusEvent<HTMLElement>) => {
+    if (restoreTriggerFocusRef.current) return
+    if (event.target.matches(":focus-visible")) keyboardInteractionRef.current = true
+    keepOpen()
+  }, [keepOpen])
+
+  const handleBlur = useCallback((event: FocusEvent<HTMLElement>) => {
+    const next = event.relatedTarget as Element | null
+    if (next?.closest('[data-testid="alphabet-node-rail"], [data-testid="alphabet-node-results"]')) return
+    scheduleClose()
+  }, [scheduleClose])
+
+  const handleKeyDown = useCallback((event: KeyboardEvent<HTMLElement>) => {
+    keyboardInteractionRef.current = true
+    if (event.key === "Escape") {
+      event.preventDefault()
+      event.stopPropagation()
+      restoreTriggerFocusRef.current = true
+      collapse()
+      return
+    }
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return
+    event.preventDefault()
+    const next = event.key === "Home" ? visibleIndexes[0]
+      : event.key === "End" ? visibleIndexes[visibleIndexes.length - 1]
+      : getNextAlphabetIndex(settledIndex, event.key === "ArrowLeft" ? -1 : 1, visibleIndexes)
+    if (next === undefined) return
+    const letter = ALPHABET[next]
+    document.getElementById(`alphabet-node-letter-${letter}`)?.focus()
+  }, [collapse, settledIndex, visibleIndexes])
 
   const handleWheel = useCallback((event: WheelEvent<HTMLElement>) => {
     if (event.deltaY === 0) return
     event.preventDefault()
     event.stopPropagation()
+    keepOpen()
     setOpen(true)
-    setActiveIndex((current) => getNextAlphabetIndex(current, event.deltaY < 0 ? 1 : -1))
-  }, [])
+    setActiveIndex((current) => getNextAlphabetIndex(current, event.deltaY < 0 ? 1 : -1, visibleIndexes))
+  }, [keepOpen, visibleIndexes])
 
   const selectInitial = useCallback((index: number) => {
+    keepOpen()
     setActiveIndex(index)
     setOpen(true)
-  }, [])
+  }, [keepOpen])
 
   const deployModule = useCallback((module: ModuleDef) => {
     workspaceActions.deployComponent(module.id, appearance.viewMode)
-    setAnnounce(`${module.name} was added to the current view.`)
-    setOpen(false)
-  }, [appearance.viewMode, workspaceActions])
+    setAnnounce(t("common:alphabetLauncher.added", { name: module.name }))
+    if (keyboardInteractionRef.current) restoreTriggerFocusRef.current = true
+    collapse()
+  }, [appearance.viewMode, collapse, t, workspaceActions])
 
   const selectModule = useCallback((module: ModuleDef) => {
     if (suppressDeployForModuleRef.current === module.id) {
@@ -138,7 +249,6 @@ export function AlphabetNodeRail() {
       workspaceId: appearance.activeWorkspaceId,
       flowPosition: { x: 100, y: 100 },
       flowSize: { width: 384, height: 320 },
-      dockPanel: "default",
       createdAt: now,
       updatedAt: now,
     }
@@ -164,37 +274,48 @@ export function AlphabetNodeRail() {
   }, [appearance.activeWorkspaceId, appearance.zCounter, openComponent, t, workspaceActions])
 
   if (!appearance.visible) return null
+  // 一个可见字母都没有（只可能发生在"隐藏空字母"开着、且没有任何节点时）：留着一条空壳既点不出东西
+  // 也没有锚点，直接不渲染。等有节点进来时 `contributed` 变化会把这一条带回来。
+  if (visibleInitials.length === 0) return null
 
   return (
-    <section
-      className="xiranite-ui-copy pointer-events-auto absolute inset-x-2 bottom-1 z-20 mx-auto"
-      aria-label="Alphabetical node launcher"
-      data-testid="alphabet-node-rail"
-      onPointerEnter={() => {
+    <BuoyantNodeRail
+      expanded={expanded}
+      widthRatio={railWidthRatio}
+      surfaceClassName={RAIL_STYLE_CLASSES[appearance.style]}
+      onExpand={() => {
+        if (document.activeElement?.getAttribute("data-testid") === "alphabet-node-capsule" && !expanded && restoreTriggerFocusRef.current) return
         keepOpen()
-        setOpen(true)
       }}
+      aria-label={t("common:alphabetLauncher.label")}
+      data-testid="alphabet-node-rail"
+      onPointerEnter={keepOpen}
+      onPointerDownCapture={() => { keyboardInteractionRef.current = false }}
+      onKeyDownCapture={handleKeyDown}
       onPointerLeave={scheduleClose}
-      onFocusCapture={keepOpen}
-      onBlurCapture={scheduleClose}
+      onFocusCapture={handleFocus}
+      onBlurCapture={handleBlur}
       onWheel={handleWheel}
       style={{
         opacity: appearance.opacity / 100,
-        width: "min(760px, calc(100vw - 1rem))",
       }}
     >
-      <Popover open={open} onOpenChange={setOpen}>
-        <div className={cn("flex h-7 w-full items-center rounded-full border px-1", RAIL_STYLE_CLASSES[appearance.style])}>
+      <Popover open={open} onOpenChange={(next) => {
+        if (next) { keepOpen(); setOpen(true) }
+        else collapse()
+      }}>
+        <div className="flex h-7 w-full items-center px-1">
           <div
             className="grid w-full items-center"
-            style={{ gridTemplateColumns: "repeat(26, minmax(0, 1fr))" }}
-            aria-label="Alphabet selector"
+            style={{ gridTemplateColumns: `repeat(${visibleInitials.length}, minmax(0, 1fr))` }}
+            aria-label={t("common:alphabetLauncher.letters")}
             role="listbox"
             aria-activedescendant={`alphabet-node-letter-${activeInitial}`}
           >
-            {ALPHABET.map((letter, index) => {
-              const active = index === activeIndex
-              const distance = Math.abs(index - activeIndex)
+            {visibleInitials.map((letter) => {
+              const index = ALPHABET.indexOf(letter)
+              const active = index === settledIndex
+              const distance = Math.abs(index - settledIndex)
               const nearScale = distance === 1
                 ? 1 + appearance.waveIntensity / 2500
                 : distance === 2
@@ -215,11 +336,13 @@ export function AlphabetNodeRail() {
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   style={{ transform: `scale(${active ? 1 + appearance.waveIntensity / 1000 : nearScale})` }}
+                  tabIndex={expanded && active ? 0 : -1}
                   aria-selected={active}
-                  aria-label={`${letter}, ${getModulesForInitial(letter).length} matching nodes`}
-                  title={`${letter}: ${getModulesForInitial(letter).length} nodes`}
+                  aria-label={t("common:alphabetLauncher.matches", { letter, count: getModulesForInitial(letter, allModules()).length })}
+                  title={t("common:alphabetLauncher.matches", { letter, count: getModulesForInitial(letter, allModules()).length })}
                   onPointerEnter={() => selectInitial(index)}
                   onFocus={() => selectInitial(index)}
+                  onClick={() => selectInitial(index)}
                   data-letter-index={index}
                   data-testid={`alphabet-node-letter-${letter}`}
                   role="option"
@@ -242,13 +365,16 @@ export function AlphabetNodeRail() {
           onCloseAutoFocus={(event) => event.preventDefault()}
           onPointerEnter={keepOpen}
           onPointerLeave={scheduleClose}
+          onFocusCapture={handleFocus}
+          onBlurCapture={handleBlur}
+          onPointerDownCapture={() => { keyboardInteractionRef.current = false }}
           onWheel={(event) => event.preventDefault()}
           data-testid="alphabet-node-results"
         >
           <Command key={activeInitial} loop>
             <CommandList className="!max-h-none !overflow-visible">
-              <CommandEmpty>No nodes beginning with {activeInitial}</CommandEmpty>
-              <CommandGroup heading={`${activeInitial} · ${matchingModules.length} nodes`}>
+              <CommandEmpty>{t("common:alphabetLauncher.empty", { letter: activeInitial })}</CommandEmpty>
+              <CommandGroup heading={t("common:alphabetLauncher.matches", { letter: activeInitial, count: matchingModules.length })}>
                 {matchingModules.map((module) => (
                   <CommandItem
                     key={module.id}
@@ -284,6 +410,6 @@ export function AlphabetNodeRail() {
         </PopoverContent>
       </Popover>
       <span className="sr-only" aria-live="polite">{announce}</span>
-    </section>
+    </BuoyantNodeRail>
   )
 }

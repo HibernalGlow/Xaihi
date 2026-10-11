@@ -1,6 +1,15 @@
 {
   "common": {
-    "appName": "XIRANITE",
+    "alphabetLauncher": {
+      "nodes": "节点",
+      "label": "按字母查找节点",
+      "expand": "展开节点字母索引",
+      "letters": "节点首字母",
+      "matches": "{{letter}} · {{count}} 个节点",
+      "empty": "没有以 {{letter}} 开头的节点",
+      "added": "已将 {{name}} 添加到当前视图。"
+    },
+    "appName": "XAIHI",
     "version": "v{{version}}",
     "search": "搜索",
     "searchPlaceholder": "搜索...",
@@ -66,6 +75,22 @@
     }
   },
   "topbar": {
+    "compactView": {
+      "loop": "循环切换",
+      "loopHint": "开启后，左右滑动可首尾循环；默认关闭。",
+      "setDefault": "将当前视图设为启动默认",
+      "isDefault": "当前视图已是启动默认",
+      "save": {"pending":"正在保存到宿主…","saved":"已保存，下次启动生效。","error":"保存未完成，可重试；若版本冲突请重新加载并确认。"},
+      "defaultHint": "下次启动打开此模式；分享链接可指定其他视图。",
+
+      "current": "当前视图：{{name}}",
+      "views": "视图模式",
+      "layouts": "卡片子布局",
+      "gesture": "点击选择 · 左右滑动",
+      "release": "松手切换",
+      "releaseAction": "松手执行",
+      "down": "向下滑动选子模式"
+    },
     "viewMode": {
       "dashboard": "仪表盘",
       "dashboardHint": "使用数据分析",
@@ -88,7 +113,9 @@
       "split": "分屏",
       "splitHint": "两列",
       "focus": "聚焦",
-      "focusHint": "主卡 + 缩略"
+      "focusHint": "主卡 + 缩略",
+      "trellis": "分形",
+      "trellisHint": "递归分割 · 层级聚焦 / 自由缩放"
     },
     "theme": {
       "label": "主题",
@@ -542,13 +569,13 @@
       "cardElevationDesc": "高亮表面的细微顶部边框光泽"
     },
     "wheel": {
-      "actions": "轮盘扇区",
-      "actionsDesc": "拖动排序；移到「已隐藏」的动作不出现在右上角轮盘上",
-      "visibleActions": "在轮盘上",
+      "actions": "右上角快捷操作",
+      "actionsDesc": "拖动排序；移到「已隐藏」的动作不出现在右上角快捷操作中",
+      "visibleActions": "显示的操作",
       "hiddenActions": "已隐藏",
       "dragAction": "拖动 {{action}}",
       "resetActions": "恢复默认",
-      "overflow": "{{count}} 个动作超出扇区上限，未显示",
+      "overflow": "{{count}} 个动作超出显示上限，未显示",
       "radius": "半径",
       "spacing": "每格角度",
       "radiusValue": "{{value}} px",
@@ -615,6 +642,8 @@
       "description": "位于工作区底部的紧凑节点启动器。悬停字母浏览对应节点，点击节点即可添加。",
       "visible": "显示字母索引",
       "visibleDesc": "让启动器常驻在工作区底部。",
+      "hideEmpty": "隐藏空字母",
+      "hideEmptyDesc": "只留能对上节点的首字母，其余字母从索引条上收起。",
       "style": "样式",
       "styles": {
         "glass": "玻璃",
@@ -916,6 +945,75 @@
     "drag": "拖动移动面板"
   },
   "view": {
+    "trellis": {
+      "mapOptions": "区域导航",
+      "mapPosition": "显示位置",
+      "mapPositions": {"toolbar": "顶栏弹出（推荐）", "bottom-left": "左下角", "bottom-right": "右下角", "hidden": "隐藏"},
+      "mapHint": "顶栏弹出只在需要时显示，不遮挡工作台。",
+
+      "explanation": {
+        "focus": "层级聚焦：双击面板或标签栏，将面板自动适配到视口；再次双击返回。按 Esc 或“上一级”逐级退出，适合专心操作一个面板或分组。",
+        "free": "自由缩放：保留层级聚焦的双击导航，另外支持捏合、平移和框选缩放。缩放或平移结束后会自动吸附到合适的面板或分组，适合在多个区域之间探索。"
+      },
+      "serviceUnavailable": "当前宿主尚未提供布局保存服务。当前布局仅在本次会话保留，宿主更新后可重新连接。",
+      "workspace": "分形工作台",
+      "toolbar": "分形布局工具栏",
+      "navigation": "导航模式",
+      "focus": "层级聚焦",
+      "free": "自由缩放",
+      "maximize": "聚焦此面板 / 返回原视野",
+      "back": "返回上一视野",
+      "forward": "前进到下一视野",
+      "parent": "上一级（Esc）",
+      "overview": "总览 / 返回",
+      "map": "布局定位图",
+      "locatePanel": "定位 {{name}}",
+      "saveView": "保存视点",
+      "viewName": "视点名称",
+      "viewpoints": "视点 {{count}}",
+      "removeView": "删除视点 {{name}}",
+      "hidden": "隐藏 {{count}}",
+      "restore": "恢复 {{name}}",
+      "help": "交互指南与出处",
+      "empty": "添加节点，开始组织你的分形工作台。",
+      "windowHint": "在工作台之外打开这个节点。画布内悬浮可以使用面板菜单。",
+      "windowUnavailable": "当前宿主未提供独立节点窗口。你仍可使用画布内悬浮。",
+      "attribution": "布局与导航由 Dan Fessler 的 Trellis 0.3.0 提供。当前按个人非商业用途使用；原文许可随 Xaihi 分发。",
+      "conflict": "{{writer}} 已保存第 {{revision}} 版。你的布局仍保留在本次会话中，请选择采用哪一份。",
+      "useRemote": "采用已保存布局",
+      "keepLocal": "保存我的布局",
+      "saveError": "布局未保存：{{reason}}。当前编辑仍保留在本次会话中。",
+      "retry": "重新连接",
+      "phase": {
+        "queued": "排队",
+        "running": "运行中",
+        "completed": "完成",
+        "error": "出错",
+        "cancelled": "已取消"
+      },
+      "storage": {
+        "session": "仅本次会话保存",
+        "loading": "正在读取布局…",
+        "saved": "已保存",
+        "saving": "正在保存…",
+        "error": "未保存",
+        "conflict": "版本冲突"
+      },
+      "gestures": {
+        "organize": "拖动标签可合并面板或拖向边缘递归分割；拖动标签栏空白处可移动整组。拖动分隔线调整比例，双击分隔线均分。面板菜单可悬浮或隐藏；隐藏后从工具栏恢复。",
+        "focus": "双击标签栏聚焦面板，再次双击返回。Esc 返回上一级；工具栏提供前进、后退、总览和命名视点。",
+        "free": "普通滚轮滚动节点内容；双指捏合缩放画布。按住 ⌘+⌥（Windows / Linux：Ctrl+Alt）拖动平移，加 V 拖动缩放，加 Shift 框选缩放；按住同一组合键滚轮逐级导航。"
+      },
+      "menu": {
+        "maximize": "聚焦 / 返回原视野",
+        "float": "画布内悬浮",
+        "dock": "返回停靠",
+        "move": "移至标签组",
+        "split-right": "向右分割",
+        "split-below": "向下分割",
+        "hide": "隐藏面板"
+      }
+    },
     "deletions": {
       "title": "已删除文件",
       "subtitle": "跨节点删除台账",
@@ -1501,115 +1599,6 @@
       "pathRequired": "请先选择 Wallpaper Engine 工坊目录，或先完成一次扫描。",
       "deleteRequiresSelection": "删除前请先在画廊中选择至少一个项目。",
       "exportRequiresPath": "导出需要目标文件路径。"
-    },
-    "bandia": {
-      "name": "Bandia",
-      "description": "使用 Bandizip 批量提取、压缩、重打包并导出归档路径。",
-      "title": "bandia",
-      "run": "运行",
-      "pasteInput": "粘贴输入",
-      "exportEfu": "导出 EFU",
-      "copyResults": "复制结果",
-      "copyLogs": "复制日志",
-      "reset": "重置",
-      "extract": "提取",
-      "compress": "压缩",
-      "dryRun": "预演",
-      "live": "实时",
-      "delete": "删除",
-      "trash": "回收站",
-      "parallel": "并行",
-      "deleteSource": "删除源文件",
-      "workers": "工作线程数",
-      "prefix": "前缀",
-      "overwrite": "覆盖",
-      "outputDir": "输出目录",
-      "archivePaths": "归档路径",
-      "sourcePaths": "源路径",
-      "placeholderArchivePaths": "每行一个 .zip/.7z/.rar 路径",
-      "placeholderSourcePaths": "每行一个要压缩的文件夹/文件",
-      "mappings": "映射",
-      "done": "完成",
-      "failed": "失败",
-      "efu": "EFU",
-      "progress": {
-        "start": "{{action}}开始"
-      },
-      "noResult": "无结果",
-      "starting": "启动中",
-      "ok": "成功",
-      "fail": "失败",
-      "meta": "{{mode}} / {{state}} / {{archives}} 个归档 / {{mappings}} 个映射",
-      "modes": {
-        "extract": "提取",
-        "compress": "压缩"
-      },
-      "extractModes": {
-        "auto": "自动",
-        "normal": "普通"
-      },
-      "status": {
-        "idle": "就绪",
-        "running": "运行中",
-        "success": "完成",
-        "error": "失败"
-      },
-      "desc": {
-        "idle": "粘贴路径或映射后即可预演。",
-        "running": "Bandia 正在处理当前队列。",
-        "success": "上次任务已完成。",
-        "error": "上次任务失败，请查看结果和日志。"
-      },
-      "actions": {
-        "stop": "停止",
-        "exportEfu": "导出 EFU",
-        "copyResults": "复制结果",
-        "clearState": "清空状态",
-        "confirmExecute": "确认执行",
-        "runLabel": "{{mode}}{{action}}"
-      },
-      "labels": {
-        "task": "任务",
-        "taskHint": "选择解压、压缩或重打包；危险写入默认以预演保护。",
-        "switches": "关键开关",
-        "advanced": "高级选项"
-      },
-      "confirm": {
-        "title": "确认真实执行 Bandia？",
-        "description": "当前关闭了预演，并启用了删除源文件相关选项。请确认路径、映射和回收站策略无误后再继续。"
-      },
-      "summary": {
-        "failed": "{{count}} 个失败",
-        "archives": "{{count}} 个归档 / {{mode}}",
-        "items": "{{count}} 项 / {{mode}}"
-      },
-      "subtitle": {
-        "full": "{{label}} / {{mode}} / {{count}} 项"
-      },
-      "tabs": {
-        "results": "结果",
-        "logs": "日志"
-      },
-      "aria": {
-        "running": "bandia running"
-      },
-      "error": {
-        "noRunEnv": "当前环境没有本地运行能力，请使用桌面模式或 CLI。",
-        "stopRequested": "已请求停止"
-      },
-      "empty": "无结果",
-      "mode": {
-        "dry": "预演",
-        "live": "真实",
-        "execute": "执行",
-        "liveExecute": "真实执行"
-      },
-      "actionLabel": {
-        "extract": "解压",
-        "compress": "压缩",
-        "repack": "重打包",
-        "export_efu": "导出"
-      }
     },
     "cleanf": {
       "name": "Cleanf",
@@ -3176,32 +3165,9 @@
       "failLabel": "失败",
       "noOperation": "暂无操作"
     },
-    "rawfilter": {
-      "name": "Rawfilter",
-      "description": "将相似归档分组，并将重复/原始版本移至回收站或 multi。",
-      "title": "rawfilter",
-      "meta": "{{phase}} / {{count}} 个归档",
-      "plan": "规划",
-      "run": "运行",
-      "copyPlan": "复制规划",
-      "copyLogs": "复制日志",
-      "reset": "重置",
-      "folder": "文件夹",
-      "pasteFolder": "粘贴文件夹",
-      "similarity": "相似度",
-      "nameOnly": "仅按名称",
-      "shortcuts": "快捷方式",
-      "trashOnly": "仅回收站",
-      "groups": "分组",
-      "trash": "回收",
-      "multi": "multi",
-      "links": "链接",
-      "errors": "错误",
-      "noPlanYet": "暂无规划"
-    },
     "recycleu": {
       "name": "Recycleu",
-      "description": "立即清空 Windows 回收站，或按有限/无限周期定时清空。",
+      "description": "立即清空 Windows 回收站或 macOS 废纸篓，或按有限/无限周期定时清空。",
       "title": "recycleu",
       "meta": "{{phase}} / {{interval}}秒 间隔",
       "start": "启动",

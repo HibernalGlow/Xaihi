@@ -1,0 +1,73 @@
+import { useWorkspaceStore } from '@/store/workspaceStore'
+import { StrictMode } from 'react'
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useTrellisLayout } from '@/lib/trellis/useTrellisLayout'
+import { initialTrellisDocument } from '@/lib/trellis/document'
+import { requestTrellisLayout } from '@/backend/trellisLayouts'
+vi.mock('@/backend/trellisLayouts', async (original) => ({ ...await original<typeof import('@/backend/trellisLayouts')>(), requestTrellisLayout: vi.fn() }))
+const request = vi.mocked(requestTrellisLayout)
+const doc = initialTrellisDocument([{ id: 'a', moduleId: 'logx' }])
+const remote = (revision: number, navigation: 'focus' | 'free' = 'focus') => ({ revision, updatedAt: 1, writer: 'Xaihi other window', document: doc, navigation })
+beforeEach(() => { useWorkspaceStore.setState({ trellisNavigation: null, defaultView: null }); vi.stubGlobal('__XAIHI_UI__', { apiBase: '/xaihi' }); request.mockReset() })
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers() })
+describe('Trellis layout saving and reconnection', () => {
+  it('retains edits when initial load fails, then reads a revision and saves on retry', async () => {
+    request.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ durable: true, reason: null, layout: null }).mockResolvedValueOnce({ durable: true, reason: null, layout: remote(1, 'free') })
+    const { result } = renderHook(() => useTrellisLayout('hook-retry'))
+    await waitFor(() => expect(result.current.status).toBe('error'))
+    act(() => result.current.change(doc, 'free'))
+    await act(() => result.current.retry())
+    expect(result.current.navigation).toBe('free')
+    expect(result.current.document).toEqual(doc)
+    expect(result.current.status).toBe('saved')
+    expect(request.mock.calls[2]?.[1]).toMatchObject({ expectedRevision: 0, navigation: 'free', document: doc })
+  })
+  it('exposes the other writer instead of overwriting pending edits after reconnect', async () => {
+    request.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ durable: true, reason: null, layout: remote(2) }).mockResolvedValueOnce({ durable: true, reason: null, layout: remote(3, 'free') })
+    const { result } = renderHook(() => useTrellisLayout('hook-conflict'))
+    await waitFor(() => expect(result.current.status).toBe('error'))
+    act(() => result.current.change(doc, 'free'))
+    await act(() => result.current.retry())
+    expect(result.current.status).toBe('conflict')
+    expect(result.current.conflict?.writer).toBe('Xaihi other window')
+    expect(result.current.navigation).toBe('free')
+    await act(async () => result.current.keepLocal())
+    expect(request.mock.calls[2]?.[1]?.expectedRevision).toBe(2)
+    expect(result.current.status).toBe('saved')
+  })
+  it('does not erase failed edits when switching away and back to the workspace', async () => {
+    request.mockRejectedValueOnce(new Error('offline'))
+    const first = renderHook(() => useTrellisLayout('hook-remount'))
+    await waitFor(() => expect(first.result.current.status).toBe('error'))
+    act(() => first.result.current.change(doc, 'free'))
+    first.unmount()
+    request.mockResolvedValueOnce({ durable: true, reason: null, layout: remote(4) })
+    const second = renderHook(() => useTrellisLayout('hook-remount'))
+    await waitFor(() => expect(second.result.current.status).toBe('conflict'))
+    expect(second.result.current.navigation).toBe('free')
+    act(() => second.result.current.acceptRemote())
+    expect(second.result.current.navigation).toBe('focus')
+  })
+  it('coalesces rapid layout edits and reads correctly under StrictMode', async () => {
+    request.mockResolvedValue({ durable: true, reason: null, layout: null })
+    const { result } = renderHook(() => useTrellisLayout('hook-coalesce'), { wrapper: StrictMode })
+    await waitFor(() => expect(result.current.ready).toBe(true))
+    request.mockResolvedValue({ durable: true, reason: null, layout: remote(1, 'free') })
+    vi.useFakeTimers()
+    act(() => { result.current.change(doc, 'focus'); result.current.change(doc, 'free') })
+    await act(() => vi.advanceTimersByTimeAsync(500))
+    expect(request.mock.calls.filter(([, input]) => input)).toHaveLength(1)
+    expect(result.current.status).toBe('saved')
+  })
+  it('shows session-only storage when the host lacks the route and stops writes until reconnect', async () => {
+    request.mockResolvedValue({ available: false, durable: false, reason: 'LAYOUT_SERVICE_UNAVAILABLE', layout: null })
+    const { result } = renderHook(() => useTrellisLayout('hook-old-host'))
+    await waitFor(() => expect(result.current.status).toBe('session'))
+    vi.useFakeTimers()
+    act(() => result.current.change(doc, 'free'))
+    await act(() => vi.advanceTimersByTimeAsync(500))
+    expect(request.mock.calls.filter(([, input]) => input)).toHaveLength(0)
+    expect(result.current.reason).toBe('LAYOUT_SERVICE_UNAVAILABLE')
+  })
+})

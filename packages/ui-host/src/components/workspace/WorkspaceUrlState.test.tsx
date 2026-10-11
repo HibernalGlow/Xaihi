@@ -5,12 +5,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const setOverlay = vi.hoisted(() => vi.fn())
 const setUrlState = vi.hoisted(() => vi.fn())
 const urlState = vi.hoisted(() => ({
-  view: "cards" as const,
+  view: "cards" as "cards" | "flow" | null,
+  layout: "trellis" as "trellis" | null,
+  navigation: "free" as "free" | null,
   workspace: null as string | null,
   settings: null as string | null,
 }))
 const storeState = vi.hoisted(() => ({
-  viewMode: "cards" as const,
+  viewMode: "cards" as "cards" | "flow",
+  cardLayout: "trellis",
+  trellisNavigation: "free",
+  viewModeTouched: true,
   activeWorkspaceId: "ws-1",
   backendReady: true,
   workspaces: [{ id: "ws-1" }],
@@ -25,6 +30,8 @@ vi.mock("nuqs", async () => {
       {
         view: urlState.view,
         workspace: urlState.workspace,
+        layout: urlState.layout,
+        navigation: urlState.navigation,
         settings: urlState.settings,
       },
       setUrlState,
@@ -33,6 +40,7 @@ vi.mock("nuqs", async () => {
 })
 
 vi.mock("@/store/workspaceStore", () => ({
+  useWorkspaceStore: { getState: () => storeState },
   getWorkspaceState: () => ({
     viewMode: storeState.viewMode,
     activeWorkspaceId: storeState.activeWorkspaceId,
@@ -40,6 +48,8 @@ vi.mock("@/store/workspaceStore", () => ({
   useWorkspaceActions: () => ({
     setViewMode: vi.fn(),
     setActiveWorkspace: vi.fn(),
+    setCardLayout: vi.fn(),
+    setTrellisNavigation: vi.fn(),
     setOverlay,
   }),
   useWorkspaceShallowSelector: (select: (state: typeof storeState) => unknown) => select(storeState),
@@ -53,12 +63,30 @@ describe("WorkspaceUrlState settings deep link", () => {
     setUrlState.mockClear()
     urlState.settings = null
     storeState.overlay = null
+    storeState.viewMode = "cards"
+    storeState.viewModeTouched = true
+    urlState.view = "cards"
+    urlState.layout = "trellis"
+    urlState.navigation = "free"
   })
 
   afterEach(() => {
     cleanup()
   })
 
+  it("writes the first user view change after remounting an already matching explicit link", async () => {
+    const { rerender } = render(<WorkspaceUrlState />)
+    expect(setUrlState).not.toHaveBeenCalled()
+    storeState.viewMode = "flow"
+    rerender(<WorkspaceUrlState />)
+    await waitFor(() => expect(setUrlState).toHaveBeenCalledWith({ view: "flow", layout: null, navigation: null }))
+  })
+  it("leaves an unqualified startup URL untouched until the user changes views", () => {
+    urlState.view = null; urlState.layout = null; urlState.navigation = null
+    storeState.viewModeTouched = false
+    render(<WorkspaceUrlState />)
+    expect(setUrlState).not.toHaveBeenCalled()
+  })
   it("[settings.deeplink.open] opens settings overlay for ?settings=workspace", async () => {
     urlState.settings = "workspace"
     render(<WorkspaceUrlState />)

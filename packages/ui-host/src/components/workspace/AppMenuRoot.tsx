@@ -14,6 +14,7 @@ import {
   Trash2,
   Wrench,
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
@@ -48,10 +49,11 @@ export function AppMenuRoot({
   onOpenRegistry,
   onOpenSettings,
 }: AppMenuRootProps) {
+  const { t } = useTranslation()
   return (
     <div data-testid="app-menu" className="p-1.5">
       <div className="flex items-center justify-between px-2.5 pb-2 pt-1">
-        <span className="font-mono text-[10px] font-semibold tracking-[0.18em] text-muted-foreground">XIRANITE</span>
+        <span className="font-mono text-[10px] font-semibold tracking-[0.18em] text-muted-foreground">{t("common:appName")}</span>
         <span className="font-mono text-[9px] tracking-widest text-muted-foreground/55">COMMAND</span>
       </div>
 

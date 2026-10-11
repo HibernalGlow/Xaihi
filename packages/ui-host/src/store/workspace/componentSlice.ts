@@ -23,12 +23,10 @@ export function createComponentSlice(update: WorkspaceStoreUpdater): WorkspaceCo
     moveComponent: (id, x, y) => update("MOVE_COMPONENT", (state) => setComponentPositionState(state, id, x, y)),
     setComponentFlowPos: (id, x, y) => update("SET_COMPONENT_FLOW_POS", (state) => setComponentFlowPosState(state, id, x, y)),
     setComponentFlowSize: (id, width, height) => update("SET_COMPONENT_FLOW_SIZE", (state) => setComponentFlowSizeState(state, id, width, height)),
-    setComponentBentoLayout: (id, layout) => update("SET_COMPONENT_BENTO_LAYOUT", (state) => setComponentBentoLayoutState(state, id, layout)),
     setComponentLaneSize: (id, size) => update("SET_COMPONENT_LANE_SIZE", (state) => setComponentLaneSizeState(state, id, size)),
     setComponentData: (id, data) => update("SET_COMPONENT_DATA", (state) => setComponentDataState(state, id, data)),
     patchComponentData: (id, patch) => update("PATCH_COMPONENT_DATA", (state) => patchComponentDataState(state, id, patch)),
     updateComponent: (id, patch) => update("UPDATE_COMPONENT", (state) => updateComponentState(state, id, patch)),
-    setComponentDockPanel: (id, panelId) => update("SET_COMPONENT_DOCK_PANEL", (state) => setComponentDockPanelState(state, id, panelId)),
     setComponentVisibility: (id, viewMode, visible) =>
       update("SET_COMPONENT_VISIBILITY", (state) => setComponentVisibilityState(state, id, viewMode, visible)),
     toggleComponentVisibility: (id, viewMode) =>
@@ -69,7 +67,7 @@ function isComponentViewMode(viewMode: ViewMode): viewMode is ComponentViewMode 
  *  1. 若指定 viewMode（非 dashboard），通过 hiddenIn 让组件仅在该视图可见；
  *  2. 若工作区没有可见泳道，自动创建一个默认泳道并把组件挂上去；
  *  3. 否则把组件追加到 options.laneId 或第一个可见泳道，并更新该泳道的 cardOrder；
- *  4. 默认布局：position/flowPosition/bentoLayout 按计数器散开避免完全重叠。
+ *  4. 默认布局：position/flowPosition 按计数器散开避免完全重叠。
  */
 function deployComponentState(state: WSState, moduleId: string, options: DeployComponentOptions = {}): WSState {
   const workspace = state.workspaces.find((item) => item.id === state.activeWorkspaceId)
@@ -94,9 +92,7 @@ function deployComponentState(state: WSState, moduleId: string, options: DeployC
     laneId,
     flowPosition: options.flowPosition ?? { x: 100 + (instanceCounter % 4) * 280, y: 100 + Math.floor(instanceCounter / 4) * 200 },
     flowSize: { width: 384, height: 320 },
-    bentoLayout: options.bentoLayout ?? defaultBentoLayout(instanceCounter),
     laneSize: { height: 420 },
-    dockPanel: options.dockPanel ?? "default",
     hiddenIn: deploymentViewMode
       ? (Object.fromEntries(COMPONENT_VIEW_MODES.map((mode) => [mode, mode !== deploymentViewMode])) as Partial<Record<ViewMode, boolean>>)
       : undefined,
@@ -237,31 +233,6 @@ function setComponentFlowSizeState(state: WSState, id: string, width: number, he
   }
 }
 
-/** 设置 Bento 布局（先 normalize 到合法范围，再比较是否真的变化才更新）。 */
-function setComponentBentoLayoutState(
-  state: WSState,
-  id: string,
-  layout: { x: number; y: number; w: number; h: number },
-): WSState {
-  const nextLayout = normalizeBentoLayout(layout)
-  let changed = false
-  const components = state.components.map((component) => {
-    if (component.id !== id) return component
-    const current = component.bentoLayout
-    if (
-      current
-      && current.x === nextLayout.x
-      && current.y === nextLayout.y
-      && current.w === nextLayout.w
-      && current.h === nextLayout.h
-    ) {
-      return component
-    }
-    changed = true
-    return { ...component, bentoLayout: nextLayout, updatedAt: Date.now() }
-  })
-  return changed ? { ...state, components } : state
-}
 
 /** 设置泳道卡片高度，限制在 [220, 1200] 区间。 */
 function setComponentLaneSizeState(state: WSState, id: string, size: { height: number }): WSState {
@@ -347,15 +318,6 @@ function updateComponentState(state: WSState, id: string, patch: ComponentPatch)
   return changed ? { ...state, components, focusedComponentId, fullscreenComponentId } : state
 }
 
-function setComponentDockPanelState(state: WSState, id: string, panelId: string): WSState {
-  return {
-    ...state,
-    components: state.components.map((component) =>
-      component.id === id ? { ...component, dockPanel: panelId, updatedAt: Date.now() } : component,
-    ),
-  }
-}
-
 /** 设置某视图下组件可见性（dashboard 不支持）。值未变时跳过更新。 */
 function setComponentVisibilityState(state: WSState, id: string, viewMode: ViewMode, visible: boolean): WSState {
   if (!isComponentViewMode(viewMode)) return state
@@ -437,29 +399,7 @@ function toggleCollapseState(state: WSState, id: string): WSState {
   }
 }
 
-/** 默认 Bento 布局：按计数器散开，每 5 个一宽、每 7 个一高，避免完全重叠。 */
-function defaultBentoLayout(instanceCounter: number): { x: number; y: number; w: number; h: number } {
-  const index = Math.max(0, instanceCounter - 1)
-  const wide = index % 5 === 0
-  const tall = index % 7 === 2
-  const w = wide ? 6 : 4
-  const h = tall ? 5 : 4
-  return {
-    x: (index % 3) * 4,
-    y: Math.floor(index / 3) * 4,
-    w,
-    h,
-  }
-}
 
-/** 规范化 Bento 布局：w 限制 [2,12]，h 最小 2，x 限制 [0, 12-w]，y 最小 0。 */
-function normalizeBentoLayout(layout: { x: number; y: number; w: number; h: number }) {
-  const w = Math.max(2, Math.min(12, Math.round(layout.w)))
-  const h = Math.max(2, Math.round(layout.h))
-  const x = Math.max(0, Math.min(12 - w, Math.round(layout.x)))
-  const y = Math.max(0, Math.round(layout.y))
-  return { x, y, w, h }
-}
 
 /**
  * 复制单个组件实例。
@@ -503,9 +443,7 @@ function duplicateComponentState(state: WSState, id: string): WSState {
     laneId: source.laneId,
     flowPosition: newFlowPosition,
     flowSize: source.flowSize ? { ...source.flowSize } : undefined,
-    bentoLayout: source.bentoLayout ? { ...source.bentoLayout } : undefined,
     laneSize: source.laneSize ? { ...source.laneSize } : undefined,
-    dockPanel: source.dockPanel,
     data: source.data ? structuredCloneSafe(source.data) : {},
     tags: source.tags ? [...source.tags] : undefined,
     hiddenIn: source.hiddenIn ? { ...source.hiddenIn } : undefined,
@@ -665,9 +603,7 @@ function duplicateComponentsState(state: WSState, ids: string[]): Partial<WSStor
       laneId: source.laneId,
       flowPosition: newFlowPosition,
       flowSize: source.flowSize ? { ...source.flowSize } : undefined,
-      bentoLayout: source.bentoLayout ? { ...source.bentoLayout } : undefined,
       laneSize: source.laneSize ? { ...source.laneSize } : undefined,
-      dockPanel: source.dockPanel,
       data: source.data ? structuredCloneSafe(source.data) : {},
       tags: source.tags ? [...source.tags] : undefined,
       hiddenIn: source.hiddenIn ? { ...source.hiddenIn } : undefined,

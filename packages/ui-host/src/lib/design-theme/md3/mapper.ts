@@ -63,6 +63,7 @@ export const MD3_EMITTED_COMPONENT_SETS: readonly string[] = [
   "scrim",
   "secondary-navigation-tab",
   "sheet-side",
+  "slider",
   "switch",
   "text-button",
 ]

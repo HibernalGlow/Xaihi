@@ -6,11 +6,17 @@
  * 这些类型同时被 store、components、hooks 多层引用，是前端架构的"事实契约"。
  */
 
-/** 工作区视图模式：dashboard（仪表盘）/ cards（卡片堆叠）/ dockview（标签页）/ flow（自由画布）/ lane（泳道）/ bento（栅格）。 */
-export type ViewMode = "dashboard" | "cards" | "dockview" | "flow" | "lane" | "bento"
+/** 工作区视图模式：dashboard（仪表盘）/ cards（分形卡片）/ flow（自由画布）/ lane（泳道）。 */
+export type ViewMode = "dashboard" | "cards" | "flow" | "lane"
 
-/** 卡片在 cards 视图下的布局方式：grid（网格）/ stack（堆叠）/ split（分屏）/ focus（聚焦）。 */
-export type CardLayout = "grid" | "stack" | "split" | "focus"
+/** 卡片在 cards 视图下的布局方式：focus（聚焦）/ trellis（递归分屏与缩放）。 */
+export type CardLayout = "focus" | "trellis"
+
+/** Explicit startup preference, down to the smallest selected layout mode. */
+export type DefaultWorkspaceView =
+  | { viewMode: "flow" | "lane" }
+  | { viewMode: "cards"; cardLayout: "focus" }
+  | { viewMode: "cards"; cardLayout: "trellis"; navigation: "focus" | "free" }
 
 /** 卡片点击/双击触发的动作。 */
 export type CardClickAction = "none" | "focus" | "fullscreen"
@@ -126,17 +132,12 @@ export interface ComponentInstance {
   flowPosition?: { x: number; y: number }
   /** React Flow node size, produced by NodeResizer. */
   flowSize?: { width: number; height: number }
-  /** GridStack-backed Bento layout in 12-column grid units. */
-  bentoLayout?: { x: number; y: number; w: number; h: number }
   /** Lane-view card dimensions. */
   laneSize?: { height: number }
-  /** Dockview tab area. */
-  dockPanel?: string
   /** Owning lane id. */
   laneId?: string
   /**
-   * Per-view visibility flags. Closing a tab in dock mode, for example, sets
-   * hiddenIn.dockview without deleting the component from other view modes.
+   * Per-view visibility flags. Legacy dock/bento keys may remain in old snapshots and are ignored.
    */
   hiddenIn?: Partial<Record<ViewMode, boolean>>
   /** User-defined tags maintained by database-like modules. */
@@ -148,9 +149,7 @@ export interface DeployComponentOptions {
   viewMode?: ViewMode
   laneId?: string
   flowPosition?: { x: number; y: number }
-  bentoLayout?: { x: number; y: number; w: number; h: number }
   position?: { x: number; y: number }
-  dockPanel?: string
   tags?: string[]
 }
 

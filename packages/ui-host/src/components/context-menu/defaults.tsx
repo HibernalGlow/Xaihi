@@ -38,9 +38,7 @@ import type { ViewMode, CardLayout } from "@/types/workspace"
  *  - `component-card`:   actions for a component instance (data-component-id)
  *  - `workspace-canvas`: actions for the empty canvas (view mode / layout / appearance / workspace)
  *  - `lane`:             actions for a swimlane (data-lane-id)
- *  - `dockview-panel`:   actions for a dock tab component (data-component-id)
  *  - `flow-node`:        actions for a flow node (data-component-id)
- *  - `bento-cell`:       actions for a bento cell (data-component-id)
  */
 export function DefaultContextMenuItems() {
   const actions = useWorkspaceActions()
@@ -162,7 +160,7 @@ export function DefaultContextMenuItems() {
           label: t("contextMenu:exitFocus"),
           icon: <Minimize2 />,
           onSelect: () => {
-            actions.setCardLayout("grid")
+            actions.setCardLayout("focus")
             actions.focusComponent(null)
           },
         })
@@ -257,20 +255,11 @@ export function DefaultContextMenuItems() {
         id: "layout",
         label: t("contextMenu:layout"),
         children: [
-          {
-            type: "radio",
-            radioGroup: "cardLayout",
-            radioValue: state.cardLayout,
-            onRadioChange: (value) => actions.setCardLayout(value as CardLayout),
-            value: "grid",
-            label: t("contextMenu:layoutGrid"),
-          },
-          {
-            type: "radio",
-            radioGroup: "cardLayout",
-            value: "focus",
-            label: t("contextMenu:layoutFocus"),
-          },
+          ...(["focus", "trellis"] as const).map((value, index) => ({
+            type: "radio" as const, radioGroup: "cardLayout", value,
+            ...(index === 0 ? { radioValue: state.cardLayout, onRadioChange: (layout: string) => actions.setCardLayout(layout as CardLayout) } : {}),
+            label: t(`topbar:cardLayout.${value}`),
+          })),
         ],
       })
 
@@ -410,12 +399,6 @@ export function DefaultContextMenuItems() {
           {
             type: "radio",
             radioGroup: "viewMode",
-            value: "dockview",
-            label: t("topbar:viewMode.dockview"),
-          },
-          {
-            type: "radio",
-            radioGroup: "viewMode",
             value: "flow",
             label: t("topbar:viewMode.flow"),
           },
@@ -424,12 +407,6 @@ export function DefaultContextMenuItems() {
             radioGroup: "viewMode",
             value: "lane",
             label: t("topbar:viewMode.lane"),
-          },
-          {
-            type: "radio",
-            radioGroup: "viewMode",
-            value: "bento",
-            label: t("topbar:viewMode.bento"),
           },
         ],
       })
@@ -441,20 +418,11 @@ export function DefaultContextMenuItems() {
         icon: <Square />,
         hidden: state.viewMode !== "cards",
         children: [
-          {
-            type: "radio",
-            radioGroup: "cardLayout",
-            radioValue: state.cardLayout,
-            onRadioChange: (value) => actions.setCardLayout(value as CardLayout),
-            value: "grid",
-            label: t("contextMenu:layoutGrid"),
-          },
-          {
-            type: "radio",
-            radioGroup: "cardLayout",
-            value: "focus",
-            label: t("contextMenu:layoutFocus"),
-          },
+          ...(["focus", "trellis"] as const).map((value, index) => ({
+            type: "radio" as const, radioGroup: "cardLayout", value,
+            ...(index === 0 ? { radioValue: state.cardLayout, onRadioChange: (layout: string) => actions.setCardLayout(layout as CardLayout) } : {}),
+            label: t(`topbar:cardLayout.${value}`),
+          })),
         ],
       })
 
@@ -596,68 +564,6 @@ export function DefaultContextMenuItems() {
   )
 
   // ────────────────────────────────────────────────────────────────────────
-  // dockview-panel: dock tab component actions (data-component-id)
-  // ────────────────────────────────────────────────────────────────────────
-  const dockviewPanelBuilder = useCallback(
-    (ctx: ContextMenuContext): ContextMenuItemDef[] | null => {
-      const id = ctx.data.componentId
-      if (!id) return null
-
-      // 多选时返回批量操作菜单
-      const multi = buildMultiSelectionMenu(ctx)
-      if (multi) return multi
-
-      const state = getWorkspaceState()
-      const comp = state.components.find((item) => item.id === id)
-      if (!comp) return null
-
-      return [
-        {
-          id: "close",
-          label: t("common:close"),
-          onSelect: () => actions.setComponentVisibility(id, "dockview", false),
-        },
-        {
-          id: "reveal-in-cards",
-          label: t("contextMenu:revealInCards"),
-          icon: <Eye />,
-          onSelect: () => {
-            actions.setComponentVisibility(id, "cards", true)
-            actions.setViewMode("cards")
-          },
-        },
-        { type: "separator" },
-        {
-          id: "open-window",
-          label: t("contextMenu:openWindow"),
-          icon: <ExternalLink />,
-          onSelect: () => {
-            void openComponent({
-              componentId: id,
-              moduleId: comp.moduleId,
-              title: comp.moduleId,
-              width: Math.round(comp.size?.w ?? 384),
-              height: Math.round(comp.size?.h ?? 320),
-            }).then((result) => {
-              if (result.success) {
-                actions.setComponentState(id, "floating")
-              }
-            })
-          },
-        },
-        { type: "separator" },
-        {
-          id: "copy-component-id",
-          label: t("contextMenu:copyComponentId"),
-          icon: <Copy />,
-          onSelect: () => void copyToClipboard(id, t("common:copyFailed")),
-        },
-      ]
-    },
-    [actions, openComponent, t, buildMultiSelectionMenu],
-  )
-
-  // ────────────────────────────────────────────────────────────────────────
   // flow-node: flow canvas node actions (data-component-id)
   // ────────────────────────────────────────────────────────────────────────
   const flowNodeBuilder = useCallback(
@@ -700,49 +606,10 @@ export function DefaultContextMenuItems() {
     [actions, t, buildMultiSelectionMenu],
   )
 
-  // ────────────────────────────────────────────────────────────────────────
-  // bento-cell: bento grid cell actions (data-component-id)
-  // ────────────────────────────────────────────────────────────────────────
-  const bentoCellBuilder = useCallback(
-    (ctx: ContextMenuContext): ContextMenuItemDef[] | null => {
-      const id = ctx.data.componentId
-      if (!id) return null
-
-      // 多选时返回批量操作菜单
-      const multi = buildMultiSelectionMenu(ctx)
-      if (multi) return multi
-
-      return [
-        {
-          id: "reset-bento-layout",
-          label: t("contextMenu:resetBentoLayout"),
-          onSelect: () => actions.setComponentBentoLayout(id, { x: 0, y: 0, w: 4, h: 4 }),
-        },
-        { type: "separator" },
-        {
-          id: "hide-from-bento",
-          label: t("contextMenu:hideFromBento"),
-          icon: <EyeOff />,
-          onSelect: () => actions.setComponentVisibility(id, "bento", false),
-        },
-        { type: "separator" },
-        {
-          id: "copy-component-id",
-          label: t("contextMenu:copyComponentId"),
-          icon: <Copy />,
-          onSelect: () => void copyToClipboard(id, t("common:copyFailed")),
-        },
-      ]
-    },
-    [actions, t, buildMultiSelectionMenu],
-  )
-
   useContextMenuBuilder("component-card", componentCardBuilder)
   useContextMenuBuilder("workspace-canvas", workspaceCanvasBuilder)
   useContextMenuBuilder("lane", laneBuilder)
-  useContextMenuBuilder("dockview-panel", dockviewPanelBuilder)
   useContextMenuBuilder("flow-node", flowNodeBuilder)
-  useContextMenuBuilder("bento-cell", bentoCellBuilder)
 
   return null
 }

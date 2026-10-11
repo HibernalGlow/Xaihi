@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { render, waitFor, screen } from '@testing-library/react'
+import { render, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsAdapter } from 'nuqs/adapters/react'
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
@@ -42,12 +42,12 @@ describe('工作台 App 根组件渲染', () => {
       expect(layout).not.toBeNull()
     }, { timeout: 3000 })
 
-    // 验证 TopBar 标题栏与右侧动作轮盘锚点正常呈现
+    // 验证 TopBar 标题栏与右侧紧凑动作入口正常呈现
     const header = container.querySelector('header')
     expect(header).not.toBeNull()
 
-    const wheelAnchor = container.querySelector('[data-testid="action-wheel-anchor"]')
-    expect(wheelAnchor).not.toBeNull()
+    const actionAnchor = container.querySelector('[data-testid="compact-action-switch"]')
+    expect(actionAnchor).not.toBeNull()
 
     // 验证工作区画布容器正常挂载
     const canvas = container.querySelector('[data-context-menu="workspace-canvas"]')
@@ -85,6 +85,6 @@ describe('工作台 App 根组件渲染', () => {
     // 独立窗口中不应该存在完整工作区画布与 TopBar
     expect(container.querySelector('[data-context-menu="workspace-canvas"]')).toBeNull()
     expect(container.querySelector('header')).toBeNull()
-    expect(container.querySelector('[data-testid="action-wheel-anchor"]')).toBeNull()
+    expect(container.querySelector('[data-testid="compact-action-switch"]')).toBeNull()
   })
 })

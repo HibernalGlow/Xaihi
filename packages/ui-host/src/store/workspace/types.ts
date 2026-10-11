@@ -17,6 +17,7 @@ import type {
   AppCustomTheme,
   CardClickAction,
   CardLayout,
+  DefaultWorkspaceView,
   ComponentInstance,
   ComponentState,
   DeployComponentOptions,
@@ -61,6 +62,14 @@ export interface WSState {
   viewMode: ViewMode
   /** cards 视图下的卡片布局方式。 */
   cardLayout: CardLayout
+  defaultView: DefaultWorkspaceView | null
+  /** Allow the compact view picker to wrap at either horizontal boundary. */
+  viewSwitchLoop: boolean
+  trellisMapPosition: "toolbar" | "bottom-left" | "bottom-right" | "hidden"
+  uiPreferenceSave: { state: "local" | "pending" | "saved" | "error"; detail?: string }
+  /** Runtime navigation; null lets the durable Trellis document supply its mode. */
+  trellisNavigation: "focus" | "free" | null
+  viewModeTouched: boolean
   /** 工作区列表（ADR-0019 塌缩后恒为一条）。 */
   workspaces: WorkspaceItem[]
   /** 当前激活的工作区 id（ADR-0019 后恒等于 workspaces[0].id，无动作可改）。 */
@@ -151,6 +160,8 @@ export interface WSState {
   alphabetIndexStyle: "glass" | "solid" | "minimal"
   /** 字母索引波浪强度。 */
   alphabetIndexWaveIntensity: number
+  /** 收起身后没有任何节点的首字母（判据与悬停结果同一条：按节点显示名的首字母匹配）。 */
+  alphabetIndexHideEmpty: boolean
   /** 卡片单击动作。 */
   cardClickAction: CardClickAction
   /** 卡片双击动作。 */
@@ -209,6 +220,10 @@ export interface WorkspaceUiActions {
   setDesignTheme(designTheme: DesignThemeConfig): void
   setViewMode(mode: ViewMode): void
   setCardLayout(layout: CardLayout): void
+  setTrellisNavigation(navigation: "focus" | "free"): void
+  setViewSwitchLoop(enabled: boolean): void
+  setTrellisMapPosition(position: WSState["trellisMapPosition"]): void
+  setCurrentViewAsDefault(): void
   setOverlay(overlay: OverlayKind): void
   setOverlayMode(mode: OverlayMode): void
   setOverlayWidth(width: number): void
@@ -246,6 +261,7 @@ export interface WorkspaceUiActions {
   setAlphabetIndexOpacity(opacity: number): void
   setAlphabetIndexStyle(style: WSState["alphabetIndexStyle"]): void
   setAlphabetIndexWaveIntensity(intensity: number): void
+  setAlphabetIndexHideEmpty(hideEmpty: boolean): void
   setCardClickAction(action: CardClickAction): void
   setCardDoubleClickAction(action: CardClickAction): void
   setTabDisplayStyle(style: TabDisplayStyle): void
@@ -285,12 +301,10 @@ export interface WorkspaceComponentActions {
   moveComponent(id: string, x: number, y: number): void
   setComponentFlowPos(id: string, x: number, y: number): void
   setComponentFlowSize(id: string, width: number, height: number): void
-  setComponentBentoLayout(id: string, layout: { x: number; y: number; w: number; h: number }): void
   setComponentLaneSize(id: string, size: { height: number }): void
   setComponentData(id: string, data: Record<string, unknown>): void
   patchComponentData(id: string, patch: Record<string, unknown>): void
   updateComponent(id: string, patch: ComponentPatch): void
-  setComponentDockPanel(id: string, panelId: string): void
   setComponentVisibility(id: string, viewMode: ViewMode, visible: boolean): void
   toggleComponentVisibility(id: string, viewMode: ViewMode): void
   setComponentTags(id: string, tags: string[]): void
@@ -355,6 +369,9 @@ export type WorkspaceUiPreferences = Pick<
   | "fontPreset"
   | "designTheme"
   | "cardLayout"
+  | "defaultView"
+  | "trellisMapPosition"
+  | "viewSwitchLoop"
   | "overlayMode"
   | "overlayWidth"
   | "overlayFloatingMetrics"
@@ -392,6 +409,7 @@ export type WorkspaceUiPreferences = Pick<
   | "alphabetIndexOpacity"
   | "alphabetIndexStyle"
   | "alphabetIndexWaveIntensity"
+  | "alphabetIndexHideEmpty"
   | "cardClickAction"
   | "cardDoubleClickAction"
   | "tabDisplayStyle"

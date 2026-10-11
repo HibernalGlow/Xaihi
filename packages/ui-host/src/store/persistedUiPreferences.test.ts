@@ -207,3 +207,97 @@ describe("a legacy localStorage snapshot hydrates into a complete config", () =>
     }
   })
 })
+
+// Real setters and both persistence paths must retain the smallest chosen mode.
+describe("startup view selection", () => {
+  const cases = [
+    { viewMode: "flow" }, { viewMode: "lane" },
+    { viewMode: "cards", cardLayout: "focus" },
+    { viewMode: "cards", cardLayout: "trellis", navigation: "focus" },
+    { viewMode: "cards", cardLayout: "trellis", navigation: "free" },
+  ] as const
+  test.each(cases)("restores %j without following later view changes", (choice) => {
+    const before = useWorkspaceStore.getState()
+    try {
+      useWorkspaceStore.setState({ defaultView: null, viewModeTouched: false, trellisNavigation: null })
+      const actions = selectWorkspaceActions(useWorkspaceStore.getState())
+      actions.setViewMode(choice.viewMode)
+      if ("cardLayout" in choice) actions.setCardLayout(choice.cardLayout)
+      if ("navigation" in choice) actions.setTrellisNavigation(choice.navigation)
+      actions.setCurrentViewAsDefault()
+      expect(useWorkspaceStore.getState().defaultView).toEqual(choice)
+      actions.setViewMode("lane")
+      actions.setTrellisNavigation("focus")
+      const disk = JSON.parse(JSON.stringify(selectPersistedPrefs(useWorkspaceStore.getState())))
+      expect(disk.defaultView).toEqual(choice)
+      const restored = mergePersistedWorkspaceUi(disk, before)
+      expect(restored.viewMode).toBe(choice.viewMode)
+      if ("cardLayout" in choice) expect(restored.cardLayout).toBe(choice.cardLayout)
+      if ("navigation" in choice) expect(restored.trellisNavigation).toBe(choice.navigation)
+      expect(restored.viewModeTouched).toBe(false)
+      // The host's serializer and hydration must recover the same combination.
+      useWorkspaceStore.setState({ viewMode: "cards", viewModeTouched: false, trellisNavigation: null })
+      actions.hydrateUiPreferences(selectHostUiPrefs(disk))
+      expect(useWorkspaceStore.getState().viewMode).toBe(choice.viewMode)
+      if ("navigation" in choice) expect(useWorkspaceStore.getState().trellisNavigation).toBe(choice.navigation)
+    } finally { useWorkspaceStore.setState(before) }
+  })
+  test("a user selection wins over delayed host defaults; null does not revive the old default", () => {
+    const before = useWorkspaceStore.getState()
+    try {
+      useWorkspaceStore.setState({ defaultView: { viewMode: "cards", cardLayout: "trellis", navigation: "free" }, viewModeTouched: false })
+      const actions = selectWorkspaceActions(useWorkspaceStore.getState())
+      actions.setViewMode("flow")
+      actions.hydrateUiPreferences({ defaultView: { viewMode: "lane" } })
+      expect(useWorkspaceStore.getState().viewMode).toBe("flow")
+      actions.hydrateUiPreferences({ defaultView: null })
+      expect(useWorkspaceStore.getState().defaultView).toBeNull()
+      expect(useWorkspaceStore.getState().viewMode).toBe("flow")
+    } finally { useWorkspaceStore.setState(before) }
+  })
+  test.each(["bento", "dockview"])("retired %s migrates to Trellis", (viewMode) => {
+    const restored = mergePersistedWorkspaceUi({ viewMode, cardLayout: "split" }, useWorkspaceStore.getState())
+    expect(restored.viewMode).toBe("cards")
+    expect(restored.cardLayout).toBe("trellis")
+  })
+  test.each(["grid", "stack", "split"])("retired card layout %s migrates to Trellis", (cardLayout) => {
+    expect(mergePersistedWorkspaceUi({ cardLayout }, useWorkspaceStore.getState()).cardLayout).toBe("trellis")
+  })
+  test("dashboard cannot replace the chosen startup view", () => {
+    const before = useWorkspaceStore.getState()
+    try {
+      useWorkspaceStore.setState({ defaultView: { viewMode: "flow" }, viewMode: "dashboard" })
+      useWorkspaceStore.getState().setCurrentViewAsDefault()
+      expect(useWorkspaceStore.getState().defaultView).toEqual({ viewMode: "flow" })
+    } finally { useWorkspaceStore.setState(before) }
+  })
+  test.each([false, true])("view switching loop=%s survives host and local hydration", (viewSwitchLoop) => {
+    const before = useWorkspaceStore.getState()
+    try {
+      before.setViewSwitchLoop(viewSwitchLoop)
+      const disk = selectPersistedPrefs(useWorkspaceStore.getState())
+      expect(selectHostUiPrefs(disk).viewSwitchLoop).toBe(viewSwitchLoop)
+      expect(mergePersistedWorkspaceUi(disk, before).viewSwitchLoop).toBe(viewSwitchLoop)
+      before.hydrateUiPreferences({ viewSwitchLoop })
+      expect(useWorkspaceStore.getState().viewSwitchLoop).toBe(viewSwitchLoop)
+    } finally { useWorkspaceStore.setState(before) }
+  })
+  test("missing and invalid loop preferences default to off", () => {
+    const before = useWorkspaceStore.getState()
+    expect(mergePersistedWorkspaceUi({}, before).viewSwitchLoop).toBe(false)
+    expect(mergePersistedWorkspaceUi({ viewSwitchLoop: "true" }, before).viewSwitchLoop).toBe(false)
+    try {
+      before.hydrateUiPreferences({ viewSwitchLoop: "true" } as unknown as Partial<WorkspaceUiPreferences>)
+      expect(useWorkspaceStore.getState().viewSwitchLoop).toBe(false)
+    } finally { useWorkspaceStore.setState(before) }
+  })
+  test.each(["toolbar", "bottom-left", "bottom-right", "hidden"] as const)("map preference %s survives host and local hydration", (trellisMapPosition) => {
+    const before = useWorkspaceStore.getState()
+    try {
+      before.setTrellisMapPosition(trellisMapPosition)
+      const disk = selectPersistedPrefs(useWorkspaceStore.getState())
+      expect(selectHostUiPrefs(disk).trellisMapPosition).toBe(trellisMapPosition)
+      expect(mergePersistedWorkspaceUi(disk, before).trellisMapPosition).toBe(trellisMapPosition)
+    } finally { useWorkspaceStore.setState(before) }
+  })
+})

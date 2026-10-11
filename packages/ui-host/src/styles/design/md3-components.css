@@ -247,8 +247,7 @@
   [data-slot="toggle"],
   [data-slot="tabs-trigger"],
   [data-slot="sidebar-menu-button"]
-):active::before,
-:root[data-app-design="md3"][data-design-states="on"] [data-slot="slider-thumb"]:active {
+):active::before {
   background-color: var(--md3-state-layer-pressed);
 }
 

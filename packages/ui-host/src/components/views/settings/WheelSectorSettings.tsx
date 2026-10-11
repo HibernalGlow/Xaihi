@@ -77,6 +77,7 @@ export function WheelSectorSettings({
   hiddenLabel,
   overflowHintFor,
   maxSectors = WHEEL_MAX_SECTORS,
+  showGeometry = true,
   radiusPx,
   pitchDeg,
   onGeometryChange,
@@ -96,6 +97,7 @@ export function WheelSectorSettings({
   /** 可见项超出扇区上限时的提示。回读路径：截断必须看得见。 */
   overflowHintFor?: (count: number) => string
   maxSectors?: number
+  showGeometry?: boolean
   /** 半径与间距是两个独立参数，互不推导（用户口径）。 */
   radiusPx: number
   pitchDeg: number
@@ -151,7 +153,7 @@ export function WheelSectorSettings({
         <p className="font-mono text-[10px] tracking-widest text-destructive">{overflowHintFor(overflow)}</p>
       ) : null}
 
-      <div className="grid gap-3 pt-1">
+      {showGeometry && <div className="grid gap-3 pt-1">
         <AlphabetIndexSlider
           label={radiusLabel}
           min={WHEEL_RADIUS_MIN_PX}
@@ -168,7 +170,7 @@ export function WheelSectorSettings({
           value={formatPitch(pitchDeg)}
           onValueChange={(next) => onGeometryChange(radiusPx, next)}
         />
-      </div>
+      </div>}
     </div>
   )
 }

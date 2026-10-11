@@ -3,7 +3,7 @@ import { createSurfaceCommonActions } from "./createSurfaceCommonActions"
 
 const translate = (key: string) => key
 
-function createActions(currentMode: "cards" | "dockview" | "bento" | "flow" | "lane") {
+function createActions(currentMode: "cards" | "flow" | "lane") {
   const workspaceActions = {
     patchComponentData: vi.fn(),
     setComponentState: vi.fn(),
@@ -26,7 +26,7 @@ function createActions(currentMode: "cards" | "dockview" | "bento" | "flow" | "l
 }
 
 describe("createSurfaceCommonActions", () => {
-  test.each(["cards", "dockview", "bento", "flow", "lane"] as const)("keeps the common toolbar actions in %s", (currentMode) => {
+  test.each(["cards", "flow", "lane"] as const)("keeps the common toolbar actions in %s", (currentMode) => {
     const { actions } = createActions(currentMode)
 
     expect(actions.map((action) => action.key)).toEqual(["float", "moveToView", "hide"])
