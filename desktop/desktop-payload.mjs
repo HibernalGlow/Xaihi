@@ -60,8 +60,14 @@ function packageDir (name) {
 if (mode === 'build') {
   run('pnpm', ['--filter', '@hibernalglow/xaihi-core', 'build'])
   // 干净检出的隐藏前置（与 product.mjs 同一条）：`build:document` 吃的 `client.css` 是 gitignored 的生成物，
-  // 只有 ui 包自己的 `build`（scripts/build-css.mjs）会写它；漏了就会红在"找不到模块"而不是这里少跑一条命令。
-  run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'build'])
+  // 只有 ui 包自己的 `build`（scripts/build-css.mjs）会写它。
+  //
+  // 这里**不**调 `pnpm --filter … build`：那条脚本的第三步 `check-client-bundle` 是一把闸门、不是生产者，
+  // 而它在 Windows 上会因为"尺自己站错位置"判缺产物（云上实测 `缺 \D:\a\Xaihi\Xaihi\packages\ui-host\lib/client.js`，
+  // 而 tsdown 上一行刚写完文件）⇒ 整条载荷步在 Windows 上红。那把尺的修在 `windows-build-path-portability`
+  // 那条 lane 上（同一个文件，我不去抢）；载荷只要产物，闸门照旧由 CI 其它腿量。
+  run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'exec', 'node', 'scripts/build-css.mjs'])
+  run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'exec', 'tsdown'])
   run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'build:document'])
   for (const name of BUNDLES) if (name !== '@hibernalglow/xaihi-core' && name !== '@hibernalglow/xaihi-ui') {
     run('pnpm', ['--filter', name, 'build'])
