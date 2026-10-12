@@ -288,3 +288,43 @@ xaihi-product-linux-x64-product-resources.zip       ~12 MB
 `pnpm -r run typecheck` ⇒ `packages/node-sdk typecheck: src/define-node.ts(320,45): error TS18046`
 + `(320,56): error TS2698`（别处的账）。别名表那条已按预期不再是障碍——先 `build-aliases.mjs --write`
 再 typecheck，这一轮才第一次读到"红在类型而不是红在目录不存在"。
+
+## 工作台随包（0029–0031 + 载荷脚本，2026-10-12 晚）
+
+**要解决什么**：装完打开的是**上游界面**，与检出里组合了什么无关。实测包里根本没有我们的组合：
+`rg -a -c 'xaihi-core' /Applications/Xaihi.app/Contents/Resources/app.asar` = **0**，`uiBundleDir`/`dist-ui` 同样 0。
+根因有两处：桌面 profile 的初始依赖来自随包 tarball 集、bundle 列表写死在上游常量
+（`apps/desktop/src/project-manager.ts:136-142`）；而 `uiBundleDir` 是**我们的** `packages/core` 的配置项
+（空串默认 ⇒ 路由 503，`packages/core/src/routes.ts:226`）。
+
+**做法（三件已落 main）**
+
+1. **载荷**：`desktop/desktop-payload.mjs` 拼 `desktop/.products/xaihi-desktop/` = `ui/`（工作台文档产物）
+   + `packs/<name>/`（5 个 bundle 的**目录形态**，用目录而非 `.tgz` 以绕开 `workspace:*` 的版本改写）
+   + `profile.json`。CI 两条打包腿各加"拼载荷"一步，并把 `XAIHI_DESKTOP_PAYLOAD_DIR` 传给自检与打包。
+2. **包内 profile 指向它**（patch 0029 + 0031）：`extraResources` 收进 `Resources/xaihi`；新建 profile 时写
+   bundle 依赖（`file:` 目录）与 `xaihi-core` 的 `uiBundleDir` 补丁行。**不设变量时资源表与 profile 与上游逐字相同**，
+   正反两向都有用例钉住。0031 修的是 0029 第一版把补丁行**追加**在 `initProfile` 预置的空序列 `[]` 之后
+   ——块序列与 `[]` 并存会让装载层直接拒（`YAMLException: end of the stream …(7:1)`），改成替换占位符。
+3. **品牌/标题**：`packages/ui-host/src/client/brand.tsx` 占 `sidebar.brand.mark`/`sidebar.brand.name`（`priority: -1`，
+   `single` 槽取最小优先级、同优先级撞位会抛）；标记槽用排印式字母标（本仓无 Xaihi 标志美术，也不手画）。
+   窗口标题走 patch 0030（构建环境给 `XAIHI_CLIENT_TITLE` 就用它）。
+
+**本机端到端证据（不是单测）**：真载荷 → 真函数铺 profile → **包里的** `runtime/pnpm/bin/pnpm.mjs` 装（+13 包 rc=0）
+→ **包里的** `runtime/cli/bin/dsh --profile … --dump-config` **rc=0**，dump 里 `uiBundleDir` 指向载荷的 `ui/`。
+这条链当初正是它抓到了 `[]` 那个解析错（单测只断言"文件里有这一行"，量不到"文件根本不能被解析"）。
+
+**云上仍挡着的两处，都在构建面，且都不属于本轮的文件**
+
+- **别名表绝对路径**（已修：载荷步在 `build:document` 前跑 `packages/ui-host/build-aliases.mjs --write`）。
+  本机对照：把表根改成 `/nonexistent-xaihi` ⇒ `build:document` rc=1、9 条同类错；`--write` 后 rc=0。
+  （该表由另一条 lane 保养，实验动过之后一律按快照逐字节还原并 `shasum` 比对。）
+- **孪生别名缺口（未解，且只能由生成器那一处修）**：main 的界面源码已写改后的名字
+  （`packages/ui-host/src/nodes/kisaki/use-kisaki-workbench.ts:269` 引 `@hibernalglow/xaihi-kisaki/selection-strategies`），
+  而 main 的 `build-aliases.mjs` 只产 `@xiranite/node-<id>/<leaf>` ⇒ runner 上 `build:document` 报 30 条
+  `Can't resolve '@hibernalglow/xaihi-…'`。**我试过在构建侧自己补，两次都被证伪**：
+  只补 `@xiranite/node-*` 的孪生 ⇒ 187 条、与生成器少 10 条（漏 `@xiranite/cli-runtime/*`），补完仍 rc=1；
+  把 `@xiranite/<rest>` 整体换名 ⇒ 数量也 197，但**只有 10 条与生成器重合**（生成器连 `…/selection-assistant.test`
+  这种叶子都进，`@xiranite/` 侧没有对应键）；改用生成器**已导出**的 `nodeCoreAliases()` 数据做同样映射 ⇒ 仍 31 条错。
+  ⇒ 这一族有自己的规则，下游照抄必漂；**正解是生成器产出孪生名**（该改动已写在 `windows-build-path-portability`
+  那条 lane 上、尚未落 main）。本机把它剥成 main 形态即可复现（202 键 ⇒ rc=1、31 条同类错；补回去就绿）。
