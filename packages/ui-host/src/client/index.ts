@@ -26,6 +26,7 @@ import { createElement } from 'react'
 import type { XaihiSlot } from './slots.ts'
 import { LOCALE_NAMESPACE, en, zh, type LocaleKey, type Translate } from './locales.ts'
 import { MAIN_PANEL_KEY, registerPanelEntry } from './panel-entry.tsx'
+import { registerXaihiBrand } from './brand.tsx'
 import { createRemoteLoader } from './loader/remote-modules.ts'
 import { registerStyles } from './styles.ts'
 import { DEFAULT_DESIGN_THEME } from '../lib/design-theme/contract.ts'
@@ -372,6 +373,8 @@ export function apply(ctx: Context): void {
   // 侧栏那一行由 ui-sidebar 持有：显示标题、响应点击、调用 selectPanel 都是它的事，
   // 本插件只贡献标记与行标题，所以这里既不碰路由也不碰布局。
   registerPanelEntry(ctx, ctx.locale.bind(LOCALE_NAMESPACE) as Translate)
+  // 品牌：占住壳的侧栏标记与名字。上游品牌包用默认优先级 0，这里用 -1 压过它（single 槽取最小 priority）。
+  registerXaihiBrand(ctx, ctx.locale.bind(LOCALE_NAMESPACE) as Translate)
 
   // 设置面能不能给，取决于这次装配有没有把 ctx.remote.settings 挂上来；
   // 读不到就不塞占位实现，让文档那侧把 config 读成一条带原因的退化（ADR-0011 决定 4）。

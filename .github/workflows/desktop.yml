@@ -271,6 +271,9 @@ jobs:
         working-directory: desktop/dsh
         env:
           XAIHI_DESKTOP_PAYLOAD_DIR: ${{ github.workspace }}/desktop/.products/xaihi-desktop
+          # 客户端 chrome 的标题由 build 期烘进去（client-build-environment.ts 的 OFFICIAL_CLIENT_BUILD_ENVIRONMENT），
+          # 不设这个变量就是上游那句；设了才烘成 Xaihi。
+          XAIHI_CLIENT_TITLE: Xaihi
 
       - name: 回读产物目录
         shell: bash
@@ -354,12 +357,14 @@ jobs:
         working-directory: desktop/dsh
         env:
           XAIHI_DESKTOP_PAYLOAD_DIR: ${{ github.workspace }}/desktop/.products/xaihi-desktop
+          XAIHI_CLIENT_TITLE: Xaihi
 
       - name: 打未签名的 ${{ matrix.target }} 安装包
         run: pnpm --filter "@deepseek-ai/dsh-desktop" run package -- ${{ matrix.target }} --unsigned
         working-directory: desktop/dsh
         env:
           XAIHI_DESKTOP_PAYLOAD_DIR: ${{ github.workspace }}/desktop/.products/xaihi-desktop
+          XAIHI_CLIENT_TITLE: Xaihi
 
       - name: 回读产物目录
         shell: bash

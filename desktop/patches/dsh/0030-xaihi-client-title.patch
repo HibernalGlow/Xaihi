@@ -1,0 +1,48 @@
+From 179e6719af4946a8582dafc2c8428cca5f8208ae Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Mon, 12 Oct 2026 19:43:15 +0800
+Subject: [PATCH] desktop: let a build name the client title
+
+The official client profile bakes DeepSeek Harness into the shipped chrome. A downstream build can now set XAIHI_CLIENT_TITLE to bake its own name instead; unset resolves the same environment object as before, which the spec pins beside the override.
+---
+ scripts/client-build-environment.client.spec.ts | 7 +++++++
+ scripts/client-build-environment.ts             | 5 +++++
+ 2 files changed, 12 insertions(+)
+
+diff --git a/scripts/client-build-environment.client.spec.ts b/scripts/client-build-environment.client.spec.ts
+index fc23986..194cd2b 100644
+--- a/scripts/client-build-environment.client.spec.ts
++++ b/scripts/client-build-environment.client.spec.ts
+@@ -115,6 +115,13 @@ describe('client build environment', () => {
+       DSH_CLIENT_TITLE: 'DeepSeek Harness',
+       DSH_CLIENT_VERSION: '1.2.3',
+     })
++    // Xaihi 构建用自己的标题；不设这个变量时上面那条断言就是"与上游逐字相同"的对照。
++    expect(resolveClientBuildEnvironment({ ...parent, XAIHI_CLIENT_TITLE: 'Xaihi' })).toEqual({
++      DSH_CLIENT_BUILD_PROFILE: 'official',
++      DSH_CLIENT_COMMIT_HASH: COMMIT_HASH.slice(0, 7),
++      DSH_CLIENT_TITLE: 'Xaihi',
++      DSH_CLIENT_VERSION: '1.2.3',
++    })
+     expect(() => {
+       resolveClientBuildEnvironment({ DSH_BUILD_CLIENT_PROFILE: 'official' })
+     }).toThrow(/DSH_CLIENT_COMMIT_HASH/)
+diff --git a/scripts/client-build-environment.ts b/scripts/client-build-environment.ts
+index 57f12ef..ab430dc 100644
+--- a/scripts/client-build-environment.ts
++++ b/scripts/client-build-environment.ts
+@@ -202,6 +202,11 @@ export function resolveClientBuildEnvironment(
+       DSH_CLIENT_COMMIT_HASH: commitHash,
+       DSH_CLIENT_VERSION: version,
+       ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
++      // Xaihi builds bake the project's own title into the client chrome; unset keeps the official value,
++      // so an ordinary upstream artifact records exactly the environment it always did.
++      ...(environment.XAIHI_CLIENT_TITLE === undefined || environment.XAIHI_CLIENT_TITLE === ''
++        ? {}
++        : { DSH_CLIENT_TITLE: environment.XAIHI_CLIENT_TITLE }),
+     }
+   }
+   throw new Error(`unknown client build profile ${JSON.stringify(profile)}; expected "official"`)
+-- 
+2.56.0
+

@@ -8,6 +8,7 @@ export const LOCALE_NAMESPACE = 'xaihi.ui'
 
 export const zh = {
   'nav.title': '工作台',
+  'brand.name': 'Xaihi',
   'panel.none': '没有已安装的节点面板。',
   'panel.loading': '正在加载面板…',
   'panel.failed': '面板加载失败',
@@ -22,6 +23,7 @@ export const zh = {
 
 export const en: Record<keyof typeof zh, string> = {
   'nav.title': 'Workspace',
+  'brand.name': 'Xaihi',
   'panel.none': 'No node panels are installed.',
   'panel.loading': 'Loading panel…',
   'panel.failed': 'Panel failed to load',
