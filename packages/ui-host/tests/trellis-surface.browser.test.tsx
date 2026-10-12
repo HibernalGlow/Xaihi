@@ -131,7 +131,7 @@ describe('分形视图的画布面', () => {
 })
 
 describe('分形视图的节点右键', () => {
-  it('右键节点 → 关闭这个节点 → 确认后节点从画布上消失', async () => {
+  it('右键节点 → 关闭这个节点 → 无需二次确认直接从画布上消失', async () => {
     const component: ComponentInstance = { id: 'node-a', moduleId: 'sleept', state: 'docked', workspaceId: WORKSPACE_ID }
     const view = await renderTrellis('theme-bg-dot-grid', [component])
     expect(view.querySelector('.xaihi-trellis-node')).not.toBeNull()
@@ -141,7 +141,8 @@ describe('分形视图的节点右键', () => {
     const closeItem = await screen.findByRole('menuitem', { name: '关闭这个节点' })
     await userEvent.click(closeItem)
 
-    await userEvent.click(await screen.findByRole('button', { name: '关闭' }))
+    // 二次确认已关掉：不应弹出确认对话框，节点直接关闭
+    expect(screen.queryByRole('dialog')).toBeNull()
 
     await waitFor(() => expect(useWorkspaceStore.getState().components).toHaveLength(0))
     await waitFor(() => expect(document.querySelector('.xaihi-trellis-node')).toBeNull())
@@ -161,7 +162,9 @@ describe('分形视图的节点右键', () => {
     // 追加而不是替换：库自己的项（最大化/悬浮/隐藏…）还在。
     expect((await screen.findAllByRole('menuitem')).length).toBeGreaterThan(1)
     await userEvent.click(await screen.findByRole('menuitem', { name: '关闭这个节点' }))
-    await userEvent.click(await screen.findByRole('button', { name: '关闭' }))
+
+    // 二次确认已关掉：不弹出确认框直接生效
+    expect(screen.queryByRole('dialog')).toBeNull()
 
     await waitFor(() => expect(useWorkspaceStore.getState().components).toHaveLength(0))
   })
