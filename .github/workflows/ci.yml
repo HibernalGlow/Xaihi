@@ -25,7 +25,8 @@ jobs:
       - run: pnpm check:skills
       # bundle 包不许带 workspace:* 运行时依赖（file: 安装会在解析依赖树时被拒）。
       - run: pnpm check:installable
-      - run: pnpm check:vocab
+      # check:vocab 不上云：它比的是**本机**那份上游参照仓（node-definitions 的绝对路径），
+      # 云上读不到就自己报「尺失效，不是没问题」并红（run 38210769465 实测）。它留在根 test 里给本地用。
       - run: pnpm check:vendored
       - run: pnpm check:cliregistry
       - run: pnpm check:noderegistry

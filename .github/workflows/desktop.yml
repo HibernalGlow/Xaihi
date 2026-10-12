@@ -68,8 +68,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # gitlink 必须等于 UPSTREAM_PIN，否则重放的 patch 不是同一份货上的 patch（sync-dsh.mjs --check 里那条）。
-      - name: 上游 submodule 与 pin 对齐
+      # 干净检出的 submodule 就停在 pin 上（patch 数 0），所以 --check 必须在重放**之后**跑：
+      # 第一轮云上就是栽在这一步——尺没错，是我把它放错了位置（patches_on_top=0 expected_patches=23）。
+      - name: 重放我们的 patch 到上游 submodule
+        run: node desktop/sync-dsh.mjs
+
+      - name: 复验 pin 与 patch 数
         run: node desktop/sync-dsh.mjs --check
 
       - name: 按输入算这次要跑哪些目标
@@ -362,6 +366,7 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      - run: node desktop/sync-dsh.mjs
       - run: node desktop/sync-dsh.mjs --check
       - run: pnpm check:pins
       - run: pnpm check:installable
