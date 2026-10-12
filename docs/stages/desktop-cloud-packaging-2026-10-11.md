@@ -408,3 +408,29 @@ main 那一轮没产出安装包 ⇒ release 作业按第 2 节的判据没开�
 **云上取日志的一条硬规矩**：作业日志只在**整轮到终态**后才拿得到，作业先结束也会拿到 0 字节；
 判"日志里没有"之前先看 `.status`。另外 `curl` 下 release 资产必须用 `browser_download_url`，
 `gh api` 的 `url` 字段拿到的是 JSON 元数据——`curl` 的 rc=0 会照样绿（实测 1908 字节 vs 期望 9980891）。
+
+## 2026-10-12 追加：云端真包把我自己写歪的尺打回原形
+
+`package-win` 第一次走完打包，红在**回读装机产物**那一步，而红得很说明问题：
+
+```
+✓ app 结构在场（Resources）  ✓ Resources/xaihi 载荷进包  ✓ 包内工作台产物有内容
+✓ 包内工作台入口 main.js 在场  ✓ 包内工作台入口 main.css 在场  ✓ 包内 bundle 目录齐全
+✗ 壳的 app.asar 带 xaihi 客户端半边
+✗ 客户端产物带品牌占位（data-xaihi-brand）
+```
+
+载荷**是真的进包了**（前六条都在真 Windows 产物上成立）。红那两条是我对 `app.asar` 的**错误预期**：
+Xaihi 的客户端半边不住在壳的 asar 里，它随 `extraResources` 落在
+`Resources/xaihi/packs/<包>/lib/client.js`，由 profile 在**运行时**装载；`electron-builder` 打进
+`app.asar` 的只有上游那份壳代码。
+
+这把尺当时是绿的，因为**我在夹具里把 `xaihi-ui` 与 `data-xaihi-brand` 两个串手写在假的 `app.asar` 里**——
+阳性对照（删文件必红）证明的是"尺看得见缺失"，证明不了"断言的对象形状是对的"。
+判据修成：`--app` 只断 `app.asar 在场`，品牌与入口交给逐包那一圈（每个 pack 有 `lib/index.js`、
+有 `client.js` 时其中必须带 `data-xaihi-brand`）。三条实测（`desktop/payload-check.mjs`，main `84454551`）：
+合法装机树 rc=0；抹掉 `packs/xaihi-ui/lib/client.js` 的品牌串 ⇒ rc=1 且点名该包；`--payload` rc=0。
+
+同一格另外两条读数一并记账：`native / win32-x64` 的 `dav1d 从源码静态编（Win…）` 这条腿在新一轮里是
+`• signing with signtool.exe` 逐文件走完的（`OpenConsole.exe` / `rg.exe` / `libreoffice-kit.exe` / `elevate.exe`），
+说明未签名的 win 包并没有被上游的签名步骤跳过；`linux-compile` 这轮红在 `pnpm -r run typecheck`（不是 build）。
