@@ -393,3 +393,18 @@ main 那一轮没产出安装包 ⇒ release 作业按第 2 节的判据没开�
 
 唯一的 wart：`LC_ID_DYLIB` 记着旧构建机的绝对路径。它不影响加载，只影响"别人按路径 link 这个 .node"这种用法；
 要清它得动 Rust 侧的 `cargo-c-ext`/`rpath` 口径，属于内核改名那一档，不在桌面端这层。
+
+## 2026-10-12 追加：集成分支 `3763efda` 一轮的四格读数（谁的红归谁）
+
+同一轮里 `product` 三格 **darwin-x64 / linux-x64 = success**，只有 win32 红；native 四格全 success。
+
+| 格 | 云上的原文 | 归属 |
+| --- | --- | --- |
+| `package-mac (mac-arm64)` | `desktop runtime: unexpected unpacked entry …/LibreOfficeDev.app/Contents/_CodeSignature/CodeDirectory`，栈在 `scripts/verify-runtime-archive.ts`（它要求 `app.asar.unpacked/dsh` 下每个物理文件都在 asar 头里标了 `unpacked`） | **我的**：patch 0028 的 ad-hoc 封签会 `walk(Contents/Resources)` 一路走进 `app.asar.unpacked`，`codesign` 在那里新写出 `_CodeSignature/*` ⇒ 头里没声明的文件。已修（`nestedCodeTargets` 末尾排除 `app.asar.unpacked`），main = `0007ddae`；判据是下一轮的 smoke 本身，**没有 spec 覆盖这一条**（我试的 `tests/adhoc-seal*` 名字不存在） |
+| `product (win32-x64)` | `[rspack-cli] Error: ENOENT … desktop\.products\kisaki\ui\kisaki\module-graph.json`（`pnpm recursive exec` 在 `packages/ui-host` 退出 1） | **我这层的装配步**（`desktop/product.mjs build kisaki --platform win32 --arch x64`）。同一条命令在 darwin/linux 两格是绿的 ⇒ 差异在 Windows 的目录创建/路径形状，还没定位；本地不能代替：`pnpm --filter @hibernalglow/xaihi-ui run build` 在 main 那份 `check-client-bundle.mjs` 上 **rc=0（check-client-bundle OK）**，所以这不是那条尺 |
+| `package-mac (mac-x64)` | `docx conversion failed: LibreOffice conversion timed out` ⇒ `run prepare:dsh --unsigned failed` | **已知的不在链上项**：x64 runner 走 Rosetta 跑 LibreOffice 转换超时，与随包工作台无关 |
+| `linux-compile` | 红在 `pnpm -r run …` 那一格 | 未归因（要整轮到终态才取得到日志），与 `node-sdk` 那几条未落地 lane 同一形状 |
+
+**云上取日志的一条硬规矩**：作业日志只在**整轮到终态**后才拿得到，作业先结束也会拿到 0 字节；
+判"日志里没有"之前先看 `.status`。另外 `curl` 下 release 资产必须用 `browser_download_url`，
+`gh api` 的 `url` 字段拿到的是 JSON 元数据——`curl` 的 rc=0 会照样绿（实测 1908 字节 vs 期望 9980891）。
