@@ -1,0 +1,53 @@
+From a99dfed04ae51c3ccf9b94f32196c7d5afdcef48 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Mon, 12 Oct 2026 20:48:01 +0800
+Subject: [PATCH] desktop: cover the packaged payload discovery path
+
+The payload is found through process.resourcesPath when an app ships it at Resources/xaihi, which the suite only covered through the environment override. The new case builds a fake app layout and asserts the profile gains file: dependencies into it plus the uiBundleDir row pointing at the shipped document.
+---
+ .../tests/xaihi-workbench-payload.spec.ts     | 24 ++++++++++++++++++-
+ 1 file changed, 23 insertions(+), 1 deletion(-)
+
+diff --git a/apps/desktop/tests/xaihi-workbench-payload.spec.ts b/apps/desktop/tests/xaihi-workbench-payload.spec.ts
+index 36e4731..3053231 100644
+--- a/apps/desktop/tests/xaihi-workbench-payload.spec.ts
++++ b/apps/desktop/tests/xaihi-workbench-payload.spec.ts
+@@ -1,5 +1,5 @@
+ // 载荷的对照：装了它，新建的 profile 就带上我们的 bundle 与 uiBundleDir；没装，profile 与上游逐字相同。
+-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
++import { mkdirSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+ import { tmpdir } from 'node:os'
+ import { join } from 'node:path'
+ import { load } from 'js-yaml'
+@@ -61,6 +61,28 @@ describe('Xaihi workbench payload', () => {
+     expect(() => { createPluginProfile(freshProfile()) }).toThrow(/has no lib\/index\.js/u)
+   })
+ 
++  it('finds the payload beside the runtime when a packaged app ships it', () => {
++    // 出货形态：包把它放在 `Contents/Resources/xaihi`，靠 `process.resourcesPath` 找（不是环境变量那条口子）。
++    const resources = mkdtempSync(join(tmpdir(), 'dsh-resources-'))
++    const payload = writePayload()
++    mkdirSync(join(resources, 'runtime'), { recursive: true })
++    renameSync(payload, join(resources, 'xaihi'))
++    const previous = (process as { resourcesPath?: string }).resourcesPath
++    ;(process as { resourcesPath?: string }).resourcesPath = resources
++    try {
++      const profile = freshProfile()
++      createPluginProfile(profile)
++      const manifest = JSON.parse(readFileSync(join(profile, 'package.json'), 'utf8')) as {
++        dependencies: Record<string, string>
++      }
++      expect(manifest.dependencies['@hibernalglow/xaihi-core']).toBe(`file:${join(resources, 'xaihi', 'packs', 'xaihi-core')}`)
++      expect(readFileSync(join(profile, 'cordis.patch.yml'), 'utf8')).toContain(join(resources, 'xaihi', 'ui'))
++    } finally {
++      if (previous === undefined) Reflect.deleteProperty(process as { resourcesPath?: string }, 'resourcesPath')
++      else (process as { resourcesPath?: string }).resourcesPath = previous
++    }
++  })
++
+   it('leaves the profile exactly as upstream builds it when no payload is shipped', () => {
+     vi.stubEnv('XAIHI_DESKTOP_PAYLOAD_DIR', '')
+     const profile = freshProfile()
+-- 
+2.56.0
+
