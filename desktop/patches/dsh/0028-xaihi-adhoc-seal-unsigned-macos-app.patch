@@ -36,7 +36,7 @@ index 0000000..43a88df
 +/**
 + * Collect nested code that must carry its own signature before the bundle seal is written.
 + * @param {string} appPath - Path to the `.app` bundle.
-+ * @returns {string[]} Code targets ordered innermost-first, so sealing the bundle last covers them.
++ * @returns {string[]} Code targets ordered innermost-first, so sealing the bundle last covers them; anything under `app.asar.unpacked` is excluded because codesign there writes files the asar header never declared.
 + */
 +export function nestedCodeTargets (appPath) {
 +  const targets = []
@@ -76,7 +76,7 @@ index 0000000..43a88df
 +  }
 +  walk(join(contents, 'Frameworks'))
 +  walk(join(contents, 'Resources'))
-+  return [...new Set(targets)].filter(target => statSync(target, { throwIfNoEntry: false })?.isFile?.() || target.endsWith('.app') || target.endsWith('.framework'))
++  return [...new Set(targets)].filter(target => !target.includes('app.asar.unpacked') && (statSync(target, { throwIfNoEntry: false })?.isFile?.() || target.endsWith('.app') || target.endsWith('.framework')))
 +}
 +
 +function runCodesign (args) {
