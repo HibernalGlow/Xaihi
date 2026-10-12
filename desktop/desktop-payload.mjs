@@ -87,6 +87,27 @@ function preflightNodeLeaves () {
     + `例如 ${needsTable.slice(0, 5).join('、')}。这一族由 build-aliases.mjs 产出（生成器那一处修），不要在载荷侧自补。`)
 }
 
+/**
+ * 别名表只在"它是在别的机器上生成的"时候才重生成。
+ *
+ * 那份表签进仓时带的是生成机上指向 `plugins/**` 的**绝对路径**（生成器只把 `packages/` 下的目标相对化）
+ * ⇒ runner 上 `path.resolve` 会指到不存在的目录，症状是"命中别名却找不到模块"。按检出重生成能修它；
+ * 但**无条件**重生成会把别人刚落进仓库、已含"改名族键"的那张表（用他们自己那版生成器现算的）抹回旧形状，
+ * 于是我要的键又不见了。判据就取"表里还有没有绝对路径"：有才重生成，没有就原样用仓库里那张。
+ * @returns {void}
+ */
+function regenerateAliasTableIfNeeded () {
+  const table = join(repo, 'packages/ui-host/tsconfig.ported.json')
+  const paths = JSON.parse(readFileSync(table, 'utf8')).compilerOptions?.paths ?? {}
+  const absolute = Object.values(paths).filter((value) => typeof value?.[0] === 'string' && value[0].startsWith('/')).length
+  if (absolute === 0) {
+    console.log('载荷：别名表里没有绝对路径，跳过重生成（保留仓库里那张）')
+    return
+  }
+  console.log(`载荷：别名表含 ${String(absolute)} 条绝对路径，按检出重生成`)
+  run('node', [join(repo, 'packages/ui-host/build-aliases.mjs'), '--write'])
+}
+
 /** 从各包的 package.json 找到它的目录，并确认构建产物在场——缺了要在拼载荷时就红，不留到运行期。 */
 function packageDir (name) {
   const directory = name.startsWith('@hibernalglow/xaihi-')
@@ -114,7 +135,7 @@ if (mode === 'build') {
   // （生成器只把 `packages/` 下的目标相对化）⇒ 在 runner 上 `path.resolve` 会指到不存在的目录，
   // 症状是"命中别名却找不到模块"（云上实测一条 Component 一处，共 11 条）。按检出重生成一次再构建，
   // 与 `ci.yml`/本 workflow 里给 typecheck 腿加的那步同源。
-  run('node', [join(repo, 'packages/ui-host/build-aliases.mjs'), '--write'])
+  regenerateAliasTableIfNeeded()
   preflightNodeLeaves()
   run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'build:document'])
   for (const name of BUNDLES) if (name !== '@hibernalglow/xaihi-core' && name !== '@hibernalglow/xaihi-ui') {
