@@ -83,8 +83,10 @@ if (appPath !== undefined) {
     }
   }
   const asar = join(resources, 'app.asar')
-  check('壳的 app.asar 带 xaihi 客户端半边', contains(asar, 'xaihi-ui'))
-  check('客户端产物带品牌占位（data-xaihi-brand）', contains(asar, 'data-xaihi-brand'))
+  // 曾经这里断言 `app.asar` 里有 `xaihi-ui` 与 `data-xaihi-brand`——实测云端真包两条必红：
+  // 壳的 asar 只有上游那份代码，我们的客户端半边住在 `Resources/xaihi/packs/<包>/lib/client.js`，
+  // 由 profile 在运行时装（extraResources 那条路）。夹具里那两个串是我手写的，所以夹具绿、真包红。
+  check('app.asar 在场', existsSync(asar), asar)
   const size = existsSync(asar) ? statSync(asar).size : 0
   console.log(`  · app.asar ${String(Math.round(size / 1048576))} MB`)
 }
