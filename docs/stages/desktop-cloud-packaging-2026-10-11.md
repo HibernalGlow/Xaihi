@@ -434,3 +434,37 @@ Xaihi 的客户端半边不住在壳的 asar 里，它随 `extraResources` 落�
 同一格另外两条读数一并记账：`native / win32-x64` 的 `dav1d 从源码静态编（Win…）` 这条腿在新一轮里是
 `• signing with signtool.exe` 逐文件走完的（`OpenConsole.exe` / `rg.exe` / `libreoffice-kit.exe` / `elevate.exe`），
 说明未签名的 win 包并没有被上游的签名步骤跳过；`linux-compile` 这轮红在 `pnpm -r run typecheck`（不是 build）。
+
+## 2026-10-12 交接口径（编译到"真出包"为止，还差两件事）
+
+轮次 `38261458330`（ref `ci/integrate-all3` = `7d9be2c0`）终态实测：
+
+| 格 | 结论 |
+| --- | --- |
+| `package-win` | **success**，18 步全过，含 `回读装机产物（工作台是否真的进包）` |
+| `package-mac (mac-arm64)` | **success**，18 步全过，同上（封签排除后 smoke 才走得通） |
+| `native` 四格 | 全 success |
+| `product` darwin-arm64 / darwin-x64 / linux-x64 | success；**win32-x64 仍红** |
+| `package-mac (mac-x64)` | 红在 `LibreOffice conversion timed out`（Rosetta），已列为不在链上 |
+| `release` | success，`desktop-7d9be2c0…` 已开并标 **Pre-release**（正文写明它来自含两条未落地 lane 的验证 ref） |
+
+这一段里落 main 的修复，逐笔：`0007ddae` 封签躲开 `app.asar.unpacked`；`61bbcd51` 产品图写盘前建目录
+（POSIX 回归：`module-graph.json` 前后 sha 同为 `79df5d3d7540`）；`84454551` 装机回读改断 `app.asar 在场`；
+`e53e7a80` 假绿的账；`321cd4bd` 产品腿装配前 `build-aliases.mjs --write`（本机幂等，前后同为 `cffdca1bbc11`；
+YAML 有效性我用本地解析两次都没跑成，判据改用 GitHub 的 `state=active`）。
+
+**剩下两件必须在下一轮/下一次决定**：
+
+1. main 编不出来仍缺两条已提交未落地的 lane（父提交就是 main 基线，干跑 `git merge-tree` 无冲突）：
+   `but land windows-build-path-portability --yes`（`066542cf`，Windows `.pathname` 双盘符）＋
+   `but land codex/theme-color-token-adaptation --yes`（`df4cf9d0`，`colorAdaptationHintKey` 生产者）。
+   落完派 `gh workflow run desktop.yml -R HibernalGlow/Xaihi --ref main -f targets=all -f publish_release=true`。
+2. `product (win32-x64)` 的真因是**解析表在 Windows 上不可用**：签进仓的 `tsconfig.ported.json` 带生产者机器的
+   绝对路径，Windows 上整批叶子键失效、只剩裸名，症状
+   `Cannot find module '@hibernalglow/xaihi-kisaki/tool-options' for matched aliased key '@hibernalglow/xaihi-kisaki'`。
+   `321cd4bd` 补了 `--write`，POSIX 幂等已证，**Windows 上解没解要下一轮才算实机验过**。
+
+临时资产（都在仓外或我自己的 ref 上，别人才动不到）：`ci/integrate-all3`、`ci/integrate-win-path-theme`、
+`~/Base/Code/Freya/.scratch/` 下的 `cloud-app-readback.sh`（下载→`ditto`→`payload-check --app`，判据带
+`http_code`/字节数/`SIZE_MISMATCH`）、`app-gauge-check.sh`（装机两种布局的阳性对照）、`resilient-watch.sh`。
+删 ref：`git push origin --delete ci/integrate-all3 ci/integrate-win-path-theme`。
