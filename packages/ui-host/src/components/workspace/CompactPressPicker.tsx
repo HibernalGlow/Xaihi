@@ -48,7 +48,11 @@ export function CompactPressPicker({ value, options, onSelect, loop = false, chi
   const preferredChild = (items: CompactPickerOption[]) => Math.max(0, items.findIndex(option => childValue ? option.key === childValue : option.toggled))
   const childIndex = preferredChild(children)
   const selection = preview ?? { main: index, child: childIndex, level: 'main' }
-  const Icon = triggerIcon ?? options[index]?.icon
+  const activeOption = options[selection.main]
+  const isChildParent = activeOption?.key === childParent
+  const hasActiveChildren = Boolean(activeOption?.children?.length)
+  const activeChild = (isChildParent || (behavior === 'switch' && hasActiveChildren)) ? children[selection.child] : undefined
+  const Icon = triggerIcon ?? activeChild?.icon ?? activeOption?.icon
   const hasChildren = children.length > 0
   const details = children[selection.child]?.children ?? []
   const vertical = orientation === 'vertical'
