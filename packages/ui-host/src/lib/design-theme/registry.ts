@@ -22,6 +22,8 @@ export interface DesignThemeEntry {
   descriptionKey: string
   /** 这个主题真的能接管的维度；不在列表里的维度，界面上就不该出现开关。 */
   ownsDimensions: readonly DesignDimension[]
+  /** Native 完整应用配色；seed 映射源色；fixed 尚不适配外部配色。 */
+  colorAdaptation: "theme" | "seed" | "fixed"
 }
 
 const ALL: readonly DesignDimension[] = DESIGN_DIMENSIONS
@@ -29,18 +31,21 @@ const ALL: readonly DesignDimension[] = DESIGN_DIMENSIONS
 export const DESIGN_THEME_ENTRIES: readonly DesignThemeEntry[] = [
   {
     id: "native",
+    colorAdaptation: "theme",
     labelKey: "settings:designTheme.native.label",
     descriptionKey: "settings:designTheme.native.description",
     ownsDimensions: [],
   },
   {
     id: "md3",
+    colorAdaptation: "seed",
     labelKey: "settings:designTheme.md3.label",
     descriptionKey: "settings:designTheme.md3.description",
     ownsDimensions: ALL,
   },
   {
     id: "mondrian",
+    colorAdaptation: "fixed",
     labelKey: "settings:designTheme.mondrian.label",
     descriptionKey: "settings:designTheme.mondrian.description",
     ownsDimensions: ALL,
@@ -50,6 +55,7 @@ export const DESIGN_THEME_ENTRIES: readonly DesignThemeEntry[] = [
     // 它接管七个维度，但**值来自它自己那份预设的实测**（`wuling/spec.ts` 逐条带行号），
     // 所以默认档位下画面不许与旧预设不同——那是「保留现有的预设的风格」的可验证形式。
     id: "wuling",
+    colorAdaptation: "seed",
     labelKey: "settings:designTheme.wuling.label",
     descriptionKey: "settings:designTheme.wuling.description",
     ownsDimensions: ALL,
@@ -58,6 +64,7 @@ export const DESIGN_THEME_ENTRIES: readonly DesignThemeEntry[] = [
     // 第四份配方：瑞士国际主义。**唯一一份「值来自另一个公司的公开规范」**（SBB 5.2.0）的配方，
     // 所以它没有取色开关——只有一个红，而那个红是功能信号色（见 swiss/spec.ts 的 SWISS_COLOR_POLICY）。
     id: "swiss",
+    colorAdaptation: "fixed",
     labelKey: "settings:designTheme.swiss.label",
     descriptionKey: "settings:designTheme.swiss.description",
     ownsDimensions: ALL,
@@ -66,6 +73,7 @@ export const DESIGN_THEME_ENTRIES: readonly DesignThemeEntry[] = [
     // 第五份配方：孤星。色值不是官方发布的，是一份**已经落过一遍的校准**（Kisaki），
     // 设置面板照实披露这件事；它自带取色，但默认不跟随配色主题，理由见 contract 的 LoneStarOptions。
     id: "lonestar",
+    colorAdaptation: "seed",
     labelKey: "settings:designTheme.lonestar.label",
     descriptionKey: "settings:designTheme.lonestar.description",
     ownsDimensions: ALL,
@@ -97,4 +105,11 @@ export function resolveDesignTheme(
       // 走到这里只可能是调用方传了未注册的 id，此时必须是什么都不接管。
       return null
   }
+}
+
+/** 设置页和快捷菜单使用同一份适配能力说明。 */
+export function colorAdaptationHintKey(config: DesignThemeConfig): string {
+  const entry = designThemeById(config.id)
+  const mode = config.id !== "native" && !config.dimensions.color ? "disabled" : entry?.colorAdaptation ?? "theme"
+  return `settings:colorTheme.hints.${mode}`
 }

@@ -13,10 +13,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { changeLanguage, getCurrentLanguage, LANGUAGES, type Language } from "@/i18n"
 import {
+  DEFAULT_COLOR_SELECTION_VALUE,
   getActiveCustomTheme,
   parseImportedThemeJson,
   resolveThemeScheme,
 } from "@/lib/appearance"
+import { colorAdaptationHintKey, designThemeById } from "@/lib/design-theme/registry"
 import { FONT_PRESETS } from "@/lib/appearance-fonts"
 import { cn } from "@/lib/utils"
 import { useWorkspaceActions, useWorkspaceShallowSelector } from "@/store/workspaceStore"
@@ -38,6 +40,7 @@ export function AppearanceSection() {
   const { theme: colorMode, setTheme: setColorMode } = useTheme()
   const currentLang = getCurrentLanguage()
   const state = useWorkspaceShallowSelector((workspace) => ({
+    designTheme: workspace.designTheme,
     theme: workspace.theme,
     themeSelections: workspace.themeSelections,
     customThemes: workspace.customThemes,
@@ -74,7 +77,14 @@ export function AppearanceSection() {
       ? (activeCustomTheme.cssVars.dark ?? activeCustomTheme.cssVars.light)
       : activeCustomTheme.cssVars.light)
     : null
-  const activeThemePalette = activeCustomTheme
+  const usesDesignPalette = state.designTheme.id !== "native" && state.designTheme.dimensions.color
+  const usesDefaultPalette = usesDesignPalette || activeSelection.kind === "none"
+  const activeColorLabel = usesDesignPalette
+    ? t(designThemeById(state.designTheme.id)!.labelKey)
+    : activeSelection.kind === "none" ? t("settings:colorTheme.defaultLabel") : activeCustomTheme?.name ?? t(active.labelKey)
+  const activeThemePalette = usesDefaultPalette
+    ? ["var(--background)", "var(--primary)", "var(--border)", "var(--foreground)"]
+    : activeCustomTheme
     ? [
       activeCustomColors?.background,
       activeCustomColors?.primary,
@@ -82,7 +92,7 @@ export function AppearanceSection() {
       activeCustomColors?.foreground,
     ].filter(Boolean)
     : active.palette
-  const activeThemePaletteLabels = activeCustomTheme
+  const activeThemePaletteLabels = usesDefaultPalette || activeCustomTheme
     ? ["background", "primary", "border", "foreground"]
     : active.paletteLabelKeys.map((key) => t(key))
   const activeFont = FONT_PRESETS.find((preset) => preset.key === state.fontPreset) ?? FONT_PRESETS[0]
@@ -138,13 +148,13 @@ export function AppearanceSection() {
                 : <ActiveThemeIcon className="size-4 text-muted-foreground" />}
             </div>
             <h3 className="mb-2 truncate text-xl font-semibold text-foreground">
-              {activeCustomTheme?.name ?? t(active.labelKey)}
+              {activeColorLabel}
             </h3>
             <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-              {activeCustomTheme?.description ?? t(active.descriptionKey)}
+              {usesDefaultPalette ? t(colorAdaptationHintKey(state.designTheme)) : activeCustomTheme?.description ?? t(active.descriptionKey)}
             </p>
 
-            {!activeCustomTheme && (
+            {!activeCustomTheme && !usesDefaultPalette && (
               <div className="mb-4 rounded-sm border border-border/45 bg-muted/15 px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary" className="rounded-sm font-mono text-[9px] uppercase tracking-wider">
@@ -206,9 +216,10 @@ export function AppearanceSection() {
               </Badge>
             </div>
             <Select
-              value={activeCustomTheme ? CUSTOM_THEME_ACTIVE_VALUE : activePresetKey}
+              value={activeCustomTheme ? CUSTOM_THEME_ACTIVE_VALUE : activeSelection.kind === "none" ? DEFAULT_COLOR_SELECTION_VALUE : activePresetKey}
               onValueChange={(value) => {
-                if (value !== CUSTOM_THEME_ACTIVE_VALUE) selectPreset(value as AppTheme)
+                if (value === DEFAULT_COLOR_SELECTION_VALUE) workspaceActions.setThemeSelection(activeScheme, { kind: "none" })
+                else if (value !== CUSTOM_THEME_ACTIVE_VALUE) selectPreset(value as AppTheme)
               }}
             >
               <SelectTrigger className="w-full bg-background/60 font-mono text-xs" size="sm">
@@ -216,6 +227,7 @@ export function AppearanceSection() {
               </SelectTrigger>
               <SelectContent className="max-h-72">
                 <SelectGroup>
+                  <SelectItem value={DEFAULT_COLOR_SELECTION_VALUE}>{t("settings:colorTheme.defaultLabel")}</SelectItem>
                   {activeCustomTheme && (
                     <SelectItem value={CUSTOM_THEME_ACTIVE_VALUE}>
                       <Palette className="text-primary" />
@@ -238,15 +250,15 @@ export function AppearanceSection() {
             </Select>
             <div className="flex min-w-0 items-center gap-3 rounded-sm border border-border/40 bg-muted/15 px-3 py-2">
               <div className="grid size-8 shrink-0 place-items-center rounded-sm border border-primary/30 bg-primary/10 text-primary">
-                <ActiveThemeIcon className="size-4" />
+                {activeCustomTheme || usesDefaultPalette ? <Palette className="size-4" /> : <ActiveThemeIcon className="size-4" />}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">{t(active.labelKey)}</p>
-                <p className="truncate text-[10px] font-mono text-muted-foreground/70">{t(active.subtitleKey)}</p>
+                <p className="truncate text-sm font-medium text-foreground">{activeColorLabel}</p>
+                <p className="truncate text-[10px] font-mono text-muted-foreground/70">{usesDefaultPalette ? t(colorAdaptationHintKey(state.designTheme)) : activeCustomTheme?.description ?? t(active.subtitleKey)}</p>
               </div>
               <div className="flex shrink-0 overflow-hidden rounded-sm border border-border/40">
-                {active.palette.slice(0, 4).map((color, index) => (
-                  <span key={`${active.key}-${index}`} className="size-5" style={{ background: color }} />
+                {activeThemePalette.slice(0, 4).map((color, index) => (
+                  <span key={`${activeColorLabel}-${index}`} className="size-5" style={{ background: color }} />
                 ))}
               </div>
             </div>
@@ -499,7 +511,7 @@ export function AppearanceSection() {
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-xs font-medium text-foreground">
-                    {activeCustomTheme?.name ?? t("settings:themeImport.noActive", "No imported theme active")}
+                    {activeCustomTheme?.name ?? t("settings:colorTheme.defaultLabel")}
                   </p>
                   <p className="text-[10px] font-mono text-muted-foreground">
                     {t("settings:themeImport.count", {
@@ -517,11 +529,11 @@ export function AppearanceSection() {
                 )}
               </div>
               <Select
-                value={activeCustomTheme?.name ?? "none"}
+                value={activeCustomTheme?.name ?? DEFAULT_COLOR_SELECTION_VALUE}
                 onValueChange={(value) =>
                   workspaceActions.setThemeSelection(
                     activeScheme,
-                    value === "none" ? { kind: "preset", name: state.theme } : { kind: "custom", name: value },
+                    value === DEFAULT_COLOR_SELECTION_VALUE ? { kind: "none" } : { kind: "custom", name: value },
                   )
                 }
               >
@@ -530,7 +542,7 @@ export function AppearanceSection() {
                 </SelectTrigger>
                 <SelectContent className="max-h-72">
                   <SelectGroup>
-                    <SelectItem value="none">{t("settings:themeImport.disableImported", "Use preset only")}</SelectItem>
+                    <SelectItem value={DEFAULT_COLOR_SELECTION_VALUE}>{t("settings:colorTheme.defaultLabel")}</SelectItem>
                     {state.customThemes.map((theme) => (
                       <SelectItem key={theme.name} value={theme.name}>{theme.name}</SelectItem>
                     ))}

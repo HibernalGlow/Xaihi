@@ -41,7 +41,7 @@ export function createUiSlice(set: SetWorkspaceStore): WorkspaceUiActions {
     /** 设置某个方案（light/dark）的主题选择：preset 时清空 custom，custom 时同步 activeCustomThemeName。 */
     setThemeSelection: (scheme, selection) => set((state) => ({
       themeSelections: { ...state.themeSelections, [scheme]: selection },
-      ...(selection.kind === "preset" ? { theme: selection.name, activeCustomThemeName: null } : { activeCustomThemeName: selection.name }),
+      ...(selection.kind === "preset" ? { theme: selection.name, activeCustomThemeName: null } : { activeCustomThemeName: selection.kind === "custom" ? selection.name : null }),
     }), false, "SET_THEME_SELECTION"),
     /** 从后端/持久化恢复 UI 偏好（仅覆盖传入字段，缺失字段保留默认）。 */
     hydrateUiPreferences: (preferences) => set(

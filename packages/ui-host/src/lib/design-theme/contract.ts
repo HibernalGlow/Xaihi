@@ -264,6 +264,8 @@ export interface DesignTokenBundle {
 /** apply 需要的外部输入——由挂载组件从 store/DOM 解析后注入，引擎自己不去读 store。 */
 export interface DesignThemeContext {
   scheme: DesignThemeScheme
+  /** 用户明确选择无额外颜色时，沿用配方自己的默认色；这不是取色失败。 */
+  useDefaultColors?: boolean
   /** 颜色维度接管时要盖过谁：自定义主题的 cssVars 也是写 inline 的。 */
   activeThemeSeed: string | null
   /** 供取色来源诊断与 UI 披露：系统强调色在本平台读得到吗。 */
