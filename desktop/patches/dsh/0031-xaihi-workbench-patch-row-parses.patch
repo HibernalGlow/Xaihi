@@ -1,0 +1,75 @@
+From bea63bbaebfdb65408fd7238b82be787feb1fde1 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Mon, 12 Oct 2026 19:46:27 +0800
+Subject: [PATCH] desktop: seed the workbench patch row over the empty sequence
+
+The first version appended its row below the placeholder [] that initProfile seeds, so the profile overlay could not be parsed and the Host refused to boot (YAMLException: end of the stream or a document separator is expected). The placeholder is now replaced, and the spec parses the seeded file instead of looking for a substring.
+
+Verified against the shipped runtime: a profile seeded from a real payload installs with the packaged pnpm and resolves through the packaged dsh with rc=0, with uiBundleDir pointing into the payload.
+---
+ apps/desktop/src/project-manager.ts             |  9 ++++++++-
+ .../tests/xaihi-workbench-payload.spec.ts       | 17 +++++++++--------
+ 2 files changed, 17 insertions(+), 9 deletions(-)
+
+diff --git a/apps/desktop/src/project-manager.ts b/apps/desktop/src/project-manager.ts
+index 9c7bb9a..15ff9f1 100644
+--- a/apps/desktop/src/project-manager.ts
++++ b/apps/desktop/src/project-manager.ts
+@@ -235,5 +235,12 @@ export function applyXaihiWorkbenchPayload(projectDir: string): void {
+   const row = '# Xaihi workbench: the shipped document directory must be explicit, otherwise the route answers 503.\n'
+     + `- id: xaihi-core\n  config:\n    verbose: ${String(shipped.payload.coreConfig.verbose)}\n`
+     + `    uiBundleDir: ${JSON.stringify(join(shipped.dir, 'ui'))}\n`
+-  writeFileSync(patchPath, current.trimEnd().length === 0 ? row : `${current.trimEnd()}\n\n${row}`)
++  // `initProfile` seeds the file with comments over an empty sequence (`[]`). Block sequences and `[]`
++  // cannot coexist, so the placeholder is replaced rather than appended to — appending produced
++  // `YAMLException: end of the stream or a document separator is expected` on the first boot.
++  const trimmed = current.trimEnd()
++  const written = /^\[\s*\]\s*$/mu.test(trimmed)
++    ? trimmed.replace(/^\[\s*\]\s*$/mu, row.trimEnd())
++    : trimmed.length === 0 ? row : `${trimmed}\n\n${row}`
++  writeFileSync(patchPath, written.endsWith('\n') ? written : `${written}\n`)
+ }
+diff --git a/apps/desktop/tests/xaihi-workbench-payload.spec.ts b/apps/desktop/tests/xaihi-workbench-payload.spec.ts
+index 923f4a2..36e4731 100644
+--- a/apps/desktop/tests/xaihi-workbench-payload.spec.ts
++++ b/apps/desktop/tests/xaihi-workbench-payload.spec.ts
+@@ -1,7 +1,8 @@
+ // 载荷的对照：装了它，新建的 profile 就带上我们的 bundle 与 uiBundleDir；没装，profile 与上游逐字相同。
+-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
++import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+ import { tmpdir } from 'node:os'
+ import { join } from 'node:path'
++import { load } from 'js-yaml'
+ import { afterEach, describe, expect, it, vi } from 'vitest'
+ import { createPluginProfile } from '../src/project-manager.ts'
+ 
+@@ -45,9 +46,10 @@ describe('Xaihi workbench payload', () => {
+     expect(manifest.dsh.profile.bundles).toContain('@hibernalglow/xaihi-core')
+     expect(manifest.dsh.profile.bundles).toContain('@hibernalglow/xaihi-ui')
+ 
+-    const patch = readFileSync(join(profile, 'cordis.patch.yml'), 'utf8')
+-    expect(patch).toContain('id: xaihi-core')
+-    expect(patch).toContain(`uiBundleDir: ${JSON.stringify(join(payload, 'ui'))}`)
++    const patch = load(readFileSync(join(profile, 'cordis.patch.yml'), 'utf8')) as
++      readonly { readonly id: string, readonly config: { readonly uiBundleDir: string } }[]
++    const row = patch.find(entry => entry.id === 'xaihi-core')
++    expect(row?.config.uiBundleDir).toBe(join(payload, 'ui'))
+   })
+ 
+   it('refuses a payload whose pack has no built entry instead of writing a broken profile', () => {
+@@ -70,9 +72,8 @@ describe('Xaihi workbench payload', () => {
+     }
+     expect(Object.keys(manifest.dependencies ?? {})).not.toContain('@hibernalglow/xaihi-core')
+     expect(manifest.dsh.profile.bundles).not.toContain('@hibernalglow/xaihi-core')
+-    // `initProfile` seeds its own patch file; we add nothing to it when no payload ships.
+-    const patch = existsSync(join(profile, 'cordis.patch.yml')) ? readFileSync(join(profile, 'cordis.patch.yml'), 'utf8') : ''
+-    expect(patch).not.toContain('uiBundleDir')
+-    expect(patch).not.toContain('xaihi-core')
++    // `initProfile` seeds its own patch file with an empty sequence; we add nothing to it. Parsing it is
++    // the point: the first version appended to that `[]` and produced a file the loader rejected.
++    expect(load(readFileSync(join(profile, 'cordis.patch.yml'), 'utf8'))).toEqual([])
+   })
+ })
+-- 
+2.56.0
+
