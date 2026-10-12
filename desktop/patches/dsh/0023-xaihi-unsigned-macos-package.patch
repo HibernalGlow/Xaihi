@@ -1,4 +1,4 @@
-From 72214d7596f36c6b9dbc7d7aca84b7e28cca102d Mon Sep 17 00:00:00 2001
+From 8e7542f72bee78b0a8e596b21bab9fe7aaa54ec4 Mon Sep 17 00:00:00 2001
 From: HibernalGlow <3090253564@qq.com>
 Date: Sun, 11 Oct 2026 22:47:21 +0800
 Subject: [PATCH] desktop: allow unsigned macOS nightly packages
@@ -19,9 +19,10 @@ Xaihi patch 0023.
 ---
  .../scripts/electron-builder-config.mjs       | 17 ++++++++-------
  apps/desktop/scripts/package-target.ts        | 21 +++++++++++--------
+ .../desktop/scripts/smoke-packaged-runtime.ts |  1 -
  apps/desktop/tests/macos-signature.spec.ts    | 11 +++++++---
  apps/desktop/tests/package-target.spec.ts     |  7 ++++---
- 4 files changed, 33 insertions(+), 23 deletions(-)
+ 5 files changed, 33 insertions(+), 24 deletions(-)
 
 diff --git a/apps/desktop/scripts/electron-builder-config.mjs b/apps/desktop/scripts/electron-builder-config.mjs
 index 1fb7878..379c7a5 100644
@@ -143,6 +144,18 @@ index 62f4fcb..8e7ea95 100644
    } else {
      await signedStage('artifacts', () => execute(desktopElectronBuilderArguments(target, invocation.directory), electronBuilderEnv))
      await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts', ...(invocation.unsigned ? ['--unsigned'] : [])], targetEnv)
+diff --git a/apps/desktop/scripts/smoke-packaged-runtime.ts b/apps/desktop/scripts/smoke-packaged-runtime.ts
+index 106830b..b910300 100644
+--- a/apps/desktop/scripts/smoke-packaged-runtime.ts
++++ b/apps/desktop/scripts/smoke-packaged-runtime.ts
+@@ -11,7 +11,6 @@ const paths = resolveDesktopTargetBuildPaths()
+ const { values } = parseArgs({ options: { unsigned: { type: 'boolean', default: false } }, allowPositionals: false })
+ const target = resolveDesktopBuildTarget()
+ const windows = target === 'win-x64'
+-if (values.unsigned && !windows) throw new Error('desktop smoke: unsigned artifacts require Windows')
+ const artifacts = values.unsigned ? paths.unsignedArtifacts : paths.artifacts
+ const application = windows ? join(artifacts, 'win-unpacked')
+   : join(artifacts, target === 'mac-arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app', 'Contents')
 diff --git a/apps/desktop/tests/macos-signature.spec.ts b/apps/desktop/tests/macos-signature.spec.ts
 index c8d9f85..aaf21c4 100644
 --- a/apps/desktop/tests/macos-signature.spec.ts
