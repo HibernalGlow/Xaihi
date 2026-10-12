@@ -1,0 +1,234 @@
+From dedb12ec4b5a1c80b0bf75dafa6d512eedaa58dd Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Mon, 12 Oct 2026 19:38:39 +0800
+Subject: [PATCH] desktop: boot the workbench payload a build ships
+
+The packaged profile only ever carried upstream bundles, so the shipped app showed upstream chrome no matter what the checkout composed. A build can now hand in a payload directory: the pack stage copies it to Resources/xaihi, and a freshly created profile gains its bundles as file: copies plus the xaihi-core patch row that points the workbench route at the shipped document. Unset keeps the resource list and the profile byte-identical to upstream, which the specs pin in both directions.
+---
+ apps/desktop/electron-builder.config.d.mts    |  1 +
+ .../scripts/electron-builder-config.mjs       |  8 ++
+ apps/desktop/src/project-manager.ts           | 63 +++++++++++++++
+ apps/desktop/tests/macos-signature.spec.ts    | 11 +++
+ .../tests/xaihi-workbench-payload.spec.ts     | 78 +++++++++++++++++++
+ 5 files changed, 161 insertions(+)
+ create mode 100644 apps/desktop/tests/xaihi-workbench-payload.spec.ts
+
+diff --git a/apps/desktop/electron-builder.config.d.mts b/apps/desktop/electron-builder.config.d.mts
+index 8e1a2af..568faa7 100644
+--- a/apps/desktop/electron-builder.config.d.mts
++++ b/apps/desktop/electron-builder.config.d.mts
+@@ -22,6 +22,7 @@ export interface DesktopElectronBuilderConfig {
+     { readonly from: string, readonly to: 'runtime' },
+     { readonly from: string, readonly to: 'icon.png' },
+     ...{ readonly from: string, readonly to: 'tray.ico' }[],
++    ...{ readonly from: string, readonly to: 'xaihi' }[],
+   ]
+   readonly mac: {
+     readonly extendInfo: { readonly NSMicrophoneUsageDescription: string }
+diff --git a/apps/desktop/scripts/electron-builder-config.mjs b/apps/desktop/scripts/electron-builder-config.mjs
+index 7008afe..6e9054e 100644
+--- a/apps/desktop/scripts/electron-builder-config.mjs
++++ b/apps/desktop/scripts/electron-builder-config.mjs
+@@ -64,6 +64,12 @@ export function createElectronBuilderConfig(
+   if (resolvedPlatform === 'win32') installWindowsDirectoryInstaller()
+   const macOSSigning = packagesMacOS && !unsigned ? resolveMacOSSigningEnvironment(env) : undefined
+   if (packagesMacOS && !unsigned) resolveMacOSNotarizationEnvironment(env)
++  // Xaihi payload: the workbench document plus our bundles ride into `Resources/xaihi`. Unset means the
++  // resource list is exactly upstream's, so an ordinary upstream build keeps its two entries. The entry is
++  // typed as the general mapping so the resource list's inferred `to` union keeps admitting it.
++  const xaihiPayloadDir = env.XAIHI_DESKTOP_PAYLOAD_DIR?.trim() || undefined
++  /** @type {{ from: string, to: string }[]} */
++  const xaihiPayloadResources = xaihiPayloadDir === undefined ? [] : [{ from: xaihiPayloadDir, to: 'xaihi' }]
+   const buildPaths = desktopTargetBuildPaths(resolveDesktopBuildTarget(env, hostPlatform, hostArch))
+   let primaryRuntimeDestination
+   let dshDestination
+@@ -145,6 +151,8 @@ export function createElectronBuilderConfig(
+       { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
+       // Windows tray bitmaps; macOS keeps the Dock and ships no menu bar icon.
+       ...(packagesWindows ? [{ from: fileURLToPath(new URL('../resources/tray-windows.ico', import.meta.url)), to: 'tray.ico' }] : []),
++      // The workbench payload: `Resources/xaihi/ui` plus `packs/` and `profile.json` (see desktop/desktop-payload.mjs).
++      ...xaihiPayloadResources,
+     ],
+     mac: {
+       icon: fileURLToPath(new URL('../resources/icon-macos.png', import.meta.url)),
+diff --git a/apps/desktop/src/project-manager.ts b/apps/desktop/src/project-manager.ts
+index 270d87d..9c7bb9a 100644
+--- a/apps/desktop/src/project-manager.ts
++++ b/apps/desktop/src/project-manager.ts
+@@ -173,4 +173,67 @@ export function createDevelopmentProjectMetadata(projectDir: string, release: De
+ /** Create the first external plugin profile without running a package manager. */
+ export function createPluginProfile(projectDir: string): void {
+   initProfile(projectDir, WEB_PROFILE.bundles)
++  applyXaihiWorkbenchPayload(projectDir)
++}
++
++/** Workbench payload shipped beside the runtime: `Resources/xaihi` (see desktop/desktop-payload.mjs). */
++interface XaihiWorkbenchPayload {
++  readonly bundles: readonly string[]
++  readonly coreConfig: { readonly uiBundleDir: string, readonly verbose: boolean }
++}
++
++/**
++ * Locate the shipped workbench payload. `XAIHI_DESKTOP_PAYLOAD_DIR` names it during development; a packaged
++ * build ships it at `Resources/xaihi`, so an ordinary upstream runtime resolves nothing and keeps its profile.
++ * @returns Payload directory and its manifest, or undefined when this build ships no workbench.
++ */
++function readXaihiWorkbenchPayload(): { readonly dir: string, readonly payload: XaihiWorkbenchPayload } | undefined {
++  const resourcesPath = (process as { resourcesPath?: string }).resourcesPath
++  const configured = process.env.XAIHI_DESKTOP_PAYLOAD_DIR?.trim()
++  const dir = configured === undefined || configured === ''
++    ? (resourcesPath === undefined || resourcesPath === '' ? undefined : join(resourcesPath, 'xaihi'))
++    : configured
++  if (dir === undefined || !existsSync(join(dir, 'profile.json'))) return undefined
++  const payload = JSON.parse(readFileSync(join(dir, 'profile.json'), 'utf8')) as XaihiWorkbenchPayload
++  if (!Array.isArray(payload.bundles) || typeof payload.coreConfig?.uiBundleDir !== 'string') {
++    throw new Error(`desktop project: ${join(dir, 'profile.json')} is not a workbench payload`)
++  }
++  return { dir, payload }
++}
++
++/**
++ * Add the shipped workbench to a profile that was just created: our bundles as `file:` copies taken from the
++ * payload, and the `xaihi-core` patch row that points the workbench route at the shipped document directory.
++ * @param projectDir - Profile directory holding `package.json` and `cordis.patch.yml`.
++ */
++export function applyXaihiWorkbenchPayload(projectDir: string): void {
++  const shipped = readXaihiWorkbenchPayload()
++  if (shipped === undefined) return
++  const manifestPath = join(projectDir, 'package.json')
++  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
++    dependencies?: Record<string, string>
++    dsh?: { profile?: { bundles?: string[] } }
++  }
++  const dependencies = { ...manifest.dependencies }
++  for (const name of shipped.payload.bundles) {
++    const pack = join(shipped.dir, 'packs', name.replace('@hibernalglow/', ''))
++    if (!existsSync(join(pack, 'lib', 'index.js'))) {
++      throw new Error(`desktop project: workbench payload pack ${pack} has no lib/index.js`)
++    }
++    dependencies[name] = `file:${pack}`
++  }
++  const bundles = [...new Set([...(manifest.dsh?.profile?.bundles ?? []), ...shipped.payload.bundles])]
++  writeFileSync(manifestPath, `${JSON.stringify({
++    ...manifest,
++    dependencies,
++    dsh: { ...(manifest.dsh ?? {}), profile: { ...(manifest.dsh?.profile ?? {}), bundles } },
++  }, null, 2)}\n`)
++
++  const patchPath = join(projectDir, 'cordis.patch.yml')
++  const current = existsSync(patchPath) ? readFileSync(patchPath, 'utf8') : ''
++  if (current.includes('uiBundleDir')) return
++  const row = '# Xaihi workbench: the shipped document directory must be explicit, otherwise the route answers 503.\n'
++    + `- id: xaihi-core\n  config:\n    verbose: ${String(shipped.payload.coreConfig.verbose)}\n`
++    + `    uiBundleDir: ${JSON.stringify(join(shipped.dir, 'ui'))}\n`
++  writeFileSync(patchPath, current.trimEnd().length === 0 ? row : `${current.trimEnd()}\n\n${row}`)
+ }
+diff --git a/apps/desktop/tests/macos-signature.spec.ts b/apps/desktop/tests/macos-signature.spec.ts
+index 33f88cd..3d9e429 100644
+--- a/apps/desktop/tests/macos-signature.spec.ts
++++ b/apps/desktop/tests/macos-signature.spec.ts
+@@ -39,6 +39,17 @@ describe('desktop macOS release signature', () => {
+     vi.unstubAllEnvs()
+   })
+ 
++  it('adds the workbench payload resource only when the packaging environment names one', async () => {
++    const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
++    const without = createElectronBuilderConfig(RELEASE_ENVIRONMENT, 'darwin', 'arm64')
++    expect(without.extraResources.filter(resource => resource.to === 'xaihi')).toHaveLength(0)
++    const withPayload = createElectronBuilderConfig(
++      { ...RELEASE_ENVIRONMENT, XAIHI_DESKTOP_PAYLOAD_DIR: '/fixture/xaihi-payload' }, 'darwin', 'arm64')
++    const payload = withPayload.extraResources.find(resource => resource.to === 'xaihi')
++    expect(payload?.from).toBe('/fixture/xaihi-payload')
++    expect(withPayload.extraResources).toHaveLength(without.extraResources.length + 1)
++  })
++
+   it('loads release identifiers from the environment and requires code signing', async () => {
+     const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
+     const config = createElectronBuilderConfig(RELEASE_ENVIRONMENT, 'darwin', 'arm64')
+diff --git a/apps/desktop/tests/xaihi-workbench-payload.spec.ts b/apps/desktop/tests/xaihi-workbench-payload.spec.ts
+new file mode 100644
+index 0000000..923f4a2
+--- /dev/null
++++ b/apps/desktop/tests/xaihi-workbench-payload.spec.ts
+@@ -0,0 +1,78 @@
++// 载荷的对照：装了它，新建的 profile 就带上我们的 bundle 与 uiBundleDir；没装，profile 与上游逐字相同。
++import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++import { afterEach, describe, expect, it, vi } from 'vitest'
++import { createPluginProfile } from '../src/project-manager.ts'
++
++const BUNDLES = ['@hibernalglow/xaihi-core', '@hibernalglow/xaihi-ui']
++
++/** 造一份最小载荷：profile.json + 每个 bundle 的 lib/index.js + 工作台产物目录。 */
++function writePayload (bundles: readonly string[] = BUNDLES): string {
++  const dir = mkdtempSync(join(tmpdir(), 'xaihi-payload-'))
++  mkdirSync(join(dir, 'ui'), { recursive: true })
++  writeFileSync(join(dir, 'ui', 'main.js'), 'export {}\n')
++  for (const name of bundles) {
++    mkdirSync(join(dir, 'packs', name.replace('@hibernalglow/', ''), 'lib'), { recursive: true })
++    writeFileSync(join(dir, 'packs', name.replace('@hibernalglow/', ''), 'lib', 'index.js'), 'export {}\n')
++  }
++  writeFileSync(join(dir, 'profile.json'), `${JSON.stringify({
++    schemaVersion: 1, bundles, coreConfig: { uiBundleDir: 'ui', verbose: false },
++  }, null, 2)}\n`)
++  return dir
++}
++
++function freshProfile (): string {
++  const dir = mkdtempSync(join(tmpdir(), 'dsh-profile-'))
++  return dir
++}
++
++describe('Xaihi workbench payload', () => {
++  afterEach(() => { vi.unstubAllEnvs() })
++
++  it('installs the shipped workbench into a freshly created profile', () => {
++    const payload = writePayload()
++    vi.stubEnv('XAIHI_DESKTOP_PAYLOAD_DIR', payload)
++    const profile = freshProfile()
++    createPluginProfile(profile)
++
++    const manifest = JSON.parse(readFileSync(join(profile, 'package.json'), 'utf8')) as {
++      dependencies: Record<string, string>
++      dsh: { profile: { bundles: string[] } }
++    }
++    expect(manifest.dependencies['@hibernalglow/xaihi-core']).toBe(`file:${join(payload, 'packs', 'xaihi-core')}`)
++    expect(manifest.dependencies['@hibernalglow/xaihi-ui']).toBe(`file:${join(payload, 'packs', 'xaihi-ui')}`)
++    expect(manifest.dsh.profile.bundles).toContain('@hibernalglow/xaihi-core')
++    expect(manifest.dsh.profile.bundles).toContain('@hibernalglow/xaihi-ui')
++
++    const patch = readFileSync(join(profile, 'cordis.patch.yml'), 'utf8')
++    expect(patch).toContain('id: xaihi-core')
++    expect(patch).toContain(`uiBundleDir: ${JSON.stringify(join(payload, 'ui'))}`)
++  })
++
++  it('refuses a payload whose pack has no built entry instead of writing a broken profile', () => {
++    const payload = writePayload(['@hibernalglow/xaihi-core'])
++    const manifestPath = join(payload, 'profile.json')
++    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { bundles: string[] }
++    writeFileSync(manifestPath, `${JSON.stringify({ ...manifest, bundles: [...manifest.bundles, '@hibernalglow/xaihi-ui'] }, null, 2)}\n`)
++    vi.stubEnv('XAIHI_DESKTOP_PAYLOAD_DIR', payload)
++    expect(() => { createPluginProfile(freshProfile()) }).toThrow(/has no lib\/index\.js/u)
++  })
++
++  it('leaves the profile exactly as upstream builds it when no payload is shipped', () => {
++    vi.stubEnv('XAIHI_DESKTOP_PAYLOAD_DIR', '')
++    const profile = freshProfile()
++    createPluginProfile(profile)
++
++    const manifest = JSON.parse(readFileSync(join(profile, 'package.json'), 'utf8')) as {
++      dependencies?: Record<string, string>
++      dsh: { profile: { bundles: string[] } }
++    }
++    expect(Object.keys(manifest.dependencies ?? {})).not.toContain('@hibernalglow/xaihi-core')
++    expect(manifest.dsh.profile.bundles).not.toContain('@hibernalglow/xaihi-core')
++    // `initProfile` seeds its own patch file; we add nothing to it when no payload ships.
++    const patch = existsSync(join(profile, 'cordis.patch.yml')) ? readFileSync(join(profile, 'cordis.patch.yml'), 'utf8') : ''
++    expect(patch).not.toContain('uiBundleDir')
++    expect(patch).not.toContain('xaihi-core')
++  })
++})
+-- 
+2.56.0
+
