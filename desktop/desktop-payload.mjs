@@ -46,6 +46,47 @@ function run (command, args) {
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} 退出：${String(result.status ?? result.signal)}`)
 }
 
+/**
+ * 构建前点名"别名表缺了改名族"这件事。
+ *
+ * 界面里写的是改名后的 `@hibernalglow/xaihi-<id>/<leaf>`，而 `rspack.document.mjs` 只认
+ * `tsconfig.ported.json` 里有的键 ⇒ 缺那一族时构建会以 30 条 `Can't resolve '@hibernalglow/xaihi-…'` 收场，
+ * 症状指向"模块不存在"（假的：源码一直在），而归因要读生成器才知道。这一族有自己的产出规则
+ * （实测两种下游自补都不等价：只补 `@xiranite/node-*` 少 10 条；按作用域整体换名只与它重合 10 条），
+ * 所以这里**只报不补**：整族缺席时立刻红并点名，正解是生成器那一处产出孪生名。
+ * @returns {void}
+ */
+function preflightNodeLeaves () {
+  const table = JSON.parse(readFileSync(join(repo, 'packages/ui-host/tsconfig.ported.json'), 'utf8')).compilerOptions?.paths ?? {}
+  const keys = Object.keys(table)
+  const twins = keys.filter(key => key.startsWith('@hibernalglow/xaihi-'))
+  if (twins.length > 0) {
+    console.log(`载荷预检：别名表含 ${String(twins.length)} 条改名族键（共 ${String(keys.length)} 键）`)
+    return
+  }
+  const imported = new Set()
+  const walk = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) { walk(path); continue }
+      if (!/\.tsx?$/u.test(entry.name)) continue
+      for (const match of readFileSync(path, 'utf8').matchAll(/["'](@hibernalglow\/xaihi-[a-z0-9-]+\/[^"']+)["']/gu)) imported.add(match[1])
+    }
+  }
+  walk(join(repo, 'packages/ui-host/src'))
+  const needsTable = [...imported].filter((spec) => {
+    // `@hibernalglow/xaihi-<id>/<leaf>`：包名带 `xaihi-` 前缀，而源码目录是 `plugins/<id>`。
+    const [, scopedName, ...rest] = spec.split('/')
+    const id = String(scopedName).replace(/^xaihi-/u, '')
+    const manifest = join(repo, 'plugins', id, 'package.json')
+    if (!existsSync(manifest)) return false
+    const exported = Object.keys(JSON.parse(readFileSync(manifest, 'utf8')).exports ?? {})
+    return !exported.includes(`./${rest.join('/')}`)
+  }).sort()
+  throw new Error(`载荷预检：别名表里没有任何改名族键，而界面源码引了 ${String(needsTable.length)} 条只能靠它解析的边，`
+    + `例如 ${needsTable.slice(0, 5).join('、')}。这一族由 build-aliases.mjs 产出（生成器那一处修），不要在载荷侧自补。`)
+}
+
 /** 从各包的 package.json 找到它的目录，并确认构建产物在场——缺了要在拼载荷时就红，不留到运行期。 */
 function packageDir (name) {
   const directory = name.startsWith('@hibernalglow/xaihi-')
@@ -74,6 +115,7 @@ if (mode === 'build') {
   // 症状是"命中别名却找不到模块"（云上实测一条 Component 一处，共 11 条）。按检出重生成一次再构建，
   // 与 `ci.yml`/本 workflow 里给 typecheck 腿加的那步同源。
   run('node', [join(repo, 'packages/ui-host/build-aliases.mjs'), '--write'])
+  preflightNodeLeaves()
   run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'build:document'])
   for (const name of BUNDLES) if (name !== '@hibernalglow/xaihi-core' && name !== '@hibernalglow/xaihi-ui') {
     run('pnpm', ['--filter', name, 'build'])
