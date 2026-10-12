@@ -110,6 +110,22 @@ describe("app-owned repacku Component", () => {
     await waitFor(() => expect(host.runCalls[0]?.input.action).toBe("analyze"))
   })
 
+  test.each([false, true])("sends the archive root choice to the backend: %s", async (preserveRoot) => {
+    surfaceState.mode = "compact"
+    const host = createHost({ path: "D:/library", dryRun: true })
+    const view = render(<Component compId="comp-repacku" host={host} />)
+    const user = userEvent.setup()
+    const rootSwitch = screen.getByRole("switch", { name: "保留归档顶层文件夹" })
+    expect(rootSwitch.getAttribute("aria-checked")).toBe("false")
+    if (preserveRoot) {
+      await user.click(rootSwitch)
+      view.rerender(<Component compId="comp-repacku" host={host} />)
+      expect(rootSwitch.getAttribute("aria-checked")).toBe("true")
+    }
+    await user.click(screen.getByRole("button", { name: "启动 完整流程" }))
+    await waitFor(() => expect(host.runCalls[0]?.input.preserveRoot).toBe(preserveRoot))
+  })
+
   test("persists backend failures as visible node state", async () => {
     surfaceState.mode = "regular"
     const host = createHost({ path: "D:/library", dryRun: true }, { fail: true })
@@ -177,6 +193,7 @@ interface RepackuCardState {
   minCount?: number
   deleteAfter?: boolean
   dryRun?: boolean
+  preserveRoot?: boolean
   action?: RepackuInput["action"]
   phase?: string
   progress?: number

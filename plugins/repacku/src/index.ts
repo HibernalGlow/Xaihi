@@ -2,8 +2,8 @@
  * Repacku 的宿主半边：把移植过来的内核接成一个 Xaihi 节点。
  *
  * 内核（`core.ts` / `contract.ts` / `platform.ts`）是从 `noxide` 基线搬来的：`core.ts` 的
- * 893 条正文行与上游逐字节相同（实测 `diff` 只报第 1 行那条 import），差异全部写在它自己的
- * 文件头。这一侧只做四件事：把表单值绑成 `RepackuInput`、把内核的过程事件接到运行账本、
+ * 基线移植的差异和本次使用者要求的行为修正写在内核文件头与阶段报告。
+ * 这一侧只做四件事：把表单值绑成 `RepackuInput`、把内核的过程事件接到运行账本、
  * 把结局发给 `result_view`、把危险动作交给 DSH 的审批缝。不重写内核逻辑，也不在这里
  * 偷偷开第二条外部程序通路。
  *
@@ -88,6 +88,8 @@ export interface Config {
   sevenZipPath: Volatile<string>
   /** 上游 `REPACKU_COMPRESSION_LEVEL`：`-mx=` 的取值，内核侧夹 0..9。 */
   compressionLevel: Volatile<number>
+  /** 归档内是否保留来源目录这一层；默认关闭，直接把内容放到归档根。 */
+  preserveRoot: Volatile<boolean>
 }
 
 export const Config = Schema.object({
@@ -98,6 +100,7 @@ export const Config = Schema.object({
   galleryMarker: Schema.string().default('. 画集').volatile(),
   sevenZipPath: Schema.string().default('').volatile(),
   compressionLevel: Schema.number().default(7).volatile(),
+  preserveRoot: Schema.boolean().default(false).volatile(),
 })
 
 /** 本包自己的清单；读不到就是打包/安装出错，宁可直接抛。 */
@@ -151,6 +154,11 @@ function inputFrom(action: RepackuAction, inputs: Record<string, unknown>, args:
     types: typeof inputs.types === 'string' ? inputs.types : config.types.get(),
     deleteAfter: inputs.deleteAfter === true,
     dryRun: inputs.dryRun === true,
+    preserveRoot: typeof args.preserveRoot === 'boolean'
+      ? args.preserveRoot
+      : action === 'compress' && typeof inputs.configPath === 'string' && inputs.configPath.trim() !== ''
+        ? undefined
+        : config.preserveRoot.get(),
     minCount,
     galleryMarker: typeof inputs.galleryMarker === 'string' ? inputs.galleryMarker : config.galleryMarker.get(),
   }

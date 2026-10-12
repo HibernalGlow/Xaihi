@@ -47,11 +47,12 @@
  * @module xaihi-repacku/platform
  */
 
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, unlink, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { basename, dirname, extname, join, relative, resolve } from 'node:path'
 import type { SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
 import type { RepackuCompressionResult, RepackuDirEntry, RepackuPathInfo, RepackuRuntime } from './core.ts'
+import { isGeneratedRepackuConfigName } from './core.ts'
 
 /** 上游 `platform.ts:19` 那份候选名清单，逐字。 */
 const SEVEN_ZIP_NAMES = ['7z', '7zz', '7za', '7z.exe', '7zz.exe', '7za.exe']
@@ -80,6 +81,10 @@ export const REPACKU_EXECUTION_REFUSAL
     + ' `ctx.approval`（台账 G6）。加 `--dryRun` 只出计划（一个归档都不写）；真执行请用宿主里注册的'
     + ' `repacku_analyze` / `repacku_compress` / `repacku_full` / `repacku_single-pack` /'
     + ' `repacku_gallery-pack`。'
+
+/** PeaZip 的这个入口是 GUI 前端；把它当 7z 调用会弹窗或等待 GUI 状态。 */
+export const REPACKU_GUI_EXECUTION_REFUSAL
+  = '检测到 PeaZip GUI 可执行文件。Repacku 只接受可直接运行的 7-Zip/7zz 后端，以保持全程无头运行；请配置 7z 或 7zz。'
 
 /** 压缩那一半的可调项；来源是 `src/index.ts` 的 `Config`，不是 `process.env`。 */
 export interface RepackuCompressorOptions {
@@ -149,24 +154,38 @@ export function createSubprocessRepackuRuntime (
     return null
   }
 
-  async function compressWholeFolder (sourcePath: string, targetPath: string, compressOptions: { deleteSource?: boolean }): Promise<RepackuCompressionResult> {
+  async function compressWholeFolder (sourcePath: string, targetPath: string, compressOptions: { deleteSource?: boolean; includeRoot?: boolean }): Promise<RepackuCompressionResult> {
     const resolvedSource = resolve(sourcePath)
     const resolvedTarget = resolve(targetPath)
     const source = await safeStat(resolvedSource)
     if (source === null || !source.isDirectory()) return { success: false, originalSize: 0, compressedSize: 0, error: `Source is not a directory: ${sourcePath}` }
 
-    const originalSize = await folderSize(resolvedSource)
+    const files = await relativeFiles(resolvedSource, resolvedTarget)
+    if (!files.length) return { success: false, originalSize: 0, compressedSize: 0, error: 'No files to archive.' }
+    const originalSize = (await Promise.all(files.map((file) => safeStat(join(resolvedSource, file))))).reduce((sum, item) => sum + (item?.size ?? 0), 0)
     await mkdir(dirname(resolvedTarget), { recursive: true })
     const compressor = await findCompressor()
     if (compressor === null) return { success: false, originalSize, compressedSize: 0, error: 'No compressor found. Install 7-Zip or use Windows PowerShell Compress-Archive.' }
 
-    const result = compressor.kind === '7z'
-      ? await run7zWithList(subprocess, cwd, compressor.command, resolvedTarget, [basename(resolvedSource)], { cwd: dirname(resolvedSource), recursive: true }, options.compressionLevel)
-      : await runPowerShellCompressArchive(runCommand, compressor.command, [resolvedSource], resolvedTarget)
+    const includeRoot = compressOptions.includeRoot !== false
+    const result = await replaceExistingArchive(resolvedTarget, async (archiveTarget) => compressor.kind === '7z'
+      ? await run7zWithList(subprocess, cwd, compressor.command, archiveTarget,
+        includeRoot ? files.map((file) => join(basename(resolvedSource), file)) : files,
+        { cwd: includeRoot ? dirname(resolvedSource) : resolvedSource }, options.compressionLevel)
+      : await runPowerShellWithLayout(runCommand, compressor.command, resolvedSource, files, archiveTarget, includeRoot))
 
     if (result.code !== 0) return { success: false, originalSize, compressedSize: 0, error: shortError(result), command: formatCommand(compressor.command, resultCommandArgs(result)) }
     const after = await safeStat(resolvedTarget)
-    const compressedSize = after === null ? 0 : after.size
+    if (after === null || !after.isFile() || after.size <= 0) {
+      return {
+        success: false,
+        originalSize,
+        compressedSize: 0,
+        error: `Archive was not created: ${resolvedTarget}`,
+        command: compressor.kind,
+      }
+    }
+    const compressedSize = after.size
 
     if (compressOptions.deleteSource) await rm(resolvedSource, { recursive: true, force: true })
     return {
@@ -177,7 +196,7 @@ export function createSubprocessRepackuRuntime (
     }
   }
 
-  async function compressFiles (sourcePath: string, targetPath: string, extensions: string[], compressOptions: { deleteSource?: boolean }): Promise<RepackuCompressionResult> {
+  async function compressFiles (sourcePath: string, targetPath: string, extensions: string[], compressOptions: { deleteSource?: boolean; includeRoot?: boolean }): Promise<RepackuCompressionResult> {
     const resolvedSource = resolve(sourcePath)
     const resolvedTarget = resolve(targetPath)
     const source = await safeStat(resolvedSource)
@@ -191,13 +210,34 @@ export function createSubprocessRepackuRuntime (
     const compressor = await findCompressor()
     if (compressor === null) return { success: false, originalSize, compressedSize: 0, error: 'No compressor found. Install 7-Zip or use Windows PowerShell Compress-Archive.' }
 
-    const result = compressor.kind === '7z'
-      ? await run7zWithList(subprocess, cwd, compressor.command, resolvedTarget, files.map((file) => basename(file.path)), { cwd: resolvedSource }, options.compressionLevel)
-      : await runPowerShellCompressArchive(runCommand, compressor.command, files.map((file) => file.path), resolvedTarget)
+    const includeRoot = compressOptions.includeRoot === true
+    const names = files.map((file) => basename(file.path))
+    const result = await replaceExistingArchive(resolvedTarget, async (archiveTarget) => compressor.kind === '7z'
+      ? await run7zWithList(
+        subprocess,
+        cwd,
+        compressor.command,
+        archiveTarget,
+        includeRoot ? names.map((name) => join(basename(resolvedSource), name)) : names,
+        { cwd: includeRoot ? dirname(resolvedSource) : resolvedSource },
+        options.compressionLevel,
+      )
+      : includeRoot
+        ? await runPowerShellWithLayout(runCommand, compressor.command, resolvedSource, names, archiveTarget, true)
+        : await runPowerShellCompressArchive(runCommand, compressor.command, files.map((file) => file.path), archiveTarget))
 
     if (result.code !== 0) return { success: false, originalSize, compressedSize: 0, error: shortError(result), command: compressor.kind }
     const after = await safeStat(resolvedTarget)
-    const compressedSize = after === null ? 0 : after.size
+    if (after === null || !after.isFile() || after.size <= 0) {
+      return {
+        success: false,
+        originalSize,
+        compressedSize: 0,
+        error: `Archive was not created: ${resolvedTarget}`,
+        command: compressor.kind,
+      }
+    }
+    const compressedSize = after.size
 
     if (compressOptions.deleteSource) {
       await Promise.all(files.map((file) => unlink(file.path).catch(() => undefined)))
@@ -232,6 +272,23 @@ interface CommandResult {
   code: number
   stdout: string
   stderr: string
+}
+
+/** 7z a 会保留旧条目；切换归档根结构时必须重建，失败则保留原归档。 */
+async function replaceExistingArchive(targetPath: string, compress: (target: string) => Promise<CommandResult>): Promise<CommandResult> {
+  if (await safeStat(targetPath) === null) return compress(targetPath)
+  const staging = await mkdtemp(join(dirname(targetPath), '.xaihi-repacku-archive-'))
+  const replacement = join(staging, basename(targetPath))
+  try {
+    const result = await compress(replacement)
+    if (result.code !== 0) return result
+    const archive = await safeStat(replacement)
+    if (!archive?.isFile() || archive.size <= 0) return { code: 1, stdout: '', stderr: `Archive was not created: ${targetPath}` }
+    await rename(replacement, targetPath)
+    return result
+  } finally {
+    await rm(staging, { recursive: true, force: true })
+  }
 }
 
 interface Compressor {
@@ -322,9 +379,11 @@ async function matchingDirectFiles (sourcePath: string, extensions: string[], ta
   const normalizedExtensions = new Set(extensions.map((item) => item.toLowerCase()))
   const target = resolve(targetPath).toLowerCase()
   const entries = await readdir(sourcePath, { withFileTypes: true })
+  const childNames = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
   const files: Array<{ path: string; size: number }> = []
   for (const entry of entries) {
     if (!entry.isFile()) continue
+    if (isGeneratedRepackuConfigName(entry.name, basename(sourcePath), childNames)) continue
     const path = join(sourcePath, entry.name)
     if (resolve(path).toLowerCase() === target) continue
     if (normalizedExtensions.size && !normalizedExtensions.has(extname(entry.name).toLowerCase())) continue
@@ -334,10 +393,56 @@ async function matchingDirectFiles (sourcePath: string, extensions: string[], ta
   return files
 }
 
+async function relativeFiles (rootPath: string, targetPath: string): Promise<string[]> {
+  const files: string[] = []
+  async function walk(currentPath: string): Promise<void> {
+    const entries = await readdir(currentPath, { withFileTypes: true })
+    const childNames = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
+    for (const entry of entries) {
+      const entryPath = join(currentPath, entry.name)
+      if (entry.isDirectory()) {
+        await walk(entryPath)
+      } else if (entry.isFile()) {
+        if (resolve(entryPath) === targetPath || isGeneratedRepackuConfigName(entry.name, basename(currentPath), childNames)) continue
+        files.push(relative(rootPath, entryPath).replace(/\\/g, '/'))
+      }
+    }
+  }
+  await walk(rootPath)
+  return files.sort((left, right) => left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' }))
+}
+
+/** Compress-Archive 对文件列表会去掉父目录；用临时布局保住根目录和相对子目录。 */
+async function runPowerShellWithLayout (
+  runCommand: (command: string, args: string[], options?: { cwd?: string }) => Promise<CommandResult>,
+  command: string,
+  sourcePath: string,
+  files: string[],
+  targetPath: string,
+  includeRoot: boolean,
+): Promise<CommandResult> {
+  const staging = await mkdtemp(join(tmpdir(), 'xaihi-repacku-layout-'))
+  const stagedRoot = join(staging, basename(sourcePath))
+  try {
+    for (const file of files) {
+      const stagedFile = join(stagedRoot, file)
+      await mkdir(dirname(stagedFile), { recursive: true })
+      await copyFile(join(sourcePath, file), stagedFile)
+    }
+    const inputs = includeRoot ? [stagedRoot] : (await readdir(stagedRoot)).map((name) => join(stagedRoot, name))
+    return await runPowerShellCompressArchive(runCommand, command, inputs, targetPath)
+  } finally {
+    await rm(staging, { recursive: true, force: true })
+  }
+}
+
 /** 上游 `resolveCompressorPath()`（`:183-194`）：给的是文件就用，给的是目录就按候选名找。 */
 async function resolveCompressorPath (value: string): Promise<string | null> {
   const info = await safeStat(value)
-  if (info?.isFile()) return value
+  if (info?.isFile()) {
+    if (isPeaZipExecutable(value)) throw new Error(REPACKU_GUI_EXECUTION_REFUSAL)
+    return value
+  }
   if (info?.isDirectory()) {
     for (const name of SEVEN_ZIP_NAMES) {
       const candidate = join(value, name)
@@ -348,21 +453,17 @@ async function resolveCompressorPath (value: string): Promise<string | null> {
   return null
 }
 
+function isPeaZipExecutable (value: string): boolean {
+  const name = basename(value).toLowerCase()
+  return name === 'peazip' || name === 'peazip.exe' || name === 'pea' || name === 'pea.exe'
+}
+
 async function safeStat (path: string) {
   try {
     return await stat(path)
   } catch {
     return null
   }
-}
-
-async function folderSize (path: string): Promise<number> {
-  let total = 0
-  for (const entry of await listDir(path)) {
-    if (entry.isFile) total += entry.size
-    else if (entry.isDirectory) total += await folderSize(entry.path)
-  }
-  return total
 }
 
 /** 上游 `run7z()`（`:203-205`）：那两条 `-sccUTF-8 -scsUTF-8` 是中文路径的命根子，逐字留着。 */
@@ -388,7 +489,7 @@ async function run7zWithList (
   command: string,
   targetPath: string,
   entries: string[],
-  options: { cwd: string; recursive?: boolean },
+  options: { cwd: string },
   compressionLevel: number | undefined,
 ): Promise<CommandResult> {
   const dir = await mkdtemp(join(tmpdir(), 'xaihi-repacku-'))
@@ -400,11 +501,11 @@ async function run7zWithList (
       '-tzip',
       targetPath,
       `@${listPath}`,
-      options.recursive ? '-r' : '',
       `-mx=${compressionLevelValue(compressionLevel)}`,
       '-mmt=on',
       '-aou',
-    ].filter(Boolean), { cwd: options.cwd })
+      '-y',
+    ], { cwd: options.cwd })
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
@@ -415,6 +516,7 @@ async function runPowerShellCompressArchive (
   command: string,
   literalPaths: string[],
   targetPath: string,
+  workingDirectory?: string,
 ): Promise<CommandResult> {
   const pathList = literalPaths.map(quotePowerShell).join(', ')
   const script = [
@@ -423,7 +525,7 @@ async function runPowerShellCompressArchive (
     `$paths = @(${pathList})`,
     `Compress-Archive -LiteralPath $paths -DestinationPath ${quotePowerShell(targetPath)} -Force`,
   ].join('; ')
-  return runCommand(command, ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script])
+  return runCommand(command, ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script], { cwd: workingDirectory })
 }
 
 /** 上游 `compressionLevel()`（`:277-280`）的夹取，取值来源换成 `Config`。 */

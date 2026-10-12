@@ -88,13 +88,14 @@ const config = {
   galleryMarker: { get: () => '. 画集' },
   sevenZipPath: { get: () => '' },
   compressionLevel: { get: () => 7 },
+  preserveRoot: { get: () => false },
 }
 
 /** 参数表的一个本地视图：`.enum` 只在 select 那种形状上存在（与 crashu 同一处理由）。 */
 type PropertyView = { type?: string; enum?: unknown[]; items?: unknown; required?: boolean }
 
 /** 会进参数表的那八个字段（`action` 是动作选择器，永不进表）。 */
-const BOUND_FIELDS = ['pathsText', 'types', 'minCount', 'outputPath', 'configPath', 'galleryMarker', 'deleteAfter', 'dryRun']
+const BOUND_FIELDS = ['pathsText', 'types', 'minCount', 'outputPath', 'configPath', 'galleryMarker', 'deleteAfter', 'dryRun', 'preserveRoot']
 
 describe('repacku 的清单与定义', () => {
   it('package.json#xaihi 与 xaihi.node 都过自己的校验器', () => {
@@ -105,10 +106,10 @@ describe('repacku 的清单与定义', () => {
     expect(node.definitionVersion).toBe(1)
     expect(node.actions.map((action) => action.id)).toEqual(['analyze', 'compress', 'full', 'single-pack', 'gallery-pack'])
     expect(node.fields.map((field) => field.id)).toEqual([
-      'action', 'pathsText', 'types', 'minCount', 'outputPath', 'configPath', 'galleryMarker', 'deleteAfter', 'dryRun',
+      'action', 'pathsText', 'types', 'minCount', 'outputPath', 'configPath', 'galleryMarker', 'deleteAfter', 'dryRun', 'preserveRoot',
     ])
     expect(node.groups).toEqual([])
-    expect(node.inputBindings).toHaveLength(9)
+    expect(node.inputBindings).toHaveLength(10)
     expect(node.danger).toEqual({ type: 'pluginExport', exportName: 'is_dangerous' })
     expect(node.reportsProgress).toBe(true)
     expect(node.publishesOutputPath).toBe(false)
@@ -171,6 +172,7 @@ describe('repacku 的清单与定义', () => {
       'galleryMarker:galleryMarker:trimOrOmit',
       'deleteAfter:deleteAfter:asBoolean',
       'dryRun:dryRun:asBoolean',
+      'preserveRoot:preserveRoot:asBoolean',
     ])
 
     // 偏离 1：select 的值是裸字符串（上游是 `{text:"…"}`）。

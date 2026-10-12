@@ -215,6 +215,7 @@ function commonArgs () {
     clipboard: { type: 'boolean', description: 'Read folder path from clipboard when --path is omitted.（未接：要 ctx.subprocess）' },
     deleteAfter: { type: 'boolean', description: 'Delete source files after successful compression.' },
     dryRun: { type: 'boolean', description: 'Plan operations without writing archives. bin 面只跑这一档。' },
+    preserveRoot: { type: 'boolean', description: 'Keep the source folder as the archive root.' },
     gallery: { type: 'boolean', description: 'Compatibility alias for gallery-pack under compress.' },
     single: { type: 'boolean', description: 'Compatibility alias for single-pack under compress.' },
     minCount: { type: 'string', description: 'Minimum matching direct files before compression.' },
@@ -234,6 +235,7 @@ interface RepackuCliOptions {
   clipboard?: boolean
   deleteAfter?: boolean
   dryRun?: boolean
+  preserveRoot?: boolean
   gallery?: boolean
   single?: boolean
   minCount?: string
@@ -321,6 +323,7 @@ function inputFromArgs (args: RepackuCliOptions): Omit<RepackuInput, 'action'> {
     outputPath: args.outputPath || args.output,
     deleteAfter: args.deleteAfter,
     dryRun: args.dryRun,
+    preserveRoot: args.preserveRoot,
     minCount: numberArg(args.minCount),
     galleryMarker: args.galleryMarker,
   }

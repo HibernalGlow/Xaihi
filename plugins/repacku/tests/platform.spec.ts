@@ -21,13 +21,13 @@
  */
 
 import { existsSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, relative } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { SubprocessHandle } from '@deepseek-ai/dsh-subprocess'
 import { analyzeFolderStructure } from '../src/core.ts'
-import { REPACKU_EXECUTION_REFUSAL, createRepackuPlannerRuntime, createSubprocessRepackuRuntime } from '../src/platform.ts'
+import { REPACKU_EXECUTION_REFUSAL, REPACKU_GUI_EXECUTION_REFUSAL, createRepackuPlannerRuntime, createSubprocessRepackuRuntime } from '../src/platform.ts'
 
 interface SpawnRecord {
   argv: string[]
@@ -39,6 +39,8 @@ interface SpawnRecord {
   /** 7z 的 `@<listFile>` 那颗：路径 + **spawn 当时**读到的内容（临时目录随后会被 `finally` 删掉）。 */
   listPath: string
   listText: string
+  powerShellInputs: string[]
+  stagedFiles: string[]
 }
 
 interface FakeOptions {
@@ -47,13 +49,23 @@ interface FakeOptions {
   stderr?: string
   /** 可执行文件解析：`name → 路径`；命中即成功，否则像 provider 那样抛。 */
   executables?: Record<string, string>
-  /** 让假"7z"把目标归档真的写出来（模拟子进程的副作用）。 */
+  /** 让假后端把目标归档真的写出来（模拟子进程的副作用）；默认写出。 */
   writeArchive?: boolean
 }
 
 /** 假"7z"该写的那份归档：`a -tzip <target> …` 里 `-tzip` 的下一颗。 */
 function archiveOf (argv: string[]): string {
-  return argv[argv.indexOf('-tzip') + 1] ?? ''
+  const index = argv.indexOf('-tzip')
+  return index < 0 ? '' : argv[index + 1] ?? ''
+}
+
+function destinationOf (argv: string[]): string {
+  const script = argv[argv.indexOf('-Command') + 1] ?? ''
+  const marker = '-DestinationPath '
+  const start = script.indexOf(marker)
+  if (start < 0) return ''
+  const value = script.slice(start + marker.length).replace(/\s+-Force[\s\S]*$/, '').trim()
+  return value.replace(/^'|'$/g, '').replace(/''/g, "'")
 }
 
 function fakeSubprocess (options: FakeOptions = {}) {
@@ -72,9 +84,12 @@ function fakeSubprocess (options: FakeOptions = {}) {
         stderr: spec.stdio.stderr,
         listPath,
         listText: '',
+        powerShellInputs: [],
+        stagedFiles: [],
       }
       spawned.push(record)
       const code = options.exitCode ?? 0
+      const writeArchive = options.writeArchive ?? true
       const stderrText = options.stderr ?? ''
       return {
         stdin: undefined,
@@ -88,7 +103,25 @@ function fakeSubprocess (options: FakeOptions = {}) {
         done: (async () => {
           // 清单必须在**这一刻**读：`run7zWithList` 的 `finally` 随后就把临时目录删了。
           if (listPath !== '') record.listText = await readFile(listPath, 'utf8')
-          if (code === 0 && options.writeArchive === true) await writeFile(archiveOf(argv), 'z'.repeat(40))
+          const script = argv[argv.indexOf('-Command') + 1] ?? ''
+          const paths = script.match(/\$paths = @\((.*?)\);/)?.[1] ?? ''
+          record.powerShellInputs = [...paths.matchAll(/'((?:''|[^'])*)'/g)].map((match) => match[1]!.replace(/''/g, "'"))
+          for (const input of record.powerShellInputs) {
+            if (!input.includes('xaihi-repacku-layout-')) continue
+            const walk = async (folder: string): Promise<void> => {
+              for (const entry of await readdir(folder, { withFileTypes: true })) {
+                const path = join(folder, entry.name)
+                if (entry.isDirectory()) await walk(path)
+                else record.stagedFiles.push(relative(dirname(input), path))
+              }
+            }
+            if ((await stat(input)).isDirectory()) await walk(input)
+            else record.stagedFiles.push(basename(input))
+          }
+          if (code === 0 && writeArchive) {
+            const target = archiveOf(argv) || destinationOf(argv)
+            if (target) await writeFile(target, 'z'.repeat(40))
+          }
           return { exitCode: code, signal: null }
         })(),
         terminate: () => undefined,
@@ -149,7 +182,7 @@ function mxOf (argv: string[]): string | undefined {
 }
 
 describe('repacku 的压缩后端（ctx.subprocess）', () => {
-  it('整目录打包：7z 的 list-file 语法、编码开关与 cwd 都按上游那一条', async () => {
+  it('整目录打包：逐文件清单保留顶层目录，编码与无交互参数齐全', async () => {
     const root = await tempRoot('whole')
     const source = await makeSourceFolder(root, 'book', { '001.jpg': 100, '002.png': 50 })
     const target = join(root, 'book.zip')
@@ -164,19 +197,47 @@ describe('repacku 的压缩后端（ctx.subprocess）', () => {
     expect(fake.spawned).toHaveLength(1)
     const [spawned] = fake.spawned
     expect(spawned?.argv.slice(0, 3)).toEqual(['/usr/bin/7z', '-sccUTF-8', '-scsUTF-8'])
-    for (const part of ['a', '-tzip', target, '-r', '-mmt=on', '-aou']) {
+    for (const part of ['a', '-tzip', target, '-mmt=on', '-aou', '-y']) {
       expect(spawned?.argv, `7z 少了 ${part}`).toContain(part)
     }
     expect(mxOf(spawned?.argv)).toBe('-mx=7')
-    // 上游那条 cwd：整目录打包时 cwd 是**来源的父目录**，清单里只有那一个目录名（BOM 打头）。
+    // cwd 在来源父目录，清单显式带上目录名，避免整个目录递归时重新混入生成配置。
     expect(spawned?.cwd).toBe(root)
-    expect(spawned?.listText).toBe(`${'﻿'}book\n`)
+    expect(spawned?.listText).toBe(`${'﻿'}book/001.jpg\nbook/002.png\n`)
+    expect(spawned?.argv).not.toContain('-r')
     expect(spawned?.stdin).toBe('ignore')
     expect((spawned?.stdout as { maxBytes?: number } | undefined)?.maxBytes).toBe(1024 * 1024 * 32)
     // 阳性对照：临时清单目录用完就删（`finally` 那一条）；归档落在**同级**，不是目录内部。
     expect(existsSync(dirname(spawned?.listPath ?? '/nope'))).toBe(false)
     expect(dirname(target)).toBe(root)
     expect(spawned?.graceMs).toBeGreaterThan(0)
+  })
+
+  it('整目录可选择去掉归档内的顶层文件夹', async () => {
+    const root = await tempRoot('root-shape')
+    const source = await makeSourceFolder(root, 'already', { '001.avif': 10, '002.avif': 20 })
+    const target = join(root, 'already.zip')
+    const fake = fakeSubprocess({ executables: { '7z': '/usr/bin/7z' } })
+    const result = await createSubprocessRepackuRuntime(fake.runtime, root)
+      .compressWholeFolder(source, target, { includeRoot: false })
+
+    expect(result.success).toBe(true)
+    expect(fake.spawned[0]?.cwd).toBe(source)
+    expect(fake.spawned[0]?.listText).toBe(`${'﻿'}001.avif\n002.avif\n`)
+    expect(fake.spawned[0]?.argv).not.toContain('-r')
+  })
+
+  it.each([false, true])('实际压缩清单排除旧配置和子目录扫描产物，顶层目录=%s', async (includeRoot) => {
+    const root = await tempRoot('generated')
+    const source = await makeSourceFolder(root, 'book', { '001.avif': 10, 'book_config.json': 20, 'settings.json': 30, 'chapter_config.json': 20 })
+    await makeSourceFolder(source, 'chapter', { '002.avif': 40, 'chapter_config.json': 20 })
+    const fake = fakeSubprocess({ executables: { '7zz': '/usr/bin/7zz' } })
+    const result = await createSubprocessRepackuRuntime(fake.runtime, root).compressWholeFolder(source, join(root, 'book.zip'), { includeRoot })
+    expect(result.success).toBe(true)
+    expect(result.originalSize).toBe(80)
+    const prefix = includeRoot ? 'book/' : ''
+    expect(fake.spawned[0]?.listText).toBe(`\uFEFF${prefix}001.avif\n${prefix}chapter/002.avif\n${prefix}settings.json\n`)
+    expect(fake.spawned[0]?.listText).not.toContain('_config.json')
   })
 
   it('散文件打包：清单是命中的原始文件名，压缩率可配并被夹在 0..9', async () => {
@@ -233,6 +294,19 @@ describe('repacku 的压缩后端（ctx.subprocess）', () => {
     expect(fake.lookups()).toEqual([])
   })
 
+  it('配置成 PeaZip GUI 入口时直接拒绝，不启动 GUI', async () => {
+    const root = await tempRoot('peazip-gui')
+    const peaZip = join(root, 'peazip')
+    await writeFile(peaZip, 'gui placeholder')
+    const source = await makeSourceFolder(root, 'book', { '001.jpg': 1 })
+    const fake = fakeSubprocess({ executables: { '7z': '/usr/bin/7z' } })
+    const runtime = createSubprocessRepackuRuntime(fake.runtime, root, { sevenZipPath: peaZip })
+
+    await expect(runtime.compressFiles(source, join(root, 'book.zip'), ['.jpg'], {}))
+      .rejects.toThrow(REPACKU_GUI_EXECUTION_REFUSAL)
+    expect(fake.spawned).toHaveLength(0)
+  })
+
   it('配的是目录：按上游那六个候选名在里面找；配错了才回退到 PATH', async () => {
     const root = await tempRoot('configdir')
     const binDir = join(root, 'bin')
@@ -254,6 +328,25 @@ describe('repacku 的压缩后端（ctx.subprocess）', () => {
     expect(missing.spawned).toHaveLength(0)
     expect(missing.lookups()).toEqual(['7z', '7zz', '7za', '7z.exe', '7zz.exe', '7za.exe'])
     expect(result.error).toBe('No compressor found. Install 7-Zip or use Windows PowerShell Compress-Archive.')
+  })
+
+  it('已有归档先重建再替换；后端假成功时保留旧归档与来源', async () => {
+    const root = await tempRoot('replace')
+    const source = await makeSourceFolder(root, 'book', { '001.jpg': 1 })
+    const target = join(root, 'book.zip')
+    await writeFile(target, 'old archive')
+    const missing = fakeSubprocess({ executables: { '7z': '/usr/bin/7z' }, writeArchive: false })
+    const failed = await createSubprocessRepackuRuntime(missing.runtime, root).compressWholeFolder(source, target, { deleteSource: true, includeRoot: false })
+    expect(failed.success).toBe(false)
+    expect(await readFile(target, 'utf8')).toBe('old archive')
+    expect(existsSync(source)).toBe(true)
+    const valid = fakeSubprocess({ executables: { '7z': '/usr/bin/7z' } })
+    expect((await createSubprocessRepackuRuntime(valid.runtime, root).compressWholeFolder(source, target, { includeRoot: false })).success).toBe(true)
+    expect(await readFile(target, 'utf8')).toBe('z'.repeat(40))
+    const stagedTarget = archiveOf(valid.spawned[0]!.argv)
+    expect(stagedTarget).not.toBe(target)
+    expect(basename(stagedTarget)).toBe('book.zip')
+    expect(existsSync(dirname(stagedTarget))).toBe(false)
   })
 
   it('没装压缩程序：回上游那句原文，一条 spawn 都不发', async () => {
@@ -298,9 +391,29 @@ describe('repacku 的压缩后端（ctx.subprocess）', () => {
     expect(script).toContain('Compress-Archive -LiteralPath $paths')
     expect(script).toContain(`-DestinationPath '${target}' -Force`)
     // 阳性对照：路径是 PowerShell 单引号字面量，名字里那对单引号必须翻倍（`it's a book`）。
-    expect(script).toContain(`$paths = @('${source.replace(/'/g, "''")}')`)
+    expect(script).toContain("/it''s a book')")
+    expect(spawned?.powerShellInputs).toHaveLength(1)
+    expect(basename(spawned?.powerShellInputs[0] ?? '')).toBe("it's a book")
+    expect(spawned?.stagedFiles).toEqual(["it's a book/001.jpg"])
+    expect(existsSync(spawned?.powerShellInputs[0] ?? '')).toBe(false)
     // 阳性对照：PowerShell 那一支不写 7z 的清单文件。
     expect(spawned?.listText).toBe('')
+  })
+
+  it('PowerShell 平铺保留内部子目录，选择性顶层目录只包含命中文件', async () => {
+    const root = await tempRoot('powershell-layout')
+    const source = await makeSourceFolder(root, 'book', { '001.jpg': 10, 'book_config.json': 20, 'notes.txt': 30 })
+    await makeSourceFolder(source, 'chapter', { '002.jpg': 40 })
+    const fake = fakeSubprocess({ executables: { 'powershell.exe': '/powershell.exe' } })
+    const runtime = createSubprocessRepackuRuntime(fake.runtime, root, { platform: 'win32' })
+    expect((await runtime.compressWholeFolder(source, join(root, 'flat.zip'), { includeRoot: false })).success).toBe(true)
+    expect(fake.spawned[0]?.powerShellInputs.map((path) => basename(path)).sort()).toEqual(['001.jpg', 'chapter', 'notes.txt'])
+    expect(fake.spawned[0]?.stagedFiles).toContain('chapter/002.jpg')
+    expect(fake.spawned[0]?.stagedFiles.join(',')).not.toContain('_config.json')
+    expect((await runtime.compressFiles(source, join(root, 'root.zip'), ['.jpg'], { includeRoot: true })).success).toBe(true)
+    expect(fake.spawned[1]?.powerShellInputs.map((path) => basename(path))).toEqual(['book'])
+    expect(fake.spawned[1]?.stagedFiles).toEqual(['book/001.jpg'])
+    for (const spawn of fake.spawned) for (const input of spawn.powerShellInputs) expect(existsSync(input)).toBe(false)
   })
 
   it('非零退出：错误文本取 stderr 尾部，成功与否不许被咽掉', async () => {
@@ -368,6 +481,18 @@ describe('repacku 的压缩后端（ctx.subprocess）', () => {
     const plain = fakeSubprocess({ executables: { '7z': '/usr/bin/7z' }, writeArchive: true })
     await createSubprocessRepackuRuntime(plain.runtime, root).compressFiles(keep, join(keep, 'kept.zip'), ['.jpg'], {})
     expect(await readdir(keep)).toEqual(['001.jpg', 'kept.zip'])
+  })
+
+  it('压缩程序返回成功但没有归档产物时，不删除源目录', async () => {
+    const root = await tempRoot('missing-output')
+    const source = await makeSourceFolder(root, 'book', { '001.jpg': 10 })
+    const fake = fakeSubprocess({ executables: { '7z': '/usr/bin/7z' }, writeArchive: false })
+    const result = await createSubprocessRepackuRuntime(fake.runtime, root)
+      .compressWholeFolder(source, join(root, 'book.zip'), { deleteSource: true })
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('Archive was not created')
+    expect(existsSync(source)).toBe(true)
   })
 
   it('黑名单那条真行为：路径里含 tmp 时整棵树分析不出来', async () => {

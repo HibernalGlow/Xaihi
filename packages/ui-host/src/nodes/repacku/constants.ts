@@ -3,7 +3,7 @@ import { FileArchive, FolderOpen, Package, Search, Sparkles } from "lucide-react
 import type { RepackuAction } from "@xiranite/node-repacku/core"
 import type { RepackuCardState } from "./types"
 
-export const CONFIG_FIELDS: (keyof RepackuCardState)[] = ["path", "configPath", "typesText", "minCount", "deleteAfter", "dryRun", "action"]
+export const CONFIG_FIELDS: (keyof RepackuCardState)[] = ["path", "configPath", "typesText", "minCount", "deleteAfter", "dryRun", "preserveRoot", "action"]
 
 export interface RepackuActionMeta {
   value: RepackuAction

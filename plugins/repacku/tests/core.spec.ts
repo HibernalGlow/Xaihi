@@ -43,7 +43,7 @@ const REPACKU_DATA_KEYS = [
   'operations', 'plannedCount', 'selectiveCount', 'skipCount', 'skippedCount', 'totalFolders', 'totalOperations',
 ]
 
-describe('repacku core（上游 core.test.ts 的五条，逐字）', () => {
+describe('repacku core（上游基线与扫描修复）', () => {
   it('analyzes folder compression modes', async () => {
     const runtime = createMemoryRuntime()
     runtime.file('/root/book/001.jpg', 100)
@@ -83,14 +83,58 @@ describe('repacku core（上游 core.test.ts 的五条，逐字）', () => {
 
     const result = await runRepacku({ action: 'full', path: '/root', types: 'image', dryRun: true }, runtime)
     expect(result.success).toBe(true)
-    expect(result.data?.configPath).toBe('/root/root_config.json')
-    expect(parseRepackuConfig(runtime.writes['/root/root_config.json'] ?? '').folderTree.name).toBe('root')
+    expect(result.data?.configPath).toBe('/root_config.json')
+    expect(parseRepackuConfig(runtime.writes['/root_config.json'] ?? '').folderTree.name).toBe('root')
     expect(result.data?.plannedCount).toBe(2)
     expect(result.data?.operations.map((item) => item.mode).sort()).toEqual(['entire', 'selective'])
 
     // 阳性对照：预演一条都不许真按下去；而"分析产物"确实写了盘（只那一个文件）。
     expect(runtime.compressCalls).toEqual([])
-    expect(Object.keys(runtime.writes)).toEqual(['/root/root_config.json'])
+    expect(Object.keys(runtime.writes)).toEqual(['/root_config.json'])
+  })
+
+  it('忽略来源目录里旧版本遗留的生成配置，不把它当成待打包文件', async () => {
+    const runtime = createMemoryRuntime()
+    runtime.file('/root/root_config.json', 5000)
+    runtime.file('/root/001.jpg', 100)
+    runtime.file('/root/002.png', 100)
+
+    const tree = await analyzeFolderStructure('/root', runtime, { targetFileTypes: ['image'] })
+    expect(tree?.totalFiles).toBe(2)
+    expect(tree?.compressMode).toBe('entire')
+    expect(tree?.fileTypes.text).toBeUndefined()
+    runtime.file('/root/settings.json', 20)
+    expect((await analyzeFolderStructure('/root', runtime, { targetFileTypes: ['image'] }))?.totalFiles).toBe(3)
+  })
+
+  it.each([false, true])('扫描 already 只打包内部图集，顶层目录=%s', async (preserveRoot) => {
+    const runtime = createMemoryRuntime()
+    for (let index = 1; index <= 85; index += 1) runtime.file(`/already/图集/${index}.avif`, 10)
+    runtime.file('/already/already_config.json', 100)
+    runtime.file('/already/图集_config.json', 100)
+    runtime.file('/already/图集/图集_config.json', 100)
+
+    const result = await runRepacku({ action: 'full', path: '/already', types: 'image', dryRun: true, preserveRoot }, runtime)
+    expect(result.success).toBe(true)
+    expect(result.data?.operations).toHaveLength(1)
+    expect(result.data?.operations[0]).toMatchObject({ sourcePath: '/already/图集', targetPath: '/already/图集.zip', fileCount: 85, includeRoot: preserveRoot })
+    expect(result.data?.folderTree?.compressMode).toBe('skip')
+    expect(parseRepackuConfig(runtime.writes['/already_config.json']!).config.preserveRoot).toBe(preserveRoot)
+  })
+
+  it('压缩配置保存顶层目录选择，显式输入可以覆盖；默认平铺', async () => {
+    const runtime = createMemoryRuntime()
+    runtime.file('/already/book/001.avif', 10)
+    runtime.file('/already/book/002.avif', 10)
+    const flat = await runRepacku({ action: 'full', path: '/already', types: 'image', dryRun: true }, runtime)
+    expect(flat.data?.operations[0]?.includeRoot).toBe(false)
+    await runRepacku({ action: 'analyze', path: '/already', types: 'image', preserveRoot: true }, runtime)
+    const saved = await runRepacku({ action: 'compress', configPath: '/already_config.json', dryRun: true }, runtime)
+    expect(saved.data?.operations[0]?.includeRoot).toBe(true)
+    const overridden = await runRepacku({ action: 'compress', configPath: '/already_config.json', dryRun: true, preserveRoot: false }, runtime)
+    expect(overridden.data?.operations[0]?.includeRoot).toBe(false)
+    const loose = await runRepacku({ action: 'single-pack', path: '/already/book', preserveRoot: true, dryRun: true }, runtime)
+    expect(loose.data?.operations[0]?.includeRoot).toBe(true)
   })
 
   it('compresses from config through injected runtime', async () => {
@@ -99,7 +143,7 @@ describe('repacku core（上游 core.test.ts 的五条，逐字）', () => {
     runtime.file('/root/book/002.png', 100)
     await runRepacku({ action: 'analyze', path: '/root', types: 'image' }, runtime)
 
-    const result = await runRepacku({ action: 'compress', configPath: '/root/root_config.json' }, runtime)
+    const result = await runRepacku({ action: 'compress', configPath: '/root_config.json' }, runtime)
     expect(result.success).toBe(true)
     expect(result.data?.compressedCount).toBe(1)
     expect(runtime.compressCalls[0]).toEqual(['whole', '/root/book', '/root/book.zip'])
@@ -215,7 +259,7 @@ describe('repacku core（上游写了、上游测试没测到的分支）', () =
     runtime.file('/root/mixed/002.jpg', 100)
     const folderTree = await analyzeFolderStructure('/root', runtime, { targetFileTypes: ['image'] })
     expect(folderTree).not.toBeNull()
-    const config = { folderTree: folderTree as RepackuFolderNode, config: { timestamp: '', targetFileTypes: ['image'], minCount: 2 } }
+    const config = { folderTree: folderTree as RepackuFolderNode, config: { timestamp: '', targetFileTypes: ['image'], minCount: 2, preserveRoot: false } }
     const operations = collectCompressionOperations(config, runtime)
     expect(operations.map((item) => `${item.mode}:${item.targetPath}`).sort()).toEqual([
       'entire:/root/book.zip',
@@ -239,7 +283,7 @@ describe('repacku core（上游写了、上游测试没测到的分支）', () =
     const folderTree = emptyNode('/root')
     const written = serializeRepackuConfig({
       folderTree,
-      config: { timestamp: '2026-01-01T00:00:00.000Z', targetFileTypes: ['image'], minCount: 3 },
+      config: { timestamp: '2026-01-01T00:00:00.000Z', targetFileTypes: ['image'], minCount: 3, preserveRoot: false },
     })
     expect(written.endsWith('\n')).toBe(true)
     expect(written.includes('\n  "folderTree": {\n')).toBe(true)
