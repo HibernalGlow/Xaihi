@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { stageNativeResources } from './standalone/native-resources.mjs'
 import { assertKisakiGraph } from './standalone/product-graph.mjs'
+import { resolvePackageManager, shellCommandLine } from './standalone/package-manager.mjs'
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const argv = process.argv.slice(2)
@@ -28,10 +29,12 @@ if (product.id !== name) throw new Error('产品 id 与目录不一致')
 const output = join(repo, 'desktop/.products', name)
 const env = { ...process.env, XAIHI_DESKTOP_PRODUCT_CONFIG: config }
 async function run(command, args, options = {}) {
+  const target = resolvePackageManager(command)
+  const spawnArgs = target.shell ? [shellCommandLine(args)] : args
   await new Promise((done, fail) => {
-    const child = spawn(command, args, { cwd: repo, stdio: 'inherit', env, ...options })
+    const child = spawn(target.command, spawnArgs, { cwd: repo, stdio: 'inherit', env, shell: target.shell, ...options })
     child.once('error', fail)
-    child.once('exit', (code, signal) => code === 0 ? done() : fail(new Error(`${command} 退出：${code ?? signal}`)))
+    child.once('exit', (code, signal) => code === 0 ? done() : fail(new Error(`${target.command} 退出：${code ?? signal}`)))
   })
 }
 if (mode === 'build') {
