@@ -1,4 +1,5 @@
 import { documentBase } from './rspack.document.mjs'
+import { fileURLToPath } from 'node:url'
 
 /**
  * **只用于验证「节点界面能不能经路线 (A) 问到宿主」**的那份产物：
@@ -13,5 +14,5 @@ import { documentBase } from './rspack.document.mjs'
 export default {
   ...documentBase,
   entry: { main: './src/document/node-face-entry.tsx' },
-  output: { ...documentBase.output, path: new URL('dist-nodeface/', import.meta.url).pathname },
+  output: { ...documentBase.output, path: fileURLToPath(new URL('dist-nodeface/', import.meta.url)) },
 }

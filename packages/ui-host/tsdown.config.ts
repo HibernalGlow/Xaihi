@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, extname, resolve } from 'node:path'
 import { defineConfig } from 'tsdown'
 import { XIRANITE_ALIASES, assertAliasTargets } from './build-aliases.mjs'
+import { fileURLToPath } from 'node:url'
 
 assertAliasTargets()
 
@@ -43,7 +44,7 @@ const lib = {
  * 不伪造地址：内容就是那份文件本身。
  */
 const VITE_URL_SUFFIX = '?url'
-const PACKAGE_ROOT = dirname(new URL('.', import.meta.url).pathname)
+const PACKAGE_ROOT = dirname(fileURLToPath(new URL('.', import.meta.url)))
 const MIME_BY_EXT: Record<string, string> = {
   '.json': 'application/json',
   '.svg': 'image/svg+xml',
