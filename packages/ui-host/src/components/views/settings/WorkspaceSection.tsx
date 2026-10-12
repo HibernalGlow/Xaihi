@@ -10,6 +10,7 @@ import {
   Image,
   Maximize2,
   Minus,
+  MousePointerClick,
   PanelBottom,
   PanelRight,
   Power,
@@ -79,6 +80,7 @@ export function WorkspaceSection() {
     alphabetIndexStyle: workspace.alphabetIndexStyle,
     alphabetIndexWaveIntensity: workspace.alphabetIndexWaveIntensity,
     alphabetIndexHideEmpty: workspace.alphabetIndexHideEmpty,
+    alphabetIndexDirectDeploySingle: workspace.alphabetIndexDirectDeploySingle,
     restoreWorkspaceComponents: workspace.restoreWorkspaceComponents,
   }))
 
@@ -580,6 +582,19 @@ export function WorkspaceSection() {
               aria-label={t("settings:alphabetIndex.hideEmpty")}
               checked={state.alphabetIndexHideEmpty}
               onCheckedChange={workspaceActions.setAlphabetIndexHideEmpty}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 rounded-sm border border-border/40 bg-muted/15 px-3 py-2">
+            <MousePointerClick className="size-3.5 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-foreground">{t("settings:alphabetIndex.directDeploySingle")}</p>
+              <p className="text-[11px] text-muted-foreground">{t("settings:alphabetIndex.directDeploySingleDesc")}</p>
+            </div>
+            <Switch
+              aria-label={t("settings:alphabetIndex.directDeploySingle")}
+              checked={state.alphabetIndexDirectDeploySingle}
+              onCheckedChange={workspaceActions.setAlphabetIndexDirectDeploySingle}
             />
           </div>
 

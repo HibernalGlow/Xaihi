@@ -8,7 +8,7 @@ const { appearance, actions, openComponent } = vi.hoisted(() => ({
   appearance: {
     activeWorkspaceId: 'launcher-test', viewMode: 'cards', alphabetIndexVisible: true,
     alphabetIndexOpacity: 93, alphabetIndexStyle: 'solid', alphabetIndexWaveIntensity: 69,
-    alphabetIndexHideEmpty: true, zCounter: 0,
+    alphabetIndexHideEmpty: true, alphabetIndexDirectDeploySingle: true, zCounter: 0,
   },
   actions: { deployComponent: vi.fn(), ensureComponent: vi.fn(), removeComponent: vi.fn() },
   openComponent: vi.fn(async () => ({ success: true })),
@@ -122,5 +122,37 @@ describe('buoyant alphabetical node launcher', () => {
     enter(rail)
     await new Promise(resolve => setTimeout(resolve, 450))
     expect(rail.getAttribute('data-expanded')).toBe('true')
+  })
+
+  it('directly deploys the single node upon clicking the letter when direct deploy is enabled by default', async () => {
+    appearance.alphabetIndexDirectDeploySingle = true
+    const rail = await expand()
+    // Letter B has exactly 1 node (bitv). Clicking letter B directly deploys bitv without needing popover choice.
+    fireEvent.click(screen.getByTestId('alphabet-node-letter-B'))
+    expect(actions.deployComponent).toHaveBeenCalledWith('bitv', 'cards')
+    expect(rail.getAttribute('data-expanded')).toBe('false')
+    expect(rail.querySelector('[aria-live="polite"]')?.textContent).toContain('BitV')
+  })
+
+  it('opens popover instead of deploying directly when direct deploy switch is turned off', async () => {
+    appearance.alphabetIndexDirectDeploySingle = false
+    try {
+      const rail = await expand()
+      fireEvent.click(screen.getByTestId('alphabet-node-letter-B'))
+      expect(actions.deployComponent).not.toHaveBeenCalled()
+      expect(await screen.findByTestId('alphabet-node-results')).toBeTruthy()
+      expect(screen.getByTestId('alphabet-node-result-bitv')).toBeTruthy()
+    } finally {
+      appearance.alphabetIndexDirectDeploySingle = true
+    }
+  })
+
+  it('opens popover instead of deploying when a letter has multiple nodes even if direct deploy is enabled', async () => {
+    appearance.alphabetIndexDirectDeploySingle = true
+    const rail = await expand()
+    // Letter S has multiple nodes (SETTINGS, SAMEA, etc.). Clicking letter S must open results rather than deploying.
+    fireEvent.click(screen.getByTestId('alphabet-node-letter-S'))
+    expect(actions.deployComponent).not.toHaveBeenCalled()
+    expect(await screen.findByTestId('alphabet-node-results')).toBeTruthy()
   })
 })
