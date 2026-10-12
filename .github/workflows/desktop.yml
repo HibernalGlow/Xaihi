@@ -182,6 +182,12 @@ jobs:
           path: native/artifacts/${{ matrix.triple }}
           merge-multiple: true
 
+      # 装配前先在检出里重生成别名表：签进仓的 `tsconfig.ported.json` 里是生产者那台机的绝对路径，
+      # POSIX 上这些路径碰巧存在所以看不出来，Windows 上整批叶子键失效 ⇒ 只剩裸名，
+      # 症状是 `Cannot find module '@hibernalglow/xaihi-kisaki/tool-options' for matched aliased key '@hibernalglow/xaihi-kisaki'`。
+      - name: 按本检出重生成解析表
+        run: node packages/ui-host/build-aliases.mjs --write
+
       - name: 装产品资源
         run: node desktop/product.mjs build kisaki --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
 
