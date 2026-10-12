@@ -257,9 +257,11 @@ jobs:
       # 而这条腿本来就不配证书 ⇒ 不带它就是让 CI 报一句"缺签名材料"的假因。
       - name: 先跑上游自检（env + 工具链，不产出安装包）
         run: pnpm --filter "@deepseek-ai/dsh-desktop" run check:package -- win-x64 --unsigned
+        working-directory: desktop/dsh
 
       - name: 打未签名的 win-x64 安装包
         run: pnpm --filter "@deepseek-ai/dsh-desktop" run package:win:x64:unsigned
+        working-directory: desktop/dsh
 
       - name: 回读产物目录
         shell: bash
@@ -333,9 +335,11 @@ jobs:
       # （desktop-package-environment.mjs:96-111），报出来的是"你没配 Apple 凭证"而不是真问题。
       - name: 先跑上游自检（env + 工具链，不产出安装包）
         run: pnpm --filter "@deepseek-ai/dsh-desktop" run check:package -- ${{ matrix.target }} --unsigned
+        working-directory: desktop/dsh
 
       - name: 打未签名的 ${{ matrix.target }} 安装包
         run: pnpm --filter "@deepseek-ai/dsh-desktop" run package -- ${{ matrix.target }} --unsigned
+        working-directory: desktop/dsh
 
       - name: 回读产物目录
         shell: bash
