@@ -1,0 +1,64 @@
+From fd0f548310c481c94fa0fb8d3ab40f867ce6c054 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Mon, 12 Oct 2026 14:36:28 +0800
+Subject: [PATCH] desktop: run pnpm through its native executable on Windows
+
+package-target handed npm_execpath to node as a script for every platform. pnpm ships a native binary on Windows, so a packaging run there died with ERR_UNKNOWN_FILE_EXTENSION before its first build stage. The repo-root helper scripts/pnpm-invocation.ts already keeps this rule: node only hosts .js entrypoints.
+
+The stages suite now pins both shapes: a .cjs entrypoint is spawned as a node script, a .exe entrypoint is the spawned executable and never appears in its argv.
+---
+ apps/desktop/scripts/package-target.ts        |  9 +++++++--
+ .../tests/package-target-stages.spec.ts       | 19 +++++++++++++++++++
+ 2 files changed, 26 insertions(+), 2 deletions(-)
+
+diff --git a/apps/desktop/scripts/package-target.ts b/apps/desktop/scripts/package-target.ts
+index 8e7ea95..a21a808 100644
+--- a/apps/desktop/scripts/package-target.ts
++++ b/apps/desktop/scripts/package-target.ts
+@@ -290,9 +290,14 @@ function runPnpm(
+   if (pnpmEntry === undefined || pnpmEntry === '') {
+     throw new Error('desktop package: invoke this script through a pnpm package command')
+   }
+-  if (run !== undefined) return run.run(args.join(' '), process.execPath, [pnpmEntry, ...args], { cwd, env })
++  // pnpm 的独立可执行文件（Windows 上是 pnpm.exe）不能当脚本喂给 node：
++  // 与仓库根的 scripts/pnpm-invocation.ts 同一条规则，只有 .js 入口才由 node 承载。
++  const nodeHosted = /\.[cm]?js$/iu.test(pnpmEntry)
++  const command = nodeHosted ? process.execPath : pnpmEntry
++  const argv = nodeHosted ? [pnpmEntry, ...args] : [...args]
++  if (run !== undefined) return run.run(args.join(' '), command, argv, { cwd, env })
+   return new Promise((resolvePromise, reject) => {
+-    const child = spawn(process.execPath, [pnpmEntry, ...args], {
++    const child = spawn(command, argv, {
+       cwd,
+       env,
+       stdio: 'inherit',
+diff --git a/apps/desktop/tests/package-target-stages.spec.ts b/apps/desktop/tests/package-target-stages.spec.ts
+index 41e1ee8..bb6ab9f 100644
+--- a/apps/desktop/tests/package-target-stages.spec.ts
++++ b/apps/desktop/tests/package-target-stages.spec.ts
+@@ -168,3 +168,22 @@ it('does not write a release completion record when Apple proxy cleanup fails',
+     .rejects.toThrow('proxy restoration failed')
+   expect(writeFileSync).not.toHaveBeenCalled()
+ })
++
++// pnpm ships a native executable on Windows; node must not be asked to load it as a script.
++it.each([
++  ['fixture-pnpm.cjs', process.execPath],
++  ['C:\\tools\\pnpm.exe', 'C:\\tools\\pnpm.exe'],
++] as const)('runs pnpm stages through %s as %s', async (entrypoint, expectedExecutable) => {
++  const { run } = supervisor()
++  vi.stubEnv('npm_execpath', entrypoint)
++  await packageTarget(parseDesktopPackageInvocation(['win-x64', '--unsigned'], 'win32', 'x64'), environment, run)
++  const pnpmStages = run.run.mock.calls.filter(call => /^(?:run|exec) /u.test(call[0]!))
++  expect(pnpmStages.length).toBeGreaterThan(0)
++  for (const [stage, executable, args] of pnpmStages) {
++    expect(executable).toBe(expectedExecutable)
++    const pnpmArgs = executable === process.execPath ? args.slice(1) : [...args]
++    if (executable === process.execPath) expect(args[0]).toBe(entrypoint)
++    else expect(args).not.toContain(entrypoint)
++    expect(pnpmArgs.join(' ')).toBe(stage)
++  }
++})
+-- 
+2.55.0
+
