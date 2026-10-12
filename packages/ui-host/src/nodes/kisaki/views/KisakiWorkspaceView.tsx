@@ -3,13 +3,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { Ellipsis, FolderOpen, Maximize2, Minimize2, PanelLeft, PanelRight, PanelTopOpen, Play, RotateCcw, Search, Settings2, TableProperties, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { FloatingWindowNodeHeader } from "@/components/workspace/FloatingWindowFrame"
 import { KisakiCardManager } from "../card-layout"
 import { KisakiFilterPanel } from "../filter-panel"
 import { KisakiFloatingAnalysisPanel } from "../floating-analysis-panel"
@@ -35,6 +34,7 @@ import { SwimlaneBarAppearanceMenu } from "@/components/workspace/swimlane/Swiml
 import { SwimlaneFitMenuItems } from "@/components/workspace/swimlane/SwimlaneFitMenuItems"
 import { SwimlaneInteractionSettings } from "@/components/workspace/swimlane/SwimlaneInteractionSettings"
 import { SwimlaneNavigatorDockMenu } from "@/components/workspace/swimlane/SwimlaneNavigatorDockMenu"
+import { StandaloneApplicationSettings } from "@/nodes/shared/StandaloneApplicationContext"
 import { adjacentSwimlane, fitSwimlaneWidthsToViewport, reorderSwimlanes } from "@/components/workspace/swimlane/model"
 
 function Full(props: KisakiView) {
@@ -338,8 +338,9 @@ function Collapsed(props: KisakiView) {
 function Header(props: KisakiView) {
   const meta = getKisakiToolMeta(props.tool, props.t)
   return (
-    <header className="flex shrink-0 items-center justify-between gap-3 border-b pb-2">
-      <div className="flex min-w-0 items-center gap-2">
+    <header data-kisaki-header="full" className="flex min-w-0 shrink-0 flex-wrap items-center gap-3 border-b pb-2">
+      <FloatingWindowNodeHeader className="min-w-0 flex-[1_1_30rem]">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         <div className="grid size-9 place-items-center rounded-md border bg-muted/40">
           <meta.icon className="size-5 text-primary" />
         </div>
@@ -349,7 +350,8 @@ function Header(props: KisakiView) {
         </div>
       </div>
       <div className="min-w-32 max-w-72 flex-1"><StatusBar {...props} /></div>
-      <div className="flex items-center gap-2">
+      </FloatingWindowNodeHeader>
+      <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2">
         {props.tool === "similar-images" || props.tool === "similar-videos" ? <KisakiSimilarityReferenceDialog t={props.t} /> : null}
         <Button
           aria-label={props.floatingAnalysisPanel.open ? props.t("actions.closeFloatingAnalysis", "关闭浮动分析面板") : props.t("actions.openFloatingAnalysis", "打开浮动分析面板")}
@@ -390,8 +392,9 @@ function Header(props: KisakiView) {
 function CompactHeader(props: KisakiView) {
   const meta = getKisakiToolMeta(props.tool, props.t)
   return (
-    <header className="grid shrink-0 gap-2 border-b pb-2">
-      <div className="flex min-w-0 items-center gap-2">
+    <header data-kisaki-header="compact" className="grid shrink-0 gap-2 border-b pb-2">
+      <FloatingWindowNodeHeader>
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         <div className="grid size-8 shrink-0 place-items-center rounded-md border bg-muted/40">
           <meta.icon className="size-4 text-primary" />
         </div>
@@ -405,6 +408,7 @@ function CompactHeader(props: KisakiView) {
           {props.running ? props.t("actions.stopScan", "停止扫描") : props.t("actions.startScan", "开始扫描")}
         </Button>
       </div>
+      </FloatingWindowNodeHeader>
       <div className="flex min-w-0 items-center gap-1">
         <div className="min-w-0 flex-1"><StatusBar {...props} /></div>
         <div className="relative min-w-0 flex-1">
@@ -431,7 +435,7 @@ function ToolSelector({ compact = false, props }: { compact?: boolean; props: Ki
   return (
     <Select value={props.tool} onValueChange={(tool) => props.patch({ tool: tool as KisakiTool })}>
       <SelectTrigger aria-label={props.t("tools.select", "选择扫描工具")} className={cn("h-8 text-xs", compact ? "w-40" : "w-52")}><SelectValue /></SelectTrigger>
-      <SelectContent>{KISAKI_TOOL_META.filter((definition) => !definition.requiredNativeCapability || props.nativeCapabilities.has(definition.requiredNativeCapability)).map((definition) => { const tool = getKisakiToolMeta(definition.id, props.t); return <SelectItem key={tool.id} value={tool.id}><span className="flex items-center gap-2"><tool.icon className="size-3.5" />{tool.label}</span></SelectItem> })}</SelectContent>
+      <SelectContent>{KISAKI_TOOL_META.filter((definition) => !(("requiredNativeCapability" in definition) && definition.requiredNativeCapability) || props.nativeCapabilities.has(definition.requiredNativeCapability)).map((definition) => { const tool = getKisakiToolMeta(definition.id, props.t); return <SelectItem key={tool.id} value={tool.id}><span className="flex items-center gap-2"><tool.icon className="size-3.5" />{tool.label}</span></SelectItem> })}</SelectContent>
     </Select>
   )
 }
@@ -446,12 +450,11 @@ function KisakiNodeSettings({ props }: { props: KisakiView }) {
     if (path) props.patch({ [field]: path })
   }
   return (
-    <Dialog>
-      <DialogTrigger asChild><Button aria-label={props.t("settings.open", "节点设置")} size="icon-sm" variant="ghost"><Settings2 /></Button></DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader><DialogTitle>{props.t("settings.title", "Kisaki 节点设置")}</DialogTitle><DialogDescription>{props.t("settings.description", "适用于所有扫描器的目录过滤、缓存和性能设置。")}</DialogDescription></DialogHeader>
-        <ScrollArea className="max-h-[70vh] pr-3">
-          <div className="grid gap-5">
+    <StandaloneApplicationSettings
+      title={props.t("settings.title", "Kisaki 节点设置")}
+      description={props.t("settings.description", "适用于所有扫描器的目录过滤、缓存和性能设置。")}
+      trigger={<Button aria-label={props.t("settings.open", "节点设置")} size="icon-sm" variant="ghost"><Settings2 /></Button>}
+    >
             <SettingsSection title={props.t("settings.general", "通用设置")}>
               <KisakiTokenEditor kind="rules" label={props.t("sources.excludedItems", "排除的项目")} value={props.data.excludedItemsText} placeholder={props.t("sources.excludedItemsPlaceholder", "*/cache/*; *.part；每条规则需包含 *")} onChange={(excludedItemsText) => props.patch({ excludedItemsText })} />
               <KisakiTokenEditor kind="extensions" label={props.t("sources.allowedExtensions", "允许的扩展名")} value={props.data.allowedExtensions} placeholder="jpg,png,IMAGE" onChange={(allowedExtensions) => props.patch({ allowedExtensions })} />
@@ -505,10 +508,7 @@ function KisakiNodeSettings({ props }: { props: KisakiView }) {
               <SwitchLine label={props.t("sources.tableWrapText", "表格文字折行")} checked={props.data.tableWrapText ?? false} onChange={(tableWrapText) => props.patch({ tableWrapText })} />
               <Button disabled={!props.data.cacheFolderPath || !props.openPath} variant="outline" onClick={() => void props.openPath?.(props.data.cacheFolderPath!)}><FolderOpen />{props.t("cache.openFolder", "打开缓存文件夹")}</Button>
             </SettingsSection>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+    </StandaloneApplicationSettings>
   )
 }
 

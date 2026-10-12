@@ -52,7 +52,8 @@ export function useNodeI18n(nodeId: string) {
       }
       return t(`configCenter.${key.slice("config.".length)}`, { defaultValue: fallback, ...(vars ?? {}) })
     }
-    return fallback
+    // 缺节点词条时仍由 i18next 处理 fallback 的 {{变量}}，避免原样泄漏到界面。
+    return t(`${prefix}.${key}`, { defaultValue: fallback, ...(vars ?? {}) })
   }
   return {
     t: translate,

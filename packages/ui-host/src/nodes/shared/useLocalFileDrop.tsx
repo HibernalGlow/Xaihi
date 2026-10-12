@@ -70,7 +70,7 @@ export function useLocalFileDrop(options: LocalFileDropOptions) {
       // browser/Wasm input merely because its native event arrives later.
       if (!subscribeDrops) latestRef.current.onDropFiles(files)
     }
-    else if (event.dataTransfer.files.length) latestRef.current.onUnsupported?.()
+    else if (event.dataTransfer.files.length && !subscribeDrops) latestRef.current.onUnsupported?.()
   }
 
   return {

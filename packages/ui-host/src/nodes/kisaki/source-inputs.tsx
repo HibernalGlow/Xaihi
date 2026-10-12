@@ -9,6 +9,7 @@ import { PathTextarea } from "@/components/ui/path-input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
+import { useLocalFileDrop } from "@/nodes/shared/useLocalFileDrop"
 
 interface DirectoryEditorProps {
   kind: "included" | "excluded"
@@ -27,12 +28,17 @@ export function KisakiDirectoryEditor({ kind, label, pickFiles, pickDirectory, p
   const { t } = useNodeI18n("kisaki")
   const [manual, setManual] = useState("")
   const [manualOpen, setManualOpen] = useState(false)
+  const [browseError, setBrowseError] = useState("")
   const manualRef = useRef<HTMLTextAreaElement>(null)
   const [selected, setSelected] = useState<string[]>([])
   const paths = parseKisakiList(value)
   const references = reconcileKisakiReferences(paths, referenceValue)
   const selectedSet = new Set(selected.filter((path) => paths.includes(path)))
   const allReferences = paths.length > 0 && references.length === paths.length
+  const drop = useLocalFileDrop({
+    onDropPaths: add,
+    onUnsupported: () => setManualOpen(true),
+  })
 
   useEffect(() => {
     if (manualOpen) manualRef.current?.focus()
@@ -54,13 +60,19 @@ export function KisakiDirectoryEditor({ kind, label, pickFiles, pickDirectory, p
   }
 
   async function browseDirectories() {
-    const selected = pickDirectories ? await pickDirectories() : [await pickDirectory?.()].filter((path): path is string => Boolean(path))
-    if (selected.length) add(selected)
+    setBrowseError("")
+    try {
+      const selected = pickDirectories ? await pickDirectories() : [await pickDirectory?.()].filter((path): path is string => Boolean(path))
+      if (selected.length) add(selected)
+    } catch (error) { setBrowseError(String(error)) }
   }
 
   async function browseFiles() {
-    const selected = await pickFiles?.({ title: t("sources.pickFiles", "选择要扫描的文件") })
-    if (selected?.length) add(selected)
+    setBrowseError("")
+    try {
+      const selected = await pickFiles?.({ title: t("sources.pickFiles", "选择要扫描的文件") })
+      if (selected?.length) add(selected)
+    } catch (error) { setBrowseError(String(error)) }
   }
 
   function remove(removed: Iterable<string>) {
@@ -69,7 +81,7 @@ export function KisakiDirectoryEditor({ kind, label, pickFiles, pickDirectory, p
     setSelected((current) => current.filter((path) => !rejected.includes(path)))
   }
 
-  return <section aria-label={label} data-kind={kind} className="grid gap-2 rounded-md border bg-background/40 p-2">
+  return <section {...drop.targetProps} aria-label={label} data-kind={kind} className={cn("grid gap-2 rounded-md border bg-background/40 p-2 transition-colors", drop.dragging && "border-primary bg-primary/10 ring-2 ring-primary/20")}>
     <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-medium"><span>{label}</span><Badge variant="outline">{paths.length}</Badge></div><div className="flex items-center gap-1">
       {onReferenceChange ? <Button aria-label={allReferences ? t("sources.cancelAllReferences", "取消全部参考目录") : t("sources.setAllReferences", "全部设为参考目录")} size="icon-sm" variant={allReferences ? "secondary" : "ghost"} onClick={() => onReferenceChange(serializeKisakiPaths(setAllKisakiReferences(paths, !allReferences)))}><CheckCheck /></Button> : null}
       <Button aria-label={t("sources.browseAdd", "浏览添加{{label}}", { label })} disabled={!pickDirectories && !pickDirectory} size="icon-sm" variant="outline" onClick={() => void browseDirectories()}><FolderPlus /></Button>
@@ -78,6 +90,8 @@ export function KisakiDirectoryEditor({ kind, label, pickFiles, pickDirectory, p
       <Button aria-label={t("sources.removeSelected", "移除选中的{{label}}", { label })} disabled={!selectedSet.size} size="icon-sm" variant="outline" onClick={() => remove(selectedSet)}><Trash2 /></Button>
       <Button aria-label={t("sources.clear", "清空{{label}}", { label })} disabled={!paths.length} size="icon-sm" variant="ghost" onClick={() => remove(paths)}><FolderMinus /></Button>
     </div></div>
+    {browseError ? <p role="alert" className="text-xs text-destructive">{browseError}</p> : null}
+    {drop.dragging ? <p role="status" className="rounded border border-dashed border-primary/60 bg-primary/5 px-2 py-1 text-xs text-primary">{t("sources.dropHint", "松开以添加文件或目录")}</p> : <p className="text-[11px] text-muted-foreground">{t("sources.dropAvailable", "也可以将文件或目录直接拖入此区域")}</p>}
     <div className="grid max-h-40 gap-1 overflow-auto">{paths.length ? paths.map((path) => <div key={path} className="flex items-center gap-2 rounded border px-2 py-1 text-xs">
       <Checkbox aria-label={t("sources.selectDirectory", "选择目录 {{path}}", { path })} checked={selectedSet.has(path)} onCheckedChange={(checked) => setSelected((current) => checked ? [...new Set([...current, path])] : current.filter((item) => item !== path))} />
       <span className="min-w-0 flex-1 truncate font-mono" title={path}>{path}</span>
