@@ -1,0 +1,89 @@
+From f57ec51eda784a244bd6e906aeef127e74ed7619 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Mon, 12 Oct 2026 15:38:49 +0800
+Subject: [PATCH] desktop: ad-hoc sign the macOS nightly instead of refusing it
+
+prepare:dsh signed the runtime tree with the release identity unconditionally, so an unsigned darwin nightly died on DSH_DESKTOP_MACOS_SIGNING_IDENTITY must be set to a non-empty value before any artifact existed. Apple Silicon still refuses to execute unsigned Mach-O, so the nightly signs with identity - and skips the release-authority assertion plus the shared signature cache; package-target now hands --unsigned down to prepare:dsh the way it already does to the smoke script.
+---
+ apps/desktop/scripts/package-target.ts          | 4 ++--
+ apps/desktop/scripts/prepare-dsh.ts             | 9 +++++++--
+ apps/desktop/scripts/verify-macos-signature.mjs | 9 ++++++---
+ 3 files changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/apps/desktop/scripts/package-target.ts b/apps/desktop/scripts/package-target.ts
+index a21a808..fb21638 100644
+--- a/apps/desktop/scripts/package-target.ts
++++ b/apps/desktop/scripts/package-target.ts
+@@ -475,7 +475,7 @@ export async function packageTarget(
+   await execute(['run', 'prepare:runtime', ...(signPrimaryRuntime ? ['--defer-primary-runtime-smoke'] : [])], downloadEnv)
+   if (signPrimaryRuntime) await execute(['run', 'sign:primary-runtime'], electronBuilderEnv)
+   await execute(['run', 'prepare:packages'], targetEnv)
+-  await execute(['run', 'prepare:dsh', ...(signPrimaryRuntime ? ['--defer-runtime-smoke'] : [])], downloadEnv)
++  await execute(['run', 'prepare:dsh', ...(invocation.unsigned ? ['--unsigned'] : []), ...(signPrimaryRuntime ? ['--defer-runtime-smoke'] : [])], downloadEnv)
+   if (signPrimaryRuntime) await execute(['run', 'sign:primary-runtime', '--dsh'], electronBuilderEnv)
+   if (invocation.prepareOnly) return
+   if (target.platform === 'darwin' && !invocation.directory && !invocation.unsigned) {
+@@ -496,7 +496,7 @@ export async function packageTarget(
+     await execute([...desktopElectronBuilderArguments(target, invocation.directory), '--config.mac.notarize=false'], electronBuilderEnv)
+     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts', ...(invocation.unsigned ? ['--unsigned'] : [])], targetEnv)
+     if (!invocation.unsigned) {
+-      const appPath = join(buildPaths.artifacts, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app')
++      const appPath = join(buildPaths.artifacts, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'Xaihi.app')
+       await withMacOSNotarizationProxy(mac?.notarizationProxy,
+         () => notarizeMacOS({ appPath, ...resolveMacOSNotarizationEnvironment(environment) }), undefined, undefined, proxyEvent)
+     }
+diff --git a/apps/desktop/scripts/prepare-dsh.ts b/apps/desktop/scripts/prepare-dsh.ts
+index 442e017..61367ff 100644
+--- a/apps/desktop/scripts/prepare-dsh.ts
++++ b/apps/desktop/scripts/prepare-dsh.ts
+@@ -154,8 +154,13 @@ async function main(): Promise<void> {
+       throw new Error(`desktop runtime: missing required LibreOffice engine ${officeEngine}`)
+     }
+     if (process.platform === 'darwin') {
+-      await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'sign:dsh-native', () => signMacOSRuntime(DSH_OUTPUT_ROOT, resolveDesktopAppId(process.env), resolveMacOSSigningEnvironment(process.env), target.arch, join(BUILD_PATHS.root, 'signature-cache')))
+-      await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'sign:primary-native', () => signMacOSRuntime(join(RUNTIME_ROOT, 'primary-runtime'), resolveDesktopAppId(process.env), resolveMacOSSigningEnvironment(process.env), target.arch, join(BUILD_PATHS.root, 'signature-cache')))
++      // 未签名的 Nightly（ADR-0027）用 ad-hoc 身份 `-`：Apple Silicon 要求 Mach-O 有签名才肯执行，
++      // 而发布身份的 Authority/TeamIdentifier 校验与共享签名缓存都属于带凭证那条路。
++      const unsigned = process.argv.includes('--unsigned')
++      const expected = unsigned ? { signingIdentity: '-', teamId: '' } : resolveMacOSSigningEnvironment(process.env)
++      const cacheDirectory = unsigned ? undefined : join(BUILD_PATHS.root, 'signature-cache')
++      await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'sign:dsh-native', () => signMacOSRuntime(DSH_OUTPUT_ROOT, resolveDesktopAppId(process.env), expected, target.arch, cacheDirectory))
++      await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'sign:primary-native', () => signMacOSRuntime(join(RUNTIME_ROOT, 'primary-runtime'), resolveDesktopAppId(process.env), expected, target.arch, cacheDirectory))
+     }
+     await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'runtime:manifests', () => prepareRuntimeManifests(DSH_OUTPUT_ROOT))
+     await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'runtime:primary-smoke', async () => smokePrimaryRuntime(join(RUNTIME_ROOT, 'primary-runtime')))
+diff --git a/apps/desktop/scripts/verify-macos-signature.mjs b/apps/desktop/scripts/verify-macos-signature.mjs
+index 6817f09..f3a13d2 100644
+--- a/apps/desktop/scripts/verify-macos-signature.mjs
++++ b/apps/desktop/scripts/verify-macos-signature.mjs
+@@ -115,14 +115,15 @@ function runCodeSign(args) {
+  * @returns {Promise<void>} Resolves after codesign exits successfully.
+  */
+ export async function signMacOSRuntimeCode(path, identifier, expected, entitlements) {
++  const adhoc = expected.signingIdentity === '-'
+   const keychain = process.env.CSC_KEYCHAIN
+-  if (!keychain) throw new Error('desktop macOS signing: run through the package command to prepare the signing keychain')
++  if (!adhoc && !keychain) throw new Error('desktop macOS signing: run through the package command to prepare the signing keychain')
+   await runAppleCommandAsync('/usr/bin/codesign', [
+     '--force',
+     '--sign', expected.signingIdentity,
+-    '--keychain', keychain,
++    ...(keychain === undefined ? [] : ['--keychain', keychain]),
+     '--identifier', identifier,
+-    '--timestamp',
++    ...(adhoc ? [] : ['--timestamp']),
+     '--options', 'runtime',
+     ...(entitlements === undefined ? [] : ['--entitlements', entitlements]),
+     path,
+@@ -137,6 +138,8 @@ export async function signMacOSRuntimeCode(path, identifier, expected, entitleme
+  */
+ export function verifyMacOSRuntimeCode(path, expected) {
+   runCodeSign(['--verify', '--strict', '--verbose=2', path])
++  // An ad-hoc signature names no release authority, so identity metadata cannot be asserted for it.
++  if (expected.signingIdentity === '-') return
+   const details = runCodeSign(['--display', '--verbose=4', path])
+   assertMacOSRuntimeSignatureDetails(details, expected)
+ }
+-- 
+2.56.0
+
