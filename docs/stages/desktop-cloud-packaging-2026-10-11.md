@@ -109,3 +109,49 @@ darwin-arm64 从 37.8 MB 降到 27.05 MB、darwin-x64 从 21.9 MB 降到 10.9 MB
   workflow 文件存在于默认分支 ⇒ 要等这些内容进 `main`。同理 `ci.yml` 补的那 8 条门禁要开 PR 才跑；
   本机只跑了其中不吃 `dist/` 的 6 条（各 rc=0），`check:nodebundle/cliface/tuiface` 没跑——它们要先
   `pnpm -r run build` 重写正在被宿主加载的产物。
+  （下一条作废：`desktop.yml` 已经有五轮云上读数，见下面「五轮派发读数」。）
+
+## 五轮派发读数
+
+| 轮次 | run | main 上的 sha | 走到哪一步 | 判因 |
+| --- | --- | --- | --- | --- |
+| 1 | 38209825531 | `2b7f11b5` | `preflight` 红 | 只跑只读 `--check` 不重放 ⇒ `patches_on_top=0 expected_patches=23`；改成先 `node desktop/sync-dsh.mjs` 再 `--check` |
+| 2 | 38210506594 | `46c76c7b` | `preflight` 红 | CI 的 `actions/checkout` 深度拉取让 **tag ref 缺席**（commit 在）⇒ `ensureAtPin` 只查 commit 就不 fetch，`本地解析不出 tag` 拒绝 checkout；改成 commit/tag 任一缺席都 fetch |
+| 3 | 38211438074 | `1af0d59a` | `preflight` 红 | runner 没有 git 身份 ⇒ `git am` 报 `Committer identity unknown`，被脚本误报成「patch 0001 打不进」；改成从 patch 的 `From:` 头取 `GIT_COMMITTER_*`，并把 git 给的第一行原因打出来 |
+| 4 | 38211852905 | `93c7e861` | `package-win` 假绿 | 四条上游步骤在**仓根**跑 `pnpm --filter "@deepseek-ai/dsh-desktop"` ⇒ `Scope: 0 of 33`、rc=0；`回读产物目录` 那步 `ls` 到空目录才暴露。改成 `working-directory: desktop/dsh` |
+| 5 | 38212124615 | `93c7e861` | `package-win` 真红 | 见下 |
+
+第 5 轮的失败行原文（`打未签名的 win-x64 安装包`，rc=1；这轮跑到这里已经不可能出 release，直接取消把日志解锁）：
+
+```
+TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension ".exe" for C:\Users\runneradmin\setup-pnpm\
+node_modules\.bin\package-manager-store\v11\links\@pnpm\exe\11.7.0\...\@pnpm\exe\pnpm.exe
+Error: desktop package: run build:official failed; evidence: D:\a\Xaihi\Xaihi\desktop\dsh\apps\desktop\
+.desktop-build\packaging-runs\2026-10-12T06-24-13.492Z-8hEkuW
+```
+
+### 第 5 轮的判因与 0024（改了什么 / 为什么）
+
+`package-target.ts` 的 `runPnpm` 不分平台地把 `npm_execpath` 当**脚本**交给 node 执行（`:293/:295`）。
+pnpm 在 Windows 上发的是原生可执行文件（`@pnpm\exe\pnpm.exe`），于是 node 把它当 JS 加载 ⇒
+`ERR_UNKNOWN_FILE_EXTENSION`，第一个 build 步之前就死。mac/linux 拿到的是 `.cjs`，同一段代码在那里恰好成立
+——所以这条只在 win 上红，也是它没被上游撞见的原因（上游自己在 Windows 上不带 `--unsigned` 出包）。
+
+**与 DSH API 的关系**：仓库根早就写好了这条规则——`scripts/pnpm-invocation.ts:15-19`「只有 `.js` 入口由
+node 承载，其余直接把入口当命令」。0024 就是把这条已有规则搬进 `apps/desktop/scripts/package-target.ts`
+（三行），不是新发明一条；`packaging-run.mjs:121` 的 `spawn(executable, args, {windowsHide:true})` 不带
+shell，所以把 exe 路径当 `executable` 传是它本来就支持的形状。
+
+**对照（阳性）**：把这条改动撤掉再跑它自己的 spec，新增那条立刻红在
+`expected '/opt/homebrew/Cellar/node/26.10.0_1/bin/node' to be 'C:\tools\pnpm.exe'`（`Tests 1 failed | 21 passed`，rc=1）；
+改后 `apps/desktop/tests/package-target-stages.spec.ts` **22 条 rc=0**。两种入口形状各钉一条：
+`.cjs` ⇒ 命令是 node、argv 首项是入口；`.exe` ⇒ 命令是那个 exe、入口字符串**不许出现在 argv 里**。
+
+**重放判据**：`node desktop/sync-dsh.mjs` 连跑两次得到同一个
+`head=37e1e8ed… / tree=b9d322a833cc…`（`patches=24/24 dirty=0`），`--check` rc=0 且
+`gitlink_committed=gitlink_staged=want=639ed015`——补丁链没被这轮改动污染，父仓仍只记 pin。
+
+**同一条 bug 还剩两处没动**（都在上游，本轮不改）：`scripts/flock-entry.ts:79` 与 `scripts/dev.ts:56`。
+前者在 Windows 上不可达（`hostAddonBuilt` 对非 darwin/linux 直接返回 true），后者只在 `pnpm run dev:desktop`
+的开发路径上——云端打包两条都不走。要提上游 proposal 的话，这三处是同一个缺口。
+
