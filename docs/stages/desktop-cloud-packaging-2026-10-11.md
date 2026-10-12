@@ -111,6 +111,39 @@ darwin-arm64 从 37.8 MB 降到 27.05 MB、darwin-x64 从 21.9 MB 降到 10.9 MB
   `pnpm -r run build` 重写正在被宿主加载的产物。
   （下一条作废：`desktop.yml` 已经有五轮云上读数，见下面「五轮派发读数」。）
 
+## 云上第二把读数：`ci.yml` 在 main 上跑到 `check:cliface` 就红（归属不在本轮）
+
+`ci.yml` 每次推 main 都会跑。今天（2026-10-12）main 上四连红（`6e3caa73`、`174402f9`、`b97178f0` 各一次，
+更早的 `b7b8c1ec` 也红），上一次绿是 **2026-10-06 的 `ee62011e`**。红的位置固定在 `workspace` 这条 job 的
+`Run pnpm check:cliface`，真实输出是：
+
+```
+check-cli-face: 逐条跑 --help，26 个 bin（判据：产物在、rc=0、输出里有自己的 bin 名）
+  ✓ kisaki     kisaki      ok
+  × bandia     bandia      rc — rc=1；输出首行 node:internal/modules/package_json_reader:314
+  …（共 25 条同样）
+check-cli-face: FAIL（25 条起不来或没有面）
+```
+
+**这不是本轮造成的，是本轮加的那条门禁把它照出来了**（`check:cliface` 在我补门禁之前不在 CI 里）。
+机制三条读数钉死，不是推断：
+
+1. `import('@hibernalglow/xaihi-cli-runtime')` 从 `plugins/sleept/` 这个 cwd **解析成功**，落点是仓根的
+   `node_modules/@hibernalglow/xaihi-cli-runtime`——而 `plugins/sleept/package.json` 里**没有**这条声明。
+   本机那个链接是历史遗留 ⇒ 本机 `node scripts/check-cli-face.mjs` 全绿（现测 rc=0，26 条全过）。
+2. CI 走 `pnpm install --frozen-lockfile`：仓根不会替工作区包建这个链接 ⇒ 25 条 bin 在装载期就抛，
+   尺只打印"输出首行"，所以云上读到的是一句内部帧。
+3. **唯一的例外恰好是唯一的绿灯**：`plugins/kisaki/package.json:232` 声明了
+   `"@hibernalglow/xaihi-cli-runtime": "workspace:*"`，kisaki 就是 CI 里唯一 `ok` 的那条。
+
+所以"照抄 kisaki 那一行"并不是机械修法：`pnpm check:installable` 现在的账是
+「25 个 bundle 包都能被 `file:` 安装，**例外 1 个**」——那个例外就是 kisaki 这条 `workspace:*`。
+给另外 25 个插件各加一条 `workspace:*`，等于把例外名单开到 26 条，那是 ADR-0002 那条约束要不要放宽的决定，
+归属在终端面那几条 lane（`cli-runtime` 的投递面），不在本轮。**本轮不放宽尺、也不用 skip 把它变绿。**
+
+附带一条门禁自身的缺陷（也没顺手改，脚本不是本轮的文件）：`check-cli-face.mjs` 只打"输出首行"，
+把真正的 `Error:` 行截掉了——云上这条红要花两次实验才能定因。判据失败时至少该打两行。
+
 ## 五轮派发读数
 
 | 轮次 | run | main 上的 sha | 走到哪一步 | 判因 |
