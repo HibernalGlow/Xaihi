@@ -1,0 +1,133 @@
+From cf57a6f90e0b0d04d4ac43bf7c4401f4b5fd9959 Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Mon, 12 Oct 2026 18:00:12 +0800
+Subject: [PATCH] desktop: seal unsigned macOS nightlies so they launch
+
+electron-builder writes no bundle signature when mac identity is null, yet the main executable still carries the linker ad-hoc signature. Gatekeeper reads that combination as a damaged app: code has no resources but signature indicates they must be present. The pack stage now signs every nested target it finds and then the bundle itself, before the disk image and zip are written.
+
+Measured on the shipped artifact: the release zip reproduces rc=1 with that message and no Contents/_CodeSignature; after this seal 64 targets verify passes with --deep --strict and the bundle identifier becomes com.hibernalglow.xaihi.
+---
+ apps/desktop/scripts/adhoc-seal-macos-app.mjs | 91 +++++++++++++++++++
+ .../scripts/electron-builder-config.mjs       |  8 ++
+ 2 files changed, 99 insertions(+)
+ create mode 100644 apps/desktop/scripts/adhoc-seal-macos-app.mjs
+
+diff --git a/apps/desktop/scripts/adhoc-seal-macos-app.mjs b/apps/desktop/scripts/adhoc-seal-macos-app.mjs
+new file mode 100644
+index 0000000..43a88df
+--- /dev/null
++++ b/apps/desktop/scripts/adhoc-seal-macos-app.mjs
+@@ -0,0 +1,91 @@
++/** Ad-hoc seal a packaged macOS app bundle for unsigned nightly builds. */
++import { spawnSync } from 'node:child_process'
++import { readdirSync, statSync } from 'node:fs'
++import { join } from 'node:path'
++
++const CODESIGN = '/usr/bin/codesign'
++
++function children (directory) {
++  try {
++    return readdirSync(directory, { withFileTypes: true }).map(entry => join(directory, entry.name))
++  } catch {
++    return []
++  }
++}
++
++/**
++ * Collect nested code that must carry its own signature before the bundle seal is written.
++ * @param {string} appPath - Path to the `.app` bundle.
++ * @returns {string[]} Code targets ordered innermost-first, so sealing the bundle last covers them.
++ */
++export function nestedCodeTargets (appPath) {
++  const targets = []
++  const walk = (directory) => {
++    for (const entry of children(directory)) {
++      const kind = statSync(entry, { throwIfNoEntry: false })
++      if (!kind) continue
++      if (kind.isDirectory()) {
++        if (entry.endsWith('.framework')) {
++          const versions = join(entry, 'Versions')
++          for (const version of children(versions)) {
++            if (version.endsWith('Current') || version.endsWith('A')) targets.push(...children(version).filter(isMachOName(version)))
++          }
++          targets.push(entry)
++          continue
++        }
++        if (entry.endsWith('.app')) {
++          walk(entry)
++          targets.push(entry)
++          continue
++        }
++        walk(entry)
++        continue
++      }
++      if (/\.(?:node|dylib)$/u.test(entry)) targets.push(entry)
++    }
++  }
++  const isMachOName = (directory) => (candidate) => {
++    const base = candidate.slice(directory.length + 1)
++    return !base.includes('.') && !base.startsWith('Resources') && !base.startsWith('Headers')
++  }
++  const contents = join(appPath, 'Contents')
++  for (const binary of children(join(contents, 'MacOS'))) targets.push(binary)
++  for (const library of children(join(contents, 'Frameworks'))) {
++    if (library.endsWith('.framework') || library.endsWith('.app')) continue
++    if (/\.(?:dylib|node)$/u.test(library)) targets.push(library)
++  }
++  walk(join(contents, 'Frameworks'))
++  walk(join(contents, 'Resources'))
++  return [...new Set(targets)].filter(target => statSync(target, { throwIfNoEntry: false })?.isFile?.() || target.endsWith('.app') || target.endsWith('.framework'))
++}
++
++function runCodesign (args) {
++  const result = spawnSync(CODESIGN, args, { encoding: 'utf8' })
++  if (result.status !== 0) {
++    throw new Error(`adhoc seal: codesign ${args.join(' ')} failed: ${(result.stderr ?? result.stdout ?? '').trim().split('\n')[0]}`)
++  }
++}
++
++/**
++ * Seal one app bundle with an ad-hoc signature so its main executable's embedded signature no longer
++ * promises resources the bundle does not carry (`code has no resources but signature indicates they
++ * must be present`), which is how an unsigned nightly gets reported as "damaged" at launch.
++ * @param {string} appPath - Path to the `.app` bundle produced by the pack stage.
++ * @returns {{ sealed: number }} Number of codesign invocations that ran.
++ */
++export function adhocSealMacOSApp (appPath) {
++  const targets = nestedCodeTargets(appPath)
++  let sealed = 0
++  for (const target of targets) {
++    runCodesign(['--force', '--sign', '-', '--preserve-metadata=entitlements,requirements,flags,runtime', target])
++    sealed++
++  }
++  runCodesign(['--force', '--sign', '-', appPath])
++  return { sealed: sealed + 1 }
++}
++
++if (process.argv[2] === '--self-check') {
++  const found = nestedCodeTargets(process.argv[3] ?? '')
++  console.log(`adhoc-seal self-check: 在 ${process.argv[3] ?? '(未给路径)'} 里认出 ${found.length} 个嵌套代码目标`)
++  process.exit(found.length > 0 ? 0 : 1)
++}
+diff --git a/apps/desktop/scripts/electron-builder-config.mjs b/apps/desktop/scripts/electron-builder-config.mjs
+index e923c44..7008afe 100644
+--- a/apps/desktop/scripts/electron-builder-config.mjs
++++ b/apps/desktop/scripts/electron-builder-config.mjs
+@@ -193,6 +193,14 @@ export function createElectronBuilderConfig(
+         preparedRuntimeVersion ?? productVersion, { platform: resolvedPlatform, arch: resolvedArch })
+       // Unsigned Windows builds skip electron-builder's afterSign hook.
+       if (packagesWindows && unsigned) await verifyWindowsAsarUnpack(buildPaths.dsh, resourcesDir, windowsCode)
++      // An unsigned darwin build leaves the bundle unsealed while its main executable keeps the linker's
++      // ad-hoc signature, so the shipped app is reported as damaged (`code has no resources but signature
++      // indicates they must be present`). Seal it here, before the disk image and zip are written.
++      if (packagesMacOS && unsigned) {
++        const { adhocSealMacOSApp } = await import('./adhoc-seal-macos-app.mjs')
++        const sealed = adhocSealMacOSApp(join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`))
++        console.log(`electron-builder: ad-hoc sealed ${sealed.sealed} code targets for the unsigned nightly`)
++      }
+     },
+     afterSign: async context => {
+       if (windowsSigner !== undefined) {
+-- 
+2.56.0
+
