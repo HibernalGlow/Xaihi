@@ -342,3 +342,54 @@ xaihi-product-linux-x64-product-resources.zip       ~12 MB
 5. 已知**不在**这条链上的：产品资源进安装包（`extraResources` 仍只有两条，产品资源照旧另发 zip）、
    mac-x64 试验腿（Rosetta 下 LibreOffice 转换超时）、Windows 的产品资源装配（`ui-host` 在 Windows 上的构建，
    归 `windows-build-path-portability` 那条 lane）。
+
+## 2026-10-12 追加：生成器那一刀落下之后，红仍在载荷步，而且有两个因都不在这层
+
+别名表已经进 main（`packages/ui-host/build-aliases.mjs` 的两个键族，实测 `@hibernalglow/xaihi-*` 213 条 / 共 431 键）。
+本机按第 2 节的清单跑过，前半条链已经成立（**都是当场跑出来的 rc，不是推断**）：
+
+| 尺 | 命令 | 读数 |
+| --- | --- | --- |
+| 文档产物 | `pnpm -C packages/ui-host run build:document` | rc=0，`main.js` 1.447 MiB / `main.css` 652.663 KiB |
+| 别名表一致性 | `node packages/ui-host/build-aliases.mjs` | rc=0，416 条指向存在的源码 |
+| 载荷 | `node desktop/desktop-payload.mjs build` | rc=0，`ui/` + 5 个 `packs/` + `profile.json` |
+| 载荷回读 | `node desktop/payload-check.mjs --payload …` | rc=0，11 项全绿（含 `xaihi-ui` 的 `client.js` 带 `data-xaihi-brand`） |
+
+云轮次 **38256257113**（`--ref main`，`targets=all`，SHA `4cd68af4`）三条打包腿仍全红在**拼工作台载荷**步，
+但两个因都是**已提交、未落地**的别人 lane，与随包这条链的实现无关：
+
+1. **Windows 腿**：`Error: ENOENT … open 'D:\D:\a\Xaihi\Xaihi\packages\ui-host\tsconfig.ported.json'`，
+   栈在 `rspack.document.mjs:38 aliasesFromTsconfig`。根因是 main 上第 26 行仍是
+   `path.dirname(new URL(import.meta.url).pathname)` —— win32 下 `.pathname` 给出 `/D:/…`，
+   前导斜杠被拼回盘符。修在未落地的 `windows-build-path-portability` = `066542cf`（36 文件，
+   父提交正是 main tip `4cd68af4`）。
+   **我的误判要记账**：先怀疑 jiti 给出裸路径、往配置里加了"按存在性选候选目录"的防御，
+   读了别人那条 hunk 才发现形状是 `.pathname`；防御已整段撤回，该文件 `git diff` 为空。
+2. **两条 mac 腿**：`ESModulesLinkingError: export 'colorAdaptationHintKey' was not found in
+   '@/lib/design-theme/registry'`。main 上消费者已落地
+   （`packages/ui-host/src/components/workspace/ThemeCompactMenu.tsx:6`），生产者
+   `export function colorAdaptationHintKey` 在未落地的 `codex/theme-color-token-adaptation` = `df4cf9d0`。
+   这是"半个提交落了、另一半没落"的形状，`check:nodebundle` 那类尺看不见它，只有真构建看得见。
+
+两半合起来的判据用干跑拿到，**没有动 main、也没有动别人的 lane**：
+`git merge-tree --write-tree 066542cf df4cf9d0` ⇒ 无冲突（tree `ba3ac22a`）；
+`git commit-tree` 合成 `ci/integrate-win-path-theme` = `3763efda`，回读两处关键点都在
+（`rspack.document.mjs:27` 已是 `fileURLToPath(new URL(...))`；`registry.ts:111` 有该导出），
+推上去只为跑一次 `publish_release=false` 的验证轮次 **38257612301**。
+main 那一轮没产出安装包 ⇒ release 作业按第 2 节的判据没开新 release（仓库里仍是 `desktop-818db73d` /
+`bf3c9170` / `f1ccc426` 三个，无新增资产）。
+
+## 2026-10-12：kisaki 的独立发布包**能**独立运行（这条是本机真调出来的）
+
+`otool -L desktop/.products/kisaki/native/xaihi-kisaki.darwin-arm64.node` 里那条
+`/Users/glow/Projects/Xiranite/native/target/release/deps/libxiranite_czkawka_node.dylib`
+**不是依赖**：`otool -l` 显示它是 `LC_ID_DYLIB`（这个文件自己的 install name），
+而那个目录在本机根本不存在（`ls` 报 No such file）。把整份 `.products/kisaki` 复制到仓库外
+（`../.scratch/kisaki-standalone/`）后 `require()` 成功，并真调到函数级：
+
+- `getCzkawkaInfo()` → `apiVersion 5`、`sourceVersion 12.0.0`、capabilities 含 `scan.duplicate` / `scan.media` 等
+- `getTrashCapabilities()` → `{deleteToTrash:true, list:false, restore:false, provider:"trash-rs", providerVersion:"5.2.6"}`
+- `libdav1d.7.dylib` 由 `LC_RPATH = @loader_path` 从同目录解析（`DYLD_PRINT_LIBRARIES` 实测命中载荷内那份）
+
+唯一的 wart：`LC_ID_DYLIB` 记着旧构建机的绝对路径。它不影响加载，只影响"别人按路径 link 这个 .node"这种用法；
+要清它得动 Rust 侧的 `cargo-c-ext`/`rpath` 口径，属于内核改名那一档，不在桌面端这层。
