@@ -379,6 +379,9 @@ jobs:
       - run: pnpm check:pins
       - run: pnpm check:installable
       - run: pnpm -r run build
+      # 同 ci.yml：tsconfig.ported.json 里的 paths 是生成器写死的绝对路径（本机），Linux 这条腿要先在
+      # 检出里重生成一次，否则 typecheck 红在"目录不存在"而不是红在类型。
+      - run: node packages/ui-host/build-aliases.mjs --write
       - run: pnpm -r run typecheck
       - run: pnpm -r --no-bail run test:unit
 

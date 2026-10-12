@@ -40,5 +40,11 @@ jobs:
       - run: pnpm check:nodebundle
       - run: pnpm check:cliface
       - run: pnpm check:tuiface
+      # 别名表在运行时按 import.meta.dirname 现算，本身可移植；但 `tsconfig.ported.json` 的 paths 是
+      # `build-aliases.mjs --write` 写进去的**绝对路径**（main 那份 107 条全是本机路径）⇒ 照抄到 runner 上
+      # 就指向不存在的目录，`tsc -p tsconfig.ported.json` 会红在解析而不是红在类型。
+      # 在检出里重新生成一次再量类型；改的只是 runner 那份临时检出，不进仓。
+      # （根治是让生成器写相对路径，但 build-aliases.mjs 此刻正在别人那条未提交的 lane 上，不顺手改。）
+      - run: node packages/ui-host/build-aliases.mjs --write
       - run: pnpm -r run typecheck
       - run: pnpm -r --no-bail run test:unit
