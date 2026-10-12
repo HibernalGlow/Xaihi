@@ -68,6 +68,12 @@ if (mode === 'build') {
   // 那条 lane 上（同一个文件，我不去抢）；载荷只要产物，闸门照旧由 CI 其它腿量。
   run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'exec', 'node', 'scripts/build-css.mjs'])
   run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'exec', 'tsdown'])
+  // 文档产物的别名**从 `tsconfig.ported.json` 现读**（`rspack.document.mjs` 的 `aliasesFromTsconfig`），
+  // 而那份签进仓的表里指向 `plugins/<node>/src/<leaf>.ts` 的值是**本机绝对路径**
+  // （生成器只把 `packages/` 下的目标相对化）⇒ 在 runner 上 `path.resolve` 会指到不存在的目录，
+  // 症状是"命中别名却找不到模块"（云上实测一条 Component 一处，共 11 条）。按检出重生成一次再构建，
+  // 与 `ci.yml`/本 workflow 里给 typecheck 腿加的那步同源。
+  run('node', [join(repo, 'packages/ui-host/build-aliases.mjs'), '--write'])
   run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'build:document'])
   for (const name of BUNDLES) if (name !== '@hibernalglow/xaihi-core' && name !== '@hibernalglow/xaihi-ui') {
     run('pnpm', ['--filter', name, 'build'])
