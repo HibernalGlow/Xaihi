@@ -73,6 +73,15 @@ if (appPath !== undefined) {
   }
   const packs = existsSync(join(shipped, 'packs')) ? readdirSync(join(shipped, 'packs')) : []
   check('包内 bundle 目录齐全', packs.length >= 5, packs.join(', '))
+  // 只数目录等于没数：装进去一个空 pack 同样是 5 个目录，而宿主在装载期就拒绝，
+  // 症状是"工作台空白"。`--payload` 那一支有逐包判据，装机这一支也必须吃同一条。
+  for (const name of packs) {
+    check(`包内 bundle ${name} 有 lib/index.js`, existsSync(join(shipped, 'packs', name, 'lib', 'index.js')))
+    const client = join(shipped, 'packs', name, 'lib', 'client.js')
+    if (existsSync(client)) {
+      check(`包内 bundle ${name} 的客户端产物带品牌占位`, contains(client, 'data-xaihi-brand'))
+    }
+  }
   const asar = join(resources, 'app.asar')
   check('壳的 app.asar 带 xaihi 客户端半边', contains(asar, 'xaihi-ui'))
   check('客户端产物带品牌占位（data-xaihi-brand）', contains(asar, 'data-xaihi-brand'))
