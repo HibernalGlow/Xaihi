@@ -23,8 +23,14 @@ const output = join(repo, 'desktop/.products', product.id, 'ui')
 class ProductGraphEvidence {
   apply(compiler) {
     compiler.hooks.done.tap('ProductGraphEvidence', stats => {
-      const resources = [...stats.compilation.modules].map(module => module.resource).filter(Boolean).map(file => file.replace(repo + '/', '')).sort()
-      writeFileSync(join(stats.compilation.outputOptions.path, 'module-graph.json'), JSON.stringify(resources, null, 2) + '\n')
+      // `repo + '/'` 那种写法在 Windows 上永不匹配（模块资源带反斜杠），绝对路径就整条留在证据里；
+      // 分隔符按长度切一刀，两边形状一致。
+      const resources = [...stats.compilation.modules].map(module => module.resource).filter(Boolean)
+        .map(file => file.startsWith(repo) ? file.slice(repo.length + 1) : file).sort()
+      // 宿主这一路先跑，Windows 上远端的输出目录还没被 rspack 建出来 ⇒ 直接 write 就 ENOENT。
+      const directory = stats.compilation.outputOptions.path
+      mkdirSync(directory, { recursive: true })
+      writeFileSync(join(directory, 'module-graph.json'), JSON.stringify(resources, null, 2) + '\n')
     })
   }
 }
