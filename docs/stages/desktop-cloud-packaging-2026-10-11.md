@@ -328,3 +328,17 @@ xaihi-product-linux-x64-product-resources.zip       ~12 MB
   这种叶子都进，`@xiranite/` 侧没有对应键）；改用生成器**已导出**的 `nodeCoreAliases()` 数据做同样映射 ⇒ 仍 31 条错。
   ⇒ 这一族有自己的规则，下游照抄必漂；**正解是生成器产出孪生名**（该改动已写在 `windows-build-path-portability`
   那条 lane 上、尚未落 main）。本机把它剥成 main 形态即可复现（202 键 ⇒ rc=1、31 条同类错；补回去就绿）。
+
+### 工作台随包的验收清单（生成器那一刀落下后照着跑）
+
+1. `gh workflow run desktop.yml --ref main -f targets=all -f publish_release=true`。
+2. 三条打包腿的**拼工作台载荷**步必须绿（它会 `--write` 别名表、跑预检、`build:document`、拼 `ui/ + packs/ + profile.json`）。
+3. **回读装机产物**步（`node desktop/payload-check.mjs --app …`）必须 11 项全绿：`Resources/xaihi/profile.json`、
+   `ui/main.js` + `ui/main.css`（core 的路由常量）、`ui/` 里有内容、五个 bundle 各有 `lib/index.js`、
+   `app.asar` 里有 `xaihi-ui` 与 `data-xaihi-brand`。**任何一项红，包就不算"带工作台"**。
+4. 装机后在本机（可选、需要 GUI）验证首屏：`DSH_HOME` 指向一个空 home 起包 → 应落在 `MAIN_PANEL_KEY`
+   （`client/index.ts` 的 `ctx.layout.selectPanel`），侧栏品牌是排印式 `X` + `Xaihi`，窗口标题为 `Xaihi`
+   （`XAIHI_CLIENT_TITLE` 在构建期烘进产物）。
+5. 已知**不在**这条链上的：产品资源进安装包（`extraResources` 仍只有两条，产品资源照旧另发 zip）、
+   mac-x64 试验腿（Rosetta 下 LibreOffice 转换超时）、Windows 的产品资源装配（`ui-host` 在 Windows 上的构建，
+   归 `windows-build-path-portability` 那条 lane）。
