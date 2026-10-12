@@ -1,0 +1,39 @@
+From 9cfe2a5194606d37eef0a78ebb13839b755dc0dc Mon Sep 17 00:00:00 2001
+From: HibernalGlow <3090253564@qq.com>
+Date: Mon, 12 Oct 2026 14:51:11 +0800
+Subject: [PATCH] desktop: let development-app options carry absent environment
+ values
+
+0018 and 0020 added optional fields to DevelopmentAppOptions, but the launcher passes them straight out of process.env. With exactOptionalPropertyTypes an explicit undefined is not an absent property, so the root host typecheck rejected the call in apps/desktop/scripts/dev.ts:80 (TS2379) and build:official died before producing anything. Every reader below already accepts undefined, so widen the declarations instead of inventing defaults.
+---
+ apps/desktop/scripts/development-app.ts | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/apps/desktop/scripts/development-app.ts b/apps/desktop/scripts/development-app.ts
+index 4232195..7ad8e50 100644
+--- a/apps/desktop/scripts/development-app.ts
++++ b/apps/desktop/scripts/development-app.ts
+@@ -15,13 +15,15 @@ export interface DevelopmentAppOptions {
+   readonly rendererPort: number
+   readonly hostPort: number
+   readonly openDevtools: string
+-  readonly primaryRuntimeDir?: string
+-  readonly profile?: string
++  // Callers pass these straight out of process.env, and `exactOptionalPropertyTypes` makes an
++  // explicit `undefined` a different type from an absent property; every reader below accepts both.
++  readonly primaryRuntimeDir?: string | undefined
++  readonly profile?: string | undefined
+   /** Product-specific native binding environment persisted for Launch Services starts. */
+-  readonly nativeEnvironment?: string
+-  readonly nativePath?: string
++  readonly nativeEnvironment?: string | undefined
++  readonly nativePath?: string | undefined
+   /** Product display name used for the generated .app bundle. */
+-  readonly appName?: string
++  readonly appName?: string | undefined
+ }
+ 
+ function quote(value: string): string { return `'${value.replaceAll("'", "'\\''")}'` }
+-- 
+2.55.0
+
