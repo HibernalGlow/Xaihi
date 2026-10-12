@@ -59,6 +59,9 @@ function packageDir (name) {
 
 if (mode === 'build') {
   run('pnpm', ['--filter', '@hibernalglow/xaihi-core', 'build'])
+  // 干净检出的隐藏前置（与 product.mjs 同一条）：`build:document` 吃的 `client.css` 是 gitignored 的生成物，
+  // 只有 ui 包自己的 `build`（scripts/build-css.mjs）会写它；漏了就会红在"找不到模块"而不是这里少跑一条命令。
+  run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'build'])
   run('pnpm', ['--filter', '@hibernalglow/xaihi-ui', 'build:document'])
   for (const name of BUNDLES) if (name !== '@hibernalglow/xaihi-core' && name !== '@hibernalglow/xaihi-ui') {
     run('pnpm', ['--filter', name, 'build'])
