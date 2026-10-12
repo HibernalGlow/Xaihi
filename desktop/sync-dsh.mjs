@@ -188,6 +188,13 @@ function ensureAtPin ({ tag, sha }) {
   git(['-C', VENDOR, 'checkout', '--force', '--quiet', sha])
 }
 
+/** 从 format-patch 的 `From:` 头读作者身份：重放的 committer 跟着 patch 走，不跟机器配走。 */
+function patchIdentity (file) {
+  const head = readFileSync(file, 'utf8').slice(0, 2000)
+  const m = head.match(/^From:\s*(.+?)\s*<([^>]+)>/mu)
+  return m === null ? null : { name: m[1], email: m[2] }
+}
+
 function applyPatches (pinSha) {
   const files = patchFiles()
   let applied = 0
@@ -196,10 +203,15 @@ function applyPatches (pinSha) {
   const pinDate = String(git(['-C', VENDOR, 'show', '--no-patch', '--format=%cI', pinSha])).trim()
   for (const file of files) {
     const name = file.split('/').pop()
-    const result = git(['-C', VENDOR, 'am', file], { allowFail: true, env: { GIT_COMMITTER_DATE: pinDate } })
+    const identity = patchIdentity(file)
+    // CI runner 上没有 user.name/user.email，`git am` 会以「Committer identity unknown」失败——
+    // 那不是 patch 冲突，是缺身份（云上 run 38211200568 实测被旧判据误报成「0001 打不进」）。
+    const env = { GIT_COMMITTER_DATE: pinDate, ...(identity === null ? {} : { GIT_COMMITTER_NAME: identity.name, GIT_COMMITTER_EMAIL: identity.email }) }
+    const result = git(['-C', VENDOR, 'am', file], { allowFail: true, env })
     if (typeof result === 'object' && result.failed) {
+      const reason = result.output.split('\n').find((line) => line.trim().length > 0) ?? '（git 没给原因）'
       git(['-C', VENDOR, 'am', '--abort'], { allowFail: true, muteStderr: true })
-      fail(`patch ${name} 打不进 ${headSha().slice(0, 8)}（已 git am --abort）`
+      fail(`patch ${name} 打不进 ${headSha().slice(0, 8)}（已 git am --abort）\n  git am 的第一行原因：${reason}`
         + `\n  看被拒的段：git -C desktop/dsh apply --check desktop/patches/dsh/${name}`
         + '\n  规矩是"打不进就是红"，不许用 --3way 蒙掉别人的行（desktop/patches/dsh/README.md）')
     }
