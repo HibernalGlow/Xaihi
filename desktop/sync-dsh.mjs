@@ -168,8 +168,13 @@ function ensureAtPin ({ tag, sha }) {
     console.log(`sync-dsh: submodule 还没初始化 → git submodule update --init --depth=1（net=${net}）`)
     git([...proxyArgs(), 'submodule', 'update', '--init', '--depth', '1', 'desktop/dsh'])
   } else {
-    const have = git(['-C', VENDOR, 'cat-file', '-e', `${sha}^{commit}`], { allowFail: true })
-    if (typeof have === 'object' && have.failed) {
+    // tag ref 与 pin 那个 commit 对象**任一**不在就要 fetch：CI 的 actions/checkout 会用
+    // fetch-depth=1 把 gitlink 指向的 commit 拉到、却不带 tag ⇒ 只判 commit 在不在，
+    // 下一步的 `rev-parse refs/tags/<tag>^{commit}` 必失败（云上 run 38210972031 就是这个形状）。
+    const haveCommit = git(['-C', VENDOR, 'cat-file', '-e', `${sha}^{commit}`], { allowFail: true })
+    const haveTag = git(['-C', VENDOR, 'rev-parse', '-q', '--verify', `refs/tags/${tag}`], { allowFail: true })
+    const missing = (typeof haveCommit === 'object' && haveCommit.failed) || (typeof haveTag === 'object' && haveTag.failed)
+    if (missing) {
       console.log(`sync-dsh: fetch ${tag}（net=${net}）`)
       const fetched = git([...proxyArgs(), '-C', VENDOR, 'fetch', '--depth', '1', 'origin',
         `refs/tags/${tag}:refs/tags/${tag}`], { allowFail: true })
