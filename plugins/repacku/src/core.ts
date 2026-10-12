@@ -1,7 +1,8 @@
 /**
  * Repacku 的内核，从 `<Xiranite>` tag `noxide` 的 `packages/nodes/repacku/src/core.ts`
- * （**894 行**）逐字搬来：类型、默认值、判定顺序、消息模板与 `BLACKLIST_KEYWORDS` 那张名单
- * 全部原样，一处逻辑都没改。唯一改动是第 1 行那条 import——`@xiranite/contract` 的两个类型
+ * （**894 行**）作为基线搬来：判定顺序、消息模板与 `BLACKLIST_KEYWORDS` 那张名单保留。
+ * 2026-10-13 按使用者要求修正扫描产物排除与归档顶层目录选择，详见
+ * `docs/stages/repacku-silent-gallery-2026-10-13.md`。基线的 import——`@xiranite/contract` 的两个类型
  * 换成本包的 `./contract.ts` 垫片（`docs/adr/0002-self-contained-plugin-packages.md`：装进
  * profile 的包不许引用 `@xiranite/*`）。保真度由 `tests/core.spec.ts` 守住，期望值手抄上游
  * `core.test.ts`（那里连 `createMemoryRuntime` 的假 `join` / `dirname` / `basename` 一起搬）。
@@ -83,8 +84,7 @@
  * 类型层让步**一处都没写进本文件**：本仓 `tsconfig.base.json` 的两面旗
  * （`noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`）在本包被关掉，范围限本包，
  * 三处逼它的原因逐条写在 `plugins/repacku/tsconfig.json` 里（与 `crashu` / `dissolvef` /
- * `migratef` 同一先例）。所以上游那 893 条正文行在这里逐字节相同，没有断言、没有 `?? 0`、
- * 没有改写过的控制流。
+ * `migratef` 同一先例）。本次行为修正保留这份类型层边界。
  *
  * @module xaihi-repacku/core
  */
@@ -111,6 +111,8 @@ export interface RepackuInput {
   delete_after?: boolean
   dryRun?: boolean
   dry_run?: boolean
+  preserveRoot?: boolean
+  preserve_root?: boolean
   minCount?: number
   min_count?: number
   galleryMarker?: string
@@ -147,8 +149,8 @@ export interface RepackuRuntime {
   readText: (path: string) => Promise<string>
   writeText: (path: string, content: string) => Promise<void>
   ensureDir: (path: string) => Promise<void>
-  compressWholeFolder: (sourcePath: string, targetPath: string, options: { deleteSource?: boolean }) => Promise<RepackuCompressionResult>
-  compressFiles: (sourcePath: string, targetPath: string, extensions: string[], options: { deleteSource?: boolean }) => Promise<RepackuCompressionResult>
+  compressWholeFolder: (sourcePath: string, targetPath: string, options: { deleteSource?: boolean; includeRoot?: boolean }) => Promise<RepackuCompressionResult>
+  compressFiles: (sourcePath: string, targetPath: string, extensions: string[], options: { deleteSource?: boolean; includeRoot?: boolean }) => Promise<RepackuCompressionResult>
   join: (...parts: string[]) => string
   dirname: (path: string) => string
   basename: (path: string) => string
@@ -181,6 +183,7 @@ export interface RepackuConfig {
     timestamp: string
     targetFileTypes: string[]
     minCount: number
+    preserveRoot: boolean
   }
 }
 
@@ -195,6 +198,8 @@ export interface RepackuOperation {
   compressedSize: number
   error?: string
   command?: string
+  /** Whether the archive should contain the source folder as its top-level entry. */
+  includeRoot?: boolean
 }
 
 export interface RepackuModeStats {
@@ -265,6 +270,7 @@ interface NormalizedRepackuInput {
   dryRun: boolean
   minCount: number
   galleryMarker: string
+  preserveRoot?: boolean
 }
 
 interface AnalyzeBundle {
@@ -282,6 +288,7 @@ export function normalizeRepackuInput(input: RepackuInput): NormalizedRepackuInp
     targetFileTypes: normalizeTypes(input.targetFileTypes ?? input.target_file_types ?? input.types),
     deleteAfter: input.deleteAfter ?? input.delete_after ?? false,
     dryRun: input.dryRun ?? input.dry_run ?? false,
+    preserveRoot: input.preserveRoot ?? input.preserve_root,
     minCount: Math.max(1, Math.floor(input.minCount ?? input.min_count ?? 2)),
     galleryMarker: clean(input.galleryMarker ?? input.gallery_marker) || DEFAULT_GALLERY_MARKER,
   }
@@ -321,10 +328,13 @@ export async function analyzeFolderStructure(
 export function createRepackuConfig(
   rootPath: string,
   folderTree: RepackuFolderNode,
-  runtime: Pick<RepackuRuntime, "basename" | "join" | "now">,
-  options: { targetFileTypes?: string[]; minCount?: number; outputPath?: string } = {},
+  runtime: Pick<RepackuRuntime, "basename" | "dirname" | "join" | "now">,
+  options: { targetFileTypes?: string[]; minCount?: number; outputPath?: string; preserveRoot?: boolean } = {},
 ): { configPath: string; config: RepackuConfig } {
-  const configPath = options.outputPath || runtime.join(rootPath, `${runtime.basename(rootPath)}_config.json`)
+  // 生成的配置是扫描产物，不能落在来源目录里：下一次 full/single-pack 扫描时，
+  // 它会被当成用户文件，甚至被整目录归档。默认把它放到来源目录的同级；显式
+  // outputPath 仍然完全由调用方控制。
+  const configPath = options.outputPath || runtime.join(runtime.dirname(rootPath), `${runtime.basename(rootPath)}_config.json`)
   return {
     configPath,
     config: {
@@ -333,6 +343,7 @@ export function createRepackuConfig(
         timestamp: runtime.now().toISOString(),
         targetFileTypes: options.targetFileTypes ?? [],
         minCount: Math.max(1, Math.floor(options.minCount ?? 2)),
+        preserveRoot: options.preserveRoot ?? false,
       },
     },
   }
@@ -355,6 +366,9 @@ export function parseRepackuConfig(value: string): RepackuConfig {
       timestamp: stringValue(rawConfig.timestamp) || new Date(0).toISOString(),
       targetFileTypes: normalizeTypes(rawConfig.targetFileTypes ?? rawConfig.target_file_types),
       minCount: Math.max(1, Math.floor(numberValue(rawConfig.minCount ?? rawConfig.min_count, 2))),
+      preserveRoot: rawConfig.preserveRoot === undefined && rawConfig.preserve_root === undefined
+        ? false
+        : Boolean(rawConfig.preserveRoot ?? rawConfig.preserve_root),
     },
   }
 }
@@ -371,6 +385,7 @@ export function countCompressionModes(node: RepackuFolderNode | null): RepackuMo
 
 export function collectCompressionOperations(config: RepackuConfig, runtime: Pick<RepackuRuntime, "join" | "dirname" | "basename">): RepackuOperation[] {
   const operations: RepackuOperation[] = []
+  const includeRoot = config.config.preserveRoot
   visitFolders(config.folderTree, (folder) => {
     if (folder.compressMode === "entire") {
       operations.push({
@@ -382,6 +397,7 @@ export function collectCompressionOperations(config: RepackuConfig, runtime: Pic
         status: "planned",
         originalSize: 0,
         compressedSize: 0,
+        includeRoot,
       })
       return
     }
@@ -396,6 +412,7 @@ export function collectCompressionOperations(config: RepackuConfig, runtime: Pic
         status: "planned",
         originalSize: 0,
         compressedSize: 0,
+        includeRoot,
       })
     }
   })
@@ -493,7 +510,7 @@ async function runSinglePack(normalized: NormalizedRepackuInput, runtime: Repack
   if (!info.isDirectory) return failure(`Path is not a directory: ${rootPath}`)
 
   onEvent({ type: "progress", progress: 10, message: "Planning single-pack operations." })
-  const operations = await planSinglePackOperations(runtime.resolve(rootPath), runtime)
+  const operations = await planSinglePackOperations(runtime.resolve(rootPath), runtime, normalized.preserveRoot ?? false)
   const executed = await executeOperations(operations, runtime, normalized, onEvent)
   return {
     success: executed.failedCount === 0,
@@ -515,7 +532,7 @@ async function runGalleryPack(normalized: NormalizedRepackuInput, runtime: Repac
   const galleryFolders = await findGalleryFolders(runtime.resolve(rootPath), normalized.galleryMarker, runtime)
   const operations: RepackuOperation[] = []
   for (const folder of galleryFolders) {
-    operations.push(...await planSinglePackOperations(folder, runtime))
+    operations.push(...await planSinglePackOperations(folder, runtime, normalized.preserveRoot ?? false))
   }
 
   const executed = await executeOperations(operations, runtime, normalized, onEvent)
@@ -551,6 +568,7 @@ async function analyzeToConfig(
     targetFileTypes: normalized.targetFileTypes,
     minCount: normalized.minCount,
     outputPath: normalized.outputPath,
+    preserveRoot: normalized.preserveRoot,
   })
   await runtime.ensureDir(runtime.dirname(created.configPath))
   await runtime.writeText(created.configPath, serializeRepackuConfig(created.config))
@@ -568,7 +586,10 @@ async function executeConfig(
   normalized: NormalizedRepackuInput,
   onEvent: (event: NodeRunEvent) => void,
 ): Promise<RepackuData> {
-  const operations = collectCompressionOperations(config, runtime)
+  const operations = collectCompressionOperations({
+    ...config,
+    config: { ...config.config, preserveRoot: normalized.preserveRoot ?? config.config.preserveRoot },
+  }, runtime)
   return executeOperations(operations, runtime, normalized, onEvent)
 }
 
@@ -598,8 +619,8 @@ async function executeOperations(
     try {
       await runtime.ensureDir(runtime.dirname(operation.targetPath))
       const result = operation.mode === "entire"
-        ? await runtime.compressWholeFolder(operation.sourcePath, operation.targetPath, { deleteSource: normalized.deleteAfter })
-        : await runtime.compressFiles(operation.sourcePath, operation.targetPath, operation.extensions, { deleteSource: normalized.deleteAfter })
+        ? await runtime.compressWholeFolder(operation.sourcePath, operation.targetPath, { deleteSource: normalized.deleteAfter, includeRoot: operation.includeRoot })
+        : await runtime.compressFiles(operation.sourcePath, operation.targetPath, operation.extensions, { deleteSource: normalized.deleteAfter, includeRoot: operation.includeRoot })
       completed.push({
         ...operation,
         status: result.success ? "success" : "error",
@@ -646,7 +667,7 @@ async function analyzeNode(
     if (childNode) children.push(childNode)
   }
 
-  const files = entries.filter((entry) => entry.isFile)
+  const files = entries.filter((entry) => entry.isFile && !isGeneratedRepackuConfigName(entry.name, runtime.basename(folderPath), childEntries.map((child) => child.name)))
   const fileTypes = countFileTypes(files)
   const childBlocksEntire = children.some((child) => child.fileTypes.archive > 0 || child.compressMode === "skip")
   const decision = determineCompressMode(folderPath, files, fileTypes, options.targetFileTypes, childBlocksEntire, options.minCount)
@@ -706,7 +727,7 @@ function determineCompressMode(
   return { mode: "selective", extensions: countExtensions(matching) }
 }
 
-async function planSinglePackOperations(rootPath: string, runtime: RepackuRuntime): Promise<RepackuOperation[]> {
+async function planSinglePackOperations(rootPath: string, runtime: RepackuRuntime, includeRoot: boolean): Promise<RepackuOperation[]> {
   const entries = await runtime.listDir(rootPath)
   const operations: RepackuOperation[] = []
 
@@ -721,6 +742,7 @@ async function planSinglePackOperations(rootPath: string, runtime: RepackuRuntim
         status: "skipped",
         originalSize: 0,
         compressedSize: 0,
+        includeRoot,
         error: "contains_archive",
       })
       continue
@@ -734,6 +756,7 @@ async function planSinglePackOperations(rootPath: string, runtime: RepackuRuntim
       status: "planned",
       originalSize: 0,
       compressedSize: 0,
+      includeRoot,
     })
   }
 
@@ -748,10 +771,17 @@ async function planSinglePackOperations(rootPath: string, runtime: RepackuRuntim
       status: "planned",
       originalSize: 0,
       compressedSize: 0,
+      includeRoot,
     })
   }
 
   return operations
+}
+
+/** 默认扫描产物可能是本目录的遗留配置，也可能是子目录同级的新配置。 */
+export function isGeneratedRepackuConfigName(name: string, folderName: string, childNames: string[] = []): boolean {
+  const lowerName = name.toLowerCase()
+  return [folderName, ...childNames].some((folder) => lowerName === `${folder.toLowerCase()}_config.json`)
 }
 
 /** Select first-level folder units using the same ordering as single-pack. */

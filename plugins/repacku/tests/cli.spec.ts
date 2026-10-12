@@ -23,7 +23,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { mkdtemp, readdir, rm, writeFile, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { CliHost } from '../src/cli-support.ts'
 import { UNWIRED_INTERACTIVE_LEGS, runProgram } from '../src/cli.ts'
@@ -208,11 +208,13 @@ describe('repacku 终端面', () => {
     const result = JSON.parse(host.stdoutText()) as { success: boolean; message: string; data?: { configPath: string; totalFolders: number; plannedCount: number } }
     expect(result.success).toBe(true)
     expect(result.message).toBe(`Analysis complete: ${result.data?.totalFolders} folder(s).`)
-    expect(result.data?.configPath).toBe(join(root, `${root.split('/').pop()}_config.json`))
+    const expectedConfigPath = join(dirname(root), `${basename(root)}_config.json`)
+    expect(result.data?.configPath).toBe(expectedConfigPath)
     // 回读磁盘：产物真的在那儿，而且没顺手生成归档。
     expect(existsSync(result.data?.configPath ?? '')).toBe(true)
     expect(await zipCount(root)).toBe(0)
-    expect(await readdir(root)).toEqual(['archive', 'book', `${root.split('/').pop()}_config.json`])
+    expect(await readdir(root)).toEqual(['archive', 'book'])
+    expect(existsSync(expectedConfigPath)).toBe(true)
 
     // 阳性对照：`--outputPath` 那格改的是同一件事的**位置**，不是"要不要写"。
     const elsewhere = createHost()
@@ -235,7 +237,7 @@ describe('repacku 终端面', () => {
     expect(result.data?.operations.every((item) => item.status === 'planned')).toBe(true)
     // 阳性对照：计划写了出去（config JSON 是分析产物），归档一条都没有。
     expect(await zipCount(root)).toBe(0)
-    expect(existsSync(join(root, `${root.split('/').pop()}_config.json`))).toBe(true)
+    expect(existsSync(join(dirname(root), `${basename(root)}_config.json`))).toBe(true)
   })
 
   it('缺路径时回内核自己那句话，不替它编一个默认目录', async () => {

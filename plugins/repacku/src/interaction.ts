@@ -11,6 +11,7 @@ export type RepackuInteractionValues = InteractionValues & {
   galleryMarker: string
   deleteAfter: boolean
   dryRun: boolean
+  preserveRoot: boolean
 }
 
 export function createRepackuInteractionSchema(
@@ -28,6 +29,7 @@ export function createRepackuInteractionSchema(
     galleryMarker: ". 画集",
     deleteAfter: false,
     dryRun: true,
+    preserveRoot: false,
     ...defaults,
   }
   const text = (zhValue: string, enValue: string) => (zh ? zhValue : enValue)
@@ -59,6 +61,7 @@ export function createRepackuInteractionSchema(
       { id: "galleryMarker", label: text("画集标记", "Gallery marker"), kind: "text" },
       { id: "deleteAfter", label: text("成功后删除源文件", "Delete sources after success"), kind: "boolean" },
       { id: "dryRun", label: text("预演", "Dry-run"), kind: "boolean" },
+      { id: "preserveRoot", label: text("保留归档顶层文件夹", "Preserve archive root folder"), kind: "boolean" },
     ],
     toInput: (values) => ({
       action: String(values.action ?? "full") as RepackuAction,
@@ -68,6 +71,7 @@ export function createRepackuInteractionSchema(
       outputPath: String(values.outputPath ?? "").trim() || undefined,
       deleteAfter: values.deleteAfter === true,
       dryRun: values.dryRun !== false,
+      preserveRoot: values.preserveRoot === true,
       minCount: Number(values.minCount) || 2,
       galleryMarker: String(values.galleryMarker ?? "").trim() || undefined,
     }),

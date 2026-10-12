@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react"
-import { Clipboard, Eye, FileText, FolderOpen, Info, SlidersHorizontal, Trash2 } from "lucide-react"
+import { Clipboard, Eye, FileText, FolderOpen, Info, Layers3, SlidersHorizontal, Trash2 } from "lucide-react"
 import type { RepackuAction } from "@xiranite/node-repacku/core"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -89,6 +89,15 @@ export function CompactOptionsPanel({ data, disabled, onPatch }: CommonControlPr
         description="成功后"
         onCheckedChange={(value) => onPatch({ deleteAfter: value })}
       />
+      <CompactSwitch
+        checked={data.preserveRoot ?? false}
+        disabled={disabled}
+        icon={Layers3}
+        label="保留目录层"
+        ariaLabel="保留归档顶层文件夹"
+        description="归档内"
+        onCheckedChange={(value) => onPatch({ preserveRoot: value })}
+      />
     </div>
   )
 }
@@ -139,6 +148,14 @@ export function OptionsPanel({ data, disabled, onPatch }: CommonControlProps) {
           label="删除源文件"
           description="仅在压缩成功后执行。"
           onCheckedChange={(value) => onPatch({ deleteAfter: value })}
+        />
+        <SwitchField
+          checked={data.preserveRoot ?? false}
+          disabled={disabled}
+          icon={Layers3}
+          label="保留归档顶层文件夹"
+          description="归档内保留来源目录名。"
+          onCheckedChange={(value) => onPatch({ preserveRoot: value })}
         />
       </div>
     </section>

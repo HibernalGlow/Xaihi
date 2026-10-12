@@ -411,6 +411,27 @@
             }
           },
           "rules": []
+        },
+        {
+          "id": "preserveRoot",
+          "label": {
+            "zh": "保留归档顶层文件夹",
+            "en": "Preserve archive root folder"
+          },
+          "kind": "boolean",
+          "default": {
+            "boolean": false
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "always"
+              },
+              "negated": false
+            }
+          },
+          "rules": []
         }
       ],
       "groups": [],
@@ -458,6 +479,11 @@
         {
           "fieldId": "dryRun",
           "slot": "dryRun",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "preserveRoot",
+          "slot": "preserveRoot",
           "transform": "asBoolean"
         }
       ],

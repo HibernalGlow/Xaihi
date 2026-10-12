@@ -74,7 +74,7 @@ export function Component({ compId, host }: NodeComponentProps) {
   useEffect(() => {
     if (!defaults) return
     setConfigDirty(CONFIG_FIELDS.some((field) => String(data[field] ?? "") !== String(defaults[field] ?? "")))
-  }, [data.action, data.configPath, data.deleteAfter, data.dryRun, data.minCount, data.path, data.typesText, defaults])
+  }, [data.action, data.configPath, data.deleteAfter, data.dryRun, data.minCount, data.path, data.preserveRoot, data.typesText, defaults])
 
   function patch(patchData: Partial<RepackuCardState>) {
     dataRef.current = { ...dataRef.current, ...patchData }
@@ -123,7 +123,7 @@ export function Component({ compId, host }: NodeComponentProps) {
   }
 
   function resetOverride() {
-    patch({ path: undefined, configPath: undefined, typesText: undefined, minCount: undefined, deleteAfter: undefined, dryRun: undefined, action: undefined })
+    patch({ path: undefined, configPath: undefined, typesText: undefined, minCount: undefined, deleteAfter: undefined, dryRun: undefined, preserveRoot: undefined, action: undefined })
   }
 
   function restoreFromHistory(input: unknown) {
@@ -744,6 +744,7 @@ function buildInput(action: RepackuAction, data: RepackuCardState): RepackuInput
     minCount: data.minCount ?? 2,
     deleteAfter: data.deleteAfter ?? false,
     dryRun: data.dryRun ?? true,
+    preserveRoot: data.preserveRoot ?? false,
   }
 }
 
@@ -771,6 +772,9 @@ function restoreFromHistoryInput(input: unknown): Partial<RepackuCardState> {
     dryRun: typeof record.dryRun === "boolean"
       ? record.dryRun
       : typeof record.dry_run === "boolean" ? record.dry_run : undefined,
+    preserveRoot: typeof record.preserveRoot === "boolean"
+      ? record.preserveRoot
+      : typeof record.preserve_root === "boolean" ? record.preserve_root : undefined,
   }
 }
 

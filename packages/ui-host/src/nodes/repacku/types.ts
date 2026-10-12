@@ -7,6 +7,7 @@ export interface RepackuCardState {
   minCount?: number
   deleteAfter?: boolean
   dryRun?: boolean
+  preserveRoot?: boolean
   action?: RepackuAction
   phase?: "idle" | "running" | "completed" | "error" | RepackuAction | string
   progress?: number
