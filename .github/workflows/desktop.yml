@@ -279,6 +279,13 @@ jobs:
         shell: bash
         run: ls -la desktop/dsh/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts
 
+      # 只读检查"工作台到底有没有进包"：字节级读数（Resources/xaihi、五个 bundle、客户端产物里的品牌占位）。
+      - name: 回读装机产物（工作台是否真的进包）
+        shell: bash
+        run: |
+          APP=$(find desktop/dsh/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts -maxdepth 2 -type d -name 'win-unpacked' | head -1)
+          node desktop/payload-check.mjs --app "$APP"
+
       - uses: actions/upload-artifact@v4
         with:
           name: xaihi-desktop-win-x64-unsigned
@@ -369,6 +376,13 @@ jobs:
       - name: 回读产物目录
         shell: bash
         run: ls -la "desktop/dsh/apps/desktop/.desktop-build/targets/${{ matrix.target }}/unsigned-artifacts"
+
+      # 同 win 腿：只读检查工作台是否真的进包（字节级；不读配置意图）。
+      - name: 回读装机产物（工作台是否真的进包）
+        shell: bash
+        run: |
+          APP=$(find "desktop/dsh/apps/desktop/.desktop-build/targets/${{ matrix.target }}/unsigned-artifacts" -maxdepth 3 -type d -name 'Xaihi.app' | head -1)
+          node desktop/payload-check.mjs --app "$APP"
 
       - uses: actions/upload-artifact@v4
         with:
