@@ -248,3 +248,43 @@ URL scheme `dsh`、Windows 注册表键 `Software\DeepSeekHarness\…`。
 `Test timed out in 5000ms`，当时本机 load1m≈70 在并行压构建；把 `installed-update-builder.spec.ts`
 单独复跑即转绿 ⇒ 归属是负载不是改名）。27 条补丁重放两次同 head `e84f3f0e`，
 且重放出的树与手工提交的树同为 `77d70b171115`。
+
+## 第七轮的终局读数（release 真开出来了）
+
+**Release**：`desktop-f1ccc426d32adbe704c53519da24a4043574608f`（标题 `Xaihi desktop …`，08:16:12Z 建），
+按字节核对后的 6 条资产：
+
+```
+xaihi-0.2.0-rc.2-win-x64-unsigned.exe              287,888,311 B
+xaihi-0.2.0-rc.2-mac-arm64-unsigned.dmg            370,221,507 B
+xaihi-0.2.0-rc.2-mac-arm64-unsigned.zip            374,547,963 B
+xaihi-product-darwin-arm64-product-resources.zip    ~10 MB
+xaihi-product-darwin-x64-product-resources.zip      ~11 MB
+xaihi-product-linux-x64-product-resources.zip       ~12 MB
+```
+
+**这条 release 一开始不是干净的**：它带着 16 个 `win-unpacked/` 里的散装运行时二进制
+（`elevate.exe`、`node.exe`、`libreoffice-kit.exe`、`rg.exe`、`python.exe`、`Xaihi.exe` …约 800 MB），
+原因是我"收紧上传面"那笔只 `but commit` 了、漏了 `but land` —— 云上跑的仍是旧的 `unsigned-artifacts/**` 上传。
+处理：把那条收紧提交补 land（`bf3c9170`），并对已发布的 release 逐条 `gh release delete-asset`
+（留 6 条、删 16 条，删前先按 `startswith("xaihi-")` 把去留列表打出来核对）。
+教训本身：**"改了"与"生效了"之间差一次读回**——上传面要在资产清单上读回，而不是在 workflow 文件里。
+
+**两条仍红的腿，各自的原因不同（都是现读，不是推）**
+
+- `package-mac (mac-x64)`：0027 之后过了签名闸，红在运行期自检——
+  `Error: desktop runtime: docx conversion failed: OfficeToPdfError: LibreOffice conversion failed.` /
+  `[cause]: ConversionError: LibreOffice conversion timed out.`（`run prepare:dsh --unsigned`）。
+  这条腿是在 arm64 runner 上用 Rosetta 跑 x86_64 的 LibreOffice 做 docx→pdf，超时是那条转换路径的速度问题，
+  不是打包面的问题 ⇒ mac 的交付按 arm64 那份出货，x64 那份仍是试验腿。
+- `product (win32-x64)`：平台解析修好之后（`Error: spawn pnpm ENOENT` 消失了，
+  `pnpm recursive run` 真的跑起来了），红在下一层——
+  `× "pnpm recursive run" failed in D:\a\Xaihi\Xaihi\packages\ui-host`。
+  也就是 Windows 的 kisaki **产品资源装配**卡在 ui-host 的构建本身，
+  这与未提交区里那条 `windows-build-path-portability`（构建脚本用 `.pathname` 取路径，Windows 上盘符被写成
+  `D:\D:\`）是同一片归属地；kisaki 的**原生件**在 win32-x64 上是好的（`kisaki-native-win32-x64` 已上传）。
+
+**Linux 的说法保持原样**：`linux-compile` 的 `pnpm -r run build` 过，红在
+`pnpm -r run typecheck` ⇒ `packages/node-sdk typecheck: src/define-node.ts(320,45): error TS18046`
++ `(320,56): error TS2698`（别处的账）。别名表那条已按预期不再是障碍——先 `build-aliases.mjs --write`
+再 typecheck，这一轮才第一次读到"红在类型而不是红在目录不存在"。
