@@ -252,8 +252,11 @@ jobs:
           # 未知键会被拒（desktop-package-environment.mjs:47-50），所以这里只印键名。
           sed -E 's/=.*$/=…/' desktop/dsh/apps/desktop/.env.windows
 
+      # --unsigned 必须一起传给 --check：非 unsigned 时上游校验会去构造 Windows 签名器
+      # （desktop-package-environment.mjs:87-94 要 DSH_DESKTOP_WINDOWS_CER_FILE），
+      # 而这条腿本来就不配证书 ⇒ 不带它就是让 CI 报一句"缺签名材料"的假因。
       - name: 先跑上游自检（env + 工具链，不产出安装包）
-        run: pnpm --filter "@deepseek-ai/dsh-desktop" run check:package -- win-x64
+        run: pnpm --filter "@deepseek-ai/dsh-desktop" run check:package -- win-x64 --unsigned
 
       - name: 打未签名的 win-x64 安装包
         run: pnpm --filter "@deepseek-ai/dsh-desktop" run package:win:x64:unsigned
@@ -326,9 +329,10 @@ jobs:
           mv "$RUNNER_TEMP/env-macos.txt" desktop/dsh/apps/desktop/.env.macos
           sed -E 's/=.*$/=…/' desktop/dsh/apps/desktop/.env.macos
 
-      # check:package 走的是同一条 parseArgs：--check 只验 env 与工具链，先在红得便宜的地方停下来。
+      # 同 win 腿：--check 也要带 --unsigned，否则 darwin 校验会去要 identity/公证策略/可读 p12
+      # （desktop-package-environment.mjs:96-111），报出来的是"你没配 Apple 凭证"而不是真问题。
       - name: 先跑上游自检（env + 工具链，不产出安装包）
-        run: pnpm --filter "@deepseek-ai/dsh-desktop" run check:package -- ${{ matrix.target }}
+        run: pnpm --filter "@deepseek-ai/dsh-desktop" run check:package -- ${{ matrix.target }} --unsigned
 
       - name: 打未签名的 ${{ matrix.target }} 安装包
         run: pnpm --filter "@deepseek-ai/dsh-desktop" run package -- ${{ matrix.target }} --unsigned
