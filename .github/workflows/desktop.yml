@@ -270,7 +270,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: xaihi-desktop-win-x64-unsigned
-          path: desktop/dsh/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/**
+          # 只收安装包那一份货：`unsigned-artifacts/**` 实测会把 electron-builder 的 `win-unpacked/`
+          # 一起打包（内含散装 `DeepSeek Harness.exe`，约 200 MB），release 的收集步骤按 `*.exe`
+          # 找文件就会把它也附上去。按文件名收就只剩安装包；少收一条会由 if-no-files-found 响亮红。
+          path: |
+            desktop/dsh/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/*-unsigned.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -348,7 +352,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: xaihi-desktop-${{ matrix.target }}-unsigned
-          path: desktop/dsh/apps/desktop/.desktop-build/targets/${{ matrix.target }}/unsigned-artifacts/**
+          # 同 win：`**` 会把 `unsigned-artifacts/mac-arm64/DeepSeek Harness.app` 整包带进来。
+          # 交付物是 dmg + zip 两份，按后缀收。
+          path: |
+            desktop/dsh/apps/desktop/.desktop-build/targets/${{ matrix.target }}/unsigned-artifacts/*-unsigned.dmg
+            desktop/dsh/apps/desktop/.desktop-build/targets/${{ matrix.target }}/unsigned-artifacts/*-unsigned.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -418,7 +426,7 @@ jobs:
       - name: 归集资产
         run: |
           mkdir -p out/assets
-          find out/installers -type f \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' \) -exec cp -v {} out/assets/ \;
+          find out/installers -type f \( -name '*-unsigned.dmg' -o -name '*-unsigned.zip' -o -name '*-unsigned.exe' \) -exec cp -v {} out/assets/ \;
           if [ -d out/products ]; then
             for d in out/products/*/; do
               [ -d "$d" ] || continue
