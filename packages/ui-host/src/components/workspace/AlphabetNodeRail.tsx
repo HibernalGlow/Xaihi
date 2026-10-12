@@ -86,6 +86,7 @@ export function AlphabetNodeRail() {
     style: state.alphabetIndexStyle,
     waveIntensity: state.alphabetIndexWaveIntensity,
     hideEmpty: state.alphabetIndexHideEmpty,
+    directDeploySingle: state.alphabetIndexDirectDeploySingle,
     zCounter: state.zCounter,
   }))
   const [activeIndex, setActiveIndex] = useState(DEFAULT_INITIAL_INDEX)
@@ -221,6 +222,18 @@ export function AlphabetNodeRail() {
     if (keyboardInteractionRef.current) restoreTriggerFocusRef.current = true
     collapse()
   }, [appearance.viewMode, collapse, t, workspaceActions])
+
+  const handleLetterClick = useCallback((letter: string, index: number) => {
+    if (draggingModuleRef.current) return
+    if (appearance.directDeploySingle) {
+      const matching = getModulesForInitial(letter, allModules())
+      if (matching.length === 1 && matching[0]) {
+        deployModule(matching[0])
+        return
+      }
+    }
+    selectInitial(index)
+  }, [appearance.directDeploySingle, deployModule, selectInitial])
 
   const selectModule = useCallback((module: ModuleDef) => {
     if (suppressDeployForModuleRef.current === module.id) {
@@ -360,7 +373,7 @@ export function AlphabetNodeRail() {
                   title={t("common:alphabetLauncher.matches", { letter, count: getModulesForInitial(letter, allModules()).length })}
                   onPointerEnter={(event) => { if (event.pointerType !== "touch") selectInitial(index) }}
                   onFocus={() => selectInitial(index)}
-                  onClick={() => selectInitial(index)}
+                  onClick={() => handleLetterClick(letter, index)}
                   data-letter-index={index}
                   data-testid={`alphabet-node-letter-${letter}`}
                   role="option"
