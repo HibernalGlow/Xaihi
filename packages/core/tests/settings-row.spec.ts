@@ -13,6 +13,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { STATE_SETTINGS_NS } from '@hibernalglow/xaihi-sdk'
+import { fileURLToPath } from 'node:url'
 
 /** 剥块注释与整行行注释；返回按行可查的源码。 */
 function stripComments(src: string): string {
@@ -40,8 +41,8 @@ export function volatileConfigFields(src: string): string[] {
   return found
 }
 
-const CORE_ENTRY = new URL('../src/index.ts', import.meta.url).pathname
-const UI_HOST_ENTRY = new URL('../../ui-host/src/index.ts', import.meta.url).pathname
+const CORE_ENTRY = fileURLToPath(new URL('../src/index.ts', import.meta.url))
+const UI_HOST_ENTRY = fileURLToPath(new URL('../../ui-host/src/index.ts', import.meta.url))
 
 describe('设置命名空间的落点', () => {
   it('桥广播的那一格 = core 的 loader 行 id（实测就在 describe() 的 20 行里）', () => {
