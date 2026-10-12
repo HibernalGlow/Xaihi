@@ -116,6 +116,11 @@ export const SETTINGS_SEARCH_FIELDS: readonly SettingsSearchField[] = [
   field("node-memory-sampling", "runtime", "memory-protection", "settings:memoryProtection.fields.interval.label", ["settings:memoryProtection.description"], ["sample interval node"]),
 ]
 
+/** A deep link may only target a step belonging to its selected settings stage. */
+export function parseSettingsStepId(section: SettingsSectionId | null, raw: string | null | undefined): SettingsStepId | null {
+  return SETTINGS_STAGES.find(stage => stage.id === section)?.steps.find(step => step.id === raw)?.id ?? null
+}
+
 /** Normalize URL/query values to a known settings section id, or null. */
 export function parseSettingsSectionId(raw: string | null | undefined): SettingsSectionId | null {
   if (!raw) return null
@@ -218,6 +223,8 @@ export function scrollToSettingsStep(
   if (!root) return false
   const target = root.querySelector<HTMLElement>(`[data-settings-step="${stepId}"]`)
   if (!target) return false
+  const disclosure = target.querySelector<HTMLButtonElement>("[data-settings-step-toggle][aria-expanded='false']")
+  disclosure?.click()
   target.scrollIntoView({ behavior, block: "start" })
   return true
 }

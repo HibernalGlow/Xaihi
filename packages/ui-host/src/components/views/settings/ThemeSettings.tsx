@@ -12,6 +12,7 @@ import { SettingsSearch } from "./SettingsSearch"
 import { SettingsStageNav, type SettingsNavVariant } from "./SettingsStageNav"
 import {
   parseSettingsSectionId,
+  parseSettingsStepId,
   scrollToSettingsStep,
   type SettingsSearchMatch,
 } from "./settingsNavigation"
@@ -89,7 +90,9 @@ export function ThemeSettings() {
   const contentRef = useRef<HTMLDivElement>(null)
   const [settingsParam, setSettingsParam] = useQueryState("settings", parseAsString)
 
+  const [stepParam, setStepParam] = useQueryState("settingsStep", parseAsString)
   const deepLinkSection = parseSettingsSectionId(settingsParam)
+  const deepLinkStep = parseSettingsStepId(deepLinkSection, stepParam)
   const [section, setSection] = useState<SettingsSectionId>(deepLinkSection ?? "appearance")
   const [activeStep, setActiveStep] = useState<SettingsStepId | null>(
     () => stageById(deepLinkSection ?? "appearance").steps[0]?.id ?? null,
@@ -105,9 +108,9 @@ export function ThemeSettings() {
   useEffect(() => {
     if (!deepLinkSection) return
     setSection(deepLinkSection)
-    setActiveStep(stageById(deepLinkSection).steps[0]?.id ?? null)
-    setPendingStep(null)
-  }, [deepLinkSection])
+    setActiveStep(deepLinkStep ?? stageById(deepLinkSection).steps[0]?.id ?? null)
+    setPendingStep(deepLinkStep)
+  }, [deepLinkSection, deepLinkStep])
 
   useEffect(() => {
     if (!pendingStep) return
@@ -140,9 +143,11 @@ export function ThemeSettings() {
     setPendingStep(null)
     contentRef.current?.scrollTo({ top: 0 })
     void setSettingsParam(next)
+    void setStepParam(null)
   }
 
   function selectStep(nextSection: SettingsSectionId, step: SettingsStepId) {
+    void setStepParam(step)
     if (nextSection !== section) {
       setSection(nextSection)
       setPendingStep(step)

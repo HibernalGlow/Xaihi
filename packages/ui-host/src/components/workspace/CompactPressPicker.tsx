@@ -8,6 +8,7 @@ import './compact-view-switch.css'
 export type CompactPickerOption = {
   key: string; label: string; hint?: string
   icon?: ComponentType<{ className?: string }> | undefined
+  leading?: ReactNode
   disabled?: boolean; badge?: number; toggled?: boolean; shortcut?: string; tone?: 'danger'; separatorBefore?: boolean; branchOnly?: boolean
   children?: CompactPickerOption[]; childrenTitle?: string
 }
@@ -24,7 +25,7 @@ export function CompactPressPicker({ value, options, onSelect, loop = false, chi
   loop?: boolean; childOptions?: CompactPickerOption[]; childValue?: string; childParent?: string
   triggerLabel: string; triggerIcon?: ComponentType<{ className?: string }>; badge?: number
   title: string; childTitle?: string; childHint?: string; gestureHint: string; releaseHint: string; footer?: ReactNode
-  showIndicators?: boolean; nestedHint?: string; orientation?: 'horizontal' | 'vertical'; triggerContent?: ReactNode; behavior?: 'switch' | 'command'; align?: 'start' | 'end'; testId?: string; optionAttribute?: string; childAttribute?: string
+  showIndicators?: boolean; nestedHint?: string; orientation?: 'horizontal' | 'vertical' | 'matrix'; triggerContent?: ReactNode; behavior?: 'switch' | 'command'; align?: 'start' | 'end'; testId?: string; optionAttribute?: string; childAttribute?: string
 }) {
   const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -44,13 +45,15 @@ export function CompactPressPicker({ value, options, onSelect, loop = false, chi
   const index = Math.max(0, options.findIndex((option) => option.key === value))
   const activeMain = preview?.main ?? index
   const children = options[activeMain]?.children ?? (options[activeMain]?.key === childParent ? childOptions : [])
-  const childIndex = Math.max(0, children.findIndex((option) => option.key === childValue))
+  const preferredChild = (items: CompactPickerOption[]) => Math.max(0, items.findIndex(option => childValue ? option.key === childValue : option.toggled))
+  const childIndex = preferredChild(children)
   const selection = preview ?? { main: index, child: childIndex, level: 'main' }
   const Icon = triggerIcon ?? options[index]?.icon
   const hasChildren = children.length > 0
   const details = children[selection.child]?.children ?? []
   const vertical = orientation === 'vertical'
-  const expandedChildren = hasChildren && (!vertical || selection.level !== 'main')
+  const matrix = orientation === 'matrix'
+  const expandedChildren = !matrix && hasChildren && (!vertical || selection.level !== 'main')
   const hasDetails = hasChildren && details.length > 0 && selection.level === 'details'
   const currentChildTitle = options[selection.main]?.childrenTitle ?? childTitle
   const resolveMain = (position: number) => loop ? wrap(position, options.length) : Math.min(options.length - 1, Math.max(0, position))
@@ -94,19 +97,25 @@ export function CompactPressPicker({ value, options, onSelect, loop = false, chi
   useLayoutEffect(() => {
     if (!open || !popup) return
     const mainButton = mainLane.current?.querySelectorAll<HTMLElement>('[data-xaihi-picker-main]')[selection.main]
-    const childButton = childLane.current?.querySelectorAll<HTMLElement>('[data-xaihi-picker-child]')[selection.child]
+    const childButton = (matrix ? mainButton : childLane.current)?.querySelectorAll<HTMLElement>('[data-xaihi-picker-child]')[selection.child]
     const detailButton = detailLane.current?.querySelectorAll<HTMLElement>('[data-xaihi-picker-detail]')[selection.detail ?? 0]
     const animations: ReturnType<typeof animate>[] = []
     if (mainButton && mainHighlight.current) {
       animations.push(animate(mainHighlight.current, { translateX: mainButton.offsetLeft, translateY: mainButton.offsetTop, width: mainButton.offsetWidth, height: mainButton.offsetHeight, ...timing }))
       const lane = mainLane.current!
       const left = mainButton.offsetLeft, right = left + mainButton.offsetWidth
-      if (vertical && mainButton.offsetTop < lane.scrollTop) lane.scrollTo({ top: mainButton.offsetTop, behavior: reduceMotion ? 'instant' : 'smooth' })
-      else if (vertical && mainButton.offsetTop + mainButton.offsetHeight > lane.scrollTop + lane.clientHeight) lane.scrollTo({ top: mainButton.offsetTop + mainButton.offsetHeight - lane.clientHeight, behavior: reduceMotion ? 'instant' : 'smooth' })
-      else if (!vertical && left < lane.scrollLeft) lane.scrollTo({ left, behavior: reduceMotion ? 'instant' : 'smooth' })
-      else if (!vertical && right > lane.scrollLeft + lane.clientWidth) lane.scrollTo({ left: right - lane.clientWidth, behavior: reduceMotion ? 'instant' : 'smooth' })
+      if ((vertical || matrix) && mainButton.offsetTop < lane.scrollTop) lane.scrollTo({ top: mainButton.offsetTop, behavior: reduceMotion ? 'instant' : 'smooth' })
+      else if ((vertical || matrix) && mainButton.offsetTop + mainButton.offsetHeight > lane.scrollTop + lane.clientHeight) lane.scrollTo({ top: mainButton.offsetTop + mainButton.offsetHeight - lane.clientHeight, behavior: reduceMotion ? 'instant' : 'smooth' })
+      else if (!vertical && !matrix && left < lane.scrollLeft) lane.scrollTo({ left, behavior: reduceMotion ? 'instant' : 'smooth' })
+      else if (!vertical && !matrix && right > lane.scrollLeft + lane.clientWidth) lane.scrollTo({ left: right - lane.clientWidth, behavior: reduceMotion ? 'instant' : 'smooth' })
     }
-    if (childButton && childHighlight.current) animations.push(animate(childHighlight.current, { translateY: childButton.offsetTop, height: childButton.offsetHeight, ...timing }))
+    if (childButton && childHighlight.current) animations.push(animate(childHighlight.current, { translateX: matrix ? childButton.offsetLeft : 0, translateY: childButton.offsetTop, width: matrix ? childButton.offsetWidth : '100%', height: childButton.offsetHeight, ...timing }))
+    if (matrix && childButton) {
+      const lane = childButton.parentElement!
+      const left = childButton.offsetLeft, right = left + childButton.offsetWidth
+      if (left < lane.scrollLeft) lane.scrollTo({ left, behavior: reduceMotion ? 'instant' : 'smooth' })
+      else if (right > lane.scrollLeft + lane.clientWidth) lane.scrollTo({ left: right - lane.clientWidth, behavior: reduceMotion ? 'instant' : 'smooth' })
+    }
     if (detailButton && detailHighlight.current) animations.push(animate(detailHighlight.current, { translateY: detailButton.offsetTop, height: detailButton.offsetHeight, ...timing }))
     if (detailLane.current) animations.push(animate(detailLane.current, { opacity: hasDetails ? [0, 1] : 0, translateX: hasDetails ? [8, 0] : 8, ...timing }))
     for (const button of [childButton, detailButton]) {
@@ -117,7 +126,7 @@ export function CompactPressPicker({ value, options, onSelect, loop = false, chi
     }
     if (childLane.current) animations.push(animate(childLane.current, { height: expandedChildren ? childLane.current.scrollHeight : 0, opacity: expandedChildren ? 1 : 0, ...timing }))
     return () => { animations.forEach((animation) => animation.cancel()) }
-  }, [open, popup, selection.main, selection.child, selection.detail, expandedChildren, hasDetails, options.length, reduceMotion, vertical])
+  }, [open, popup, selection.main, selection.child, selection.detail, expandedChildren, hasDetails, options.length, reduceMotion, vertical, matrix])
   const showPreview = (next: Selection) => { previewRef.current = next; setPreview(next); setOpen(true) }
   const commit = (next: Selection) => {
     const option = options[next.main]
@@ -132,14 +141,36 @@ export function CompactPressPicker({ value, options, onSelect, loop = false, chi
     if (!options.length) return
     if (first) {
       cancelDrag.current = cancel; suppressClick.current = false
-      drag.current = { x: initial[0], y: initial[1], main: index, moved: false, childX: xy[0], childY: xy[1], detailX: xy[0], detailY: xy[1] }
+      drag.current = { x: initial[0], y: initial[1], main: index, moved: false, childX: xy[0], childY: xy[1], detailX: xy[0], detailY: matrix ? childIndex : xy[1] }
     }
     const start = drag.current
     if (!start) return
     if (Math.hypot(xy[0] - initial[0], xy[1] - initial[1]) >= 12) start.moved = true
     const previous = previewRef.current ?? { main: start.main, child: childIndex, level: 'main' as const }
     let main = previous.main, child = childIndex, detail = 0, level: Selection['level'] = 'main'
-    if (vertical) {
+    if (matrix) {
+      const rows = mainLane.current?.querySelectorAll<HTMLElement>('[data-xaihi-picker-main]')
+      const bounds = mainLane.current?.getBoundingClientRect()
+      const rowHeight = rows?.[0]?.getBoundingClientRect().height || 86
+      main = resolveMain(start.main + Math.round((xy[1] - start.y) / (rowHeight + 4)))
+      if (rows && bounds && xy[0] >= bounds.left && xy[0] <= bounds.right) {
+        const hovered = [...rows].findIndex(row => { const rect = row.getBoundingClientRect(); return xy[1] >= rect.top && xy[1] <= rect.bottom })
+        if (hovered >= 0) main = hovered
+      }
+      const nextChildren = options[main]?.children ?? []
+      if (main !== previous.main) {
+        start.main = main; start.y = xy[1]; start.childX = xy[0]; start.detailY = preferredChild(nextChildren)
+      }
+      const position = start.detailY + Math.round((xy[0] - start.childX) / 96)
+      child = nextChildren.length ? (loop ? wrap(position, nextChildren.length) : Math.min(nextChildren.length - 1, Math.max(0, position))) : 0
+      const chips = rows?.[main]?.querySelectorAll<HTMLElement>('[data-xaihi-picker-child]')
+      const lane = chips?.[0]?.parentElement?.getBoundingClientRect()
+      if (chips && lane && Math.abs(xy[0] - start.childX) > 12 && xy[0] >= lane.left && xy[0] <= lane.right && xy[1] >= lane.top && xy[1] <= lane.bottom) {
+        const hovered = [...chips].findIndex(chip => { const rect = chip.getBoundingClientRect(); return xy[0] >= rect.left && xy[0] <= rect.right })
+        if (hovered >= 0) { child = hovered; start.childX = xy[0]; start.detailY = child }
+      }
+      level = 'children'
+    } else if (vertical) {
       const mainBounds = mainLane.current?.getBoundingClientRect()
       const row = mainLane.current?.querySelectorAll<HTMLElement>('[data-xaihi-picker-main]')[previous.main]
       const rowBounds = row?.getBoundingClientRect()
@@ -252,7 +283,45 @@ export function CompactPressPicker({ value, options, onSelect, loop = false, chi
       onInteractOutside={(event) => { if (drag.current) event.preventDefault() }}>
       <div ref={setPopup}>
         <div className="mb-2 flex items-center justify-between px-1 text-[10px] text-muted-foreground"><span>{title}</span><span>{preview ? releaseHint : gestureHint}</span></div>
-        <div className={vertical && expandedChildren ? 'grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2' : undefined}>
+        {matrix ? <div ref={mainLane} className="xaihi-picker-matrix relative grid gap-1" onKeyDown={event => {
+          let main = selection.main, child = selection.child
+          if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            event.preventDefault(); main = resolveMain(main + (event.key === 'ArrowDown' ? 1 : -1)); child = preferredChild(options[main]?.children ?? [])
+          } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            event.preventDefault(); const count = options[main]?.children?.length ?? 0
+            const position = child + (event.key === 'ArrowRight' ? 1 : -1)
+            child = count ? loop ? wrap(position, count) : Math.min(count - 1, Math.max(0, position)) : 0
+          } else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); commit({ ...selection, level: 'children' }); close(); return }
+          else return
+          showPreview({ main, child, level: 'children' })
+          mainLane.current?.querySelectorAll<HTMLElement>('[data-xaihi-picker-main]')[main]?.querySelectorAll<HTMLButtonElement>('[data-xaihi-picker-child]')[child]?.focus()
+        }}>
+          <span ref={mainHighlight} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 rounded-xl bg-muted/50 ring-1 ring-border/70" />
+          {options.map((option, main) => {
+            const RowIcon = option.icon
+            const focused = selection.main === main
+            return <div key={option.key} data-xaihi-picker-main className="relative min-w-0 rounded-xl px-2 py-2">
+              <button type="button" {...{ [optionAttribute]: option.key }} aria-pressed={focused} title={option.hint ?? option.label}
+                onClick={() => showPreview({ main, child: preferredChild(option.children ?? []), level: 'children' })}
+                className={`mb-1 flex items-center gap-2 rounded px-1 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-ring ${focused ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {RowIcon && <RowIcon className="size-[18px] shrink-0" />}<span>{option.label}</span>
+              </button>
+              <div role="group" aria-label={option.label} className="xaihi-picker-matrix-lane relative flex w-full gap-1 overflow-x-auto py-1">
+                {focused && <span ref={childHighlight} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 rounded-lg bg-primary/12 ring-1 ring-primary/25" />}
+                {option.children?.map((item, child) => {
+                  const ItemIcon = item.icon
+                  return <button key={item.key} type="button" data-xaihi-picker-child {...{ [childAttribute]: item.key }} data-xaihi-picker-selected={item.toggled}
+                    aria-pressed={focused && selection.child === child} title={item.hint ?? item.label} disabled={option.disabled || item.disabled}
+                    onFocus={() => { if (!drag.current) showPreview({ main, child, level: 'children' }) }}
+                    onClick={() => { commit({ main, child, level: 'children' }); close() }}
+                    className={`relative flex shrink-0 items-center gap-2 rounded-lg px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 ${item.toggled ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {item.leading}{ItemIcon && <ItemIcon className="size-[18px]" />}<span className="truncate">{item.label}</span>{item.toggled && <span aria-hidden="true" className="ml-auto text-primary">✓</span>}
+                  </button>
+                })}
+              </div>
+            </div>
+          })}
+        </div> : <><div className={vertical && expandedChildren ? 'grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2' : undefined}>
         <div ref={mainLane} className={`xaihi-picker-main-lane relative grid gap-1 ${vertical ? 'max-h-[min(32rem,70dvh)] overflow-y-auto' : 'grid-flow-col auto-cols-[minmax(56px,1fr)] overflow-x-auto'}`} role="group" aria-label={title}
           onKeyDown={event => {
             if (!vertical || !(event.target instanceof HTMLButtonElement)) return
@@ -290,15 +359,16 @@ export function CompactPressPicker({ value, options, onSelect, loop = false, chi
                   if (event.key === 'Enter') { event.preventDefault(); commit({ ...selection, level: 'children' }); close() }
                 }}>
                 <span ref={childHighlight} aria-hidden="true" className="pointer-events-none absolute left-0 top-0 w-full rounded-lg bg-accent" />
-                {children.map(({ key, label, hint, icon: ChildIcon, disabled, toggled, children: subOptions }, i) => <button key={key} type="button" data-xaihi-picker-child {...{ [childAttribute]: key }}
-                  aria-pressed={selection.child === i} aria-haspopup={subOptions?.length ? 'true' : undefined} disabled={disabled} title={hint ?? label}
+                {children.map(({ key, label, hint, icon: ChildIcon, leading, disabled, toggled, children: subOptions }, i) => <button key={key} type="button" data-xaihi-picker-child {...{ [childAttribute]: key }}
+                  aria-pressed={selection.child === i} data-xaihi-picker-selected={toggled} aria-haspopup={subOptions?.length ? 'true' : undefined} disabled={disabled} title={hint ?? label}
                   onClick={() => {
                     if (subOptions?.length) { showPreview({ ...selection, child: i, detail: 0, level: 'details' }); return }
                     commit({ main: selection.main, child: i, level: 'children' }); close()
                   }} className="relative flex h-[42px] w-full items-center gap-3 rounded-lg px-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {leading}
                   {ChildIcon && <ChildIcon className={`relative size-[18px] ${(selection.child === i || toggled) ? 'text-primary' : 'text-muted-foreground'}`} />}
                   <span className="relative truncate">{label}</span>
-                  {subOptions?.length ? <span aria-hidden="true" className="relative ml-auto text-muted-foreground">›</span> : selection.child === i && <span className="relative ml-auto size-1.5 rounded-full bg-primary" />}
+                  {subOptions?.length ? <span aria-hidden="true" className="relative ml-auto text-muted-foreground">›</span> : toggled ? <span aria-hidden="true" className="relative ml-auto text-primary">✓</span> : selection.child === i && <span className="relative ml-auto size-1.5 rounded-full bg-primary" />}
                 </button>)}
               </div>
               {hasDetails && <div ref={detailLane} className="relative max-h-[min(18rem,45dvh)] overflow-y-auto border-l border-border/60 pl-1" role="group" aria-label={children[selection.child]?.label}
@@ -316,6 +386,7 @@ export function CompactPressPicker({ value, options, onSelect, loop = false, chi
           </div>
         </div>}
         </div>
+        </>}
         {footer}
       </div>
     </PopoverContent>

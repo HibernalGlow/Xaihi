@@ -13,3 +13,8 @@
 .xaihi-view-menu[data-orientation="vertical"][data-expanded="true"] { width: min(94vw, 560px); }
 .xaihi-view-menu[data-orientation="vertical"] [data-xaihi-picker-main] { min-height: 42px; height: 42px; flex-direction: row; justify-content: flex-start; padding-inline: 10px; font-size: 12px; gap: 10px; }
 .xaihi-view-menu[data-orientation="vertical"] .xaihi-picker-main-lane { scrollbar-width: thin; }
+
+.xaihi-view-menu[data-orientation="matrix"] { width: min(94vw, 440px); }
+.xaihi-view-menu[data-orientation="matrix"] [data-xaihi-picker-main] { display: block; min-height: 86px; }
+.xaihi-view-menu[data-orientation="matrix"] [data-xaihi-picker-child] { width: 96px; min-width: 96px; height: 38px; min-height: 38px; padding-inline: 8px; gap: 6px; }
+.xaihi-picker-matrix-lane { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--foreground) 15%, transparent) transparent; }

@@ -245,7 +245,7 @@ export function SettingsStepCard({
     <div className={cn("min-w-0 overflow-hidden rounded-md border border-border/70 bg-card/80", className)}>
       {advanced ? (
         <Collapsible open={open} onOpenChange={setOpen}>
-          <CollapsibleTrigger className="flex w-full items-start justify-between gap-3 border-b border-border/50 px-4 py-3 text-left">
+          <CollapsibleTrigger data-settings-step-toggle className="flex w-full items-start justify-between gap-3 border-b border-border/50 px-4 py-3 text-left">
             <StepHeader icon={Icon} title={title} description={description} advanced actions={actions} advancedLabel={t("settings:timeline.advanced")} />
             <ChevronDown className={cn("mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
           </CollapsibleTrigger>
