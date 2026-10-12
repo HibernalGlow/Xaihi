@@ -46,7 +46,6 @@
 import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
-  canRunInteractiveCli,
   createCliHost,
   defineCommand,
   hasPipedInput,
@@ -120,33 +119,13 @@ export async function runProgram (args = process.argv.slice(2), host: CliHost = 
     args,
     host,
     cliName: CLI_NAME,
-    loadContext: () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
-    createDefinition: (defaults, language) => createMigratefUiDefinition(defaults, language),
+    loadContext: async () => ({ preferences: { mode: 'ui', renderer: 'opentui', theme: 'inherit' }, value: {} }),
+    createDefinition: (defaults, language) => createMigratefUiDefinition(defaults as Partial<MigratefInteractionValues>, language),
     runPipe: async (pipeArgs, pipeHost) => {
       await runPipeProgram(createProgram(pipeHost), pipeArgs, pipeHost)
     },
     loadScreen: async () => (await import('./Tui.tsx')).MigratefTui,
   })
-}
-
-/**
- * 未接：`ui` / `gd` / `guided` 三条腿。原因点名到具体的包与文件，
- * 并且**不做任何参数校验**（见文件头第 2 条）。
- */
-async function runUnwiredFace (name: string, host: CliHost): Promise<void> {
-  if (!(UNWIRED_INTERACTIVE_LEGS as readonly string[]).includes(name)) {
-    throw new Error(`${CLI_NAME}: "${name}" 不在 UNWIRED_INTERACTIVE_LEGS 里，却走了未接分支`)
-  }
-  if (!canRunInteractiveCli(host)) {
-    writeError(host, `Guided mode requires an interactive terminal. Use \`${CLI_NAME} plan --source a --target b --json\` for scripted use.`)
-    process.exitCode = 2
-    return
-  }
-  const what = name === 'ui'
-    ? '全屏 TUI 在 OpenTUI 上（上游 `packages/nodes/migratef/src/Tui.tsx` + `@xiranite/cli-runtime/terminal`），本包不引它'
-    : '引导流的字段表在 `@clack/prompts` 上（上游 `packages/nodes/migratef/src/interaction.ts`，214 行），本包不引它'
-  writeError(host, `\`${CLI_NAME} ${name}\` 未接：${what}。替代归属是工作台面板与宿主侧的五个工具（\`migratef_plan\` … \`migratef_undo\`）。`)
-  process.exitCode = 2
 }
 
 function createProgram (host: CliHost = createCliHost()): CliCommandSpec {
