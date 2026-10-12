@@ -43,6 +43,11 @@ if (payloadDir !== undefined) {
   const uiDir = profile?.coreConfig?.uiBundleDir === undefined ? join(root, 'ui') : join(root, profile.coreConfig.uiBundleDir)
   const uiFiles = filesUnder(uiDir)
   check('工作台产物有内容', uiFiles.length > 0, `${String(uiFiles.length)} 个文件`)
+  // 入口名不是约定俗成：core 的文档壳就按这两个名字发 <script>/<link>（packages/core/src/routes.ts:115-116），
+  // 名字对不上时不是 404 而是**界面空白**，所以这里按名字量。
+  for (const entry of ['main.js', 'main.css']) {
+    check(`工作台入口 ${entry} 在场（core 的路由常量）`, existsSync(join(uiDir, entry)))
+  }
   for (const name of profile?.bundles ?? []) {
     const pack = join(root, 'packs', String(name).replace('@hibernalglow/', ''))
     check(`bundle ${name} 有 lib/index.js`, existsSync(join(pack, 'lib', 'index.js')))
@@ -63,6 +68,9 @@ if (appPath !== undefined) {
   check('Resources/xaihi 载荷进包（extraResources）', existsSync(join(shipped, 'profile.json')),
     existsSync(shipped) ? '目录在但缺 profile.json' : '目录不存在')
   check('包内工作台产物有内容', filesUnder(join(shipped, 'ui')).length > 0)
+  for (const entry of ['main.js', 'main.css']) {
+    check(`包内工作台入口 ${entry} 在场`, existsSync(join(shipped, 'ui', entry)))
+  }
   const packs = existsSync(join(shipped, 'packs')) ? readdirSync(join(shipped, 'packs')) : []
   check('包内 bundle 目录齐全', packs.length >= 5, packs.join(', '))
   const asar = join(resources, 'app.asar')
