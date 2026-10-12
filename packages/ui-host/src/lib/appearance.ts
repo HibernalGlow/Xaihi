@@ -1,3 +1,4 @@
+import { BRIDGED_COLOR_VARS, type BridgedColorVar } from "./design-theme/contract"
 /**
  * 主题外观系统 —— 17 个内置主题预设 + 自定义主题的完整定义与应用逻辑。
  *
@@ -156,6 +157,9 @@ export function presetThemeRootClass(theme: AppTheme): string {
   return THEME_ROOT_CLASSES[theme]
 }
 
+export const DEFAULT_COLOR_SELECTION_VALUE = "__xaihi_default_colors__"
+export const PRESET_COLOR_SELECTION_VALUE = "__xaihi_preset_colors__"
+
 export const THEME_PRESET_OPTIONS: ThemePresetOption[] = [
   {
     key: "wuling",
@@ -193,10 +197,17 @@ function removePresetClasses(root: HTMLElement): void {
  * border/motion/surface/depth/nodeInterior），并切换 THEME_ROOT_CLASSES
  * 中的根类名。CSS 通过这些 data 属性选择对应的样式集。
  */
-export function applyThemePreset(theme: AppTheme): void {
+export function applyThemePreset(theme?: AppTheme): void {
   if (typeof document === "undefined") return
 
   const root = document.documentElement
+  if (!theme) {
+    removePresetClasses(root)
+    for (const key of ["appTheme", "themeFamily", "themeDensity", "themeRadius", "themeBorder", "themeMotion", "themeSurface", "themeDepth", "themeNodeInterior"]) {
+      delete root.dataset[key]
+    }
+    return
+  }
   const profile = THEME_STYLE_PROFILES[theme]
   root.dataset.appTheme = theme
   root.dataset.themeFamily = profile.family
@@ -223,7 +234,7 @@ export function applyThemePreset(theme: AppTheme): void {
  * 自定义主题会覆盖内置主题的 CSS 变量，但 data-app-theme 属性仍保留，
  * 便于 CSS 中通过 [data-custom-theme="enabled"] 选择器做额外适配。
  */
-export function applyCustomTheme(customTheme: AppCustomTheme | null, mode: ThemeMode): void {
+export function applyCustomTheme(customTheme: AppCustomTheme | null, mode: ThemeMode, colorsOnly = false): void {
   if (typeof document === "undefined") return
 
   const root = document.documentElement
@@ -256,7 +267,7 @@ export function applyCustomTheme(customTheme: AppCustomTheme | null, mode: Theme
         const cssVarName = normalizeCssVarName(key)
         return [cssVarName, normalizeCssVarValue(cssVarName, value)] as const
       })
-      .filter((entry): entry is [string, string] => Boolean(entry[0])),
+      .filter((entry): entry is [string, string] => Boolean(entry[0]) && (!colorsOnly || BRIDGED_COLOR_VARS.includes(`--${entry[0]}` as BridgedColorVar))),
   )
   const derivedCssVars = deriveCustomThemeVars(normalizedCssVars)
 

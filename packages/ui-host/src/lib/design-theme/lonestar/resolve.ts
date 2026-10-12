@@ -102,14 +102,18 @@ export function resolveLoneStarTheme(config: DesignThemeConfig, context: DesignT
     }
     Object.assign(vars, palette)
 
-    seedSource = lonestar.seedSource
+    const useDefaultColors = context.useDefaultColors && lonestar.seedSource === "activeTheme"
+    seedSource = useDefaultColors ? "default" : lonestar.seedSource
     const requested = lonestar.seedSource === "manual" ? lonestar.seed : context.activeThemeSeed
     // 「没换色」必须逐字节等于校准表，而不是等于大小写不同的同一个色：
     // 持久化边界把 hex 统一成小写，而表里抄的是上游写法。与武陵的 scale===1 走原值同一条纪律。
     const isCalibrationDefault = lonestar.seedSource === "manual"
       && typeof requested === "string"
       && requested.toLowerCase() === palette["--primary"].toLowerCase()
-    if (requested && isCalibrationDefault) {
+    if (useDefaultColors) {
+      seed = palette["--primary"]
+      seedFallback = false
+    } else if (requested && isCalibrationDefault) {
       // 用户没换色：这条路径**不走派生**，直接把校准表发出去，并如实报「没有回落」。
       seed = requested
       seedFallback = false

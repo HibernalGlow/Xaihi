@@ -120,9 +120,13 @@ export function resolveWulingTheme(config: DesignThemeConfig, context: DesignThe
 
     // 取色：`manual` 用用户指定的种子，`activeTheme` 用当前配色主题的主色；两者走同一条派生规则。
     // 解不出来就**如实回落**到预设值并打上 fallback 标记，不拿别的颜色顶上。
-    seedSource = wuling.seedSource
+    const useDefaultColors = context.useDefaultColors && wuling.seedSource === "activeTheme"
+    seedSource = useDefaultColors ? "default" : wuling.seedSource
     const requested = wuling.seedSource === "manual" ? wuling.seed : context.activeThemeSeed
-    if (requested) {
+    if (useDefaultColors) {
+      seed = presetColors["--primary"]
+      seedFallback = false
+    } else if (requested) {
       seed = requested
       Object.assign(vars, seedSlots(requested, scheme))
       seedFallback = false

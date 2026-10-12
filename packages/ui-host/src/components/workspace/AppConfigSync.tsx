@@ -701,6 +701,7 @@ function normalizeAppearanceConfig(value: unknown): AppUiConfig["appearance"] {
 }
 
 function normalizeThemeSelection(value: unknown): WorkspaceUiPreferences["themeSelections"]["light"] | undefined {
+  if (isRecord(value) && value.kind === "none") return { kind: "none" }
   if (!isRecord(value) || (value.kind !== "preset" && value.kind !== "custom") || typeof value.name !== "string") return undefined
   if (value.kind === "preset" && !isOneOf(value.name, APP_THEMES)) return undefined
   return { kind: value.kind, name: value.name } as WorkspaceUiPreferences["themeSelections"]["light"]

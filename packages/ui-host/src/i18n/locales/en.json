@@ -130,6 +130,7 @@
     },
     "theme": {
       "label": "Theme",
+      "gesture": "Up/down: mode · Left/right: option",
       "colorMode": "COLOR MODE",
       "system": "System",
       "light": "Light",
@@ -386,14 +387,25 @@
       "snapshotHomeValue": "nodeState in the same namespace (volatile field)"
     },
     "activePreset": "ACTIVE PRESET",
-    "selectPreset": "SELECT THEME PRESET",
+    "selectPreset": "SELECT COLOR THEME",
+    "colorTheme": {
+      "label": "Color theme",
+      "defaultLabel": "No color · use defaults",
+      "defaultDescription": "Use the design language's default palette",
+      "hints": {
+        "theme": "Native applies shadcn / tweakcn color themes directly. Choose No color to use the native default palette.",
+        "seed": "Color token adaptation is supported: this design language maps a source color to its own roles. Choose From color theme to use the palette below, or No color to keep its defaults.",
+        "fixed": "External color token adaptation is not implemented: this design language uses a fixed palette. Choose No color, or keep the default palette.",
+        "disabled": "Color roles are disabled: color theme values are applied directly. Enable them to map colors through the design language."
+      }
+    },
     "designTheme": {
       "label": "Advanced theme · design language",
-      "description": "A second axis next to the color theme. It replaces the whole design language — color roles, shape, elevation, typography, motion, state layers and component geometry. Every number comes from Google's own generated Material 3 token dictionary (@material/web, design system v0.192); nothing here is typed from memory.",
+      "description": "Choose a design language for color roles, shape, elevation, typography, motion and component geometry. Native applies color themes directly; other languages map color tokens according to their supported capabilities.",
       "nativeBadge": "off — color theme only",
       "pickTheme": "DESIGN LANGUAGE",
       "native": {
-        "label": "Native (Xiranite styling)",
+        "label": "Native (Xaihi styling)",
         "description": "No design language is applied. The color theme and the built-in component styling stay exactly as they are."
       },
       "md3": {
@@ -461,7 +473,7 @@
       "seedSource": "Source color",
       "sources": {
         "manual": "Picked",
-        "activeTheme": "From current theme",
+        "activeTheme": "From color theme",
         "systemAccent": "System accent"
       },
       "seed": "Seed color",
@@ -483,7 +495,7 @@
       "dims": {
         "color": {
           "label": "Color roles",
-          "description": "Material dynamic colors replace the color theme's CSS variables."
+          "description": "Map color roles through the current design language; disable to apply color theme values directly."
         },
         "shape": {
           "label": "Shape",
