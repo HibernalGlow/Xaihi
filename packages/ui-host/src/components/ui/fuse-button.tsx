@@ -81,7 +81,7 @@ export function FuseButton({
   fuseColor = "var(--primary)",
   size = "md",
   radius = "var(--radius)",
-  undoWindow = 4000,
+  undoWindow = 1000,
   fuse = "outline",
   fuseThickness = "0.11em",
   crossfadeMs = 200,

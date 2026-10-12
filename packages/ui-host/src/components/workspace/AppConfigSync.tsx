@@ -529,6 +529,7 @@ export function selectWorkspaceUiPreferences(state: WorkspaceUiPreferences): Wor
     alphabetIndexStyle: state.alphabetIndexStyle,
     alphabetIndexWaveIntensity: state.alphabetIndexWaveIntensity,
     alphabetIndexHideEmpty: state.alphabetIndexHideEmpty,
+    alphabetIndexDirectDeploySingle: state.alphabetIndexDirectDeploySingle,
     cardClickAction: state.cardClickAction,
     cardDoubleClickAction: state.cardDoubleClickAction,
     tabDisplayStyle: state.tabDisplayStyle,
@@ -538,6 +539,7 @@ export function selectWorkspaceUiPreferences(state: WorkspaceUiPreferences): Wor
     moduleTitleStyle: state.moduleTitleStyle,
     modulePanelStyle: state.modulePanelStyle,
     resizableHandleStyle: state.resizableHandleStyle,
+    executeUndoWindowMs: state.executeUndoWindowMs,
     restoreWorkspaceComponents: state.restoreWorkspaceComponents,
     choiceControlStyle: state.choiceControlStyle,
     fieldTitleStyle: state.fieldTitleStyle,
@@ -653,6 +655,7 @@ function normalizeWorkspacePreferences(value: unknown): Partial<WorkspaceUiPrefe
   if (isOneOf(value.alphabetIndexStyle, ALPHABET_INDEX_STYLES)) next.alphabetIndexStyle = value.alphabetIndexStyle
   if (typeof value.alphabetIndexWaveIntensity === "number") next.alphabetIndexWaveIntensity = value.alphabetIndexWaveIntensity
   if (typeof value.alphabetIndexHideEmpty === "boolean") next.alphabetIndexHideEmpty = value.alphabetIndexHideEmpty
+  if (typeof value.alphabetIndexDirectDeploySingle === "boolean") next.alphabetIndexDirectDeploySingle = value.alphabetIndexDirectDeploySingle
   if (isOneOf(value.cardClickAction, CARD_CLICK_ACTIONS)) next.cardClickAction = value.cardClickAction
   if (isOneOf(value.cardDoubleClickAction, CARD_CLICK_ACTIONS)) next.cardDoubleClickAction = value.cardDoubleClickAction
   if (isOneOf(value.tabDisplayStyle, TAB_DISPLAY_STYLES)) next.tabDisplayStyle = value.tabDisplayStyle
@@ -663,6 +666,9 @@ function normalizeWorkspacePreferences(value: unknown): Partial<WorkspaceUiPrefe
   if (isOneOf(value.modulePanelStyle, MODULE_PANEL_STYLES)) next.modulePanelStyle = value.modulePanelStyle
   if (isOneOf(value.resizableHandleStyle, RESIZABLE_HANDLE_STYLES)) next.resizableHandleStyle = value.resizableHandleStyle
   if (typeof value.restoreWorkspaceComponents === "boolean") next.restoreWorkspaceComponents = value.restoreWorkspaceComponents
+  if (typeof value.executeUndoWindowMs === "number" && Number.isFinite(value.executeUndoWindowMs)) {
+    next.executeUndoWindowMs = Math.max(200, Math.min(10000, Math.round(value.executeUndoWindowMs)))
+  }
   if (isOneOf(value.choiceControlStyle, CHOICE_CONTROL_STYLES)) next.choiceControlStyle = value.choiceControlStyle
   const fieldTitleStyle = value.fieldTitleStyle ?? value.choiceControlLabelStyle
   if (isOneOf(fieldTitleStyle, FIELD_TITLE_STYLES)) next.fieldTitleStyle = fieldTitleStyle

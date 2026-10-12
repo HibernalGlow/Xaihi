@@ -162,6 +162,8 @@ export interface WSState {
   alphabetIndexWaveIntensity: number
   /** 收起身后没有任何节点的首字母（判据与悬停结果同一条：按节点显示名的首字母匹配）。 */
   alphabetIndexHideEmpty: boolean
+  /** 单节点字母直接点击部署（默认开：当前字母只有一个节点时直接点击该字母即可部署）。 */
+  alphabetIndexDirectDeploySingle: boolean
   /** 卡片单击动作。 */
   cardClickAction: CardClickAction
   /** 卡片双击动作。 */
@@ -186,6 +188,8 @@ export interface WSState {
   resizableHandleStyle: ResizableHandleStyle
   /** 危险模式（高对比警示色）。 */
   hazardMode: boolean
+  /** 带倒计时的操作确认组件在自动提交前的可反悔时长（毫秒）。默认 1000ms（1秒）。 */
+  executeUndoWindowMs: number
   /** 启动时是否从工作区快照恢复节点实例。 */
   restoreWorkspaceComponents: boolean
   /** 项目级 lane 视图按 workspace 保存的聚焦、独占与操作栏偏好。 */
@@ -262,6 +266,7 @@ export interface WorkspaceUiActions {
   setAlphabetIndexStyle(style: WSState["alphabetIndexStyle"]): void
   setAlphabetIndexWaveIntensity(intensity: number): void
   setAlphabetIndexHideEmpty(hideEmpty: boolean): void
+  setAlphabetIndexDirectDeploySingle(enabled: boolean): void
   setCardClickAction(action: CardClickAction): void
   setCardDoubleClickAction(action: CardClickAction): void
   setTabDisplayStyle(style: TabDisplayStyle): void
@@ -274,6 +279,7 @@ export interface WorkspaceUiActions {
   setModulePanelStyle(style: ModulePanelStyle): void
   setResizableHandleStyle(style: ResizableHandleStyle): void
   setHazardMode(enabled: boolean): void
+  setExecuteUndoWindowMs(executeUndoWindowMs: number): void
   setRestoreWorkspaceComponents(enabled: boolean): void
   patchLaneWorkspacePreferences(workspaceId: string, patch: Partial<SwimlaneWorkspacePreferences>): void
 }
@@ -410,6 +416,7 @@ export type WorkspaceUiPreferences = Pick<
   | "alphabetIndexStyle"
   | "alphabetIndexWaveIntensity"
   | "alphabetIndexHideEmpty"
+  | "alphabetIndexDirectDeploySingle"
   | "cardClickAction"
   | "cardDoubleClickAction"
   | "tabDisplayStyle"
@@ -422,6 +429,7 @@ export type WorkspaceUiPreferences = Pick<
   | "modulePanelStyle"
   | "resizableHandleStyle"
   | "hazardMode"
+  | "executeUndoWindowMs"
   | "restoreWorkspaceComponents"
   | "laneWorkspacePreferences"
 >

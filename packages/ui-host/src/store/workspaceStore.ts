@@ -91,6 +91,7 @@ export function selectWorkspaceUiPreferences(state: WSStore): WorkspaceUiPrefere
     alphabetIndexStyle: state.alphabetIndexStyle,
     alphabetIndexWaveIntensity: state.alphabetIndexWaveIntensity,
     alphabetIndexHideEmpty: state.alphabetIndexHideEmpty,
+    alphabetIndexDirectDeploySingle: state.alphabetIndexDirectDeploySingle,
     cardClickAction: state.cardClickAction,
     cardDoubleClickAction: state.cardDoubleClickAction,
     tabDisplayStyle: state.tabDisplayStyle,
@@ -103,6 +104,7 @@ export function selectWorkspaceUiPreferences(state: WSStore): WorkspaceUiPrefere
     modulePanelStyle: state.modulePanelStyle,
     resizableHandleStyle: state.resizableHandleStyle,
     hazardMode: state.hazardMode,
+    executeUndoWindowMs: state.executeUndoWindowMs,
     restoreWorkspaceComponents: state.restoreWorkspaceComponents,
     laneWorkspacePreferences: state.laneWorkspacePreferences,
   }
@@ -292,6 +294,7 @@ function selectWorkspaceState(store: WSStore): WSState {
     modulePanelStyle: store.modulePanelStyle,
     resizableHandleStyle: store.resizableHandleStyle,
     hazardMode: store.hazardMode,
+    executeUndoWindowMs: store.executeUndoWindowMs,
     restoreWorkspaceComponents: store.restoreWorkspaceComponents,
   }
 }
@@ -385,6 +388,7 @@ export function selectWorkspaceActions(store: WSStore): WorkspaceActions {
     setAlphabetIndexStyle: store.setAlphabetIndexStyle,
     setAlphabetIndexWaveIntensity: store.setAlphabetIndexWaveIntensity,
     setAlphabetIndexHideEmpty: store.setAlphabetIndexHideEmpty,
+    setAlphabetIndexDirectDeploySingle: store.setAlphabetIndexDirectDeploySingle,
     setCardClickAction: store.setCardClickAction,
     setCardDoubleClickAction: store.setCardDoubleClickAction,
     setTabDisplayStyle: store.setTabDisplayStyle,
@@ -397,6 +401,7 @@ export function selectWorkspaceActions(store: WSStore): WorkspaceActions {
     setModulePanelStyle: store.setModulePanelStyle,
     setResizableHandleStyle: store.setResizableHandleStyle,
     setHazardMode: store.setHazardMode,
+    setExecuteUndoWindowMs: store.setExecuteUndoWindowMs,
     setRestoreWorkspaceComponents: store.setRestoreWorkspaceComponents,
     patchLaneWorkspacePreferences: store.patchLaneWorkspacePreferences,
     addLane: store.addLane,

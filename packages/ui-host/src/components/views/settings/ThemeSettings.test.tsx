@@ -84,6 +84,7 @@ vi.mock("@/store/workspaceStore", () => {
     moduleTitleStyle: "legend",
     modulePanelStyle: "soft",
     resizableHandleStyle: "grip",
+    executeUndoWindowMs: 1000,
     // 高级主题（设计语言）是持久化偏好的一部分；这份桩从契约取默认值，
     // 不手抄形状——手抄的那份加字段时一定会漏（这次就是）。
     designTheme: DEFAULT_DESIGN_THEME,

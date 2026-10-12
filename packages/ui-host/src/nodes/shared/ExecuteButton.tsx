@@ -44,8 +44,8 @@ export interface ExecuteButtonProps {
   className?: string
 }
 
-/** 引信烧完即提交，因此窗口长度就是「可反悔时长」。 */
-export const DANGER_FUSE_MS = 4000
+/** 引信烧完即提交，因此窗口长度就是「可反悔时长」。预演机制已就绪，默认 1 秒足够。 */
+export const DANGER_FUSE_MS = 1000
 
 /**
  * 三根分支分别落在 <button>（直接执行）、<button>（运行态）与 <span>（引信），
@@ -65,7 +65,7 @@ export function ExecuteButton({
   disabled = false,
   compact = false,
   size,
-  undoWindow = DANGER_FUSE_MS,
+  undoWindow,
   variant,
   runningAriaLabel = "running",
   runningLabel = "运行中",
@@ -73,6 +73,8 @@ export function ExecuteButton({
   className,
 }: ExecuteButtonProps) {
   const hazardMode = useWorkspaceStore((state) => state.hazardMode)
+  const storeUndoWindow = useWorkspaceStore((state) => state.executeUndoWindowMs)
+  const resolvedUndoWindow = undoWindow ?? storeUndoWindow ?? DANGER_FUSE_MS
 
   if (running) {
     return (
@@ -118,7 +120,7 @@ export function ExecuteButton({
       undoAriaLabel="取消本次危险执行"
       commitOn="fuseEnd"
       pauseOnHover
-      undoWindow={undoWindow}
+      undoWindow={resolvedUndoWindow}
       disabled={disabled}
       onCommit={onExecute}
     />

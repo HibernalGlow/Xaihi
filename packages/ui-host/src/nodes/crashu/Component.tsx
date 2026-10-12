@@ -595,7 +595,6 @@ function PrimaryActionButton({ compact, props }: { compact?: boolean; props: Vie
       compact={compact}
       label={label}
       idleIcon={<MoveRight />}
-      undoWindow={6000}
       onExecute={() => props.onExecute("move")}
     />
   )

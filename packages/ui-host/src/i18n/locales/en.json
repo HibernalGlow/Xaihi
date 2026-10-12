@@ -199,6 +199,10 @@
         "focus": "Focus",
         "fullscreen": "Fullscreen"
       },
+      "executeUndoWindow": "Confirmation Undo Window",
+      "executeUndoWindowDesc": "Countdown window before an armed operation commits automatically. Defaults to 1 second because preflight dry-runs already provide verification.",
+      "executeUndoWindowPreview": "Try undo countdown",
+      "executeUndoWindowPreviewHint": "Click to experience the countdown fuse. Commits automatically when fuse ends, or click undo to cancel.",
       "componentDisplay": {
         "title": "Component skins",
         "description": "Each block below skins one shared control family used across nodes. Appearance only — behavior and keyboard semantics stay the same.",

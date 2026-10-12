@@ -553,7 +553,6 @@ function ActionCluster({ compact = false, props }: { compact?: boolean; props: V
         icon={Trash2}
         label={props.t("actions.cleanNow", "立即清理")}
         title={props.t("actions.cleanTitle", "立即清空回收站？")}
-        undoWindow={6000}
         variant="destructive"
         onConfirm={() => props.onExecute("clean_now")}
       />

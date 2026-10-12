@@ -153,6 +153,7 @@ export function createUiSlice(set: SetWorkspaceStore): WorkspaceUiActions {
     setAlphabetIndexStyle: (alphabetIndexStyle) => set({ alphabetIndexStyle }, false, "SET_ALPHABET_INDEX_STYLE"),
     setAlphabetIndexWaveIntensity: (alphabetIndexWaveIntensity) => set({ alphabetIndexWaveIntensity }, false, "SET_ALPHABET_INDEX_WAVE_INTENSITY"),
     setAlphabetIndexHideEmpty: (alphabetIndexHideEmpty) => set({ alphabetIndexHideEmpty }, false, "SET_ALPHABET_INDEX_HIDE_EMPTY"),
+    setAlphabetIndexDirectDeploySingle: (alphabetIndexDirectDeploySingle) => set({ alphabetIndexDirectDeploySingle }, false, "SET_ALPHABET_INDEX_DIRECT_DEPLOY_SINGLE"),
     setCardClickAction: (cardClickAction) => set({ cardClickAction }, false, "SET_CARD_CLICK_ACTION"),
     setCardDoubleClickAction: (cardDoubleClickAction) => set({ cardDoubleClickAction }, false, "SET_CARD_DOUBLE_CLICK_ACTION"),
     setTabDisplayStyle: (tabDisplayStyle) => set({ tabDisplayStyle }, false, "SET_TAB_DISPLAY_STYLE"),
@@ -165,6 +166,7 @@ export function createUiSlice(set: SetWorkspaceStore): WorkspaceUiActions {
     setModulePanelStyle: (modulePanelStyle) => set({ modulePanelStyle }, false, "SET_MODULE_PANEL_STYLE"),
     setResizableHandleStyle: (resizableHandleStyle) => set({ resizableHandleStyle }, false, "SET_RESIZABLE_HANDLE_STYLE"),
     setHazardMode: (hazardMode) => set({ hazardMode }, false, "SET_HAZARD_MODE"),
+    setExecuteUndoWindowMs: (executeUndoWindowMs) => set({ executeUndoWindowMs }, false, "SET_EXECUTE_UNDO_WINDOW_MS"),
     setRestoreWorkspaceComponents: (restoreWorkspaceComponents) => set({ restoreWorkspaceComponents }, false, "SET_RESTORE_WORKSPACE_COMPONENTS"),
     patchLaneWorkspacePreferences: (workspaceId, patch) => set((state) => ({
       laneWorkspacePreferences: {
