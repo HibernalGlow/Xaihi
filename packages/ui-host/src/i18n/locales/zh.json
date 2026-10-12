@@ -987,6 +987,8 @@
       "restore": "恢复 {{name}}",
       "help": "交互指南与出处",
       "empty": "添加节点，开始组织你的分形工作台。",
+      "closeNode": "关闭这个节点",
+      "closeNodeConfirmTitle": "关闭这个节点？",
       "windowHint": "在工作台之外打开这个节点。画布内悬浮可以使用面板菜单。",
       "windowUnavailable": "当前宿主未提供独立节点窗口。你仍可使用画布内悬浮。",
       "attribution": "布局与导航由 Dan Fessler 的 Trellis 0.3.0 提供。当前按个人非商业用途使用；原文许可随 Xaihi 分发。",

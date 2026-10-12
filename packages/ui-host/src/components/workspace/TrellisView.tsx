@@ -1,14 +1,15 @@
 import { motion, useReducedMotion } from "motion/react"
 import { createPortal } from "react-dom"
 import { useTrellisToolbarMount } from "./TrellisToolbarSlot"
-import { useContextMenu } from "@/components/context-menu/context"
-import type { ContextMenuItemDef } from "@/components/context-menu/ContextMenuProvider"
+import { useContextMenu, useContextMenuBuilder } from "@/components/context-menu/context"
+import type { ContextMenuContext, ContextMenuItemDef } from "@/components/context-menu/ContextMenuProvider"
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Workspace, WorkspaceProvider, ViewType, useView, useViewTitle, useViewBadge, useWorkspace, useWorkspaceState, useOptionalWorkspace, type MenuEntry, type Rect } from '@danfessler/trellis-react'
+import type { LayoutDocument, LayoutNode, PanelNode } from '@danfessler/trellis'
 import '@danfessler/trellis/style.css'
 import './trellis.css'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, ArrowRight, ArrowUp, BookmarkPlus, Crosshair, Expand, ExternalLink, Layers, Maximize2, Plus, Scan, Trash2, Map, MoreHorizontal } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUp, BookmarkPlus, Crosshair, Expand, ExternalLink, Layers, Maximize2, Plus, Scan, Trash2, Map, MoreHorizontal, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ModuleRenderer } from '@/components/modules/ModuleRenderer'
@@ -25,6 +26,16 @@ import { ComponentProgressStrip } from './ComponentProgressStrip'
 function nodeTitle(moduleId: string, t: ReturnType<typeof useTranslation>['t']) {
   return t(`module:${moduleId}.name`, { defaultValue: getModule(moduleId)?.name ?? moduleId })
 }
+/** 面板 id → 面板：面板可以停在根树里，也可以是被浮到画布上的那一个。 */
+function panelOf(document: LayoutDocument, panelId: string): PanelNode | null {
+  const walk = (node: LayoutNode | null | undefined): PanelNode | null => {
+    if (!node) return null
+    if (node.kind === 'panel') return node.id === panelId ? node : null
+    if (node.kind === 'stage') return walk(node.child)
+    return node.children.map(walk).find(Boolean) ?? null
+  }
+  return walk(document.root) ?? document.floating.find((entry) => entry.panel.id === panelId)?.panel ?? null
+}
 function TrellisNode() {
   const view = useView<{ componentId: string; moduleId: string }>()
   const comp = useWorkspaceComponent(view.params.componentId)
@@ -37,7 +48,7 @@ function TrellisNodeBody({ comp }: { comp: import("@/types/workspace").Component
   const { t } = useTranslation()
   const status = useComponentSurfaceStatus(comp)
   useViewBadge(status.phase === "idle" ? null : status.progress === null ? t(`view:trellis.phase.${status.phase}`) : `${Math.round(status.progress)}%`)
-  return <div className="xaihi-trellis-node" data-xaihi-trellis-node={comp.id}>
+  return <div className="xaihi-trellis-node" data-xaihi-trellis-node={comp.id} data-context-menu="trellis-node">
     <ModuleRenderer moduleId={comp.moduleId} compId={comp.id} />
     <ComponentProgressStrip status={status} />
   </div>
@@ -215,6 +226,31 @@ function TrellisWorkspace({ workspaceId }: { workspaceId: string }) {
     window.addEventListener("keydown", escape)
     return () => window.removeEventListener("keydown", escape)
   }, [fullscreen, actions])
+  // 关闭节点：走既有实例生命周期与确认规则（`docs/trellis-grid-design.md` 的「关闭节点」），
+  // 不能交给库自己的 close——它只删视图记录，而 reconcile 会把实例再挂回来。
+  const closeNodeItem = useCallback((componentId: string): ContextMenuItemDef => ({
+    id: 'xaihi-trellis-close-node',
+    label: t('view:trellis.closeNode'),
+    icon: <X size={14} />,
+    destructive: true,
+    confirm: {
+      title: t('view:trellis.closeNodeConfirmTitle'),
+      description: t('contextMenu:deleteConfirmDescription'),
+      confirmLabel: t('common:close'),
+      cancelLabel: t('common:cancel'),
+      destructive: true,
+    },
+    onSelect: () => actions.removeComponent(componentId),
+  }), [actions, t])
+  const componentInPanel = useCallback((panelId: string) => {
+    const viewId = panelOf(document, panelId)?.selected
+    const componentId = viewId ? document.views[viewId]?.params?.componentId : undefined
+    return typeof componentId === 'string' && components.some((c) => c.id === componentId) ? componentId : undefined
+  }, [components, document])
+  useContextMenuBuilder('trellis-node', useCallback((context: ContextMenuContext) => {
+    const componentId = context.data.xaihiTrellisNode
+    return componentId && components.some((c) => c.id === componentId) ? [closeNodeItem(componentId)] : null
+  }, [closeNodeItem, components]))
   const renderMenu = useCallback((request: import('@danfessler/trellis').MenuRequest) => {
     if (!contextMenu) return
     const element = (request.anchor ?? window.document.elementFromPoint(request.x, request.y))?.closest<HTMLElement>('[data-context-menu="workspace-canvas"]')
@@ -223,10 +259,15 @@ function TrellisWorkspace({ workspaceId }: { workspaceId: string }) {
       checked: entry.checked, destructive: entry.danger, onSelect: entry.run,
       ...(entry.items ? { children: convert(entry.items) } : {}),
     })
+    const node = componentInPanel(request.panelId)
     const global = element ? contextMenu.build('workspace-canvas', { element, event: new MouseEvent('contextmenu', { clientX: request.x, clientY: request.y }), data: {} }) : []
-    contextMenu.show(request.x, request.y, [...convert(request.entries), ...(global.length ? [{ type: 'separator' as const }, ...global] : [])], request.close)
-  }, [contextMenu])
-  return <section data-xaihi-context-menu-owner={contextMenu ? "trellis" : undefined} className="xaihi-trellis flex-1" data-testid="cards-drop-target" data-card-layout="trellis" {...moduleDropHandlers}>
+    contextMenu.show(request.x, request.y, [
+      ...convert(request.entries),
+      ...(node ? [{ type: 'separator' as const }, closeNodeItem(node)] : []),
+      ...(global.length ? [{ type: 'separator' as const }, ...global] : []),
+    ], request.close)
+  }, [closeNodeItem, componentInPanel, contextMenu])
+  return <section data-xaihi-context-menu-owner={contextMenu ? "trellis" : undefined} className="xaihi-trellis ws-canvas-bg flex-1" data-testid="cards-drop-target" data-card-layout="trellis" {...moduleDropHandlers}>
     {!ready ? <div className="xaihi-trellis-loading" role="status">{t('view:trellis.storage.loading')}</div> : <WorkspaceProvider>
       {toolbarMount && createPortal(<TrellisToolbar layout={layout} />, toolbarMount)}
       {(layout.status === 'error' || layout.status === 'conflict') && <div className="xaihi-trellis-notice" role="alert">

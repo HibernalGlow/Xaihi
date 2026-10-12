@@ -1,0 +1,11 @@
+/* 分形视图浏览器验收的样式表。顺序与文档的装配（`src/client/styles-inject.ts`）同源，只有一处对调：
+   `index.css` 放在最前，因为它自己带一条 Google Fonts 的 `@import`，flatten 之后必须仍在最顶部，
+   否则 postcss 会报「@import 必须在其它语句之前」并把那条字体导入丢掉。其余先后关系不变——
+   无层声明压过 `@layer utilities`（工具类仍然赢不了它该输的那些），而 `themes` → 裸名别名一层不动。
+   最后再扫一遍工作区组件目录，好让 `flex-1` 这类工具类真的生成。 */
+@import "../src/index.css";
+@import "../src/styles/tailwind.css";
+@import "../src/styles/themes/index.css";
+@import "../src/styles/xaihi-aliases.css";
+
+@source "../src/components/workspace";

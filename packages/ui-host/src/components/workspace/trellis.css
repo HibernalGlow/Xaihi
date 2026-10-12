@@ -2,8 +2,10 @@
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
   background: var(--background); color: var(--foreground);
 }
+/* 画布面由根元素的 `.ws-canvas-bg` 铺底（网格/点阵/背景图与覆盖到顶栏都在那一层），
+   所以本库自己的底色与舞台背板都让开——它们不透明时，分形视图就是唯一看不见「纹理画布」的视图。 */
 .xaihi-trellis .trellis {
-  --trellis-bg: var(--background); --trellis-stage: var(--muted);
+  --trellis-bg: transparent; --trellis-stage: transparent;
   --trellis-panel: var(--card); --trellis-tabbar: var(--muted);
   --trellis-tab-active: var(--card); --trellis-tab-hover: var(--accent);
   --trellis-text: var(--foreground); --trellis-text-muted: var(--muted-foreground);

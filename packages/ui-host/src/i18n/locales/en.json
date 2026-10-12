@@ -997,6 +997,8 @@
       "restore": "Restore {{name}}",
       "help": "Gestures and attribution",
       "empty": "Add nodes to organize your fractal workspace.",
+      "closeNode": "Close this node",
+      "closeNodeConfirmTitle": "Close this node?",
       "windowHint": "Open this node outside the workspace. For a floating panel inside the canvas, use the panel menu.",
       "windowUnavailable": "This host does not provide separate node windows. Canvas floating panels remain available.",
       "attribution": "Layout and navigation by Dan Fessler’s Trellis 0.3.0, used for personal noncommercial purposes. Original license texts ship with Xaihi.",

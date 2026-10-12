@@ -79,7 +79,8 @@ const MANAGED_BY_THIS_TABLE = (key) => key.startsWith('@xiranite/') || key.start
 // 这条注释就是它留下的账：解析表必须"每一条都指得到东西"。
 
 /**
- * 节点界面里 value-import 自己节点纯逻辑叶子的那一族（`@xiranite/node-<id>/<子路径>`）。
+ * 节点界面里 value-import 自己节点纯逻辑叶子的那一族（`@xiranite/node-<id>/<子路径>`
+ * 与它在改名批次里的孪生名 `@hibernalglow/xaihi-<id>/<子路径>`，见下面 `nodeCoreAliases`）。
  *
  * ADR-0007 决定 4 禁的是 **`entry.ts` 把执行器挂成 `AppNodeEntry.core`**（"面里能跑节点逻辑，
  * 就是协议之外的第二个执行宿主"），不是"组件不许用纯函数"。上游 noxide 的 `Component.tsx`
@@ -121,7 +122,17 @@ export function nodeCoreAliases() {
       // `import type` 从 Node-only 文件里取类型是允许的（那一半在构建期就消失了），
       // 所以这里问的不是"这文件像不像 Node 侧"，而是"界面 value-import 它会不会把执行宿主拖进产物"。
       if (isNodeOnly(readFileSync(target, 'utf8'))) continue
-      out[`@xiranite/node-${dir.name}/${name.replace(/\.ts$/, '')}`] = target
+      const leaf = name.replace(/\.ts$/, '')
+      // 与上面 `PORTED_TARGETS` 那层同一条性质：一个目标挂两个名字。
+      // `@xiranite/node-<id>/<leaf>` 是与上游可 diff 的那一半（ADR-0007），
+      // `@hibernalglow/xaihi-<id>/<leaf>` 是搬运批次按 ADR-0010 改名后消费者实际写的那一半。
+      // 只给前一个名字时，改过名的批次会在 vite/rspack 里报"Failed to resolve import"，
+      // 而症状里那句"Does the file exist?"是假的——文件一直在，缺的是这张表的第二个键。
+      // 注意 `<id>` 这一段是**包名**（`plugins/<id>/package.json` 的 name 就是 `@hibernalglow/xaihi-<id>`），
+      // 而包自己的 `exports` 里**没有**这些叶子子路径：这条边存在的意义就是把界面指到源码、
+      // 由 `noExternal` 在构建期内联，不是给那个包开一条新的公开子路径。
+      out[`@xiranite/node-${dir.name}/${leaf}`] = target
+      out[`@hibernalglow/xaihi-${dir.name}/${leaf}`] = target
     }
   }
   return out
