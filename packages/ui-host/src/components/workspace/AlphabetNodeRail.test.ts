@@ -5,7 +5,7 @@ import { ALPHABET, getModulesForInitial, getNextAlphabetIndex, getVisibleInitial
 describe("getModulesForInitial", () => {
   test("returns registered nodes by display-name initial", () => {
     expect(getModulesForInitial("b").map((module) => module.id)).toContain("bitv")
-    expect(getModulesForInitial("S").map((module) => module.id)).toContain("smartzip")
+    expect(getModulesForInitial("S").map((module) => module.id)).toContain("shellect")
   })
 
   test("does not treat an internal letter as an initial", () => {
