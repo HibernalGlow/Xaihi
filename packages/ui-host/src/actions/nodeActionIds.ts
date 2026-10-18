@@ -4,7 +4,7 @@
  * 单独一个文件而不是和注册放在一起：`store/workspace/constants.ts` 要用它算「默认隐藏」，
  * 而那份一旦被拉进带 store 依赖的模块就会形成加载环。这份只依赖模块表，不碰 store。
  */
-import { MODULE_REGISTRY } from "@/components/modules/registry"
+import { PACKAGE_MODULES } from "@/components/modules/packageModules.generated"
 
 export const NODE_ACTION_ID_PREFIX = "node.open."
 
@@ -21,7 +21,9 @@ export interface NodeActionSource {
   icon: string
 }
 
-export const NODE_ACTION_SOURCES: NodeActionSource[] = MODULE_REGISTRY.map((module) => ({
+/** 只从真实节点派生：`PACKAGE_MODULES` 由 `package.json#xaihi.node` 生成，
+ *  不含 SETTINGS / MODULE REGISTRY / RUN HISTORY / NODE OPERATIONS 这四个视图模块。 */
+export const NODE_ACTION_SOURCES: NodeActionSource[] = PACKAGE_MODULES.map((module) => ({
   actionId: nodeActionId(module.id),
   moduleId: module.id,
   name: module.name,

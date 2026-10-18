@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent as Re
 import { useReducedMotion } from "motion/react"
 import { ExternalLink } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { MODULE_REGISTRY } from "@/components/modules/registry"
-import { allModules } from "@/plugins/contributions"
+import { nodeModules } from "@/plugins/contributions"
 import { useContributedModules } from "@/plugins/useContributedModules"
 import { resolveModuleIcon } from "@/components/modules/moduleIconRegistry"
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandShortcut } from "@/components/ui/command"
@@ -35,7 +34,8 @@ function ModuleIcon({ icon }: { icon: string }) {
   return <Icon aria-hidden="true" />
 }
 
-export function getModulesForInitial(initial: string, modules: readonly ModuleDef[] = MODULE_REGISTRY): ModuleDef[] {
+/** 默认读真实节点：视图模块（SETTINGS / MODULE REGISTRY / RUN HISTORY / NODE OPERATIONS）不是节点。 */
+export function getModulesForInitial(initial: string, modules: readonly ModuleDef[] = nodeModules()): ModuleDef[] {
   const normalized = initial.trim().slice(0, 1).toLocaleUpperCase()
   if (!normalized) return []
   return modules.filter((module) => module.name.toLocaleUpperCase().startsWith(normalized))
@@ -106,9 +106,9 @@ export function AlphabetNodeRail() {
   const trellisDrag = appearance.viewMode === "cards" && appearance.cardLayout === "trellis" && Boolean(trellisModuleDrag)
   const contributed = useContributedModules()
   const visibleInitials = useMemo(
-    // `allModules()` owns the merge so no listing restates it; `contributed` is still the dependency
+    // `nodeModules()` owns the merge so no listing restates it; `contributed` is still the dependency
     // because it is what makes this component re-render when a plugin contributes or un-contributes.
-    () => getVisibleInitials(allModules(), appearance.hideEmpty),
+    () => getVisibleInitials(nodeModules(), appearance.hideEmpty),
     [appearance.hideEmpty, contributed],
   )
   const visibleIndexes = useMemo(
@@ -122,7 +122,7 @@ export function AlphabetNodeRail() {
     : visibleIndexes[0] ?? activeIndex
   const activeInitial = ALPHABET[settledIndex] ?? "A"
   const matchingModules = useMemo(
-    () => getModulesForInitial(activeInitial, allModules()),
+    () => getModulesForInitial(activeInitial, nodeModules()),
     [activeInitial, contributed],
   )
   const popoverAlign = settledIndex <= 8 ? "start" : settledIndex >= 17 ? "end" : "center"
@@ -237,7 +237,7 @@ export function AlphabetNodeRail() {
   const handleLetterClick = useCallback((letter: string, index: number) => {
     if (draggingModuleRef.current) return
     if (appearance.directDeploySingle) {
-      const matching = getModulesForInitial(letter, allModules())
+      const matching = getModulesForInitial(letter, nodeModules())
       if (matching.length === 1 && matching[0]) {
         deployModule(matching[0])
         return
@@ -426,8 +426,8 @@ export function AlphabetNodeRail() {
                   style={{ transform: `scale(${reduceMotion ? 1 : active ? 1 + appearance.waveIntensity / 1000 : nearScale})` }}
                   tabIndex={expanded && active ? 0 : -1}
                   aria-selected={active}
-                  aria-label={t("common:alphabetLauncher.matches", { letter, count: getModulesForInitial(letter, allModules()).length })}
-                  title={t("common:alphabetLauncher.matches", { letter, count: getModulesForInitial(letter, allModules()).length })}
+                  aria-label={t("common:alphabetLauncher.matches", { letter, count: getModulesForInitial(letter, nodeModules()).length })}
+                  title={t("common:alphabetLauncher.matches", { letter, count: getModulesForInitial(letter, nodeModules()).length })}
                   onPointerEnter={(event) => { if (event.pointerType !== "touch") selectInitial(index) }}
                   onFocus={() => selectInitial(index)}
                   onClick={() => handleLetterClick(letter, index)}

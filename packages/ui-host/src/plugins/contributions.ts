@@ -181,6 +181,25 @@ export function allModules(): ModuleDef[] {
   return contributed.length === 0 ? MODULE_REGISTRY : [...MODULE_REGISTRY, ...contributed]
 }
 
+/**
+ * 内置的视图模块：设置、模块库、运行历史、节点监控。
+ *
+ * 它们能拖进工作台，但不是领域节点 —— `xaihi.node` 才是节点的唯一真源（ADR-0007），
+ * 这四个都没有那一段声明。所以它们不该出现在节点栏、节点计数或任何"列节点"的地方，
+ * 只在模块库（ModuleRegistry）里可选。
+ */
+const VIEW_MODULE_IDS: ReadonlySet<string> = new Set([
+  "settings",
+  "module-registry",
+  "node-history",
+  "node-operations",
+])
+
+/** 真实领域节点：`allModules()` 去掉视图模块。列节点的地方读这一条，模块库仍读 `allModules()`。 */
+export function nodeModules(): ModuleDef[] {
+  return allModules().filter((module) => !VIEW_MODULE_IDS.has(module.id))
+}
+
 export function subscribeModuleContributions(listener: () => void): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)
