@@ -83,11 +83,13 @@ function removeDesignAttributes(root: HTMLElement) {
  * 应用（或重应用）高级主题。
  *
  * @param restoreAppearance 撤掉我们接管的颜色变量后，把颜色主题的 inline 变量重写回来。
+ * @param readActiveThemeSeed 在旧高级主题清理并恢复颜色主题后读取当前主色。
  */
 export function applyDesignTheme(
   config: DesignThemeConfig,
   context: DesignThemeContext,
   restoreAppearance?: () => void,
+  readActiveThemeSeed?: () => string | null,
 ): void {
   const root = document.documentElement
 
@@ -105,7 +107,9 @@ export function applyDesignTheme(
   removeDesignAttributes(root)
   if (maskedColorVars) restoreAppearance?.()
 
-  const resolution = resolveDesignTheme(config, context)
+  const resolution = resolveDesignTheme(config, readActiveThemeSeed
+    ? { ...context, activeThemeSeed: readActiveThemeSeed() }
+    : context)
 
   for (const [name, value] of Object.entries(resolution?.bundle.attributes ?? {})) {
     root.setAttribute(name, value)

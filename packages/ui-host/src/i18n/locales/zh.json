@@ -130,6 +130,7 @@
     },
     "theme": {
       "label": "主题",
+      "gesture": "上下切换模式 · 左右切换选项",
       "colorMode": "颜色模式",
       "system": "跟随系统",
       "light": "浅色",
@@ -376,14 +377,25 @@
       "snapshotHomeValue": "同一命名空间的 nodeState（volatile 格）"
     },
     "activePreset": "当前预设",
-    "selectPreset": "选择主题预设",
+    "selectPreset": "选择颜色主题",
+    "colorTheme": {
+      "label": "颜色主题",
+      "defaultLabel": "无颜色 · 使用默认配色",
+      "defaultDescription": "使用当前设计语言的默认颜色",
+      "hints": {
+        "theme": "Native 直接使用 shadcn / tweakcn 颜色主题；选择「无颜色」时使用原生默认配色。",
+        "seed": "已支持颜色 token 适配：高级主题按源色映射自己的颜色角色。取色来源选「跟随颜色主题」时使用下方配色；选「无颜色」则保留本主题默认色。",
+        "fixed": "没有做外部颜色 token 适配：当前主题使用固定色板。建议颜色主题选「无颜色」，或保持默认配色。",
+        "disabled": "颜色角色已关闭：当前直接使用颜色主题的色值。打开后由高级主题映射颜色 token。"
+      }
+    },
     "designTheme": {
       "label": "高级主题 · 设计语言",
-      "description": "与颜色主题平级的第二个维度：它换掉的是整套设计语言——颜色角色、形状、层级、排版、动效、状态层与组件几何。所有数值取自 Google 自己生成的 Material 3 token 字典（@material/web，设计系统 v0.192），没有一个数字是我凭记忆写的。",
+      "description": "选择整套设计语言，调整颜色角色、形状、层级、排版、动效与组件几何。Native 直接应用颜色主题，其他主题按各自支持的方式映射颜色 token。",
       "nativeBadge": "关闭 · 仅颜色主题",
       "pickTheme": "设计语言",
       "native": {
-        "label": "Native（Xiranite 原样）",
+        "label": "Native（Xaihi 原生）",
         "description": "不套任何设计语言，颜色主题与既有组件样式完全保持现状。"
       },
       "md3": {
@@ -451,7 +463,7 @@
       "seedSource": "源色来源",
       "sources": {
         "manual": "手动指定",
-        "activeTheme": "跟随当前主题",
+        "activeTheme": "跟随颜色主题",
         "systemAccent": "系统强调色"
       },
       "seed": "源色",
@@ -473,7 +485,7 @@
       "dims": {
         "color": {
           "label": "颜色角色",
-          "description": "用 Material 动态取色覆盖颜色主题的 CSS 变量。"
+          "description": "按当前设计语言支持的方式映射颜色 token；Material 主题使用动态取色，固定色板不接受外部取色。"
         },
         "shape": {
           "label": "形状",

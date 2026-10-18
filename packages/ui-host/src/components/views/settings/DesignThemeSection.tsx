@@ -31,7 +31,6 @@ import {
   MONDRIAN_ACCENTS,
   MONDRIAN_LINE_WEIGHT_VALUES,
   SWISS_RULE_WEIGHT_VALUES,
-  DESIGN_DIMENSIONS,
   type DesignDimension,
   type DesignThemeConfig,
   type Md3ContrastLevel,
@@ -57,7 +56,7 @@ import {
   LONESTAR_TOKEN_COUNT_ATTR,
 } from "@/lib/design-theme/lonestar/spec"
 import { WULING_TOKEN_COUNT_ATTR } from "@/lib/design-theme/wuling/spec"
-import { DESIGN_THEME_ENTRIES } from "@/lib/design-theme/registry"
+import { colorAdaptationHintKey, DESIGN_THEME_ENTRIES } from "@/lib/design-theme/registry"
 import {
   WULING_CORNER_ATTR,
   WULING_LABEL_ATTR,
@@ -232,7 +231,7 @@ export function DesignThemeSection() {
       delay={0.04}
       actions={(
         <Badge variant="outline" className="rounded-sm font-mono text-[9px] text-muted-foreground">
-          {takesOver ? `${isMd3 ? "MD3" : isWuling ? "WULING" : "STIJL"} · ${readback.appliedVars ?? "0"} var` : t("settings:designTheme.nativeBadge")}
+          {takesOver ? `${config.id.toUpperCase()} · ${readback.appliedVars ?? "0"} var` : t("settings:designTheme.nativeBadge")}
         </Badge>
       )}
     >
@@ -258,6 +257,10 @@ export function DesignThemeSection() {
           </Select>
           <p className="text-[10px] leading-relaxed text-muted-foreground/80">{t(entry.descriptionKey)}</p>
         </div>
+
+        <p className="rounded-sm border border-border/50 bg-muted/10 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+          {t(colorAdaptationHintKey(config))}
+        </p>
 
         {isMd3 ? (
           <>
@@ -659,7 +662,7 @@ export function DesignThemeSection() {
             <div className="flex flex-col gap-2">
               <span className="text-[11px] font-medium text-muted-foreground">{t("settings:designTheme.dimensions")}</span>
               <div className="grid gap-1.5">
-                {DESIGN_DIMENSIONS.map((dimension) => (
+                {entry.ownsDimensions.map((dimension) => (
                   <label key={dimension} className="flex items-center justify-between gap-3 rounded-sm border border-border/40 bg-muted/10 px-2.5 py-1.5">
                     <span className="min-w-0 flex-1">
                       <span className="block text-[11px] font-medium text-foreground">

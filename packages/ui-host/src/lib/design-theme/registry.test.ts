@@ -9,7 +9,7 @@ import {
   normalizeDesignThemeConfig,
   type DesignThemeConfig,
 } from "./contract"
-import { DESIGN_THEME_ENTRIES, resolveDesignTheme } from "./registry"
+import { colorAdaptationHintKey, DESIGN_THEME_ENTRIES, resolveDesignTheme } from "./registry"
 import { WULING_PRESET_COLORS } from "./wuling/spec"
 import { LONESTAR_BRIDGED_COLORS } from "./lonestar/spec"
 
@@ -47,6 +47,32 @@ describe("the design-language registry stays wired on every side", () => {
     // 阳性对照：这把尺必须能报出「不存在」，否则上面那一片绿只是 dig() 恒返回同一个东西。
     expect(dig(en.settings as Table, keyPath("settings:designTheme.does-not-exist.label"))).toBeUndefined()
     expect(dig(zh.settings as Table, keyPath("settings:designTheme.does-not-exist.label"))).toBeUndefined()
+  })
+
+  test("color adaptation metadata and copy match each recipe", () => {
+    const modes = Object.fromEntries(DESIGN_THEME_ENTRIES.map((entry) => [entry.id, entry.colorAdaptation]))
+    expect(modes).toEqual({ native: "theme", md3: "seed", mondrian: "fixed", wuling: "seed", swiss: "fixed", lonestar: "seed" })
+    for (const locale of [en, zh]) {
+      for (const entry of DESIGN_THEME_ENTRIES) {
+        const value = dig(locale.settings as Table, keyPath(colorAdaptationHintKey({ ...DEFAULT_DESIGN_THEME, id: entry.id })))
+        expect(typeof value, `${entry.id} 的颜色适配提示缺失`).toBe("string")
+        expect((value as string).length).toBeGreaterThan(3)
+      }
+    }
+    const disabled = colorAdaptationHintKey({ ...DEFAULT_DESIGN_THEME, id: "wuling", dimensions: { ...ALL_DIMENSIONS_ON, color: false } })
+    expect(disabled).toBe("settings:colorTheme.hints.disabled")
+  })
+
+  test("none selects default seed palettes without inheriting a stale active theme color", () => {
+    for (const id of ["md3", "wuling", "lonestar"] as const) {
+      const config = { ...DEFAULT_DESIGN_THEME, id, ...(id === "md3" ? { md3: { ...DEFAULT_DESIGN_THEME.md3, seedSource: "activeTheme" as const } } : {}), ...(id === "wuling" ? { wuling: { ...DEFAULT_DESIGN_THEME.wuling, seedSource: "activeTheme" as const } } : {}), ...(id === "lonestar" ? { lonestar: { ...DEFAULT_DESIGN_THEME.lonestar, seedSource: "activeTheme" as const } } : {}) }
+      const defaults = resolveDesignTheme(config, { scheme: "light", activeThemeSeed: "#1133ee", useDefaultColors: true, systemAccentAvailable: false })
+      const stale = resolveDesignTheme(config, { scheme: "light", activeThemeSeed: "#1133ee", systemAccentAvailable: false })
+      expect(defaults?.seedSource).toBe("default")
+      expect(defaults?.seedFallback).toBe(false)
+      expect(defaults?.seed).not.toBe("#1133ee")
+      expect(defaults?.bundle.vars["--primary"]).not.toBe(stale?.bundle.vars["--primary"])
+    }
   })
 
   test("every recipe that takes over has options the panel can actually render", () => {
