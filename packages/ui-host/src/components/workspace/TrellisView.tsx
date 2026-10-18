@@ -3,7 +3,7 @@ import { createPortal, flushSync } from "react-dom"
 import { useTrellisToolbarMount } from "./TrellisToolbarSlot"
 import { useContextMenu, useContextMenuBuilder } from "@/components/context-menu/context"
 import type { ContextMenuContext, ContextMenuItemDef } from "@/components/context-menu/ContextMenuProvider"
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
 import { Workspace, WorkspaceProvider, ViewType, useView, useViewTitle, useViewBadge, useWorkspace, useWorkspaceState, useOptionalWorkspace, type MenuEntry, type Rect } from '@danfessler/trellis-react'
 import type { LayoutDocument, LayoutNode, PanelNode } from '@danfessler/trellis'
 import '@danfessler/trellis/style.css'
@@ -45,6 +45,21 @@ function TrellisNode() {
   useViewTitle(nodeTitle(view.params.moduleId, t))
   if (!comp || !isComponentVisibleInView(comp, 'cards')) return null
   return <TrellisNodeBody comp={comp} />
+}
+/** 标签页的图标位：平时是节点图标，悬停标签页时换成「叉」，点一下直接关闭该节点。 */
+function NodeTabIcon() {
+  const view = useView<{ componentId: string; moduleId: string }>()
+  const actions = useWorkspaceActions()
+  const { t } = useTranslation()
+  const label = t('view:trellis.closeNode')
+  const stopTabGesture = (event: SyntheticEvent<HTMLButtonElement>) => event.stopPropagation()
+  return <button type="button" className="xaihi-trellis-tab-icon" data-trellis-part="tab-close"
+    title={label} aria-label={label}
+    onPointerDownCapture={stopTabGesture}
+    onClickCapture={(event) => { event.preventDefault(); stopTabGesture(event); actions.removeComponent(view.params.componentId) }}>
+    <Layers size={16} className="xaihi-trellis-tab-glyph" aria-hidden="true" />
+    <X size={16} className="xaihi-trellis-tab-close-glyph" aria-hidden="true" />
+  </button>
 }
 function TrellisNodeBody({ comp }: { comp: import("@/types/workspace").ComponentInstance }) {
   const { t } = useTranslation()
@@ -304,7 +319,7 @@ function TrellisWorkspace({ workspaceId }: { workspaceId: string }) {
           onDocumentChange={layout.change} onNavigate={() => { if (ws.current) layout.change(ws.current.getDocument()) }}
           renderMenu={contextMenu ? renderMenu : undefined}
           panelMenu={(entries) => translateMenu(entries, t)}>
-          <ViewType id={TRELLIS_NODE_TYPE} closable={false} title={(v) => nodeTitle(String(v.params.moduleId), t)} icon={<Layers size={16} />} minSize={{ width: 480, height: 320 }} scaling="interactive" gestures="content" accessory={<NodeTools />}><TrellisNode /></ViewType>
+          <ViewType id={TRELLIS_NODE_TYPE} closable={false} title={(v) => nodeTitle(String(v.params.moduleId), t)} icon={<NodeTabIcon />} minSize={{ width: 480, height: 320 }} scaling="interactive" gestures="content" accessory={<NodeTools />}><TrellisNode /></ViewType>
           <Workspace.Empty><div className="xaihi-trellis-empty"><Layers size={28} /><p>{t('view:trellis.empty')}</p><Button size="sm" variant="outline" onClick={() => actions.setOverlay('registry')}><Plus size={14} />{t('view:cards.openRegistry')}</Button></div></Workspace.Empty>
         </Workspace>
         {(mapPosition === "bottom-left" || mapPosition === "bottom-right") && <div className={`xaihi-trellis-map-anchor xaihi-trellis-map-${mapPosition}`}><MiniMap /></div>}

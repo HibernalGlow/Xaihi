@@ -168,4 +168,26 @@ describe('分形视图的节点右键', () => {
 
     await waitFor(() => expect(useWorkspaceStore.getState().components).toHaveLength(0))
   })
+
+  it('悬停标签页时图标变成关闭按钮，点击后直接关闭节点', async () => {
+    const component: ComponentInstance = { id: 'node-tab-close', moduleId: 'sleept', state: 'docked', workspaceId: WORKSPACE_ID }
+    const view = await renderTrellis('theme-bg-dot-grid', [component])
+    const tab = await waitFor(() => {
+      const found = view.querySelector<HTMLElement>('[data-trellis-part="tab"]')
+      expect(found, '面板没有标签页').not.toBeNull()
+      return found!
+    })
+    const icon = tab.querySelector<HTMLButtonElement>('.xaihi-trellis-tab-icon')
+    expect(icon, '标签页没有关闭按钮图标').not.toBeNull()
+    expect(icon?.querySelector('.xaihi-trellis-tab-glyph')).not.toBeNull()
+    expect(icon?.querySelector('.xaihi-trellis-tab-close-glyph')).not.toBeNull()
+
+    await (userEvent as unknown as { hover(element: Element): Promise<void> }).hover(tab)
+    expect(getComputedStyle(icon!.querySelector('.xaihi-trellis-tab-glyph')!).opacity).toBe('0')
+    expect(getComputedStyle(icon!.querySelector('.xaihi-trellis-tab-close-glyph')!).opacity).toBe('1')
+
+    await userEvent.click(icon!)
+    await waitFor(() => expect(useWorkspaceStore.getState().components).toHaveLength(0))
+    await waitFor(() => expect(document.querySelector('.xaihi-trellis-node')).toBeNull())
+  })
 })
