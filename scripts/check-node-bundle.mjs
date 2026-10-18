@@ -36,16 +36,64 @@ const PLUGINS = join(ROOT, 'plugins')
 /** Node 内置名（两种写法都要认：`fs` 与 `node:fs`）。 */
 const BUILTINS = new Set([...builtinModules, ...builtinModules.map((name) => `node:${name}`)])
 
-/** 从一份 JS 文本里取所有裸名说明符（静态 import / 再导出、动态 import、require）。 */
+/**
+ * 从一份 JS 文本里取所有裸名说明符（静态 import / 再导出、动态 import、require）。
+ *
+ * 先看**注释形状**再匹配（2026-10-09 加的）：产物里留着源码的 JSDoc，而注释里会出现
+ * 反引号包着的 ``require('@deepseek-ai/dsh-subprocess')`` 这种"说明为什么不走那条路"的写法——
+ * 正则第二条把它当成一次真 require，于是尺报了一条**跑起来不会发生**的红。
+ * 判据两头都要有：注释里的那条不许数（夹具 `comment-mentions`），块注释收尾符之后的真 import 必须数到
+ * （夹具 `import-after-comment-terminator`）——只放过注释，不放过被注释收尾挡住的真代码。
+ * 顺带一条自我提醒：这段说明里**不许**写出收尾符的字面两字符，那会当场把本注释关掉（今天踩过）。
+ */
+/**
+ * 剥注释，但认引号：`"https://x"` 里的两个斜杠不是行注释，
+ * 一律按"到行尾都是注释"处理会把同一行后半段的真 import 吞掉（那等于把尺弄瞎一半）。
+ * 状态机三件事：字符串内 / 块注释内 / 行注释。
+ */
+function stripCommentsKeepStrings (source) {
+  const out = []
+  let inBlock = false
+  let quote = null
+  let escaped = false
+  for (let index = 0; index < source.length; index += 1) {
+    const ch = source[index]
+    const two = source.slice(index, index + 2)
+    if (inBlock) {
+      if (two === '*/') { inBlock = false; index += 1; out.push(' ') }
+      else out.push(ch === '\n' ? '\n' : ' ')
+      continue
+    }
+    if (quote !== null) {
+      out.push(ch)
+      if (escaped) { escaped = false }
+      else if (ch === '\\') { escaped = true }
+      else if (ch === quote) { quote = null }
+      continue
+    }
+    if (two === '//') {
+      const newline = source.indexOf('\n', index)
+      index = newline === -1 ? source.length : newline - 1
+      continue
+    }
+    if (two === '/*') { inBlock = true; index += 1; out.push(' '); continue }
+    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; out.push(ch); continue }
+    out.push(ch)
+  }
+  return out.join('')
+}
+
 export function bareSpecifiers(source) {
   const out = new Set()
+  // 先把注释摘掉（占位写法见 stripCommentsKeepStrings 末尾那三条 replace：文件里不能字面写这两个两字符序列，
+  // 它们会当场关掉本注释——今天在同一把尺上踩过两次）。
+  const code = stripCommentsKeepStrings(source)
   const patterns = [
     /(?:^|[\n;])[ \t]*(?:import|export)((?:[\w\s,*{}]|\bas\b)*)from[ \t]*['"]([^'"]+)['"]/g,
     /(?:^|[^\w.])(?:import|require)\([ \t]*['"]([^'"]+)['"]/g,
   ]
   for (const pattern of patterns) {
-    for (const match of source.matchAll(pattern)) {
-      // 第一条模式的组 1 是中间段、组 2 是说明符；第二条只有组 1 = 说明符。
+    for (const match of code.matchAll(pattern)) {
       const isStatic = match[2] !== undefined
       const spec = isStatic ? match[2] : (match[1] ?? '')
       if (spec.length === 0) continue
@@ -111,6 +159,12 @@ const FIXTURES = [
   { name: 'builtins', files: { 'package.json': '{"dependencies":{}}', 'lib/index.js': 'import { readFile } from "node:fs/promises"\nimport os from "os"\n' }, expectProblem: false },
   { name: 'sdk-inlined', files: { 'package.json': '{"dependencies":{}}', 'lib/index.js': 'import { defineNode } from "@hibernalglow/xaihi-sdk"\n' }, expectProblem: true },
   { name: 'dynamic', files: { 'package.json': '{"dependencies":{}}', 'lib/index.js': 'const m = await import("some-thing")\n' }, expectProblem: true },
+  // 注释里的写法不算违规（今天真红过一次：产物 JSDoc 里反引号包着 require('@deepseek-ai/dsh-subprocess')）
+  { name: 'comment-mentions', files: { 'package.json': '{"dependencies":{}}', 'lib/index.js': '/**\n * 为什么不直接 `require(\'@deepseek-ai/dsh-subprocess\')`：那条 provider 属于宿主装配。\n */\nexport const x = 1\n' }, expectProblem: false },
+  // 但 `*/` 收尾之后的真 import 必须数到：只放注释、不放过被注释挡住的真代码
+  { name: 'import-after-comment-terminator', files: { 'package.json': '{"dependencies":{}}', 'lib/index.js': '/* 说明 */import { diffLines } from "diff"\n' }, expectProblem: true },
+  // 带引号的剥注释不是装饰：字符串里那两个斜杠若被当成行注释，同一行后半段的真 import 就消失了
+  { name: 'url-in-string-same-line', files: { 'package.json': '{"dependencies":{}}', 'lib/index.js': 'const u = "https://example.com"; import { diffLines } from "diff"\n' }, expectProblem: true },
 ]
 
 if (process.argv.includes('--self-check')) {

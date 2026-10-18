@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/cli.ts', 'src/help.ts'],
+  entry: ['src/index.ts', 'src/cli.ts', 'src/help.ts', 'src/engine-host.ts'],
   outDir: 'lib',
   format: ['esm'],
   platform: 'node',
