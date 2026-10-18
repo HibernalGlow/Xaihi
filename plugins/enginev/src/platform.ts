@@ -66,6 +66,7 @@
  * @module xaihi-enginev/platform
  */
 
+import { existsSync } from "node:fs"
 import { cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises"
 import { basename, dirname, join, resolve } from "node:path"
 import type { EngineVDirEntry, EngineVPathInfo, EngineVRuntime } from "./core.ts"
@@ -78,7 +79,8 @@ export const TRASH_GAP = 'enginev: 可恢复删除（回收站）在 Xaihi 里�
   + ' 的 PlatformFileMutationProvider（缺口 G-no-os-trash）；这次删除已取消。'
   + '要 recoverable delete 请先把它接上，或用 permanent=true 明确选择永久删除'
 
-export function createNodeEngineVRuntime (): EngineVRuntime {
+export function createNodeEngineVRuntime (options: { volumeRoot?: string } = {}): EngineVRuntime {
+  const volumeRoot = options.volumeRoot ?? VOLUME_ROOT
   return {
     pathInfo,
     listDir,
@@ -91,8 +93,83 @@ export function createNodeEngineVRuntime (): EngineVRuntime {
     join,
     dirname,
     basename,
-    resolve,
+    // **唯一的远程地址缝**：内核扫之前先 `resolve(workshopPath)`（core.ts:282），
+    // 所以翻译落在这里就覆盖了扫/筛选/改名/删除四条腿的工坊根。别的路径（例如 export 的
+    // 落点）不经这里，也就不翻译——那条边界是有意的，别顺手把 `writeText` 也接上。
+    resolve: (path) => resolve(translateWorkshopAddress(path, { volumeRoot })),
   }
+}
+
+/** macOS 上 SMB 共享的默认挂载根（`mount_smbfs` 不指定挂载点时的落点）。 */
+export const VOLUME_ROOT = "/Volumes"
+
+/**
+ * 远程地址里的三段。`rest` 已统一成正斜杠，且可以是空串（只给到共享根）。
+ */
+export interface RemoteWorkshopAddress {
+  host: string
+  share: string
+  rest: string
+}
+
+/** `\\host\share\sub\dir`（Windows 共享形）。**只认两个反斜杠开头**，POSIX 路径不会误入。 */
+const UNC_HEAD = /^\\\\([^\\/]+)[\\/]+([^\\/]+)(?:[\\/]+(.*))?$/
+/** `smb://[user@]host/share/sub`。 */
+const SMB_URL = /^smb:\/\/(?:[^@/]+@)?([^\\/]+)[\\/]+([^\\/]+)(?:[\\/]+(.*))?$/i
+
+/**
+ * 把「另一台机器上的工坊目录」写成一条地址。本机路径返回 `null`，一个字符都不猜。
+ */
+export function parseRemoteAddress (value: string): RemoteWorkshopAddress | null {
+  const raw = value.trim()
+  if (raw === "") return null
+  const smb = SMB_URL.exec(raw)
+  if (smb) return { host: smb[1]!, share: smb[2]!, rest: (smb[3] ?? "").replace(/\\/g, "/") }
+  const unc = UNC_HEAD.exec(raw)
+  if (unc) return { host: unc[1]!, share: unc[2]!, rest: (unc[3] ?? "").replace(/\\/g, "/") }
+  return null
+}
+
+/**
+ * 地址翻译：`\\host\share\sub` → 本机挂载点。上游没有这一条（它只吃本机绝对路径），
+ * 是使用者要的：**数据在另一台机器上**（实测现场：macOS 上的宿主 + Windows 上的 Steam 库，
+ * `D:\scoop\persist\steam\steamapps\common\wallpaper_engine\projects\backup`）。
+ * 本仓已有的缝只有本机 `node:fs`，所以这里做的是**翻译到挂载点**，不是新开一条网络通路——
+ * 真去实现一个 SMB/SSH 客户端等于给 DSH 已声明的能力面另长一条通路（AGENTS.md 明令不许）。
+ *
+ * 三条不许"顺手优化"掉的语义：
+ * - **Windows 上原样返回**：UNC 在那儿本来就是合法路径，翻译它反而把它弄坏。
+ * - **没挂载就响亮拒绝**，不是退化成"路径不存在"：文案要点名原始地址、目标挂载点与挂载命令。
+ *   内核把这句话折进 `failure()` 的 `errors[0]`（core.ts:508-510），面板与工具里读得回来。
+ * - **host 不参与解析**：挂载点靠 share 名对上，多台机同名 share 不做区分（不替使用者猜）。
+ *
+ * `volumeRoot` 是给测试与将来别的挂载根留的注入点；生产路径用 `/Volumes`。
+ */
+export function translateWorkshopAddress (
+  value: string,
+  options: { platform?: NodeJS.Platform; volumeRoot?: string } = {},
+): string {
+  const remote = parseRemoteAddress(value)
+  if (remote === null) return value
+  const platform = options.platform ?? process.platform
+  if (platform === "win32") return value
+  if (platform !== "darwin") {
+    throw new Error(
+      `enginev: 远程地址只支持 Windows（UNC 直接用）与 macOS（翻译到挂载点）。`
+      + `这台机是 ${platform}，请先把 ${remote.host} 的 ${remote.share} 挂到本机再用本地路径。`,
+    )
+  }
+  const volumeRoot = options.volumeRoot ?? VOLUME_ROOT
+  const mountPoint = join(volumeRoot, remote.share)
+  if (!existsSync(mountPoint)) {
+    throw new Error(
+      `enginev: 远程地址 \\\\${remote.host}\\${remote.share} 在这台机上还看不到——`
+      + `macOS 要先把它挂起来（Finder 按 ⌘K 输入 smb://${remote.host}/${remote.share}，`
+      + `或 mount_smbfs //<用户名>@${remote.host}/${remote.share} ${mountPoint}），`
+      + `挂上之后用同一条地址再扫；目标路径会落到 ${remote.rest === "" ? mountPoint : join(mountPoint, remote.rest)}。`,
+    )
+  }
+  return remote.rest === "" ? mountPoint : join(mountPoint, remote.rest)
 }
 
 async function pathInfo (path: string): Promise<EngineVPathInfo> {
