@@ -19,7 +19,7 @@ import { defineTool, type ParameterPropertySpec, type ParameterSchemaSpec } from
 import { validateNodeDefinition, type NodeDefinition, type NodeField, type NodeTransform } from './node.ts'
 import { matchCondition } from './conditions.ts'
 import { NULL_RUN, type OperationJournal, type OperationRun } from './operations.ts'
-import { nodeRegistry, type NodeRunResult } from './node-registry.ts'
+import { registerWithHost, type NodeRegistryHost, type NodeRunResult } from './node-registry.ts'
 
 /**
  * 工具参数表。直接用 dsh-tools 的类型而不是长得像的本地副本：它的参数面带
@@ -41,25 +41,19 @@ export interface ExecInfo {
   arguments: unknown
 }
 
-/** `defineNode` 用到的宿主面。 */
-export interface NodeToolContext {
+/**
+ * `defineNode` 用到的宿主面。
+ *
+ * `NodeRegistryHost` 那两条（`inject` / `get`）是注册表那一格要的：注册表住在 xaihi-core
+ * 那一份 SDK 拷贝里（`@hibernalglow/xaihi-sdk` 被内联进每个包，见 `NODE_REGISTRY_SERVICE`
+ * 的注释），跨包共享只能经 cordis 的服务表；而 core 的 fiber 可能比节点晚激活，注册时读一次
+ * 会永久读空，所以走 `inject` 的"等到位再跑、变了就重跑"。签名刻意写成宽松形状：node-sdk 的
+ * peer 只有 dsh-tools，照 cordis 自己的 `Inject`／`Plugin.Function` 声明反而会在真 `Context`
+ * 上不过赋值（旧版那条 `effect` 同一条理由）。
+ */
+export interface NodeToolContext extends NodeRegistryHost {
   tools: { register(definition: unknown): unknown }
   on(event: 'tools/pre-execute', listener: (exec: ExecInfo, next: () => Promise<PreDecision>) => Promise<PreDecision>): unknown
-  /**
-   * cordis fiber 的副作用回收缝（`ctx.effect`）：回调立即执行，返回的那个函数被登记为注销器。
-   *
-   * 签名刻意写成宽松形状。这里**不能**依赖 cordis 的类型：node-sdk 的 peer 只有 dsh-tools，
-   * 而 cordis 的 `effect` 收的是它自己那套 `Effect` 联合（`Disposable | Iterable<Disposable> | …`）。
-   * 若照它的形状精确声明，真 `Context` 反而过不了赋值（`Context.effect` 的参数不是这个子集）。
-   * 写成 `() => unknown` 之后，真 `Context`（`new Context()`）与测试替身两侧都结构化成立，
-   * 调用点也不丢类型。
-   *
-   * `defineNode` 需要它，是因为 `nodeRegistry` 是**进程级单例**，不挂在任何 fiber 上。没有这条缝，
-   * 插件卸载或热更之后节点会永久留在表里，本地 Runner 仍能调到一个已经死掉的实例 —— 症状是
-   * "停用的节点还在跑"。`ctx.tools.register` 那边由 dsh-tools 自己 effect 化（`tools.register()`
-   * 内部走 `layers.effect`），这一条没有兜底，只能在这里接。
-   */
-  effect(callback: () => unknown, label?: string): unknown
 }
 
 /** 一次动作调用的入参：原始参数 + 按 inputBindings 绑好的执行输入 + 本次运行的上报句柄。 */
@@ -92,6 +86,13 @@ export interface DefineNodeOptions {
    * 传取用器（`() => ctx.get(OPERATIONS_SERVICE)`）才是对的接法。
    */
   journal?: JournalSource
+  /**
+   * 覆盖注册表条目里的执行派发（`NodeRegistry.run` 优先走这一条）。
+   *
+   * 为什么在选项里而不是让节点自己 `nodeRegistry.get(id).execute = …`：注册现在可能发生在
+   * core 提供服务之后（`inject`），装载当时那条条目还没进表，后置改写会静默不落地。
+   */
+  execute?: (input: unknown, onEvent?: (event: unknown) => void) => Promise<NodeRunResult>
 }
 
 function fieldProperty(field: NodeField): ParameterPropertySpec {
@@ -375,19 +376,19 @@ export function defineNode(ctx: NodeToolContext, options: DefineNodeOptions): No
 
   const handle: NodeHandle = { invoke, run: runAction }
 
-  // 自动注册到全局节点注册表，打通本地 Runner 通道。
+  // 登记到**宿主那一份**注册表，打通本地 Runner 通道。
   //
-  // `register` 的返回值就是注销器，必须挂到调用方 fiber 上：`nodeRegistry` 是进程级单例，
-  // 不挂就等于"注册即永久"。插件卸载 / 热更后这一条不摘，本地 Runner 还能调到一个已经
-  // 死掉的实例（`invoke` 闭包里的 ctx 已经失效）。`ctx.tools.register` 由 dsh-tools 自己
-  // effect 化，这里没有兜底，所以只能显式接。
-  ctx.effect(() => nodeRegistry.register({
+  // 注销器必须挂在注入出来的那条 fiber 上：core 卸载 ⇒ 服务消失 ⇒ 这一条跟着撤，插件热更 ⇒
+  // 回调重跑并重新注册。留在表里就等于"停用的节点还在跑"（`ctx.tools.register` 由 dsh-tools
+  // 自己 effect 化，这一条没有兜底）。
+  registerWithHost(ctx, (registry) => registry.register({
     nodeId: definition.nodeId,
     definition,
     handlers: options.handlers,
     invoke,
     run: runAction,
-  }), `xaihi-sdk: node "${definition.nodeId}" registry entry`)
+    ...(options.execute === undefined ? {} : { execute: options.execute }),
+  }))
 
   // 注意：`invoke` 不走 `tools/pre-execute`，所以它绕过了危险闸门。
   // 非模型入口（命令、面板按钮）必须自己先问 `dangerFor`，别把危险动作接到它上面。

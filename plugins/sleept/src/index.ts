@@ -18,7 +18,7 @@ import type { Context, Volatile } from '@deepseek-ai/cordis'
 // 运行时实现由宿主提供，本包不在产物里引它。
 import type { CommandResult } from '@deepseek-ai/dsh-commands'
 import Schema from '@deepseek-ai/schemastery'
-import { defineNode, dangerFor, OPERATIONS_SERVICE, nodeRegistry, validateNodeDefinition, type NodeRunResult, type OperationJournal } from '@hibernalglow/xaihi-sdk'
+import { defineNode, dangerFor, OPERATIONS_SERVICE, validateNodeDefinition, type NodeRunResult, type OperationJournal } from '@hibernalglow/xaihi-sdk'
 import { createInhibitor, createRunner, type InhibitorState } from './exec.ts'
 import { runSleept, type SleeptInput } from './core.ts'
 import { createNodeSleeptRuntime } from './runtime.ts'
@@ -132,6 +132,10 @@ export function apply(ctx: Context, config: Config): void {
   const node = defineNode(ctx, {
     definition: nodeDefinition,
     journal: () => ctx.get(OPERATIONS_SERVICE) as OperationJournal | undefined,
+    // 本地 Runner 的派发要覆盖整条节点（电源动作走 handle，定时器/监控走 runSleept），
+    // 所以它必须**随条目一起诞生**：注册现在可能晚到 core 提供服务那一刻，
+    // "注册完再回头改表里那一格"会静默落空。声明在下面是函数声明，提升过来自取。
+    execute: customExecute,
     handlers: {
       async status({ run }) {
         const status = await collectStatus()
@@ -214,7 +218,9 @@ export function apply(ctx: Context, config: Config): void {
 
   // 本地 Runner 自定义执行派发：兼顾电源底层控制与定时器/监控（countdown, specific_time, netspeed, cpu, get_stats）
   const sleeptRuntime = createNodeSleeptRuntime()
-  const customExecute = async (input: unknown, onEvent?: (event: unknown) => void): Promise<NodeRunResult> => {
+
+  // 写成函数声明而不是 const：上面 `defineNode` 的选项里就要引用它。
+  async function customExecute(input: unknown, onEvent?: (event: unknown) => void): Promise<NodeRunResult> {
     const raw = typeof input === 'object' && input !== null ? (input as SleeptInput) : {}
     const action = raw.action ?? 'status'
     if (['block', 'unblock', 'displayOff', 'screensaver', 'sleep'].includes(action)) {
@@ -226,11 +232,6 @@ export function apply(ctx: Context, config: Config): void {
       message: result.message,
       data: result.data,
     }
-  }
-
-  const registered = nodeRegistry.get(nodeDefinition.nodeId)
-  if (registered) {
-    registered.execute = customExecute
   }
 
   /**

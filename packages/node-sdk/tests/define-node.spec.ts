@@ -19,6 +19,7 @@ import {
   type PreDecision,
 } from '../src/define-node.ts'
 import { matchCondition } from '../src/conditions.ts'
+import { NodeRegistry } from '../src/node-registry.ts'
 import type { NodeDefinition } from '../src/node.ts'
 
 const definition = {
@@ -57,6 +58,7 @@ function fakeContext(): { ctx: NodeToolContext; registered: Array<Record<string,
   const registered: Array<Record<string, unknown>> = []
   const listeners: Array<(exec: ExecInfo, next: () => Promise<PreDecision>) => Promise<PreDecision>> = []
   const effects: Array<() => void> = []
+  const registry = new NodeRegistry()
   return {
     registered,
     listeners,
@@ -64,8 +66,13 @@ function fakeContext(): { ctx: NodeToolContext; registered: Array<Record<string,
     ctx: {
       tools: { register: (tool) => { registered.push(tool as unknown as Record<string, unknown>); return () => {} } },
       on: (_event, listener) => { listeners.push(listener); return () => {} },
-      // cordis 的 `ctx.effect`：回调立即跑，返回的函数被收作注销器。
-      effect: (callback: () => unknown) => { const dispose = callback(); if (typeof dispose === 'function') effects.push(dispose as () => void); return () => {} },
+      // cordis 的 `ctx.inject`：依赖到位就立即跑回调，返回的函数被收作注销器。
+      inject: (_deps, callback) => {
+        const dispose = callback({ get: () => registry })
+        if (typeof dispose === 'function') effects.push(dispose as () => void)
+        return () => {}
+      },
+      get: () => registry,
     },
   }
 }
