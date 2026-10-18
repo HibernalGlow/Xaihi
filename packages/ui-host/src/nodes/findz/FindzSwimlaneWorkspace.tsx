@@ -162,7 +162,7 @@ function FindzSwimlane({ active, collapsed, definition, effectiveWidth, laneId, 
       <SwimlaneCollapseDragButton collapsed={false} draggable aria-label={definition.collapseLabel} laneLabel={definition.label} onClick={() => onCollapsedChange(true)} onDragStart={onDragStart} />
       <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-muted-foreground" title={definition.label}>{definition.label}</span>
     </header>
-    <div className="min-h-0 flex-1 overflow-hidden">{definition.content}</div>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{definition.content}</div>
     <LaneResizer className="absolute inset-y-0 right-0 z-20 w-2 translate-x-1" label={definition.resizeLabel} onReset={() => onWidthChange(definition.defaultWidth)} onResize={(deltaRatio) => { widthRef.current += deltaRatio * 320; onWidthChange(widthRef.current) }} />
   </section>
 }

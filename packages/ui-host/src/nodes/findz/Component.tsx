@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { RuleTreeEditor } from "@/nodes/shared/RuleTreeEditor"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
+import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
+import { useMd3eActive } from "@/nodes/shared/controls"
+import { FindzMd3eWorkbench } from "./FindzMd3eWorkbench"
 import { cn } from "@/lib/utils"
 import { FindzArchiveTable } from "./ArchiveTable"
 import { FindzSwimlaneWorkspace } from "./FindzSwimlaneWorkspace"
@@ -21,6 +24,8 @@ import { normalizeFindzWorkspaceLayout } from "./workspace-layout"
 type FindzProps = NodeComponentProps<FindzCardState, Partial<FindzCardState>>
 
 export function Component({ host }: FindzProps) {
+  const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("findz")
   const [card, setCard] = useState<FindzCardState>(() => host.state.getData() ?? {})
   const [library, setLibrary] = useState<FindzLibrarySummary>()
@@ -43,11 +48,8 @@ export function Component({ host }: FindzProps) {
 
   const patch = useCallback((next: Partial<FindzCardState>) => {
     if (changesQueryState(next)) queryGeneration.current++
-    setCard((current) => {
-      const merged = { ...current, ...next }
-      host.state.patchData(next)
-      return merged
-    })
+    setCard((current) => ({ ...current, ...next }))
+    host.state.patchData(next)
   }, [host])
 
   const invoke = useCallback(async (input: FindzInput): Promise<FindzData> => {
@@ -239,6 +241,56 @@ export function Component({ host }: FindzProps) {
 
   const breadcrumb = useMemo(() => card.pathPrefix?.split("/").filter(Boolean) ?? [], [card.pathPrefix])
   const workspaceLayout = normalizeFindzWorkspaceLayout(card.workspace)
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <FindzMd3eWorkbench
+          surface={surface}
+          t={t}
+          card={card}
+          root={card.libraryRoot ?? ""}
+          libraryIdDraft={card.libraryIdDraft ?? suggestLibraryId(card.libraryRoot ?? "")}
+          library={library}
+          archives={archives}
+          members={members}
+          treemap={treemap}
+          task={task}
+          archivePage={archivePage}
+          hasPreviousPage={pageTrail.length > 0}
+          hasNextPage={Boolean(archivePage.nextCursor)}
+          busy={busy}
+          error={error}
+          filtersOpen={filtersOpen}
+          selectionRevision={selectionRevision}
+          breadcrumb={breadcrumb}
+          workspaceLayout={workspaceLayout}
+          rules={rules}
+          ruleFields={ruleFields}
+          areaMetrics={areaMetrics}
+          onFiltersOpenChange={setFiltersOpen}
+          onWorkspaceLayoutChange={(workspace) => patch({ workspace })}
+          onRootChange={(libraryRoot) => patch({ libraryRoot })}
+          onLibraryIdChange={(libraryIdDraft) => patch({ libraryIdDraft })}
+          onOpenLibrary={() => void openLibrary()}
+          onScan={() => void startTask("scan")}
+          onAnalyze={() => void startTask("analyze")}
+          onPauseTask={() => void controlTask("pause")}
+          onResumeTask={() => void controlTask("resume")}
+          onCancelTask={() => void controlTask("cancel")}
+          onSearchTextChange={(text) => resetPage({ text })}
+          onRulesChange={(next) => resetPage({ rules: next })}
+          onAreaMetricChange={(areaBy) => resetPage({ areaBy })}
+          onSelectArchive={(archiveId) => void selectArchive(archiveId)}
+          onDeepRetryMember={(memberId) => void startTask("analyze", { kind: "members", memberIds: [memberId], deepRetry: true })}
+          onDrill={drill}
+          onSort={changeSort}
+          onPreviousPage={previousPage}
+          onNextPage={nextPage}
+          onExport={(format) => void exportArchives(format)}
+        />
+      </TooltipProvider>
+    )
+  }
   return <TooltipProvider>
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background" data-testid="findz-workspace">
       {error && <div role="alert" className="mx-2 mt-2 flex shrink-0 items-center gap-2 border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"><TriangleAlert className="size-4" />{error}</div>}

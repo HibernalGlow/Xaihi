@@ -38,10 +38,10 @@ export function KisakiCardTabs({ activeId, layout, panel, onActiveChange, render
   const cards = cardsForPanel(layout, panel)
   const active = cards.some((card) => card.id === activeId) ? activeId! : cards[0]?.id
   if (!active) return <div className="grid min-h-32 place-items-center text-xs text-muted-foreground">{t("cards.empty", "该面板没有可见卡片")}</div>
-  if (cards.length === 1) return <div className="min-h-0 flex-1" data-testid={`czkawka-card-tabs-${panel}`}><ScrollArea className="h-full"><div className="p-2">{renderCard(active)}</div></ScrollArea></div>
-  return <Tabs value={active} className="@container/czkawka-side-tabs flex min-h-0 min-w-0 flex-1 flex-col" data-testid={`czkawka-card-tabs-${panel}`} onValueChange={(value) => onActiveChange(value as KisakiCardId)}>
+  if (cards.length === 1) return <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden" data-testid={`czkawka-card-tabs-${panel}`}><ScrollArea className="h-full min-h-0 flex-1"><div className="p-2">{renderCard(active)}</div></ScrollArea></div>
+  return <Tabs value={active} className="@container/czkawka-side-tabs flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden" data-testid={`czkawka-card-tabs-${panel}`} onValueChange={(value) => onActiveChange(value as KisakiCardId)}>
     <TabsList layout="fill" variant="line" className="mx-2 mt-1 min-w-0 shrink-0 overflow-hidden bg-transparent">{cards.map((card) => { const definition = KISAKI_CARD_REGISTRY.find((item) => item.id === card.id)!, title = cardTitle(card.id, definition.title, t), Icon = cardTabIcon(card.id); return <TabsTrigger aria-label={title} key={card.id} value={card.id} title={title} className="min-w-0 px-1.5"><Icon className="size-3.5 shrink-0" /><span className="hidden truncate @xl/czkawka-side-tabs:inline">{cardTabLabel(card.id, t)}</span></TabsTrigger> })}</TabsList>
-    {cards.map((card) => <TabsContent key={card.id} value={card.id} className="min-h-0 flex-1 overflow-hidden pt-1"><ScrollArea className="h-full"><div className="p-2 pt-0">{renderCard(card.id)}</div></ScrollArea></TabsContent>)}
+    {cards.map((card) => <TabsContent key={card.id} value={card.id} className="flex h-full min-h-0 flex-1 flex-col overflow-hidden pt-1 data-[state=inactive]:hidden"><ScrollArea className="h-full min-h-0 flex-1"><div className="p-2 pt-0">{renderCard(card.id)}</div></ScrollArea></TabsContent>)}
   </Tabs>
 }
 

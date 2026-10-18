@@ -1,5 +1,6 @@
 import type { FindzLibrarySummary, FindzTask } from "@xiranite/findz-native"
-import { FolderOpen, Pause, Play, RefreshCw, ScanLine, Square, TriangleAlert } from "lucide-react"
+import { FolderOpen, Pause, Play, RefreshCw, ScanLine, Sparkles, Square, TriangleAlert } from "lucide-react"
+import { useWorkspaceActions } from "@/store/workspaceStore"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +36,7 @@ export function FindzWorkspaceHeader({ root, libraryId, library, task, busy, onR
         <Button size="sm" disabled={!root.trim() || busy} onClick={onOpen}>{t("workspace.header.openLibrary", "Open library")}</Button>
       </div>
       <div className="flex shrink-0 items-center gap-1">
+        <Tooltip><TooltipTrigger asChild><Button type="button" data-testid="findz-ui-face-switch" aria-label="切换到 MD3E 界面" variant="outline" size="xs" className="gap-1 font-mono text-[11px]" onClick={() => setUiFace("md3e")}><Sparkles className="size-3" />MD3E</Button></TooltipTrigger><TooltipContent>切换到全新 Material 3 Expressive (MD3E) 界面</TooltipContent></Tooltip>
         <Tooltip><TooltipTrigger asChild><Button aria-label={t("workspace.header.scanLibrary", "Scan library")} variant="outline" size="icon-sm" disabled={!library || busy} onClick={onScan}><RefreshCw /></Button></TooltipTrigger><TooltipContent>{t("workspace.header.scanTooltip", "Scan ZIP central directories")}</TooltipContent></Tooltip>
         <Tooltip><TooltipTrigger asChild><Button aria-label={t("workspace.header.analyzeHeaders", "Analyze image headers")} variant="outline" size="icon-sm" disabled={!library || busy} onClick={onAnalyze}><ScanLine /></Button></TooltipTrigger><TooltipContent>{t("workspace.header.analyzeTooltip", "Analyze image headers on demand")}</TooltipContent></Tooltip>
         {taskActive && <TaskControls task={task} onPause={onPause} onResume={onResume} onCancel={onCancel} />}

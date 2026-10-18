@@ -137,3 +137,7 @@ export function formatBytes(bytes: number): string {
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
+
+// 工作台状态的 hook 住在节点根目录（它要读 node-config 与运行时存储），
+// 这里转发一次，让 `Component.tsx` 继续从视图层取，和旧版 UI 的入口保持同一形状。
+export { useKisakiWorkbench } from "../use-kisaki-workbench"
