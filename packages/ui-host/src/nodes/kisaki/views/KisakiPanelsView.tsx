@@ -1,9 +1,11 @@
-import { FolderSearch2, PanelLeftClose, PanelRightClose, Search } from "lucide-react"
+import { tt } from "@/lib/i18nText"
+import { FolderSearch2, HardDrive, Layers, PanelLeftClose, PanelRightClose, Search, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Md3eBentoStatGrid } from "@/nodes/shared/controls"
 import { KisakiCardTabs } from "../card-layout"
 import { KisakiResultTable } from "../result-table"
 import { KisakiSimilarFoldersView } from "../similar-folders-view"
@@ -11,18 +13,18 @@ import type { KisakiCardState, KisakiSimilarImagesViewMode } from "../types"
 import { getKisakiGuiToolOptions, type KisakiOptionDefinition } from "@hibernalglow/xaihi-kisaki/tool-options"
 import { updateKisakiWorkspaceLayout } from "@hibernalglow/xaihi-kisaki/workspace-layout"
 import { formatBytes, type KisakiView } from "./model"
-import { KisakiCardContent, Field, Metric, SectionHeader, SwitchLine } from "./KisakiCardsView"
+import { KisakiCardContent, Field, SectionHeader, SwitchLine } from "./KisakiCardsView"
 
 function SourcePanel(props: KisakiView) {
   return (
-    <section className="flex min-h-0 flex-col rounded-md border bg-card">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] bg-[var(--md3e-surface,var(--card))] p-2.5">
       <SectionHeader
         icon={FolderSearch2}
-        title={props.t("sections.conditions", "扫描条件")}
+        title={props.t("sections.conditions", tt("module:kisaki.sections.conditions", "扫描条件"))}
         action={
           props.canResizeWorkspace ? (
             <Button
-              aria-label={props.t("workspace.minimizeConditions", "最小化扫描条件")}
+              aria-label={props.t("workspace.minimizeConditions", tt("module:kisaki.workspace.minimizeConditions", "最小化扫描条件"))}
               size="icon-xs"
               variant="ghost"
               onClick={() =>
@@ -57,27 +59,27 @@ function AlgorithmFields(props: KisakiView) {
 function SimiuSetsFields(props: KisakiView) {
   const enabled = props.data.similarImagesMode === "simiu-sets"
   return (
-    <div className="grid gap-2 rounded-md border border-dashed p-2">
-      <Field label="相似图片模式">
+    <div className="grid gap-2 rounded-[18px] bg-[var(--md3e-surface-high,var(--muted))]/65 p-3">
+      <Field label={tt("module:kisaki.similarModesLabel", "相似图片模式")}>
         <Select value={enabled ? "simiu-sets" : "scanner"} onValueChange={(similarImagesMode) => props.patch({ similarImagesMode: similarImagesMode as KisakiCardState["similarImagesMode"] })}>
           <SelectTrigger aria-label="similar image mode"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="scanner">Kisaki 相似扫描</SelectItem>
-            <SelectItem value="simiu-sets">Simiu 同目录集合</SelectItem>
+            <SelectItem value="scanner">{tt("module:kisaki.similarScanSection", "Kisaki 相似扫描")}</SelectItem>
+            <SelectItem value="simiu-sets">{tt("module:kisaki.simiuSection", "Simiu 同目录集合")}</SelectItem>
           </SelectContent>
         </Select>
       </Field>
       {enabled ? <>
-        <Field label="集合目录前缀">
+        <Field label={tt("module:kisaki.setPrefixLabel", "集合目录前缀")}>
           <Input aria-label="simiu set directory prefix" value={props.data.simiuSetsNamePrefix ?? "simiu_set"} onChange={(event) => props.patch({ simiuSetsNamePrefix: event.currentTarget.value })} />
         </Field>
-        <Field label="最小集合大小">
+        <Field label={tt("module:kisaki.minSetSizeLabel", "最小集合大小")}>
           <Input aria-label="simiu set minimum group size" type="number" min="2" value={props.data.simiuSetsMinimumGroupSize ?? "2"} onChange={(event) => props.patch({ simiuSetsMinimumGroupSize: event.currentTarget.value })} />
         </Field>
-        <Field label="递归处理顺序">
+        <Field label={tt("module:kisaki.recursionOrderLabel", "递归处理顺序")}>
           <Select value={props.data.simiuSetsScanOrder ?? "smallest-first"} onValueChange={(simiuSetsScanOrder) => props.patch({ simiuSetsScanOrder: simiuSetsScanOrder as KisakiCardState["simiuSetsScanOrder"] })}>
             <SelectTrigger aria-label="simiu set scan order"><SelectValue /></SelectTrigger>
-            <SelectContent><SelectItem value="path">路径顺序</SelectItem><SelectItem value="smallest-first">图片最少优先</SelectItem><SelectItem value="deepest-first">最深目录优先</SelectItem></SelectContent>
+            <SelectContent><SelectItem value="path">{tt("module:kisaki.orderPath", "路径顺序")}</SelectItem><SelectItem value="smallest-first">{tt("module:kisaki.orderFewest", "图片最少优先")}</SelectItem><SelectItem value="deepest-first">{tt("module:kisaki.orderDeepest", "最深目录优先")}</SelectItem></SelectContent>
           </Select>
         </Field>
       </> : null}
@@ -148,20 +150,20 @@ function ResultTable(props: KisakiView) {
   } : undefined
   const table = <KisakiResultTable tool={props.tool} groups={props.filterResult.groups} running={props.running} phase={props.data.phase} statusMessage={props.data.progressText} filterText={props.filterText} externalFiltering selectedPaths={props.selectedPaths} musicCheckType={props.data.musicCheckType} musicMaximumDifference={props.data.musicMaximumDifference} musicMinimumFragmentDuration={props.data.musicMinimumFragmentDuration} musicCompareFingerprintsOnlyWithSimilarTitles={props.data.musicCompareFingerprintsOnlyWithSimilarTitles} previewPanelEnabled={props.previewPanelEnabled} thumbnailEnabled={props.thumbnailEnabled} reversePathDisplay={props.data.reversePathDisplay} wrapText={props.data.tableWrapText} getFileUrl={props.getFileUrl} imageComparison={imageComparison} onCopyText={props.copyText} onCopyFiles={props.copyFiles} onOpenPath={props.openPath} onRevealPath={props.revealPath} onFilterTextChange={props.setFilterText} onPreviewPanelEnabledChange={props.setPreviewPanelEnabled} onRetry={props.executeScan} onSelectionChange={props.setSelectedPaths} />
   if (props.tool !== "similar-images" || props.data.similarImagesMode === "simiu-sets") return table
-  return <div className="flex min-h-0 min-w-0 flex-col gap-1"><Tabs value={props.similarImagesViewMode} onValueChange={(value) => props.setSimilarImagesViewMode(value as KisakiSimilarImagesViewMode)}><TabsList className="grid w-52 grid-cols-2"><TabsTrigger value="images">{props.t("views.images", "图片")}</TabsTrigger><TabsTrigger value="folders">{props.t("views.folders", "文件夹")} <Badge variant="outline">{props.result?.similarFolders?.length ?? 0}</Badge></TabsTrigger></TabsList></Tabs><div className="min-h-0 min-w-0 flex-1 overflow-hidden">{props.similarImagesViewMode === "folders" ? <KisakiSimilarFoldersView folders={props.result?.similarFolders ?? []} filterText={props.filterText} getFileUrl={props.getFileUrl} onCopyText={props.copyText} onOpenPath={props.openPath} onRevealPath={props.revealPath} /> : table}</div></div>
+  return <div className="flex min-h-0 min-w-0 flex-col gap-2"><Tabs value={props.similarImagesViewMode} onValueChange={(value) => props.setSimilarImagesViewMode(value as KisakiSimilarImagesViewMode)}><TabsList className="grid w-52 grid-cols-2"><TabsTrigger value="images">{props.t("views.images", tt("module:kisaki.filter.categories.images", "图片"))}</TabsTrigger><TabsTrigger value="folders">{props.t("views.folders", tt("module:kisaki.filter.categories.folders", "文件夹"))} <Badge variant="outline">{props.result?.similarFolders?.length ?? 0}</Badge></TabsTrigger></TabsList></Tabs><div className="min-h-0 min-w-0 flex-1 overflow-hidden">{props.similarImagesViewMode === "folders" ? <KisakiSimilarFoldersView folders={props.result?.similarFolders ?? []} filterText={props.filterText} getFileUrl={props.getFileUrl} onCopyText={props.copyText} onOpenPath={props.openPath} onRevealPath={props.revealPath} /> : table}</div></div>
 }
 
 function AnalysisPanel(props: KisakiView) {
   const stats = props.result
   return (
-    <section className="flex min-h-0 flex-col rounded-md border bg-card">
+    <section className="flex h-full min-h-0 flex-col gap-2.5 overflow-hidden rounded-[24px] bg-[var(--md3e-surface,var(--card))] p-2.5">
       <SectionHeader
         icon={Search}
-        title={props.t("sections.analysisOperations", "分析与操作")}
+        title={props.t("sections.analysisOperations", tt("module:kisaki.sections.analysisOperations", "分析与操作"))}
         action={
           props.canResizeWorkspace ? (
             <Button
-              aria-label={props.t("workspace.minimizeAnalysis", "最小化分析与操作")}
+              aria-label={props.t("workspace.minimizeAnalysis", tt("module:kisaki.workspace.minimizeAnalysis", "最小化分析与操作"))}
               size="icon-xs"
               variant="ghost"
               onClick={() =>
@@ -177,12 +179,14 @@ function AnalysisPanel(props: KisakiView) {
           ) : null
         }
       />
-      <div className="grid grid-cols-2 gap-px border-b bg-border">
-        <Metric label={props.t("metrics.files", "文件")} value={String(stats?.fileCount ?? 0)} />
-        <Metric label={props.t("metrics.groups", "分组")} value={String(stats?.groupCount ?? 0)} />
-        <Metric label={props.t("metrics.totalSize", "总大小")} value={formatBytes(stats?.totalBytes ?? 0)} />
-        <Metric label={props.t("metrics.reclaimable", "可回收")} value={formatBytes(stats?.reclaimableBytes ?? 0)} accent />
-      </div>
+      <Md3eBentoStatGrid
+        items={[
+          { label: props.t("metrics.files", tt("module:kisaki.metrics.files", "文件")), value: String(stats?.fileCount ?? 0), icon: FolderSearch2, tone: "primary" },
+          { label: props.t("metrics.groups", tt("module:kisaki.metrics.groups", "分组")), value: String(stats?.groupCount ?? 0), icon: Layers, tone: "secondary" },
+          { label: props.t("metrics.totalSize", tt("module:kisaki.metrics.totalSize", "总大小")), value: formatBytes(stats?.totalBytes ?? 0), icon: HardDrive, tone: "default" },
+          { label: props.t("metrics.reclaimable", tt("module:kisaki.metrics.reclaimable", "可回收")), value: formatBytes(stats?.reclaimableBytes ?? 0), icon: Sparkles, tone: "tertiary" },
+        ]}
+      />
       <KisakiCardTabs activeId={props.data.analysisPanelTab} layout={props.cardLayout} panel="analysis" onActiveChange={(analysisPanelTab) => props.patch({ analysisPanelTab })} renderCard={(id) => <KisakiCardContent id={id} props={props} />} />
     </section>
   )

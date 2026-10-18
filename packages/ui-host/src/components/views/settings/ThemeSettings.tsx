@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { parseAsString, useQueryState } from "nuqs"
 import { useTranslation } from "react-i18next"
+import { LayoutGrid, Sparkles } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import { ScrollProgress } from "@/components/ui/scroll-progress"
 import { cn } from "@/lib/utils"
+import { Md3eShapeProvider } from "@/nodes/shared/Md3eShapeContext"
 import { useNodeSurface, type NodeSurfaceMode } from "@/nodes/shared/useNodeSurface"
+import { useWorkspaceActions, useWorkspaceShallowSelector } from "@/store/workspaceStore"
+import type { UiFace, ViewMode, OverlayKind } from "@/types/workspace"
 import { AppearanceSection } from "./AppearanceSection"
 import { DataSection } from "./DataSection"
+import { Md3eSettingsView } from "./Md3eSettingsView"
 import { RuntimeSection } from "./RuntimeSection"
 import { SettingsSearch } from "./SettingsSearch"
 import { SettingsStageNav, type SettingsNavVariant } from "./SettingsStageNav"
@@ -89,6 +95,12 @@ export function ThemeSettings() {
   const surface = useNodeSurface()
   const contentRef = useRef<HTMLDivElement>(null)
   const [settingsParam, setSettingsParam] = useQueryState("settings", parseAsString)
+  const shellState = useWorkspaceShallowSelector((state) => ({
+    viewMode: ((state as { viewMode?: ViewMode }).viewMode ?? "cards") as ViewMode,
+    overlay: ((state as { overlay?: OverlayKind }).overlay ?? null) as OverlayKind,
+    uiFace: ((state as { uiFace?: UiFace }).uiFace ?? "legacy") as UiFace,
+  }))
+  const workspaceActions = useWorkspaceActions()
 
   const [stepParam, setStepParam] = useQueryState("settingsStep", parseAsString)
   const deepLinkSection = parseSettingsSectionId(settingsParam)
@@ -98,6 +110,7 @@ export function ThemeSettings() {
     () => stageById(deepLinkSection ?? "appearance").steps[0]?.id ?? null,
   )
   const [pendingStep, setPendingStep] = useState<SettingsStepId | null>(null)
+  const [scrolled, setScrolled] = useState(false)
 
   const stage = stageById(section)
   const stageIndex = SETTINGS_STAGES.findIndex((item) => item.id === section)
@@ -141,6 +154,7 @@ export function ThemeSettings() {
     setSection(next)
     setActiveStep(stageById(next).steps[0]?.id ?? null)
     setPendingStep(null)
+    setScrolled(false)
     contentRef.current?.scrollTo({ top: 0 })
     void setSettingsParam(next)
     void setStepParam(null)
@@ -166,48 +180,104 @@ export function ThemeSettings() {
     selectStep(match.sectionId, match.stepId)
   }
 
+  if (shellState.uiFace === "md3e") {
+    return (
+      <Md3eShapeProvider
+        nodeId="workspace"
+        enabled
+        surfaceWidth={surface.width}
+        surfaceMode={surface.mode}
+      >
+        <Md3eSettingsView
+          surface={surface}
+          chrome={chrome}
+          initialSection={deepLinkSection}
+          initialStep={deepLinkStep}
+          onSyncLegacyRoute={(nextSection, nextStep) => {
+            setSection(nextSection)
+            setActiveStep(nextStep ?? stageById(nextSection).steps[0]?.id ?? null)
+            void setSettingsParam(nextSection)
+            void setStepParam(nextStep)
+          }}
+        />
+      </Md3eShapeProvider>
+    )
+  }
+
   return (
     <div
       ref={surface.ref}
       data-settings-surface
+      data-settings-face="legacy"
       data-settings-mode={surface.mode}
       data-settings-density={surface.density}
+      data-settings-scrolled={scrolled ? "true" : "false"}
       className="@container/settings flex h-full min-h-0 w-full flex-col overflow-hidden"
     >
       {/* Header adapts like node chrome: tight cards drop subtitle / search. */}
       {!chrome.contentOnly ? (
-        <div className={cn(
-          "shrink-0 border-b border-border/60",
-          roomy ? "px-4 py-3" : "px-3 py-2",
-        )}
+        <div
+          data-settings-header
+          className={cn(
+            "shrink-0 border-b border-border/60",
+            roomy ? (scrolled ? "px-4 py-2" : "px-4 py-3") : "px-3 py-2",
+          )}
         >
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0">
-                <h1 className={cn("truncate font-semibold text-foreground", roomy ? "text-sm" : "text-xs")}>
+                <h1 data-settings-title className={cn("truncate font-semibold text-foreground", roomy ? "text-sm" : "text-xs")}>
                   {t("settings:title")}
                 </h1>
                 {chrome.showSubtitle ? (
-                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                  <p data-settings-subtitle className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                     {t("settings:headerSubtitle")}
                   </p>
                 ) : null}
               </div>
-              {chrome.showStageMeta ? (
-                <div className="hidden shrink-0 rounded-md border border-border/60 bg-muted/20 px-2.5 py-1.5 text-right sm:block">
-                  <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
-                    {t("settings:timeline.railTitle")}
-                  </p>
-                  <p className="mt-0.5 text-[11px] font-medium text-foreground">
-                    {t(stage.labelKey)}
-                    <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">
-                      {String(Math.max(stageIndex, 0) + 1).padStart(2, "0")}/
-                      {String(SETTINGS_STAGES.length).padStart(2, "0")}
-                    </span>
-                  </p>
-                </div>
-              ) : null}
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  data-settings-ui-face-switcher
+                  data-ui-face-option="md3e"
+                  onClick={() => workspaceActions.setUiFace?.("md3e")}
+                  title="切换到 Material 3 Expressive (MD3E) 界面形态"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>切换 MD3E 形态</span>
+                </button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() => {
+                    workspaceActions.deployComponent("settings", shellState.viewMode)
+                    if (shellState.overlay === "settings") workspaceActions.setOverlay(null)
+                  }}
+                  title={t("registry:deployToLayout")}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  {t("registry:deployToLayout")}
+                </Button>
+                {chrome.showStageMeta ? (
+                  <div className="hidden rounded-md border border-border/60 bg-muted/20 px-2.5 py-1.5 text-right sm:block">
+                    <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-muted-foreground">
+                      {t("settings:timeline.railTitle")}
+                    </p>
+                    <p className="mt-0.5 text-[11px] font-medium text-foreground">
+                      {t(stage.labelKey)}
+                      <span className="ml-1.5 font-mono text-[10px] text-muted-foreground">
+                        {String(Math.max(stageIndex, 0) + 1).padStart(2, "0")}/
+                        {String(SETTINGS_STAGES.length).padStart(2, "0")}
+                      </span>
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             </div>
+
             {chrome.showSearch ? (
               <SettingsSearch onSelect={handleSearchSelect} className="max-w-md" />
             ) : null}
@@ -252,6 +322,10 @@ export function ThemeSettings() {
           <ScrollProgress containerRef={contentRef} className="absolute inset-x-0 top-0 h-0.5" />
           <div
             ref={contentRef}
+            onScroll={(event) => {
+              const nextScrolled = event.currentTarget.scrollTop > 24
+              setScrolled((prev) => (prev === nextScrolled ? prev : nextScrolled))
+            }}
             className={cn(
               "h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto",
               roomy ? "p-4" : chrome.navVariant === "select" ? "p-2" : "p-3",

@@ -26,6 +26,7 @@ import type {
   Lane,
   OverlayKind,
   OverlayMode,
+  UiFace,
   ViewMode,
   WorkspaceItem,
 } from "@/types/workspace"
@@ -58,6 +59,8 @@ export interface WSState {
    * 默认 `native` = 不接管，等价于本字段不存在。
    */
   designTheme: DesignThemeConfig
+  /** 工作台界面形态（ADR-0033）：legacy（默认，完整旧版）| md3e（专用 Material 3 Expressive 形态，与设计语言正交）。 */
+  uiFace: UiFace
   /** 当前视图模式。 */
   viewMode: ViewMode
   /** cards 视图下的卡片布局方式。 */
@@ -222,6 +225,8 @@ export interface WorkspaceUiActions {
   setFontPreset(fontPreset: AppFontPreset): void
   /** 整体替换高级主题配置（设计语言）；维度开关也由这里一次写全。 */
   setDesignTheme(designTheme: DesignThemeConfig): void
+  /** 切换工作台界面形态（legacy | md3e），与设计语言和配色策略正交。 */
+  setUiFace(uiFace: UiFace): void
   setViewMode(mode: ViewMode): void
   setCardLayout(layout: CardLayout): void
   setTrellisNavigation(navigation: "focus" | "free"): void
@@ -374,6 +379,7 @@ export type WorkspaceUiPreferences = Pick<
   | "activeCustomThemeName"
   | "fontPreset"
   | "designTheme"
+  | "uiFace"
   | "cardLayout"
   | "defaultView"
   | "trellisMapPosition"

@@ -941,3 +941,105 @@ export function useMd3eActive(): boolean {
   if (uiFace) return uiFace === "md3e"
   return typeof document !== "undefined" && document.documentElement.dataset.uiFace === "md3e"
 }
+
+/**
+ * MD3E 步进滑杆：一行标签 + 当前值 + 减/加两颗图标按钮 + 一条滑轨。
+ * 三个入口写回同一个数（滑块、减、加），所以不会出现「拖了 3.5 但显示 3」。
+ */
+export function Md3eStepperSlider(props: {
+  icon: LucideIcon
+  label: string
+  value: number
+  min: number
+  max: number
+  step: number
+  disabled?: boolean
+  onChange: (value: number) => void
+  className?: string
+  children?: ReactNode
+}) {
+  const Icon = props.icon
+  const decimals = String(props.step).includes(".") ? String(props.step).split(".")[1].length : 0
+  const clamp = (next: number) => {
+    const bounded = Math.min(props.max, Math.max(props.min, next))
+    return Number(bounded.toFixed(decimals))
+  }
+  return (
+    <div className={cn("rounded-2xl border border-border/60 px-3 py-2", props.className)}>
+      <div className="flex min-w-0 items-center gap-2">
+        <Icon className="size-4 shrink-0 text-[var(--md3e-primary,var(--primary))]" />
+        <span className="min-w-0 flex-1 truncate text-[11px] font-medium">{props.label}</span>
+        <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+          {props.value.toFixed(decimals)}
+        </span>
+        <Button
+          type="button"
+          size="icon-xs"
+          variant="outline"
+          aria-label={`${props.label} 减少`}
+          disabled={props.disabled || props.value <= props.min}
+          onClick={() => props.onChange(clamp(props.value - props.step))}
+        >
+          <Minus />
+        </Button>
+        <Button
+          type="button"
+          size="icon-xs"
+          variant="outline"
+          aria-label={`${props.label} 增加`}
+          disabled={props.disabled || props.value >= props.max}
+          onClick={() => props.onChange(clamp(props.value + props.step))}
+        >
+          <Plus />
+        </Button>
+      </div>
+      <Slider
+        className="mt-2"
+        value={[props.value]}
+        min={props.min}
+        max={props.max}
+        step={props.step}
+        disabled={props.disabled}
+        onValueChange={(next) => {
+          const first = next[0]
+          if (typeof first === "number") props.onChange(clamp(first))
+        }}
+        aria-label={props.label}
+      />
+      {props.children}
+    </div>
+  )
+}
+
+/**
+ * MD3E 开关行：图标 + 标题 + 说明 + 右侧开关，整行可读、开关自带 aria-label。
+ */
+export function Md3eSwitchRow(props: {
+  icon: LucideIcon
+  label: string
+  ariaLabel?: string
+  description?: string
+  checked: boolean
+  disabled?: boolean
+  onCheckedChange: (checked: boolean) => void
+  className?: string
+}) {
+  const Icon = props.icon
+  return (
+    <div className={cn("flex min-w-0 items-center gap-2 rounded-2xl border border-border/60 px-3 py-2", props.className)}>
+      <Icon className="size-4 shrink-0 text-[var(--md3e-primary,var(--primary))]" />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[11px] font-medium">{props.label}</div>
+        {props.description ? (
+          <div className="truncate text-[10px] text-muted-foreground">{props.description}</div>
+        ) : null}
+      </div>
+      <Switch
+        checked={props.checked}
+        disabled={props.disabled}
+        onCheckedChange={props.onCheckedChange}
+        aria-label={props.ariaLabel ?? props.label}
+      />
+    </div>
+  )
+}

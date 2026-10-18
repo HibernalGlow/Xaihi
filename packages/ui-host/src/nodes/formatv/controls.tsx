@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react"
-import { Clipboard, DatabaseZap, Eraser, FolderTree, Info, Repeat, ShieldAlert } from "lucide-react"
+import { Clipboard, DatabaseZap, Eraser, FolderTree, Hash, Info, Repeat, ShieldAlert } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -12,9 +12,17 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import {
+  Md3eConnectedGroup,
+  Md3eNodeShapePolicyPanel,
+  Md3eShapeBadge,
+  Md3eStatusPill,
+  Md3eWavyProgress,
+} from "@/nodes/shared/controls"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { DEFAULT_PREFIX_NAME } from "./constants"
 import type { FormatvCardState, FormatvStatusMeta } from "./types"
+import { tt } from "@/lib/i18nText"
 
 export function ActionIconButton(props: {
   active?: boolean
@@ -32,6 +40,7 @@ export function ActionIconButton(props: {
           aria-label={props.label}
           disabled={props.disabled}
           size="icon-sm"
+          shapeRole={props.destructive ? "danger" : props.active ? "secondary" : "toolbar"}
           variant={props.destructive ? "destructive" : props.active ? "secondary" : "outline"}
           onClick={props.onClick}
         >
@@ -55,28 +64,47 @@ export function PathInput(props: {
 }) {
   const { t: tNode } = useNodeI18n("formatv")
   return (
-    <div className="flex min-h-0 min-w-0 flex-col gap-1.5">
-      {!props.compact && (
-        <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="formatv-paths">{tNode("pathsLabel", "视频目录")}</Label>
-          <Badge variant="outline" className="shrink-0">{tNode("pathsCount", "{{count}} 条", { count: props.pathCount })}</Badge>
+    <div className="flex min-h-0 min-w-0 flex-col gap-2 rounded-[20px] bg-[var(--md3e-surface-high,var(--muted))]/65 p-2.5">
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <FolderTree className="size-3.5 shrink-0 text-primary" />
+          <Label htmlFor="formatv-paths" className="truncate text-xs font-extrabold tracking-tight">
+            {tNode("pathsLabel", "视频目录")}
+          </Label>
+          <Md3eStatusPill
+            label={tNode("pathsCount", "{{count}} 条", { count: props.pathCount })}
+            tone={props.pathCount > 0 ? "primary" : "neutral"}
+            compact
+            dot={false}
+          />
         </div>
-      )}
-      <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-1.5">
-        <Textarea
-          id="formatv-paths"
-          aria-label="formatv paths"
-          className={cn("min-h-0 resize-none font-mono text-xs", props.compact ? "h-14" : "h-24")}
-          disabled={props.disabled}
-          placeholder={"每行一个视频目录或文件路径"}
-          value={props.value}
-          onChange={(event) => props.onChange(event.currentTarget.value)}
-        />
-        <div className="grid content-start gap-1.5">
-          <ActionIconButton disabled={props.disabled} icon={Clipboard} label={tNode("buttons.pastePath", "粘贴路径")} onClick={props.onPaste} />
-          <ActionIconButton disabled={props.disabled || !props.value} icon={Eraser} label={tNode("buttons.clearPath", "清空路径")} onClick={props.onClear} />
+        <div className="flex shrink-0 items-center gap-1">
+          <ActionIconButton
+            disabled={props.disabled}
+            icon={Clipboard}
+            label={tNode("buttons.pastePath", "粘贴路径")}
+            onClick={props.onPaste}
+          />
+          <ActionIconButton
+            disabled={props.disabled || !props.value}
+            icon={Eraser}
+            label={tNode("buttons.clearPath", "清空路径")}
+            onClick={props.onClear}
+          />
         </div>
       </div>
+      <Textarea
+        id="formatv-paths"
+        aria-label="formatv paths"
+        className={cn(
+          "min-h-0 w-full resize-none rounded-[14px] border-0 bg-[var(--md3e-surface-lowest,var(--card))] px-3 py-2 font-mono text-xs leading-relaxed",
+          props.compact ? "h-14" : "h-20",
+        )}
+        disabled={props.disabled}
+        placeholder={tt("module:formatv.pathsPlaceholder", "每行一个视频目录或文件路径")}
+        value={props.value}
+        onChange={(event) => props.onChange(event.currentTarget.value)}
+      />
     </div>
   )
 }
@@ -85,17 +113,24 @@ export function PrimarySwitches(props: {
   compact?: boolean
   data: FormatvCardState
   disabled?: boolean
+  includePrefix?: boolean
+  prefixValue?: string
+  onPrefixChange?: (value: string) => void
   onPatch: (patch: Partial<FormatvCardState>) => void
 }) {
   const { t: tNode } = useNodeI18n("formatv")
   return (
-    <div
-      className={cn(
-        "grid gap-2",
-        props.compact ? "grid-cols-2" : "grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))]",
-      )}
+    <Md3eConnectedGroup
+      className="w-full"
       data-testid="formatv-key-switches"
     >
+      {props.includePrefix && props.onPrefixChange ? (
+        <PrefixField
+          disabled={props.disabled}
+          value={props.prefixValue ?? props.data.prefixName ?? DEFAULT_PREFIX_NAME}
+          onChange={props.onPrefixChange}
+        />
+      ) : null}
       <SwitchRow
         checked={props.data.recursive ?? false}
         disabled={props.disabled}
@@ -112,7 +147,7 @@ export function PrimarySwitches(props: {
         description={tNode("switches.dryRunDesc", "开启后只生成重命名计划，不写入文件系统。关闭后执行真实重命名。")}
         onCheckedChange={(dryRun) => props.onPatch({ dryRun })}
       />
-    </div>
+    </Md3eConnectedGroup>
   )
 }
 
@@ -127,7 +162,7 @@ export function OptionsPopover(props: {
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <Button aria-label="formatv options" disabled={props.disabled} size="icon-sm" variant="outline">
+            <Button aria-label="formatv options" disabled={props.disabled} size="icon-sm" shapeRole="toolbar" variant="outline">
               <Repeat />
               <span className="sr-only">{tNode("options.title", "任务选项")}</span>
             </Button>
@@ -135,18 +170,22 @@ export function OptionsPopover(props: {
         </TooltipTrigger>
         <TooltipContent>{tNode("options.title", "任务选项")}</TooltipContent>
       </Tooltip>
-      <PopoverContent align="end" className="w-[min(92vw,420px)]">
+      <PopoverContent align="end" className="w-[min(92vw,420px)] rounded-[24px] p-3.5">
         <div className="mb-3">
-          <div className="text-sm font-semibold">{tNode("options.title", "任务选项")}</div>
+          <div className="text-sm font-bold tracking-tight">{tNode("options.title", "任务选项")}</div>
           <p className="text-xs text-muted-foreground">{tNode("options.description", "前缀名称和递归、预演开关集中在这里。")}</p>
         </div>
         <div className="grid gap-3">
-          <PrefixField
-            value={props.data.prefixName ?? DEFAULT_PREFIX_NAME}
+          <PrimarySwitches
+            includePrefix
+            prefixValue={props.data.prefixName ?? DEFAULT_PREFIX_NAME}
+            onPrefixChange={(prefixName) => props.onPatch({ prefixName })}
+            data={props.data}
             disabled={props.disabled}
-            onChange={(prefixName) => props.onPatch({ prefixName })}
+            onPatch={props.onPatch}
           />
-          <PrimarySwitches data={props.data} disabled={props.disabled} onPatch={props.onPatch} />
+          <Separator />
+          <Md3eNodeShapePolicyPanel nodeId="formatv" compact />
         </div>
       </PopoverContent>
     </Popover>
@@ -169,7 +208,7 @@ export function ConfigDefaultsPopover(props: {
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <Button aria-label="formatv defaults" disabled={props.disabled} size="icon-sm" variant={props.configDirty ? "secondary" : "outline"}>
+            <Button aria-label="formatv defaults" disabled={props.disabled} size="icon-sm" shapeRole="toolbar" variant={props.configDirty ? "secondary" : "outline"}>
               <DatabaseZap />
               <span className="sr-only">{tNode("defaults.title", "默认配置")}</span>
             </Button>
@@ -177,12 +216,14 @@ export function ConfigDefaultsPopover(props: {
         </TooltipTrigger>
         <TooltipContent>{tNode("defaults.title", "默认配置")}</TooltipContent>
       </Tooltip>
-      <PopoverContent align="end" className="w-72">
+      <PopoverContent align="end" className="w-80 rounded-[24px] p-3.5">
         <div className="mb-3">
-          <div className="text-sm font-semibold">{tNode("defaults.title", "默认配置")}</div>
+          <div className="text-sm font-bold tracking-tight">{tNode("defaults.title", "默认配置")}</div>
           <p className="text-xs text-muted-foreground">{tNode("defaults.description", "保存 FormatV 的路径、前缀和开关到明文配置。")}</p>
         </div>
         <div className="grid gap-2">
+          <Md3eNodeShapePolicyPanel nodeId="formatv" compact />
+          <Separator />
           <Button disabled={props.disabled} size="sm" onClick={props.onSaveDefault}>{tNode("buttons.saveDefault", "保存为默认")}</Button>
           <Button disabled={props.disabled} size="sm" variant="outline" onClick={props.onRestoreDefault}>{tNode("buttons.restoreDefault", "恢复默认")}</Button>
           <Button disabled={props.disabled} size="sm" variant="outline" onClick={props.onResetOverride}>{tNode("buttons.clearOverride", "清除覆盖")}</Button>
@@ -191,7 +232,7 @@ export function ConfigDefaultsPopover(props: {
             <DialogTrigger asChild>
               <Button disabled={!props.configFilePath} size="sm" variant="ghost">{tNode("buttons.viewConfig", "查看配置")}</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="rounded-[28px] sm:max-w-xl">
               <DialogHeader>
                 <DialogTitle>{tNode("defaults.configTitle", "FormatV 配置")}</DialogTitle>
                 <DialogDescription>{tNode("defaults.configDesc", "当前 nodes.formatv 默认值和配置文件位置。")}</DialogDescription>
@@ -213,12 +254,19 @@ export function StatusStrip(props: {
   text?: string
 }) {
   return (
-    <div className={cn("rounded-md border bg-background/70 p-2", props.compact && "p-1.5")}>
-      <div className="mb-1 flex min-w-0 items-center justify-between gap-2">
-        <div className="truncate text-xs font-medium">{props.text || props.status.description}</div>
-        <Badge variant={props.status.badgeVariant} className="shrink-0">{props.status.label}</Badge>
+    <div className={cn("rounded-[18px] bg-[var(--md3e-surface-high,var(--muted))]/75 px-3 py-2", props.compact && "rounded-[14px] p-2")}>
+      <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2">
+        <div className="truncate text-xs font-bold">{props.text || props.status.description}</div>
+        <Badge variant={props.status.badgeVariant} className="shrink-0 rounded-full">{props.status.label}</Badge>
       </div>
-      <Progress value={props.progress} className={cn("h-1.5", props.status.tone === "error" && "bg-destructive/20")} />
+      {props.status.tone === "running" ? (
+        <div className="space-y-1">
+          <Md3eWavyProgress value={props.progress} running />
+          <Progress value={props.progress} className="sr-only h-1.5" />
+        </div>
+      ) : (
+        <Progress value={props.progress} className={cn("h-1.5", props.status.tone === "error" && "bg-destructive/20")} />
+      )}
     </div>
   )
 }
@@ -233,11 +281,19 @@ export function SwitchRow(props: {
 }) {
   const Icon = props.icon
   return (
-    <div className="flex min-w-0 items-center justify-between gap-1.5 rounded-md border bg-background/60 px-2 py-1.5">
-      <label className="flex min-w-0 flex-1 items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1.5">
-          {Icon && <Icon className="size-4 shrink-0 text-muted-foreground" />}
-          <span className="truncate text-xs font-medium">{props.label}</span>
+    <div className="flex min-w-0 items-center justify-between gap-2 bg-[var(--md3e-surface-high,var(--muted))]/75 px-3 py-2">
+      <label className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-2.5">
+          {Icon ? (
+            <Md3eShapeBadge
+              icon={Icon}
+              seed={`formatv-switch-${props.label}`}
+              tone={props.checked ? "primary" : "neutral"}
+              active={props.checked}
+              size="sm"
+            />
+          ) : null}
+          <span className="truncate text-xs font-bold">{props.label}</span>
         </span>
         <Switch checked={props.checked} disabled={props.disabled} size="sm" onCheckedChange={props.onCheckedChange} />
       </label>
@@ -253,13 +309,18 @@ export function PrefixField(props: {
 }) {
   const { t: tNode } = useNodeI18n("formatv")
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <Label htmlFor="formatv-prefix" className="text-xs">{tNode("prefix.label", "前缀名称")}</Label>
+    <div className="flex min-w-0 items-center justify-between gap-3 bg-[var(--md3e-surface-high,var(--muted))]/75 px-3 py-2">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <Md3eShapeBadge icon={Hash} seed="formatv-prefix" tone="secondary" size="sm" />
+        <Label htmlFor="formatv-prefix" className="truncate text-xs font-bold">
+          {tNode("prefix.label", "前缀名称")}
+        </Label>
+      </div>
       <Input
         id="formatv-prefix"
         aria-label="formatv prefix name"
         disabled={props.disabled}
-        className="font-mono"
+        className="h-8 w-28 shrink-0 rounded-full px-3 text-center font-mono text-xs font-bold"
         value={props.value}
         onChange={(event) => props.onChange(event.currentTarget.value)}
       />
@@ -277,11 +338,11 @@ function ConfigPreview(props: {
     : JSON.stringify(props.config, null, 2)
   return (
     <div className="grid gap-3">
-      <div className="rounded-md border bg-muted/30 px-3 py-2">
+      <div className="rounded-[16px] border bg-muted/30 px-3 py-2">
         <div className="text-xs font-medium text-muted-foreground">{tNode("defaults.configFile", "配置文件")}</div>
         <div className="mt-1 break-all font-mono text-xs">{props.path ?? tNode("defaults.notConnected", "未连接本地配置服务")}</div>
       </div>
-      <pre className="max-h-[45vh] overflow-auto rounded-md border bg-muted/30 p-3 text-xs leading-5">
+      <pre className="max-h-[45vh] overflow-auto rounded-[16px] border bg-muted/30 p-3 text-xs leading-5">
         {content}
       </pre>
     </div>
@@ -294,7 +355,7 @@ function InfoHint({ description, label }: { description: string; label: string }
       <TooltipTrigger asChild>
         <span
           aria-label={`${label}说明`}
-          className="inline-grid size-5 shrink-0 cursor-help place-items-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="inline-grid size-5 shrink-0 cursor-help place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
           role="img"
           tabIndex={0}
         >

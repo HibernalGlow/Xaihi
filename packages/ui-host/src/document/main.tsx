@@ -31,12 +31,16 @@ import App from '@/App'
 import { startRealm } from './realm.ts'
 import { DocumentBridgeProvider } from './bridge-context.tsx'
 import { mountSettingsFace } from './settings-face.ts'
+import { mountUiFaceAttribute } from './ui-face.ts'
 import { DshRemotePlugins } from './remote-plugins'
 import '@/client/generated/client.css'
 import '@/index.css'
 
 // 预先初始化 i18n 资源
 void initI18n()
+
+// 界面形态落到 <html data-ui-face>：CSS 与设置页回读都只认这条属性。
+void mountUiFaceAttribute()
 
 // 桥在 render 之前就建好（握手是异步的，`useBridgeReady` 在树里等它），
 // 并且只建这一次：`startRealm()` 每调一次就多一条握手、多一个会话号。

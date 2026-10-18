@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { applyCustomTheme, applyThemePreset, getActiveCustomTheme, mirrorAestivusThemeStorage, resolveThemeScheme, type ThemeMode } from "@/lib/appearance"
 import type { DesignThemeConfig } from "@/lib/design-theme/contract"
-import type { AppCustomTheme } from "@/types/workspace"
+import { UI_FACE_ROOT_ATTR, normalizeUiFace, type AppCustomTheme } from "@/types/workspace"
 import { applyFontPreset } from "@/lib/appearance-fonts"
 import { installNativeRangeProgressSync, syncAllNativeRangeProgress } from "@/lib/sliderSkin"
 import { applyDesignTheme, clearDesignTheme } from "@/lib/design-theme/apply"
@@ -60,6 +60,7 @@ export function WorkspaceAppearance({ designTheme }: { designTheme?: DesignTheme
     customThemes: state.customThemes,
     fontPreset: state.fontPreset,
     designTheme: state.designTheme,
+    uiFace: state.uiFace,
     tabDisplayStyle: state.tabDisplayStyle,
     switchDisplayStyle: state.switchDisplayStyle,
     scrollbarDisplayStyle: state.scrollbarDisplayStyle,
@@ -70,8 +71,13 @@ export function WorkspaceAppearance({ designTheme }: { designTheme?: DesignTheme
     modulePanelStyle: state.modulePanelStyle,
     resizableHandleStyle: state.resizableHandleStyle,
   }))
+  const uiFace = normalizeUiFace(workspaceAppearance.uiFace)
   // 独立产品覆盖只参与渲染，不写工作台 store 或全局设置。
-  const appearance = { ...workspaceAppearance, designTheme: designTheme ?? workspaceAppearance.designTheme }
+  // ADR-0033：uiFace="md3e" 与设计语言正交；启用 md3e 界面形态时，在渲染层驱动 MD3 动态取色与语义色阶引擎，
+  // 不篡改 store 里保存的 legacy 设计语言 id（切回 legacy 即可原样恢复 native/武陵/风格派等）。
+  const effectiveDesignTheme: DesignThemeConfig = designTheme
+    ?? (uiFace === "md3e" ? { ...workspaceAppearance.designTheme, id: "md3" } : workspaceAppearance.designTheme)
+  const appearance = { ...workspaceAppearance, uiFace, designTheme: effectiveDesignTheme }
 /**
  * 组件皮肤属性写盘：「不接管」必须写成**属性缺失**，不能写成一个值。
  *
@@ -86,37 +92,42 @@ function setSkinAttribute(name: "tabsStyle" | "switchStyle" | "scrollbarStyle" |
   else root.dataset[name] = value
 }
 
+  const forceCanonicalSkin = appearance.designTheme.id === "md3" && appearance.designTheme.md3.forceCanonical
   const [systemDark, setSystemDark] = useState(() => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? document.documentElement.classList.contains("dark"))
+
+  useEffect(() => {
+    document.documentElement.setAttribute(UI_FACE_ROOT_ATTR, appearance.uiFace)
+  }, [appearance.uiFace])
 
   useEffect(() => {
     applyFontPreset(appearance.fontPreset)
   }, [appearance.fontPreset])
 
   useEffect(() => {
-    setSkinAttribute("tabsStyle", appearance.tabDisplayStyle)
-  }, [appearance.tabDisplayStyle])
+    setSkinAttribute("tabsStyle", forceCanonicalSkin ? "none" : appearance.tabDisplayStyle)
+  }, [appearance.tabDisplayStyle, forceCanonicalSkin])
 
   useEffect(() => {
-    setSkinAttribute("switchStyle", appearance.switchDisplayStyle)
-  }, [appearance.switchDisplayStyle])
+    setSkinAttribute("switchStyle", forceCanonicalSkin ? "none" : appearance.switchDisplayStyle)
+  }, [appearance.switchDisplayStyle, forceCanonicalSkin])
 
   useEffect(() => {
-    setSkinAttribute("scrollbarStyle", appearance.scrollbarDisplayStyle)
-  }, [appearance.scrollbarDisplayStyle])
+    setSkinAttribute("scrollbarStyle", forceCanonicalSkin ? "none" : appearance.scrollbarDisplayStyle)
+  }, [appearance.scrollbarDisplayStyle, forceCanonicalSkin])
 
   useEffect(() => {
-    setSkinAttribute("sliderStyle", appearance.sliderDisplayStyle)
+    setSkinAttribute("sliderStyle", forceCanonicalSkin ? "none" : appearance.sliderDisplayStyle)
     // Re-sync native range fill rails after skin tokens change.
     syncAllNativeRangeProgress(document)
-  }, [appearance.sliderDisplayStyle])
+  }, [appearance.sliderDisplayStyle, forceCanonicalSkin])
 
   useEffect(() => installNativeRangeProgressSync(), [])
 
   useEffect(() => {
-    setSkinAttribute("choiceControlStyle", appearance.choiceControlStyle)
-    setSkinAttribute("fieldTitleStyle", appearance.fieldTitleStyle)
+    setSkinAttribute("choiceControlStyle", forceCanonicalSkin ? "none" : appearance.choiceControlStyle)
+    setSkinAttribute("fieldTitleStyle", forceCanonicalSkin ? "none" : appearance.fieldTitleStyle)
     delete document.documentElement.dataset.choiceControlLabelStyle
-  }, [appearance.fieldTitleStyle, appearance.choiceControlStyle])
+  }, [appearance.fieldTitleStyle, appearance.choiceControlStyle, forceCanonicalSkin])
 
   useEffect(() => {
     document.documentElement.dataset.moduleTitleStyle = appearance.moduleTitleStyle

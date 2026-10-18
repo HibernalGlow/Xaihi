@@ -101,9 +101,9 @@ function ScanPresetManager(props: KisakiView) {
     }
   }
   return (
-    <details className="rounded-md border bg-muted/20 p-2">
-      <summary className="cursor-pointer text-xs font-medium">{props.t("presets.title", "扫描配置预设")} · {presets.length}</summary>
-      <div className="mt-2 grid gap-2">
+    <details className="rounded-[18px] bg-[var(--md3e-surface-high,var(--muted))]/65 px-3 py-2.5">
+      <summary className="cursor-pointer text-xs font-extrabold tracking-tight">{props.t("presets.title", "扫描配置预设")} · {presets.length}</summary>
+      <div className="mt-2.5 grid gap-2.5">
         {presets.length ? (
           <Field label={props.t("presets.active", "活动预设")}>
             <Select value={active?.id ?? ""} onValueChange={apply}>
@@ -123,25 +123,26 @@ function ScanPresetManager(props: KisakiView) {
         <Field label={props.t("presets.name", "预设名称")}>
           <Input aria-label="scan preset name" value={name} onChange={(event) => setName(event.currentTarget.value)} />
         </Field>
-        <div className="grid grid-cols-3 gap-1">
-          <Button size="xs" variant="outline" onClick={() => save(false)}>
+        <div className="grid grid-cols-3 gap-1.5">
+          <Button size="xs" variant="secondary" className="rounded-full" onClick={() => save(false)}>
             {props.t("presets.create", "新建")}
           </Button>
-          <Button disabled={!active} size="xs" variant="outline" onClick={() => save(true)}>
+          <Button disabled={!active} size="xs" variant="outline" className="rounded-full" onClick={() => save(true)}>
             {props.t("presets.overwrite", "覆盖")}
           </Button>
-          <Button disabled={!active} size="xs" variant="ghost" onClick={remove}>
+          <Button disabled={!active} size="xs" variant="ghost" className="rounded-full" onClick={remove}>
             {props.t("presets.delete", "删除")}
           </Button>
         </div>
         <Field label={props.t("presets.transfer", "导入 / 导出 JSON")}>
           <Textarea aria-label="scan preset transfer" className="min-h-24 font-mono text-[10px]" value={transferText} onChange={(event) => setTransferText(event.currentTarget.value)} />
         </Field>
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-2 gap-1.5">
           <Button
             disabled={!presets.length}
             size="xs"
             variant="outline"
+            className="rounded-full"
             onClick={() => {
               setTransferText(exportKisakiScanPresets(presets))
               setError("")
@@ -149,7 +150,7 @@ function ScanPresetManager(props: KisakiView) {
           >
             {props.t("presets.export", "导出")}
           </Button>
-          <Button disabled={!transferText.trim()} size="xs" variant="outline" onClick={importPresets}>
+          <Button disabled={!transferText.trim()} size="xs" variant="outline" className="rounded-full" onClick={importPresets}>
             {props.t("presets.importMerge", "导入合并")}
           </Button>
         </div>

@@ -34,12 +34,12 @@ import { useBridgeReady, useDocumentBridge } from "@/document/bridge-context"
 import { getActiveCustomTheme, mirrorAestivusThemeStorage, parseImportedThemeJson, type ThemeMode } from "@/lib/appearance"
 import { FONT_PRESETS } from "@/lib/appearance-fonts"
 import { normalizeDesignThemeConfig } from "@/lib/design-theme/contract"
-import { normalizePersistedBackgroundImageUrl, sanitizePersistedBackgroundImageUrl, shrinkStoredBackgroundImageUrl } from "@/lib/backgroundImage"
+import { isBackgroundImageDataUrl, normalizePersistedBackgroundImageUrl, sanitizePersistedBackgroundImageUrl, shrinkStoredBackgroundImageUrl } from "@/lib/backgroundImage"
 import { useTheme } from "@/components/use-theme"
 import { changeLanguage, getCurrentLanguage, type Language } from "@/i18n"
 import { useWorkspaceStore, useWorkspaceActions, useWorkspaceShallowSelector } from "@/store/workspaceStore"
 import type { OverlayFloatingMetrics, WorkspaceUiPreferences } from "@/store/workspace/types"
-import type { AppCustomTheme, AppFontPreset, AppTheme, CardLayout } from "@/types/workspace"
+import { UI_FACES, type AppCustomTheme, type AppFontPreset, type AppTheme, type UiFace } from "@/types/workspace"
 import { startupDebug, startupDebugAsync } from "@/lib/startupDebug"
 import { createLogger } from "@/lib/logger"
 import { normalizeChromeActionOrder, normalizeChromeHiddenActions } from "./chromeActionPreferences"
@@ -81,6 +81,7 @@ type BrowserLegacyConfig = Pick<AppUiConfig, "migratedFrom"> & {
 // 2026-10-05：其余 16 套内置预设整批出局，只留武陵。持久化里读到退役的名字时，
 // `isOneOf` 会把它整条丢掉，store 落回默认（也是武陵）——不会出现「选了个不存在的主题」的空洞。
 const APP_THEMES = new Set<AppTheme>(["wuling"])
+const UI_FACE_SET = new Set<UiFace>(UI_FACES)
 const FONT_PRESET_KEYS = new Set<AppFontPreset>(FONT_PRESETS.map((preset) => preset.key))
 const BG_MODES = new Set<WorkspaceUiPreferences["bgMode"]>(["grid", "dot-grid", "image", "none"])
 const CHROME_POSITIONS = new Set<WorkspaceUiPreferences["chromePosition"]>(["left", "right", "island"])
@@ -487,6 +488,7 @@ export function selectWorkspaceUiPreferences(state: WorkspaceUiPreferences): Wor
     activeCustomThemeName: state.activeCustomThemeName,
     fontPreset: state.fontPreset,
     designTheme: state.designTheme,
+    uiFace: state.uiFace,
     cardLayout: state.cardLayout,
     defaultView: state.defaultView,
     trellisMapPosition: state.trellisMapPosition,
@@ -604,6 +606,7 @@ function normalizeWorkspacePreferences(value: unknown): Partial<WorkspaceUiPrefe
   // 高级主题是嵌套表（TOML 里 [app.ui.workspace.designTheme.md3]）；整份过解析器，
   // 不接受半个对象——否则一个手抖的 seed 会把整套设计语言带成半开状态。
   if (isRecord(value.designTheme)) next.designTheme = normalizeDesignThemeConfig(value.designTheme)
+  if (isOneOf(value.uiFace, UI_FACE_SET)) next.uiFace = value.uiFace
   if (value.cardLayout !== undefined) next.cardLayout = normalizeCardLayout(value.cardLayout)
   if (value.viewSwitchLoop !== undefined) next.viewSwitchLoop = value.viewSwitchLoop === true
   if (value.trellisMapPosition !== undefined) next.trellisMapPosition = normalizeTrellisMapPosition(value.trellisMapPosition)
@@ -622,7 +625,8 @@ function normalizeWorkspacePreferences(value: unknown): Partial<WorkspaceUiPrefe
   if (isOneOf(value.bgMode, BG_MODES)) next.bgMode = value.bgMode
   if (typeof value.bgImageUrl === "string") {
     const bgImageUrl = normalizePersistedBackgroundImageUrl(value.bgImageUrl)
-    // data: URL (base64) 存数据库，不从 TOML 加载
+    // data URL 不属于这一段（装不下，闸在 `backend/appConfigSections.ts`）：图归 `bgImage` 那一段，
+    // 这里读到 data URL 就当没读到来过 —— 写入侧同一件事由 `sanitizeWorkspaceConfig` 省略掉。
     if (bgImageUrl !== undefined && !bgImageUrl.startsWith("data:")) next.bgImageUrl = bgImageUrl
   }
   if (typeof value.bgOpacity === "number") next.bgOpacity = value.bgOpacity
@@ -675,7 +679,14 @@ function normalizeWorkspacePreferences(value: unknown): Partial<WorkspaceUiPrefe
   return Object.keys(next).length ? next : undefined
 }
 
-function mergeMissingWorkspacePreferences(config: AppUiConfig, fallback: WorkspaceUiPreferences): AppUiConfig {
+/**
+ * 宿主那一份 `app.ui` 与 store 现值之间的**补齐**规则，单独导出以便直接测它。
+ *
+ * 为什么导出去测而不是只在挂载序列里跑一遍：这一条是纯数据变换，而挂载那条路在这套
+ * vitest 里跑不起来（React 挂载 + 载体在场的组合会让 worker 不返回，2026-10-12 试过三条
+ * 探针定位到这里）；判据要能钉住"补齐不许把图抹掉"这件事，就只能直接喂给它真实的输入形状。
+ */
+export function mergeMissingWorkspacePreferences(config: AppUiConfig, fallback: WorkspaceUiPreferences): AppUiConfig {
   const normalized = normalizeAppUiConfig(config)
   // v4（2026-10-07，Xiranite 配置迁移为默认值）一次性重定基：v3 及更早的快照里存的是
   // **旧代码默认**派生的值（chromePosition: "right"、island scale 90/110/45/-3 等），
@@ -713,14 +724,22 @@ function normalizeThemeSelection(value: unknown): WorkspaceUiPreferences["themeS
   return { kind: value.kind, name: value.name } as WorkspaceUiPreferences["themeSelections"]["light"]
 }
 
-function sanitizeWorkspaceConfig(workspace: WorkspaceUiPreferences): WorkspaceUiPreferences {
-  const { customThemes: _customThemes, ...rest } = workspace
-  // data: URL (base64) 存数据库，不写 TOML
-  const rawBgImageUrl = workspace.bgImageUrl.startsWith("data:") ? "" : workspace.bgImageUrl
-  return {
-    ...rest,
-    bgImageUrl: sanitizePersistedBackgroundImageUrl(rawBgImageUrl),
-  }
+/**
+ * store 现值 → 写进 `appUi.ui` 那一段的形状，单独导出以便直接测它（理由同
+ * `mergeMissingWorkspacePreferences`）。这一格是"装不下的值该怎么表示"的唯一决定处，
+ * 而它写错一个空串就会把使用者那张背景图连 localStorage 那份一起抹掉。
+ */
+export function sanitizeWorkspaceConfig(workspace: WorkspaceUiPreferences): Partial<WorkspaceUiPreferences> {
+  const { customThemes: _customThemes, bgImageUrl, ...rest } = workspace
+  // data URL 装不进这一格（闸在 `backend/appConfigSections.ts`：桥单条消息 256 KiB 的四分之一，
+  // 而读回来的是整格 `appUi`）。**装不下 ⇒ 省略这个键**，不许写成 `""`：
+  // `""` 在读取侧的意思是"使用者没有背景图"，而 `mergeMissingWorkspacePreferences` 会把这份
+  // 假的"没有"当现值补进那一次补齐，于是挂载时 `""` 灌回 store 盖掉真图，zustand persist 紧接着
+  // 把 `""` 写进 localStorage —— 唯一的副本也就此没了（2026-10-12 使用者报的"热重载/重启后背景图
+  // 丢失"就是这一刀；判据在 `tests/background-image-mount-survival.spec.ts`）。
+  // 其余形状照旧走那条清洗：`blob:` 与空串仍落成 `""`，那是"明确没有"，不是"装不下"。
+  if (isBackgroundImageDataUrl(bgImageUrl)) return rest
+  return { ...rest, bgImageUrl: sanitizePersistedBackgroundImageUrl(bgImageUrl) }
 }
 
 function normalizeI18nConfig(value: unknown): AppUiConfig["i18n"] {

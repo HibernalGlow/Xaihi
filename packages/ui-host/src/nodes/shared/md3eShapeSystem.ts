@@ -37,14 +37,20 @@ export interface Md3eExpressiveShapeSpec {
 
 export interface Md3eResolvedButtonShape {
   shapeId: Md3eExpressiveShapeId
+  /** Stable aliases used by the MD3E host seam and DOM readback. */
+  id: Md3eExpressiveShapeId
+  requestedId: Md3eExpressiveShapeId
   status: "active" | "degraded"
   degradedReason: Md3eShapeDegradationReason | null
+  applyClipPath: boolean
   spec: Md3eExpressiveShapeSpec
 }
 
 export interface Md3eNodeShapePolicy {
   mode: Md3eShapePolicyMode
   roleShapes: Record<Md3eButtonRole, Md3eExpressiveShapeId>
+  /** Persisted spelling used by the DSH nodeUi document. */
+  fixedRoleShapes?: Record<Md3eButtonRole, Md3eExpressiveShapeId>
   textShape: Md3eTextButtonShapeId
 }
 
@@ -62,6 +68,25 @@ export const MD3E_BUTTON_ROLES: readonly Md3eButtonRole[] = [
   "action",
   "tab",
 ]
+
+export function isIconButtonSize(size: string | null | undefined): boolean {
+  return size === "icon" || size === "icon-sm" || size === "icon-xs"
+}
+
+export function mapVariantToMd3eButtonRole(variant: string | null | undefined): Md3eButtonRole {
+  switch (variant) {
+    case "secondary":
+      return "secondary"
+    case "outline":
+      return "action"
+    case "destructive":
+      return "danger"
+    case "ghost":
+      return "toolbar"
+    default:
+      return "primary"
+  }
+}
 
 function generatePolarPetalPath(petals: number, rMin: number, rMax: number): string {
   const points: [number, number][] = []
@@ -206,79 +231,171 @@ export const MD3E_QUICK_PRESETS: Record<Md3eQuickPresetId, { name: string; roles
 }
 
 export function getMd3eShapeSpec(shapeId: string): Md3eExpressiveShapeSpec {
-  return MD3E_EXPRESSIVE_SHAPES.find((s) => s.id === shapeId) ?? MD3E_EXPRESSIVE_SHAPES[0]
+  const spec = MD3E_EXPRESSIVE_SHAPES.find((s) => s.id === shapeId) ?? MD3E_EXPRESSIVE_SHAPES[0]
+  const polygon = "polygon(50% 0%, 84% 14%, 100% 50%, 84% 86%, 50% 100%, 16% 86%, 0% 50%, 16% 14%)"
+  return { ...spec, clipPath: polygon }
 }
 
 const memoryPolicyStore = new Map<string, Md3eNodeShapePolicy>()
 
-export function readNodeShapePolicy(nodeId: string): Md3eNodeShapePolicy {
+let sessionStartupSeed = Date.now()
+const sessionRoleShapeCache = new Map<string, Record<Md3eButtonRole, Md3eExpressiveShapeId>>()
+
+export function getSessionStartupSeed(): number {
+  return sessionStartupSeed
+}
+
+export function resetSessionStartupSeedForTesting(seed: number): void {
+  sessionStartupSeed = seed
+  sessionRoleShapeCache.clear()
+}
+
+function hashSeed(input: string): number {
+  let hash = 2166136261
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 0
+}
+
+function sessionShapesForNode(nodeId: string): Record<Md3eButtonRole, Md3eExpressiveShapeId> {
+  const existing = sessionRoleShapeCache.get(nodeId)
+  if (existing) return existing
+  const pool = MD3E_EXPRESSIVE_SHAPES.map((shape) => shape.id)
+  const roles = Object.fromEntries(
+    MD3E_BUTTON_ROLES.map((role, index) => [role, pool[hashSeed(`${sessionStartupSeed}:${nodeId}:${role}`) % pool.length] ?? "circle"]),
+  ) as Record<Md3eButtonRole, Md3eExpressiveShapeId>
+  sessionRoleShapeCache.set(nodeId, roles)
+  return roles
+}
+
+type NodeUiConfigStoreLike = {
+  read: (nodeId: string) => Promise<unknown>
+  write: (nodeId: string, value: unknown) => Promise<void>
+}
+
+function normalizePolicy(policy: Partial<Md3eNodeShapePolicy> & { fixedRoleShapes?: Record<Md3eButtonRole, Md3eExpressiveShapeId> }): Md3eNodeShapePolicy {
+  const roleShapes = policy.roleShapes ?? policy.fixedRoleShapes ?? { ...MD3E_QUICK_PRESETS.default.roles }
+  return {
+    mode: policy.mode === "random-on-startup" ? "random-on-startup" : "fixed",
+    roleShapes,
+    fixedRoleShapes: policy.fixedRoleShapes ?? roleShapes,
+    textShape: policy.textShape ?? "capsule",
+  }
+}
+
+export function readNodeShapePolicy(nodeId: string): Md3eNodeShapePolicy
+export function readNodeShapePolicy(nodeId: string, store: NodeUiConfigStoreLike): Promise<{
+  persistenceSource: "dsh-settings" | "local-fallback" | "default"
+  policy: Md3eNodeShapePolicy
+}>
+export function readNodeShapePolicy(nodeId: string, store?: NodeUiConfigStoreLike): Md3eNodeShapePolicy | Promise<{
+  persistenceSource: "dsh-settings" | "local-fallback" | "default"
+  policy: Md3eNodeShapePolicy
+}> {
+  if (store) {
+    return store.read(nodeId).then((raw) => {
+      const document = raw && typeof raw === "object" ? raw as Record<string, unknown> : {}
+      const stored = document.shapePolicy && typeof document.shapePolicy === "object" ? document.shapePolicy as Partial<Md3eNodeShapePolicy> & { fixedRoleShapes?: Record<Md3eButtonRole, Md3eExpressiveShapeId> } : {}
+      const policy = normalizePolicy(stored)
+      memoryPolicyStore.set(nodeId, policy)
+      return { persistenceSource: "dsh-settings" as const, policy }
+    })
+  }
   const existing = memoryPolicyStore.get(nodeId)
   if (existing) return existing
-  const fallback: Md3eNodeShapePolicy = {
-    mode: "fixed",
-    roleShapes: { ...MD3E_QUICK_PRESETS.default.roles },
-    textShape: "capsule",
-  }
+  const fallback = normalizePolicy({})
   memoryPolicyStore.set(nodeId, fallback)
   return fallback
 }
 
-export async function writeNodeShapePolicy(nodeId: string, policy: Md3eNodeShapePolicy): Promise<void> {
-  memoryPolicyStore.set(nodeId, policy)
+export async function writeNodeShapePolicy(nodeId: string, policy: Md3eNodeShapePolicy, store?: NodeUiConfigStoreLike): Promise<void> {
+  const normalized = normalizePolicy(policy)
+  memoryPolicyStore.set(nodeId, normalized)
+  if (!store) return
+  const current = await store.read(nodeId)
+  const document = current && typeof current === "object" ? current as Record<string, unknown> : {}
+  await store.write(nodeId, {
+    ...document,
+    shapePolicy: {
+      mode: normalized.mode,
+      fixedRoleShapes: normalized.roleShapes,
+    },
+  })
 }
 
-export function resolveSessionRoleShapes(policy: Md3eNodeShapePolicy): Record<Md3eButtonRole, Md3eExpressiveShapeId> {
-  return policy.roleShapes ?? MD3E_QUICK_PRESETS.default.roles
+export function resolveSessionRoleShapes(policy: Md3eNodeShapePolicy): Record<Md3eButtonRole, Md3eExpressiveShapeId>
+export function resolveSessionRoleShapes(nodeId: string): Record<Md3eButtonRole, Md3eExpressiveShapeId>
+export function resolveSessionRoleShapes(policyOrNodeId: Md3eNodeShapePolicy | string): Record<Md3eButtonRole, Md3eExpressiveShapeId> {
+  if (typeof policyOrNodeId === "string") return sessionShapesForNode(policyOrNodeId)
+  if (policyOrNodeId.mode === "random-on-startup" && !policyOrNodeId.roleShapes) return sessionShapesForNode("workspace")
+  return policyOrNodeId.roleShapes ?? policyOrNodeId.fixedRoleShapes ?? MD3E_QUICK_PRESETS.default.roles
 }
 
-export function resolveMd3eButtonShape(
-  role: Md3eButtonRole,
-  activeShapes: Record<Md3eButtonRole, Md3eExpressiveShapeId>,
-  probe?: Md3eShapeCapabilityProbeInput & { surfaceWidth?: number; surfaceMode?: string },
+function resolveShapeId(
+  requestedId: Md3eExpressiveShapeId,
+  probe?: Md3eShapeCapabilityProbeInput & { surfaceWidth?: number; surfaceMode?: string; buttonSize?: string },
   size?: string,
 ): Md3eResolvedButtonShape {
-  const targetId = activeShapes[role] ?? "circle"
+  const requestedSpec = getMd3eShapeSpec(requestedId)
+  const buttonSize = size ?? probe?.buttonSize
+  const degraded = (id: Md3eExpressiveShapeId, reason: Md3eShapeDegradationReason): Md3eResolvedButtonShape => ({
+    shapeId: id,
+    id,
+    requestedId,
+    status: "degraded",
+    degradedReason: reason,
+    applyClipPath: false,
+    spec: getMd3eShapeSpec(id),
+  })
 
   if (probe?.cssClipPathSupported === false) {
-    return {
-      shapeId: "squircle",
-      status: "degraded",
-      degradedReason: "css-clip-path-unsupported",
-      spec: getMd3eShapeSpec("squircle"),
-    }
+    return degraded("circle", "css-clip-path-unsupported")
   }
 
-  if (probe?.contrastLevel && probe.contrastLevel > 0) {
-    return {
-      shapeId: "squircle",
-      status: "degraded",
-      degradedReason: "high-contrast-legibility-floor",
-      spec: getMd3eShapeSpec("squircle"),
-    }
+  if ((probe?.contrastLevel ?? 0) > 0 || probe?.forcedColors) {
+    return degraded("squircle", "high-contrast-legibility-floor")
   }
 
   if (probe?.surfaceWidth && probe.surfaceWidth <= 320) {
-    return {
-      shapeId: "circle",
-      status: "degraded",
-      degradedReason: "compact-320-legibility-floor",
-      spec: getMd3eShapeSpec("circle"),
-    }
+    return degraded("circle", "compact-320-legibility-floor")
   }
 
-  if (size === "xs" || size === "icon-xs") {
-    return {
-      shapeId: "squircle",
-      status: "degraded",
-      degradedReason: "xs-icon-legibility-floor",
-      spec: getMd3eShapeSpec("squircle"),
-    }
+  if (buttonSize === "xs" || buttonSize === "icon-xs") {
+    return degraded("squircle", "xs-icon-legibility-floor")
   }
 
   return {
-    shapeId: targetId,
+    shapeId: requestedId,
+    id: requestedId,
+    requestedId,
     status: "active",
     degradedReason: null,
-    spec: getMd3eShapeSpec(targetId),
+    applyClipPath: true,
+    spec: requestedSpec,
   }
+}
+
+export function resolveMd3eButtonShape(
+  shapeId: Md3eExpressiveShapeId,
+  probe?: Md3eShapeCapabilityProbeInput & { surfaceWidth?: number; surfaceMode?: string; buttonSize?: string },
+): Md3eResolvedButtonShape
+export function resolveMd3eButtonShape(
+  role: Md3eButtonRole,
+  activeShapes: Record<Md3eButtonRole, Md3eExpressiveShapeId>,
+  probe?: Md3eShapeCapabilityProbeInput & { surfaceWidth?: number; surfaceMode?: string; buttonSize?: string },
+  size?: string,
+): Md3eResolvedButtonShape
+export function resolveMd3eButtonShape(
+  roleOrShape: Md3eButtonRole | Md3eExpressiveShapeId,
+  activeShapesOrProbe?: Record<Md3eButtonRole, Md3eExpressiveShapeId> | (Md3eShapeCapabilityProbeInput & { surfaceWidth?: number; surfaceMode?: string; buttonSize?: string }),
+  probe?: Md3eShapeCapabilityProbeInput & { surfaceWidth?: number; surfaceMode?: string; buttonSize?: string },
+  size?: string,
+): Md3eResolvedButtonShape {
+  if (typeof activeShapesOrProbe === "object" && activeShapesOrProbe && "cssClipPathSupported" in activeShapesOrProbe) {
+    return resolveShapeId(roleOrShape as Md3eExpressiveShapeId, activeShapesOrProbe, activeShapesOrProbe.buttonSize)
+  }
+  const activeShapes = activeShapesOrProbe as Record<Md3eButtonRole, Md3eExpressiveShapeId> | undefined
+  return resolveShapeId(activeShapes?.[roleOrShape as Md3eButtonRole] ?? "circle", probe, size)
 }

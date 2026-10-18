@@ -6,6 +6,7 @@
  */
 import { THEME_DESIGN_RECIPES } from "@/lib/appearance"
 import { normalizeDesignThemeConfig } from "@/lib/design-theme/contract"
+import { normalizeUiFace } from "@/types/workspace"
 import type { SetWorkspaceStore, WorkspaceUiActions, WorkspaceUiPreferences } from "./types"
 import { normalizeSwimlanePreferences } from "@/components/workspace/swimlane/model"
 import { normalizeChromeActionOrder, normalizeChromeHiddenActions } from "@/components/workspace/chromeActionPreferences"
@@ -91,6 +92,7 @@ export function createUiSlice(set: SetWorkspaceStore): WorkspaceUiActions {
     // 加字段之前的旧形状）都先过同一个解析器。不这么做，「切换配方」那条
     // `{...config, id}` 的展开就会把缺字段的状态原样带进 store 并持久化下去。
     setDesignTheme: (designTheme) => set({ designTheme: normalizeDesignThemeConfig(designTheme) }, false, "SET_DESIGN_THEME"),
+    setUiFace: (uiFace) => set({ uiFace: normalizeUiFace(uiFace) }, false, "SET_UI_FACE"),
     setViewMode: (mode) => set((state) => mode === "dashboard"
       ? { overlay: "dashboard", viewModeTouched: true }
       : { viewMode: mode, viewModeTouched: true, ...(state.overlay === "dashboard" ? { overlay: null } : {}) }, false, "SET_VIEW_MODE"),
@@ -202,6 +204,9 @@ function sanitizeUiPreferences(preferences: Partial<WorkspaceUiPreferences>): Pa
   if (sanitized.defaultView !== undefined) sanitized.defaultView = normalizeDefaultView(sanitized.defaultView)
   if (sanitized.designTheme !== undefined) {
     sanitized.designTheme = normalizeDesignThemeConfig(sanitized.designTheme)
+  }
+  if (sanitized.uiFace !== undefined) {
+    sanitized.uiFace = normalizeUiFace(sanitized.uiFace)
   }
   return sanitized
 }

@@ -24,7 +24,7 @@ import { normalizeCardLayout, normalizeDefaultView, normalizeTrellisMapPosition,
 import { create } from "zustand"
 import { createJSONStorage, devtools, persist } from "zustand/middleware"
 import { useShallow } from "zustand/react/shallow"
-import type { ComponentInstance } from "@/types/workspace"
+import { normalizeUiFace, type ComponentInstance } from "@/types/workspace"
 import { sanitizePersistedBackgroundImageUrl } from "@/lib/backgroundImage"
 import { normalizeDesignThemeConfig } from "@/lib/design-theme/contract"
 import { createWorkspaceActions } from "@/store/workspace/actions"
@@ -37,9 +37,10 @@ const EMPTY_COMPONENT_DATA = {} as Record<string, unknown>
 /**
  * 从完整 store 中挑选出需要持久化到 localStorage 的 UI 偏好字段。
  *
- * 注意 bgImageUrl 会经过 sanitizePersistedBackgroundImageUrl 处理：
- * base64 data URL 不写入 localStorage（体积过大），只保留 URL/path 字符串。
- * 完整的 base64 数据由后端 SQLite kv_store 表持久化。
+ * 注意 bgImageUrl 会经过 sanitizePersistedBackgroundImageUrl 处理：它只丢掉 `blob:` 那种
+ * 刷新即失效的内存 URL，**data URL 是原样写进 localStorage 的**。这一条不是偷懒：
+ * 宿主那一格（`appUi.bgImage`）装不下大图（闸在 `src/backend/appConfigSections.ts`），
+ * 于是这一份 localStorage 就是大图唯一读得回来的副本。
  */
 export function selectWorkspaceUiPreferences(state: WSStore): WorkspaceUiPreferences {
   return {
@@ -49,6 +50,7 @@ export function selectWorkspaceUiPreferences(state: WSStore): WorkspaceUiPrefere
     activeCustomThemeName: state.activeCustomThemeName,
     fontPreset: state.fontPreset,
     designTheme: state.designTheme,
+    uiFace: state.uiFace,
     cardLayout: state.cardLayout,
     defaultView: state.defaultView,
     trellisMapPosition: state.trellisMapPosition,
@@ -132,6 +134,7 @@ export function mergePersistedWorkspaceUi(persisted: unknown, current: WSStore):
   }
   merged.viewModeTouched = false
   merged.designTheme = normalizeDesignThemeConfig(state.designTheme ?? current.designTheme)
+  merged.uiFace = normalizeUiFace(state.uiFace ?? current.uiFace)
   return merged
 }
 
@@ -231,6 +234,7 @@ function selectWorkspaceState(store: WSStore): WSState {
     activeCustomThemeName: store.activeCustomThemeName,
     fontPreset: store.fontPreset,
     designTheme: store.designTheme,
+    uiFace: store.uiFace,
     viewMode: store.viewMode,
     cardLayout: store.cardLayout,
     defaultView: store.defaultView,
@@ -282,6 +286,12 @@ function selectWorkspaceState(store: WSStore): WSState {
     floatingWindowCaptionPosition: store.floatingWindowCaptionPosition,
     floatingWindowCaptionStyle: store.floatingWindowCaptionStyle,
     floatingWindowCaptionAutoCollapse: store.floatingWindowCaptionAutoCollapse,
+    alphabetIndexVisible: store.alphabetIndexVisible,
+    alphabetIndexOpacity: store.alphabetIndexOpacity,
+    alphabetIndexStyle: store.alphabetIndexStyle,
+    alphabetIndexWaveIntensity: store.alphabetIndexWaveIntensity,
+    alphabetIndexHideEmpty: store.alphabetIndexHideEmpty,
+    alphabetIndexDirectDeploySingle: store.alphabetIndexDirectDeploySingle,
     cardClickAction: store.cardClickAction,
     cardDoubleClickAction: store.cardDoubleClickAction,
     tabDisplayStyle: store.tabDisplayStyle,
@@ -296,6 +306,7 @@ function selectWorkspaceState(store: WSStore): WSState {
     hazardMode: store.hazardMode,
     executeUndoWindowMs: store.executeUndoWindowMs,
     restoreWorkspaceComponents: store.restoreWorkspaceComponents,
+    laneWorkspacePreferences: store.laneWorkspacePreferences,
   }
 }
 
@@ -313,6 +324,7 @@ export function selectWorkspaceActions(store: WSStore): WorkspaceActions {
     setActiveCustomThemeName: store.setActiveCustomThemeName,
     setFontPreset: store.setFontPreset,
     setDesignTheme: store.setDesignTheme,
+    setUiFace: store.setUiFace,
     setViewMode: store.setViewMode,
     setCardLayout: store.setCardLayout,
     setTrellisNavigation: store.setTrellisNavigation,

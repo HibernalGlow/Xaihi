@@ -9,6 +9,21 @@
 /** 工作区视图模式：dashboard（仪表盘）/ cards（分形卡片）/ flow（自由画布）/ lane（泳道）。 */
 export type ViewMode = "dashboard" | "cards" | "flow" | "lane"
 
+/**
+ * 工作台界面形态（ADR-0033）：
+ * - `legacy`：完整旧版界面（原布局 + 原顶栏 + 原五段设置 + 六套设计语言），出厂默认；
+ * - `md3e`：专用 Material 3 Expressive 界面形态（与设计语言及配色策略正交，共享同一份 store 与动作）。
+ */
+export type UiFace = "legacy" | "md3e"
+
+export const UI_FACES: readonly UiFace[] = ["legacy", "md3e"] as const
+export const DEFAULT_UI_FACE: UiFace = "legacy"
+export const UI_FACE_ROOT_ATTR = "data-ui-face" as const
+
+export function normalizeUiFace(value: unknown): UiFace {
+  return value === "md3e" ? "md3e" : "legacy"
+}
+
 /** 卡片在 cards 视图下的布局方式：focus（聚焦）/ trellis（递归分屏与缩放）。 */
 export type CardLayout = "focus" | "trellis"
 

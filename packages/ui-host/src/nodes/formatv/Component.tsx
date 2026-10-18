@@ -1,24 +1,33 @@
+import { tt } from "@/lib/i18nText"
 import { useEffect, useRef, useState } from "react"
 import type { NodeComponentProps, NodeRunResult } from "@xiranite/contract"
 import { FloatingWindowNodeHeader } from "@/components/workspace/FloatingWindowFrame"
 import type { FormatvAction, FormatvData, FormatvInput } from "@xiranite/node-formatv/core"
-import { Copy, Minus, Plus, RotateCcw, Search, Square, Video } from "lucide-react"
+import { Copy, FolderOpen, Minus, Plus, RotateCcw, Search, SlidersHorizontal, Square, Video } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { NodeHeroGlow } from "@/components/ui/node-hero-glow"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
-import { RunningTint } from "@/nodes/shared/controls"
+import {
+  Md3eBentoStatGrid,
+  Md3eHeaderBanner,
+  Md3eHeroActionBar,
+  Md3eNodeShapePolicyPanel,
+  Md3eNodeSurface,
+  Md3eSectionCard,
+  Md3eShapeBadge,
+  Md3eShapePopoverButton,
+  Md3eStatusPill,
+  RunningTint,
+} from "@/nodes/shared/controls"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import { ACTIONS, DEFAULT_PREFIX_NAME } from "./constants"
-import { ActionIconButton, OptionsPopover, PathInput, PrefixField, PrimarySwitches, StatusStrip } from "./controls"
+import { ActionIconButton, OptionsPopover, PathInput, PrimarySwitches, StatusStrip } from "./controls"
 import type { FormatvCardState, FormatvPhase, FormatvStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
@@ -46,7 +55,7 @@ export function Component({ compId, host }: NodeComponentProps) {
   const status = statusFromState(data, running, result, tNode)
   const compactSurface = surface.mode === "compact" || surface.mode === "portrait"
   const forceCollapsedSurface = compactSurface && surface.height > 0 && surface.height < 160
-  const portraitCompact = surface.mode === "portrait" || (surface.mode === "compact" && surface.width < 560 && surface.height >= 300)
+  const portraitCompact = surface.mode === "portrait" || (surface.mode === "compact" && surface.width < 340 && surface.height >= 360)
 
   useEffect(() => {
     host.getNodeConfig?.<Partial<FormatvCardState>>()
@@ -196,9 +205,12 @@ export function Component({ compId, host }: NodeComponentProps) {
 
   return (
     <TooltipProvider>
-      <div ref={surface.ref} className="@container/formatv relative flex h-full min-h-0 w-full overflow-hidden">
-        <NodeHeroGlow />
-        <div className="relative flex min-h-0 w-full flex-col">
+      <Md3eNodeSurface
+        nodeId="formatv"
+        surface={surface}
+        className="@container/formatv relative flex h-full min-h-0 w-full overflow-hidden rounded-[28px]"
+      >
+        <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-y-auto overflow-x-hidden">
           {surface.mode === "collapsed" || forceCollapsedSurface ? (
             <CollapsedView {...commonProps} />
           ) : compactSurface ? (
@@ -207,7 +219,7 @@ export function Component({ compId, host }: NodeComponentProps) {
             <FullView {...commonProps} />
           )}
         </div>
-      </div>
+      </Md3eNodeSurface>
     </TooltipProvider>
   )
 }
@@ -247,37 +259,43 @@ function createViewProps(props: {
 
 function CollapsedView(props: ViewProps) {
   return (
-    <div data-testid="formatv-collapsed-view" className="relative flex h-full min-h-0 items-center gap-2 overflow-hidden rounded-xl border bg-background/85 px-3 py-2 shadow-sm">
+    <div data-testid="formatv-collapsed-view" className="relative flex h-full min-h-0 items-center gap-3 overflow-hidden rounded-[26px] bg-[var(--md3e-surface,var(--card))] px-4 py-3">
       <RunningTint tone={props.status.tone} />
-      <div className={cn("relative grid size-8 shrink-0 place-items-center rounded-lg", props.status.iconClass)}>
-        <Video />
-      </div>
+      <Md3eShapeBadge icon={Video} seed="formatv-collapsed" tone="primary" active size="md" />
       <div className="relative min-w-0 flex-1">
-        <div className="flex items-center gap-1 text-xs font-semibold leading-none">
+        <div className="flex items-center gap-1.5 text-sm font-black tracking-tight leading-none">
           <span>FormatV</span>
-          <Badge variant={props.status.badgeVariant}>{props.status.label}</Badge>
+          <Md3eStatusPill label={props.status.label} tone={props.status.tone} compact />
         </div>
         <div className="mt-1 truncate text-xs text-muted-foreground">{summaryText(props)}</div>
       </div>
       <PrimaryActionButton compact props={props} />
-      {props.status.tone === "running" && <div className="relative text-xs tabular-nums text-muted-foreground">{props.progress}%</div>}
+      {props.status.tone === "running" && <div className="relative text-xs font-black tabular-nums text-primary">{props.progress}%</div>}
     </div>
   )
 }
 
 function CompactView(props: ViewProps) {
   return (
-    <div data-testid="formatv-compact-view" className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-start justify-between gap-2 p-3 pb-2">
+    <div data-testid="formatv-compact-view" className="flex min-h-0 flex-1 flex-col gap-2.5 p-3">
+      <div className="flex shrink-0 items-center justify-between gap-2 rounded-[22px] bg-[var(--md3e-surface,var(--card))] px-3.5 py-2.5">
         <HeaderLine status={props.status} subtitle={props.data.progressText || summaryText(props)} />
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1.5">
           <OptionsPopover data={props.data} disabled={props.running} onPatch={props.onPatch} />
           <PrimaryActionButton compact props={props} />
         </div>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-2 px-3 pb-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-2.5">
         <PathInput compact disabled={props.running} pathCount={props.pathCount} value={props.data.pathText ?? ""} onChange={(pathText) => props.onPatch({ pathText })} onClear={() => props.onPatch({ pathText: "" })} onPaste={props.onPaste} />
-        <PrimarySwitches compact data={props.data} disabled={props.running} onPatch={props.onPatch} />
+        <PrimarySwitches
+          compact
+          includePrefix
+          prefixValue={props.prefixName}
+          onPrefixChange={(prefixName) => props.onPatch({ prefixName })}
+          data={props.data}
+          disabled={props.running}
+          onPatch={props.onPatch}
+        />
         <ToolbarActions {...props} compact />
         {(props.status.tone === "running" || props.status.tone === "error") && (
           <StatusStrip compact progress={props.progress} status={props.status} text={props.data.progressText} />
@@ -292,17 +310,25 @@ function CompactView(props: ViewProps) {
 
 function PortraitCompactView(props: ViewProps) {
   return (
-    <div data-testid="formatv-portrait-view" className="flex h-full min-h-0 flex-col gap-2 p-2">
-      <div className="flex shrink-0 items-start justify-between gap-2">
+    <div data-testid="formatv-portrait-view" className="flex h-full min-h-0 flex-col gap-2.5 p-3">
+      <div className="flex shrink-0 items-center justify-between gap-2 rounded-[22px] bg-[var(--md3e-surface,var(--card))] px-3.5 py-2.5">
         <HeaderLine status={props.status} subtitle={props.data.progressText || summaryText(props)} />
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1.5">
           <OptionsPopover data={props.data} disabled={props.running} onPatch={props.onPatch} />
           <PrimaryActionButton compact props={props} />
         </div>
       </div>
-      <div className="grid shrink-0 gap-2">
+      <div className="grid shrink-0 gap-2.5">
         <PathInput compact disabled={props.running} pathCount={props.pathCount} value={props.data.pathText ?? ""} onChange={(pathText) => props.onPatch({ pathText })} onClear={() => props.onPatch({ pathText: "" })} onPaste={props.onPaste} />
-        <PrimarySwitches compact data={props.data} disabled={props.running} onPatch={props.onPatch} />
+        <PrimarySwitches
+          compact
+          includePrefix
+          prefixValue={props.prefixName}
+          onPrefixChange={(prefixName) => props.onPatch({ prefixName })}
+          data={props.data}
+          disabled={props.running}
+          onPatch={props.onPatch}
+        />
         <ToolbarActions {...props} compact />
       </div>
       <div className="min-h-0 flex-1">
@@ -314,36 +340,97 @@ function PortraitCompactView(props: ViewProps) {
 
 function FullView(props: ViewProps) {
   return (
-    <div data-testid="formatv-full-view" className="flex min-h-0 flex-1 flex-col gap-3 p-3">
-      <div className="flex shrink-0 flex-col gap-3 @4xl/formatv:flex-row @4xl/formatv:items-center @4xl/formatv:justify-between">
-        <div className="flex min-w-0 flex-col gap-2 @4xl/formatv:flex-row @4xl/formatv:items-center">
-          <HeaderLine status={props.status} subtitle={props.data.progressText || props.tNode("headerSubtitle", "{{count}} 路径 / {{mode}} / 前缀 {{prefix}}", { count: props.pathCount, mode: props.dryRun ? props.tNode("modeDryRun", "预演") : props.tNode("modeWrite", "真实执行"), prefix: props.prefixName })} />
-          <div data-testid="formatv-header-toolbar" className="flex min-w-0 flex-wrap items-center gap-2">
-            <ToolbarActions {...props} />
-          </div>
-        </div>
-        <StatsPanel progress={props.progress} result={props.result} prefixName={props.prefixName} />
-      </div>
+    <div data-testid="formatv-full-view" className="flex min-h-0 flex-1 flex-col gap-3 p-3.5">
+      <FloatingWindowNodeHeader>
+        <Md3eHeaderBanner
+          icon={Video}
+          title="FormatV"
+          eyebrow="节点 / 视频前缀与查重"
+          subtitle={props.data.progressText || props.tNode("headerSubtitle", "{{count}} 路径 / {{mode}} / 前缀 {{prefix}}", { count: props.pathCount, mode: props.dryRun ? props.tNode("modeDryRun", "预演") : props.tNode("modeWrite", "真实执行"), prefix: props.prefixName })}
+          status={props.status}
+          pills={
+            <Md3eStatusPill
+              label={`#${props.prefixName}`}
+              tone="secondary"
+              compact
+              dot={false}
+            />
+          }
+          testId="formatv-header-toolbar"
+          actions={
+            <>
+              <Md3eShapePopoverButton nodeId="formatv" />
+              <ActionIconButton disabled={!props.result && !props.logs.length} icon={RotateCcw} label={props.tNode("buttons.reset", tt("module:shared.ui.clearState", "清空状态"))} onClick={props.onReset} />
+              <NodeConfigButton
+                nodeKey="formatv"
+                configDirty={props.configDirty}
+                configFilePath={props.configFilePath}
+                defaults={props.defaults}
+                disabled={props.running}
+                onOpenConfigFile={props.onOpenConfigFile}
+                onResetOverride={props.onResetOverride}
+                onRestoreDefault={props.onRestoreDefault}
+                onSaveDefault={props.onSaveDefault}
+              />
+            </>
+          }
+        />
+      </FloatingWindowNodeHeader>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 @5xl/formatv:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
-        <section className="flex min-h-0 flex-col gap-3 overflow-auto pr-1">
-          <div className="grid gap-3 border-b pb-3">
-            <div>
-              <div className="text-sm font-semibold">{props.tNode("sections.input", "输入")}</div>
-              <div className="text-xs text-muted-foreground">{props.tNode("sections.inputDesc", "粘贴视频目录，扫描后可加/移除 .nov 或查重。")}</div>
-            </div>
-            <PathInput disabled={props.running} pathCount={props.pathCount} value={props.data.pathText ?? ""} onChange={(pathText) => props.onPatch({ pathText })} onClear={() => props.onPatch({ pathText: "" })} onPaste={props.onPaste} />
-            <PrefixField disabled={props.running} value={props.prefixName} onChange={(prefixName) => props.onPatch({ prefixName })} />
-          </div>
-          <div className="grid gap-3 border-b pb-3">
-            <div className="text-sm font-semibold">{props.tNode("sections.keySwitches", "关键开关")}</div>
-            <PrimarySwitches data={props.data} disabled={props.running} onPatch={props.onPatch} />
-          </div>
-          <StatusStrip progress={props.progress} status={props.status} text={props.data.progressText} />
-        </section>
+      <StatsPanel progress={props.progress} result={props.result} prefixName={props.prefixName} />
 
-        <div className="h-[clamp(12rem,32vh,20rem)] min-h-0 overflow-hidden @5xl/formatv:h-full">
-          <ResultTabs logs={props.logs} result={props.result} running={props.running} prefixName={props.prefixName} onCopyLogs={props.onCopyLogs} onCopyResults={props.onCopyResults} />
+      <div data-slot="md3e-workbench-grid">
+        <Md3eSectionCard
+          seed="formatv-control-deck"
+          icon={SlidersHorizontal}
+          title={props.tNode("sections.input", tt("module:formatv.sections.input", "输入"))}
+          badge={props.tNode("sections.keySwitches", tt("module:shared.ui.keyToggles", "关键开关"))}
+          description={props.tNode("sections.inputDesc", tt("module:formatv.sections.inputDesc", "粘贴视频目录，扫描后可加/移除 .nov 或查重。"))}
+          className="flex min-h-0 flex-col gap-3"
+        >
+          <Md3eHeroActionBar
+            primary={<PrimaryActionButton props={props} />}
+            secondary={
+              <>
+                <RenameActionButton action="add_nov" props={props} />
+                <RenameActionButton action="remove_nov" props={props} />
+                <ActionIconButton disabled={props.running || !props.pathCount} icon={Copy} label={props.tNode("buttons.checkDuplicates", tt("module:shared.ui.findDuplicates", "查重"))} onClick={() => props.onExecute("check_duplicates")} />
+              </>
+            }
+          />
+
+          <PathInput
+            disabled={props.running}
+            pathCount={props.pathCount}
+            value={props.data.pathText ?? ""}
+            onChange={(pathText) => props.onPatch({ pathText })}
+            onClear={() => props.onPatch({ pathText: "" })}
+            onPaste={props.onPaste}
+          />
+
+          <PrimarySwitches
+            includePrefix
+            prefixValue={props.prefixName}
+            onPrefixChange={(prefixName) => props.onPatch({ prefixName })}
+            data={props.data}
+            disabled={props.running}
+            onPatch={props.onPatch}
+          />
+
+          {(props.status.tone === "running" || props.status.tone === "error") && (
+            <StatusStrip progress={props.progress} status={props.status} text={props.data.progressText} />
+          )}
+        </Md3eSectionCard>
+
+        <div className="flex min-h-[240px] flex-1 flex-col overflow-hidden">
+          <ResultTabs
+            logs={props.logs}
+            result={props.result}
+            running={props.running}
+            prefixName={props.prefixName}
+            onCopyLogs={props.onCopyLogs}
+            onCopyResults={props.onCopyResults}
+          />
         </div>
       </div>
     </div>
@@ -352,24 +439,12 @@ function FullView(props: ViewProps) {
 
 function ToolbarActions(props: ViewProps & { compact?: boolean }) {
   return (
-    <div className={cn("flex min-w-0 items-center gap-1", props.compact && "justify-between")}>
-      <ActionIconButton disabled={props.running || !props.pathCount} icon={Search} label={props.tNode("buttons.scan", "扫描视频")} onClick={() => props.onExecute("scan")} />
+    <div className={cn("flex min-w-0 items-center gap-1.5", props.compact && "justify-between")}>
+      <ActionIconButton disabled={props.running || !props.pathCount} icon={Search} label={props.tNode("buttons.scan", tt("module:formatv.actionScanVideos", "扫描视频"))} onClick={() => props.onExecute("scan")} />
       <RenameActionButton action="add_nov" props={props} />
       <RenameActionButton action="remove_nov" props={props} />
-      <ActionIconButton disabled={props.running || !props.pathCount} icon={Copy} label={props.tNode("buttons.checkDuplicates", "查重")} onClick={() => props.onExecute("check_duplicates")} />
-      <ActionIconButton disabled={!props.result && !props.logs.length} icon={RotateCcw} label={props.tNode("buttons.reset", "清空状态")} onClick={props.onReset} />
-      {!props.compact && (
-        <NodeConfigButton nodeKey="formatv"
-          configDirty={props.configDirty}
-          configFilePath={props.configFilePath}
-          defaults={props.defaults}
-          disabled={props.running}
-          onOpenConfigFile={props.onOpenConfigFile}
-          onResetOverride={props.onResetOverride}
-          onRestoreDefault={props.onRestoreDefault}
-          onSaveDefault={props.onSaveDefault}
-        />
-      )}
+      <ActionIconButton disabled={props.running || !props.pathCount} icon={Copy} label={props.tNode("buttons.checkDuplicates", tt("module:shared.ui.findDuplicates", "查重"))} onClick={() => props.onExecute("check_duplicates")} />
+      <ActionIconButton disabled={!props.result && !props.logs.length} icon={RotateCcw} label={props.tNode("buttons.reset", tt("module:shared.ui.clearState", "清空状态"))} onClick={props.onReset} />
     </div>
   )
 }
@@ -377,7 +452,7 @@ function ToolbarActions(props: ViewProps & { compact?: boolean }) {
 function PrimaryActionButton({ compact, props }: { compact?: boolean; props: ViewProps }) {
   if (props.running) {
     return (
-      <Button aria-label={props.tNode("aria.running", "formatv running")} disabled size={compact ? "icon-sm" : "sm"} variant="secondary">
+      <Button aria-label={props.tNode("aria.running", "formatv running")} disabled size={compact ? "icon-sm" : "default"} shapeRole="primary" variant="secondary">
         <Square />
         {!compact && <span>{props.tNode("status.running", "运行中")}</span>}
       </Button>
@@ -385,9 +460,9 @@ function PrimaryActionButton({ compact, props }: { compact?: boolean; props: Vie
   }
 
   const disabled = !props.pathCount
-  const label = props.tNode("buttons.scan", "扫描视频")
+  const label = props.tNode("buttons.scan", tt("module:formatv.actionScanVideos", "扫描视频"))
   return (
-    <Button aria-label={label} disabled={disabled} size={compact ? "icon-sm" : "sm"} onClick={() => props.onExecute("scan")}>
+    <Button aria-label={label} disabled={disabled} size={compact ? "icon-sm" : "default"} shapeRole="primary" onClick={() => props.onExecute("scan")}>
       <Search />
       {!compact && <span>{label}</span>}
     </Button>
@@ -402,8 +477,6 @@ function RenameActionButton({ action, props }: { action: "add_nov" | "remove_nov
   const Icon = meta.icon
   const disabled = props.running || !props.pathCount
 
-  // 危险闸门只属于这两个重命名动作：扫描/查重由 PrimaryActionButton 与 ActionIconButton 承担，
-  // `action` 的参数类型已经把它们排除在外，因此 dangerous 只剩预演开关这一项。
   return (
     <ExecuteButton
       compact
@@ -422,20 +495,16 @@ function HeaderLine({ status, subtitle }: {
 }) {
   return (
     <FloatingWindowNodeHeader>
-    <div className="min-w-0">
-      <div className="flex min-w-0 items-center gap-2">
-        <div className={cn("grid size-8 shrink-0 place-items-center rounded-lg", status.iconClass)}>
-          <Video />
-        </div>
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <h3 className="truncate text-sm font-semibold leading-none">FormatV</h3>
-            <Badge variant={status.badgeVariant}>{status.label}</Badge>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <Md3eShapeBadge icon={Video} seed="formatv-header" tone="primary" active size="md" />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <h3 className="truncate text-base font-black tracking-tight leading-none">FormatV</h3>
+            <Md3eStatusPill label={status.label} tone={status.tone} compact />
           </div>
-          <p className="mt-1 truncate text-xs text-muted-foreground">{subtitle}</p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>
         </div>
       </div>
-    </div>
     </FloatingWindowNodeHeader>
   )
 }
@@ -447,24 +516,17 @@ function StatsPanel(props: {
 }) {
   const { t: tNode } = useNodeI18n("formatv")
   const dupLabel = tNode("stats.duplicates", "查重")
-  const stats = [
-    [tNode("stats.normal", "普通"), props.result?.normalCount ?? 0],
-    [tNode("stats.nov", ".nov"), props.result?.novCount ?? 0],
-    [props.prefixName, props.result?.prefixedCounts[props.prefixName] ?? 0],
-    [tNode("stats.success", "成功"), props.result?.successCount ?? 0],
-    [dupLabel, props.result?.duplicateCount ?? 0],
-    [tNode("stats.progress", "进度"), `${props.progress}%`],
-  ] as const
-
   return (
-    <div className="grid shrink-0 grid-cols-3 gap-1 @3xl/formatv:grid-cols-6">
-      {stats.map(([label, value]) => (
-        <div key={label} className="min-w-0 rounded-md bg-muted/35 px-2 py-1.5 text-center">
-          <div className="truncate text-[11px] text-muted-foreground">{label}</div>
-          <div className={cn("text-sm font-semibold tabular-nums", label === dupLabel && Number(value) > 0 && "text-destructive")}>{value}</div>
-        </div>
-      ))}
-    </div>
+    <Md3eBentoStatGrid
+      items={[
+        { label: tNode("stats.normal", "普通"), value: props.result?.normalCount ?? 0, icon: Video, tone: "primary" },
+        { label: tNode("stats.nov", ".nov"), value: props.result?.novCount ?? 0, icon: Video, tone: "secondary" },
+        { label: props.prefixName, value: props.result?.prefixedCounts[props.prefixName] ?? 0, icon: Video, tone: "tertiary" },
+        { label: tNode("stats.success", "成功"), value: props.result?.successCount ?? 0, icon: Video, tone: "default" },
+        { label: dupLabel, value: props.result?.duplicateCount ?? 0, icon: Video, tone: (props.result?.duplicateCount ?? 0) > 0 ? "error" : "default" },
+        { label: tNode("stats.progress", "进度"), value: `${props.progress}%`, icon: Video, gauge: props.progress },
+      ]}
+    />
   )
 }
 
@@ -489,37 +551,77 @@ function ResultTabs(props: {
         : "files"
 
   return (
-    <Tabs defaultValue={preferredTab} className="flex h-full min-h-0 flex-col">
-      <TabsList variant="line" className="shrink-0">
-        <TabsTrigger value="files">{tNode("tabs.files", "文件")}</TabsTrigger>
-        <TabsTrigger value="results">{tNode("tabs.results", "重复")}</TabsTrigger>
-        <TabsTrigger value="logs">{tNode("tabs.logs", "日志")}</TabsTrigger>
-      </TabsList>
-      <TabsContent value="files" className="min-h-0 flex-1"><FileTablePanel compact={props.compact} files={files} onCopy={props.onCopyResults} /></TabsContent>
-      <TabsContent value="results" className="min-h-0 flex-1">
-        <TextPanel
-          compact={props.compact}
-          emptyText={tNode("empty.results", "扫描、加/移除 .nov 或查重后会显示文件列表和操作结果。")}
-          icon={Video}
-          lines={resultLines}
-          onCopy={props.onCopyResults}
-        />
-      </TabsContent>
-      <TabsContent value="logs" className="min-h-0 flex-1">
-        <TextPanel compact={props.compact} emptyText={tNode("empty.logs", "运行日志会显示在这里。")} icon={Copy} lines={props.logs} onCopy={props.onCopyLogs} />
-      </TabsContent>
-    </Tabs>
+    <Md3eSectionCard
+      seed="formatv-results"
+      className="flex h-full min-h-0 flex-1 flex-col p-3"
+    >
+      <Tabs defaultValue={preferredTab} className="flex h-full min-h-0 flex-col">
+        <div className="mb-2.5 flex shrink-0 flex-wrap items-center justify-between gap-2">
+          <TabsList className="shrink-0">
+            <TabsTrigger value="files">{tNode("tabs.files", "文件")}</TabsTrigger>
+            <TabsTrigger value="results">{tNode("tabs.results", "重复")}</TabsTrigger>
+            <TabsTrigger value="logs">{tNode("tabs.logs", "日志")}</TabsTrigger>
+            <TabsTrigger value="shapes">形状</TabsTrigger>
+          </TabsList>
+          <Md3eStatusPill
+            label={files.length ? tNode("empty.itemCount", "{{count}} 项", { count: files.length }) : tNode("empty.waitingRun", "等待运行")}
+            tone={files.length > 0 ? "primary" : "neutral"}
+            compact
+          />
+        </div>
+        <TabsContent value="files" className="min-h-0 flex-1">
+          <FileTablePanel compact={props.compact} files={files} onCopy={props.onCopyResults} />
+        </TabsContent>
+        <TabsContent value="results" className="min-h-0 flex-1">
+          <TextPanel
+            compact={props.compact}
+            emptyText={tNode("empty.results", "扫描、加/移除 .nov 或查重后会显示文件列表和操作结果。")}
+            icon={Video}
+            lines={resultLines}
+            onCopy={props.onCopyResults}
+          />
+        </TabsContent>
+        <TabsContent value="logs" className="min-h-0 flex-1">
+          <TextPanel compact={props.compact} emptyText={tNode("empty.logs", "运行日志会显示在这里。")} icon={Copy} lines={props.logs} onCopy={props.onCopyLogs} />
+        </TabsContent>
+        <TabsContent value="shapes" className="min-h-0 flex-1 overflow-auto">
+          <Md3eNodeShapePolicyPanel nodeId="formatv" />
+        </TabsContent>
+      </Tabs>
+    </Md3eSectionCard>
   )
 }
 
 function FileTablePanel(props: { compact?: boolean; files: Array<{ path: string; state: string }>; onCopy: () => void }) {
   const { t: tNode } = useNodeI18n("formatv")
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-lg border bg-background/70">
-      <div className="flex shrink-0 items-center justify-between gap-2 px-3 py-2"><span className="text-xs font-medium text-muted-foreground">{props.files.length ? tNode("empty.itemCount", "{{count}} 项", { count: props.files.length }) : tNode("empty.waitingRun", "等待运行")}</span><Button disabled={!props.files.length} size="xs" variant="ghost" onClick={props.onCopy}><Copy data-icon="inline-start" />{tNode("buttons.copy", "复制")}</Button></div>
-      <Separator />
+    <section className="flex h-full min-h-0 flex-col rounded-[20px] bg-[var(--md3e-surface-low,var(--background))]/75 p-2.5">
+      <div className="mb-2 flex shrink-0 items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+          <FolderOpen className="size-3.5 text-primary" />
+          <span>{props.files.length ? tNode("empty.itemCount", "{{count}} 项", { count: props.files.length }) : tNode("empty.waitingRun", "等待运行")}</span>
+        </div>
+        <Button disabled={!props.files.length} size="xs" variant="secondary" className="rounded-full" onClick={props.onCopy}>
+          <Copy data-icon="inline-start" />
+          {tNode("buttons.copy", "复制")}
+        </Button>
+      </div>
       <ScrollArea className="min-h-0 flex-1">
-        {props.files.length ? <Table><TableHeader><TableRow><TableHead>{tNode("table.filename", "文件")}</TableHead><TableHead className="w-24">{tNode("table.state", "状态")}</TableHead></TableRow></TableHeader><TableBody>{props.files.map((file) => <TableRow key={file.path}><TableCell className="max-w-0 truncate font-mono text-xs" title={file.path}>{file.path.split(/[\\/]/).at(-1)}</TableCell><TableCell><Badge variant={file.state === "重复" ? "destructive" : "outline"}>{file.state}</Badge></TableCell></TableRow>)}</TableBody></Table> : <div className="flex min-h-36 items-center justify-center p-6 text-center text-sm text-muted-foreground">{tNode("empty.results", "扫描后会显示文件列表。")}</div>}
+        {props.files.length ? (
+          <div className="space-y-1.5 pr-1">
+            {props.files.map((file) => (
+              <div key={file.path} className="flex items-center justify-between gap-2 rounded-[14px] bg-[var(--md3e-surface-high,var(--muted))]/65 px-3 py-2 text-xs">
+                <span className="truncate font-mono" title={file.path}>{file.path.split(/[\\/]/).at(-1)}</span>
+                <Badge variant={file.state === "重复" ? "destructive" : "secondary"} className="shrink-0 rounded-full border-0">{file.state}</Badge>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex min-h-36 flex-col items-center justify-center gap-2 p-6 text-center text-xs text-muted-foreground">
+            <Md3eShapeBadge icon={Video} seed="formatv-empty" tone="neutral" size="md" />
+            <span>{tNode("empty.results", "扫描后会显示文件列表。")}</span>
+          </div>
+        )}
       </ScrollArea>
     </section>
   )
@@ -535,26 +637,26 @@ function TextPanel(props: {
   const { t: tNode } = useNodeI18n("formatv")
   const Icon = props.icon
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-lg border bg-background/70">
-      <div className={props.compact ? "flex shrink-0 items-center justify-between gap-2 px-2 py-1.5" : "flex shrink-0 items-center justify-between gap-2 px-3 py-2"}>
-        <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-muted-foreground">
-          <Icon className="size-3.5" />
+    <section className="flex h-full min-h-0 flex-col rounded-[20px] bg-[var(--md3e-surface-low,var(--background))]/75 p-2.5">
+      <div className="mb-2 flex shrink-0 items-center justify-between gap-2 px-1">
+        <div className="flex min-w-0 items-center gap-2 text-xs font-bold text-muted-foreground">
+          <Icon className="size-3.5 text-primary" />
           <span>{props.lines.length ? tNode("empty.itemCount", "{{count}} 项", { count: props.lines.length }) : tNode("empty.waitingRun", "等待运行")}</span>
         </div>
-        <Button disabled={!props.lines.length} size="xs" variant="ghost" onClick={props.onCopy}>
+        <Button disabled={!props.lines.length} size="xs" variant="secondary" className="rounded-full" onClick={props.onCopy}>
           <Copy data-icon="inline-start" />
           {tNode("buttons.copy", "复制")}
         </Button>
       </div>
-      <Separator />
       <ScrollArea className="min-h-0 flex-1">
         {props.lines.length ? (
-          <pre className={props.compact ? "p-2 text-xs leading-5 text-muted-foreground" : "p-3 text-xs leading-5 text-muted-foreground"}>
+          <pre className="p-2 font-mono text-xs leading-5 text-muted-foreground">
             {props.lines.join("\n")}
           </pre>
         ) : (
-          <div className={props.compact ? "flex min-h-16 items-center justify-center p-3 text-center text-xs text-muted-foreground" : "flex min-h-36 items-center justify-center p-6 text-center text-sm text-muted-foreground"}>
-            {props.emptyText}
+          <div className={props.compact ? "flex min-h-16 items-center justify-center p-3 text-center text-xs text-muted-foreground" : "flex min-h-36 flex-col items-center justify-center gap-2 p-6 text-center text-xs text-muted-foreground"}>
+            <Md3eShapeBadge icon={Icon} seed={`formatv-empty-${props.emptyText}`} tone="neutral" size="md" />
+            <span>{props.emptyText}</span>
           </div>
         )}
       </ScrollArea>
@@ -581,9 +683,9 @@ function buildFileRows(result: FormatvData | null, prefixName: string): Array<{ 
   if (!result) return []
   const duplicates = new Set(result.duplicates)
   return [
-    ...result.normalFiles.map((path) => ({ path, state: duplicates.has(path) ? "重复" : "可见" })),
-    ...result.novFiles.map((path) => ({ path, state: "隐藏 (.nov)" })),
-    ...(result.prefixedFiles[prefixName] ?? []).map((path) => ({ path, state: "前缀文件" })),
+    ...result.normalFiles.map((path) => ({ path, state: duplicates.has(path) ? tt("module:shared.ui.duplicate", "重复") : tt("module:formatv.visibleLabel", "可见") })),
+    ...result.novFiles.map((path) => ({ path, get state() { return tt("module:formatv.hiddenNovState", "隐藏 (.nov)") } })),
+    ...(result.prefixedFiles[prefixName] ?? []).map((path) => ({ path, get state() { return tt("module:formatv.prefixedFiles", "前缀文件") } })),
   ]
 }
 
@@ -620,7 +722,7 @@ function statusFromState(data: FormatvCardState, running: boolean, result: Forma
     description: tNode("statusDesc.idle", "粘贴视频目录后扫描或查重。"),
     tone: "idle",
     badgeVariant: "outline",
-    iconClass: "bg-secondary text-secondary-foreground",
+    iconClass: "bg-[var(--md3e-primary-container,var(--secondary))] text-[var(--md3e-on-primary-container,var(--primary))]",
   }
 }
 
@@ -649,11 +751,11 @@ function summaryText(props: ViewProps): string {
   if (props.data.progressText) return props.data.progressText
   if (props.result?.duplicateCount) return props.tNode("summary.duplicates", "{{count}} 个重复", { count: props.result.duplicateCount })
   if (props.result?.errorCount) return props.tNode("summary.errors", "{{count}} 个失败", { count: props.result.errorCount })
-  if (props.result) return props.tNode("summary.videos", "{{count}} 个视频", { count: props.result.normalCount + props.result.novCount })
-  if (props.pathCount) return props.tNode("summary.pathWaiting", "{{count}} 条路径等待扫描", { count: props.pathCount })
-  return props.tNode("summary.pasteHint", "粘贴视频目录后扫描")
+  if (props.result) return props.tNode("summary.videos", "{{normal}} 普通 / {{nov}} .nov", { normal: props.result.normalCount, nov: props.result.novCount })
+  if (props.pathCount) return props.tNode("summary.waiting", "{{count}} 条路径等待扫描", { count: props.pathCount })
+  return props.tNode("summary.empty", "未设置视频路径")
 }
 
-function splitLines(text?: string): string[] {
-  return (text ?? "").split(/\r?\n|[;]/).map((item) => item.trim()).filter(Boolean)
+function splitLines(text: string): string[] {
+  return text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
 }

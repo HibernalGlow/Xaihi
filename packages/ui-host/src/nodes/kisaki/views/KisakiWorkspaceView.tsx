@@ -363,8 +363,7 @@ function Header(props: KisakiView) {
           <meta.icon className="size-5 text-primary" />
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-2"><h3 className="shrink-0 text-base font-semibold tracking-tight">Kisaki</h3><ToolSelector props={props} /></div>
-          <p className="truncate font-mono text-[11px] text-muted-foreground">FILE FORENSICS / 11 SCANNERS / TS CONTROL PLANE</p>
+          <div className="flex items-center gap-2"><h3 className="shrink-0 text-base font-black tracking-tight">Kisaki</h3><ToolSelector props={props} /></div>
         </div>
       </div>
       <div className="min-w-32 max-w-72 flex-1"><StatusBar {...props} /></div>
@@ -417,8 +416,7 @@ function CompactHeader(props: KisakiView) {
           <meta.icon className="size-4 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1"><h3 className="shrink-0 text-sm font-semibold">Kisaki</h3><ToolSelector compact props={props} /></div>
-          <p className="truncate font-mono text-[10px] text-muted-foreground">11 SCANNERS / TS CONTROL PLANE</p>
+          <div className="flex items-center gap-1"><h3 className="shrink-0 text-sm font-black tracking-tight">Kisaki</h3><ToolSelector compact props={props} /></div>
         </div>
         {props.tool === "similar-images" || props.tool === "similar-videos" ? <KisakiSimilarityReferenceDialog t={props.t} /> : null}
         <Button className="shrink-0" size="sm" variant={props.running ? "destructive" : "default"} onClick={props.running ? props.cancelScan : props.executeScan}>

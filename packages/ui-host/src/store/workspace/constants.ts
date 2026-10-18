@@ -32,6 +32,7 @@ export const INITIAL_STATE: WSState = {
   activeCustomThemeName: "amethyst-haze",
   fontPreset: "aestivus",
   designTheme: DEFAULT_DESIGN_THEME,
+  uiFace: "legacy",
   // 卡片布局 / 浮窗 / 背景颗粒等默认值对齐使用者从 Xiranite 迁移的配置
   // （2026-10-05 副本 [app.ui.workspace]；主题数据内联于 ./migratedCustomThemes.ts）。
   viewMode: "cards",
