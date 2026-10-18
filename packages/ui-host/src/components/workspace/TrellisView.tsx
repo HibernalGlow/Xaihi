@@ -226,20 +226,14 @@ function TrellisWorkspace({ workspaceId }: { workspaceId: string }) {
     window.addEventListener("keydown", escape)
     return () => window.removeEventListener("keydown", escape)
   }, [fullscreen, actions])
-  // 关闭节点：走既有实例生命周期与确认规则（`docs/trellis-grid-design.md` 的「关闭节点」），
+  // 关闭节点：走既有实例生命周期（`docs/trellis-grid-design.md` 的「关闭节点」），
   // 不能交给库自己的 close——它只删视图记录，而 reconcile 会把实例再挂回来。
+  // 不设二次确认：直接关闭并移除组件实例。
   const closeNodeItem = useCallback((componentId: string): ContextMenuItemDef => ({
     id: 'xaihi-trellis-close-node',
     label: t('view:trellis.closeNode'),
     icon: <X size={14} />,
     destructive: true,
-    confirm: {
-      title: t('view:trellis.closeNodeConfirmTitle'),
-      description: t('contextMenu:deleteConfirmDescription'),
-      confirmLabel: t('common:close'),
-      cancelLabel: t('common:cancel'),
-      destructive: true,
-    },
     onSelect: () => actions.removeComponent(componentId),
   }), [actions, t])
   const componentInPanel = useCallback((panelId: string) => {
