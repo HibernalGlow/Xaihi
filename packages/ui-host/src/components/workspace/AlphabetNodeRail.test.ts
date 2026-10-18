@@ -12,6 +12,14 @@ describe("getModulesForInitial", () => {
     expect(getModulesForInitial("Z")).toEqual([])
   })
 
+  test("视图模块不进节点栏：settings / module-registry / node-history / node-operations", () => {
+    expect(getModulesForInitial("M").map((module) => module.id)).toContain("marku")
+    expect(getModulesForInitial("M").map((module) => module.id)).not.toContain("module-registry")
+    expect(getModulesForInitial("S").map((module) => module.id)).not.toContain("settings")
+    expect(getModulesForInitial("R").map((module) => module.id)).not.toContain("node-history")
+    expect(getModulesForInitial("N").map((module) => module.id)).not.toContain("node-operations")
+  })
+
   test("cycles through one highlighted letter at a time", () => {
     expect(getNextAlphabetIndex(0, 1)).toBe(1)
     expect(getNextAlphabetIndex(0, -1)).toBe(25)
