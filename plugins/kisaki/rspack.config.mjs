@@ -1,11 +1,12 @@
 import { ModuleFederationPlugin } from '@module-federation/enhanced/rspack'
+import { fileURLToPath } from 'node:url'
 
 const reactShared = { singleton: true, requiredVersion: '^18.3.1', import: false }
 
 export default {
   mode: 'production',
   entry: './frontend/container-entry.ts',
-  output: { path: new URL('dist/', import.meta.url).pathname, clean: true, publicPath: 'auto' },
+  output: { path: fileURLToPath(new URL('dist/', import.meta.url)), clean: true, publicPath: 'auto' },
   resolve: { extensions: ['.tsx', '.ts', '.js'] },
   module: {
     rules: [
