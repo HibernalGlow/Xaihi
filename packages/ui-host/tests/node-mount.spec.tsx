@@ -298,7 +298,7 @@ describe('装载状态', () => {
     const noisy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const view = mountSurface('linedup', byId)
     await waitFor(() => expect(statusOf(view.container)).toBe('ready'))
-    view.rerender(createElement(NodeModuleSurface, { id: 'linku', contribution: contributionOf('linku'), locale: 'zh', host: panelHost(), t, loader: byId }))
+    view.rerender(createElement(NodeModuleSurface, { id: 'mvz', contribution: contributionOf('mvz'), locale: 'zh', host: panelHost(), t, loader: byId }))
     await waitFor(() => expect(statusOf(view.container)).toBe('ready'))
     const hookError = noisy.mock.calls.flat().find((arg) => String(arg).includes('fewer hooks'))
     noisy.mockRestore()
