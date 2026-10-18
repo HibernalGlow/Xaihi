@@ -190,6 +190,10 @@
         "focus": "聚焦",
         "fullscreen": "全屏"
       },
+      "executeUndoWindow": "操作确认撤销时间",
+      "executeUndoWindowDesc": "带倒计时的操作确认按钮在自动触发前的可撤销时长。默认已调整为 1 秒，因通常已有预演环节，反悔窗口无需过长。",
+      "executeUndoWindowPreview": "试用撤销倒计时",
+      "executeUndoWindowPreviewHint": "点击体验带倒计时的撤销引信，到时后自动提交，也可随时点击撤销。",
       "componentDisplay": {
         "title": "组件皮肤",
         "description": "下方每一块只调整一类共享控件的外观，覆盖各节点；不改变交互语义与键盘行为。",

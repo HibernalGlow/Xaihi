@@ -87,6 +87,7 @@ export const SETTINGS_SEARCH_FIELDS: readonly SettingsSearchField[] = [
   field("floating-window-auto-collapse", "workspace", "floating-window-caption", "settings:floatingWindowCaption.autoCollapse", ["settings:floatingWindowCaption.autoCollapseDesc"], ["capsule idle"]),
   field("alphabet-index-visible", "workspace", "alphabet", "settings:alphabetIndex.visible", ["settings:alphabetIndex.visibleDesc"], ["launcher node rail"]),
   field("alphabet-index-hide-empty", "workspace", "alphabet", "settings:alphabetIndex.hideEmpty", ["settings:alphabetIndex.hideEmptyDesc"], ["launcher hide empty letters filter"]),
+  field("alphabet-index-direct-deploy-single", "workspace", "alphabet", "settings:alphabetIndex.directDeploySingle", ["settings:alphabetIndex.directDeploySingleDesc"], ["launcher click deploy single node"]),
   field("alphabet-index-style", "workspace", "alphabet", "settings:alphabetIndex.style", ["settings:alphabetIndex.styles.glass", "settings:alphabetIndex.styles.solid", "settings:alphabetIndex.styles.minimal"], ["launcher"]),
   field("alphabet-index-opacity", "workspace", "alphabet", "settings:alphabetIndex.opacity", undefined, ["launcher transparency"]),
   field("alphabet-index-wave", "workspace", "alphabet", "settings:alphabetIndex.wave", undefined, ["launcher hover animation"]),
@@ -107,6 +108,7 @@ export const SETTINGS_SEARCH_FIELDS: readonly SettingsSearchField[] = [
   field("resizable-handle-style", "view", "components", "settings:timeline.resizableHandle", undefined, ["resize grip dots line"]),
   field("card-click", "view", "card-interaction", "settings:view.clickAction", ["settings:view.action.none", "settings:view.action.focus", "settings:view.action.fullscreen"], ["single click"]),
   field("card-double-click", "view", "card-interaction", "settings:view.doubleClickAction", ["settings:view.action.none", "settings:view.action.focus", "settings:view.action.fullscreen"], ["double click"]),
+  field("execute-undo-window", "view", "card-interaction", "settings:view.executeUndoWindow", ["settings:view.executeUndoWindowDesc"], ["undo countdown fuse confirm timer 撤销 倒计时 引信 确认 秒"]),
 
   field("node-hot-reload", "runtime", "connection", "settings:timeline.nodeHotReload", ["settings:timeline.nodeHotReloadDesc"], ["source watch development"]),
   field("desktop-tray", "runtime", "desktop-tray", "settings:desktopTray.keepRunning", ["settings:desktopTray.keepRunningDescription"], ["notification area minimize close"]),

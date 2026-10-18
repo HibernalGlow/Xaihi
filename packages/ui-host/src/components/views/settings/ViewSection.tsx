@@ -14,6 +14,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { ChoiceControlField } from "@/components/ui/choice-control"
+import { FuseButton } from "@/components/ui/fuse-button"
 import { Slider } from "@/components/ui/slider"
 import {
   CHOICE_CONTROL_STYLES,
@@ -60,6 +61,7 @@ export function ViewSection() {
     moduleTitleStyle: workspace.moduleTitleStyle,
     modulePanelStyle: workspace.modulePanelStyle,
     resizableHandleStyle: workspace.resizableHandleStyle,
+    executeUndoWindowMs: workspace.executeUndoWindowMs,
   }))
   const lanePreferences = normalizeSwimlanePreferences(state.laneWorkspacePreferences[state.activeWorkspaceId])
 
@@ -534,6 +536,41 @@ export function ViewSection() {
               <ToggleGroupItem value="fullscreen" className="text-xs">{t("settings:view.action.fullscreen")}</ToggleGroupItem>
             </ToggleGroup>
             <p className="mt-1.5 text-[11px] text-muted-foreground">{t("settings:view.doubleClickActionDesc")}</p>
+          </div>
+          <div className="border-t border-border/40 pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-medium">{t("settings:view.executeUndoWindow", "操作确认撤销时间")}</div>
+              <span className="font-mono text-xs text-muted-foreground">
+                {((state.executeUndoWindowMs ?? 1000) / 1000).toFixed(1)}s
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Slider
+                value={[(state.executeUndoWindowMs ?? 1000) / 1000]}
+                min={0.5}
+                max={5}
+                step={0.5}
+                aria-label={t("settings:view.executeUndoWindow", "操作确认撤销时间")}
+                className="flex-1"
+                onValueChange={([val]) => val && workspaceActions.setExecuteUndoWindowMs(Math.round(val * 1000))}
+              />
+            </div>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              {t("settings:view.executeUndoWindowDesc", "带倒计时的操作确认按钮在自动触发前的可撤销时长。默认已调整为 1 秒，因通常已有预演环节，反悔窗口无需过长。")}
+            </p>
+            <div className="mt-3 flex items-center gap-3 rounded-md border border-border/40 bg-muted/10 p-2.5">
+              <FuseButton
+                size="sm"
+                label={t("settings:view.executeUndoWindowPreview", "试用撤销倒计时")}
+                undoLabel={t("actionLabel.undo", "撤销")}
+                doneLabel={t("actionLabel.done", "已触发")}
+                undoWindow={state.executeUndoWindowMs ?? 1000}
+                onCommit={() => undefined}
+              />
+              <span className="text-[11px] text-muted-foreground">
+                {t("settings:view.executeUndoWindowPreviewHint", "点击体验带倒计时的撤销引信，到时后自动提交，也可随时点击撤销。")}
+              </span>
+            </div>
           </div>
         </div>
       </SettingsStepCard>

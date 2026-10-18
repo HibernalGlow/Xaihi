@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
 import { RunningTint } from "@/nodes/shared/controls"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
+import { useWorkspaceStore } from "@/store/workspaceStore"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import { POWER_MODES, TIMER_MODES } from "./constants"
 import {
@@ -434,8 +435,9 @@ function CountdownConsole(props: { durationSec: number; progress: number; timerM
 
 function PrimaryActionButton({ compact, props }: { compact?: boolean; props: ViewProps }) {
   const label = props.dryrun ? "开始演练" : "开始执行"
+  const undoWindowMs = useWorkspaceStore((state) => state.executeUndoWindowMs)
 
-  // 到点就是关机/休眠这类撤不回去的动作，引信窗口取默认值的 1.5 倍。
+  // 到点就是关机/休眠这类撤不回去的动作，引信窗口取基准值的 1.5 倍。
   return (
     <ExecuteButton
       dangerous={!props.dryrun}
@@ -443,7 +445,7 @@ function PrimaryActionButton({ compact, props }: { compact?: boolean; props: Vie
       compact={compact}
       label={label}
       idleIcon={props.dryrun ? <Play /> : <ShieldAlert />}
-      undoWindow={6000}
+      undoWindow={Math.round((undoWindowMs ?? 1000) * 1.5)}
       onExecute={() => props.onExecute()}
     />
   )

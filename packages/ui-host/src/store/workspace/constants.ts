@@ -102,6 +102,8 @@ export const INITIAL_STATE: WSState = {
   alphabetIndexWaveIntensity: 69,
   // 默认关：26 格全长（每格宽度固定），字母位置不随插件增删而挪动。
   alphabetIndexHideEmpty: false,
+  // 默认开：当前字母只有一个节点时直接点击该字母即可部署。
+  alphabetIndexDirectDeploySingle: true,
   cardClickAction: "focus",
   cardDoubleClickAction: "fullscreen",
   tabDisplayStyle: "pill",
@@ -114,6 +116,7 @@ export const INITIAL_STATE: WSState = {
   modulePanelStyle: "soft",
   resizableHandleStyle: "grip",
   hazardMode: false,
+  executeUndoWindowMs: 1000,
   restoreWorkspaceComponents: false,
   laneWorkspacePreferences: {},
 }
