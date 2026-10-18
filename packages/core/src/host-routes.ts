@@ -28,6 +28,7 @@ import { join } from 'node:path'
 import {
   BRIDGE_MAX_MESSAGE_BYTES,
   BRIDGE_REQUEST_TIMEOUT_MS,
+  BRIDGE_RUN_IDLE_TIMEOUT_MS,
   STATE_SETTINGS_NS,
   createShellBridge,
   parseBridgeMessage,
@@ -348,27 +349,73 @@ export function hostBridgeHandler(deps: HostBridgeDeps) {
       if (message.kind === 'hello') active.readySettle = resolve
       else active.pending.set(message.id, resolve)
     })
-    const handled = await active.bridge.receive(message, SESSION_ORIGIN)
-    if (!handled) {
+    /*
+     * 三路竞态：应答 / "这条消息没被接住" / 等待到点。
+     *
+     * 为什么不能先 `await receive(...)` 再开始计时：`createShellBridge` 的 receive 里
+     * `await evaluate(...)`，而 `evaluate` 对 `runner.run` 就是等那次运行跑完。
+     * 先 await 它的话，下面这把上界**永远轮不到上班**——慢设置面、慢运行会把这条 HTTP
+     * 响应一直挂到对面自己结束（实测：40 秒的运行要 40 秒才回，无论有没有心跳）。
+     * 所以 receive 只在"没接住"那一支参与判决，应答与到点各走自己的路。
+     *
+     * `runner.run` 的上界走**心跳**那一档：这道闸若仍按固定 30 秒判失败，文档侧的续期
+     * 就白做——它会先在这里收到一条 502。同一条桥上的两道闸必须读同一份策略：
+     * 硬上限来自节点声明的 `runTimeoutMs`（`RunFace.runTimeoutFor`，现读注册表），
+     * 心跳来自账本（`RunFace.onRunActivity`）。账本没接时那条订阅是空操作，这一条退回
+     * 固定上界——那是读得回的退化（502 的文案会点名），不是假装自己有心跳。
+     *
+     * 上界定时器要在拿到结果后撤掉：留着就是每个请求挂一条尾巴，测试进程跟着不肯退。
+     */
+    const isRun = message.kind === 'request' && message.method === 'runner.run'
+    const runNode = isRun && typeof message.args[0] === 'string' ? message.args[0] : ''
+    const ceilingMs = isRun ? runner?.runTimeoutFor?.(runNode) ?? null : BRIDGE_REQUEST_TIMEOUT_MS
+    const startedAt = Date.now()
+    let lastBeatAt = startedAt
+    let timerHandle: ReturnType<typeof setTimeout> | undefined
+    type Settled = { kind: 'reply', message: BridgeMessage } | { kind: 'not-handled' } | { kind: 'gave-up' }
+    let markGiveUp: (value: Settled) => void = () => undefined
+    const settleTimer = new Promise<Settled>((resolve) => { markGiveUp = resolve })
+    const remainingMs = (): number => {
+      const idle = lastBeatAt + (isRun ? BRIDGE_RUN_IDLE_TIMEOUT_MS : BRIDGE_REQUEST_TIMEOUT_MS) - Date.now()
+      return ceilingMs === null ? idle : Math.min(idle, startedAt + ceilingMs - Date.now())
+    }
+    const armSettle = (): void => {
+      if (timerHandle !== undefined) clearTimeout(timerHandle)
+      timerHandle = setTimeout(() => { markGiveUp({ kind: 'gave-up' }) }, Math.max(0, remainingMs()))
+    }
+    armSettle()
+    const stopActivity = isRun ? runner?.onRunActivity?.(() => { lastBeatAt = Date.now(); armSettle() }) : undefined
+    const handledPromise = active.bridge.receive(message, SESSION_ORIGIN)
+    // receive 之后没人接住这条消息时，`reply` 永远不落——那一支必须自己参与判决，
+    // 否则这条请求会一路走到上界然后回一条 502，而真相是"这条消息我不认"。
+    const refused = handledPromise.then((handled) => (handled ? new Promise<Settled>(() => undefined) : { kind: 'not-handled' } as Settled))
+    handledPromise.catch(() => undefined)
+    const outcome = await Promise.race([
+      reply.then((value): Settled => ({ kind: 'reply', message: value as BridgeMessage })),
+      refused,
+      settleTimer,
+    ])
+    if (timerHandle !== undefined) clearTimeout(timerHandle)
+    stopActivity?.()
+    if (message.kind === 'hello') active.readySettle = null
+    else active.pending.delete(message.id)
+    if (outcome.kind === 'not-handled') {
       sessions.delete(sid)
       sendJson(res, 400, { error: 'unhandled-message', detail: `这条消息没被会话接住（kind=${message.kind}）` })
       return
     }
-    // 上界定时器要在拿到应答后撤掉：留着就是每个请求挂 30 秒的尾巴，测试进程跟着不肯退。
-    let timerHandle: ReturnType<typeof setTimeout> | undefined
-    const settleTimer = new Promise<BridgeMessage | null>((resolve) => {
-      timerHandle = setTimeout(() => { resolve(null) }, BRIDGE_REQUEST_TIMEOUT_MS)
-    })
-    const outbound = await Promise.race([reply, settleTimer])
-    if (timerHandle !== undefined) clearTimeout(timerHandle)
-    if (message.kind === 'hello') active.readySettle = null
-    else active.pending.delete(message.id)
-    if (outbound === null) {
+    if (outcome.kind === 'gave-up') {
       // 桥没答（应答超上界被丢、或内部没发东西）——必须是可见失败，不能让文档侧只剩 timeout。
-      sendJson(res, 502, { error: 'no-reply', detail: '外壳半边没给出应答（多半是那条消息超过桥上界）' })
+      sendJson(res, 502, {
+        error: 'no-reply',
+        detail: isRun
+          ? `外壳半边没给出应答：${runNode} 这次运行在 ${String(BRIDGE_RUN_IDLE_TIMEOUT_MS)}ms 里没有新的账本事件。`
+            + '运行本身可能还在继续（这条路由只是不再等它），要停下它请用取消。'
+          : '外壳半边没给出应答（多半是那条消息超过桥上界）',
+      })
       return
     }
-    sendJson(res, 200, outbound)
+    sendJson(res, 200, outcome.message)
   }
 }
 

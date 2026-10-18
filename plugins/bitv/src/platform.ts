@@ -171,7 +171,7 @@ export function createNodeBitvRuntime(subprocess: BitvSubprocessSeam, options: B
 
   return {
     findFfprobe: () => findFfprobe(subprocess, cwd, env),
-    discoverVideos: (paths, recursive) => discoverVideos(paths, recursive, cwd),
+    discoverVideos: (paths, recursive, signal) => discoverVideos(paths, recursive, cwd, signal),
     async statFile(path) {
       const file = await stat(resolveFrom(cwd, path))
       if (!file.isFile()) throw new Error("Path is not a file.")
@@ -254,12 +254,13 @@ export async function findFfprobe(
   }
 }
 
-export async function discoverVideos(paths: string[], recursive: boolean, cwd = process.cwd()): Promise<BitvDiscoveryResult> {
+export async function discoverVideos(paths: string[], recursive: boolean, cwd = process.cwd(), signal?: AbortSignal): Promise<BitvDiscoveryResult> {
   const files: BitvSourceFile[] = []
   const errors: string[] = []
   const seen = new Set<string>()
 
   for (const input of paths) {
+    if (signal?.aborted) throw new Error('bitv cancelled: 扫描在路径之间停下（这次运行的其余部分未执行）')
     const path = resolveFrom(cwd, input)
     let info
     try {
@@ -287,7 +288,7 @@ export async function discoverVideos(paths: string[], recursive: boolean, cwd = 
       continue
     }
 
-    await walkVideoDirectory(path, path, recursive, files, seen, errors)
+    await walkVideoDirectory(path, path, recursive, files, seen, errors, signal)
   }
 
   files.sort((left, right) => left.path.localeCompare(right.path, undefined, { sensitivity: "base" }))
@@ -330,6 +331,7 @@ async function walkVideoDirectory(
   files: BitvSourceFile[],
   seen: Set<string>,
   errors: string[],
+  signal?: AbortSignal,
 ): Promise<void> {
   let entries
   try {
@@ -340,9 +342,11 @@ async function walkVideoDirectory(
   }
 
   for (const entry of entries) {
+    // 目录遍历才是那条"扫 Download 要几分钟"的主成本，所以这个循环里也要认中断。
+    if (signal?.aborted) throw new Error('bitv cancelled: 扫描在目录之间停下（这次运行的其余部分未执行）')
     const path = join(directory, entry.name)
     if (entry.isDirectory()) {
-      if (recursive) await walkVideoDirectory(basePath, path, recursive, files, seen, errors)
+      if (recursive) await walkVideoDirectory(basePath, path, recursive, files, seen, errors, signal)
       continue
     }
     if (!entry.isFile() || !isBitvVideoPath(path)) continue

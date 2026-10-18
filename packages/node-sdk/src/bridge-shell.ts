@@ -61,6 +61,18 @@ export interface RunFace {
   cancel?(runId: string): Promise<boolean>
   getInfo?(nodeId: string): Promise<unknown>
   cancelCurrent?(): Promise<boolean>
+  /**
+   * 这个节点声明的一次运行硬上限（毫秒），null = 不设上限。
+   * 路由侧用它给 `runner.run` 的等待定时器定上限，与文档侧读的是同一份
+   * `NodeDefinition.runTimeoutMs`——两侧各算各的就会出现"客户端还在等、服务端先 502"。
+   */
+  runTimeoutFor?(nodeId: string): number | null
+  /**
+   * 订阅"有任何一次运行还在动"（账本的每一条事件都算）。
+   * `/xaihi/host` 用它把 `runner.run` 那条 settle 定时器从 wall-clock 换成心跳；
+   * 没接这一条时路由退回固定上界（今天的形状），所以它是可选的。
+   */
+  onRunActivity?(listener: () => void): () => void
 }
 
 /** 外壳此刻真能兑现的东西。缺失的组不要塞占位实现——缺失会以退化形式显示到界面上。 */
@@ -260,11 +272,25 @@ async function evaluate(method: BridgeMethod, args: readonly unknown[], caps: Sh
     return { ok: true, value: await caps.runner.run(nodeId, input) }
   }
   if (method === 'runner.cancelCurrent') {
+    // 这两条不是一回事：`cancelCurrent()` 不带 runId（"取消此刻在跑的那次"），
+    // `cancel(runId)` 必须有一个 id。之前这里无条件走 `cancel`，而桥上这一格永远不带参数，
+    // 于是取消变成 `cancel(undefined)` —— 面没给 cancelCurrent 时那一次调用连"取消谁"都不知道。
+    if (caps.runner?.cancelCurrent !== undefined) return { ok: true, value: await caps.runner.cancelCurrent() }
     if (caps.runner?.cancel === undefined) return unavailable(method)
     const [runId] = args as [string]
+    if (typeof runId !== 'string' || runId === '') {
+      return { ok: false, reason: 'bad-args', detail: '这一侧的取消要 runId（注入的面没给 cancelCurrent）：面板上那个取消按钮因此接不上，不是"取消失败"' }
+    }
     return { ok: true, value: await caps.runner.cancel(runId) }
   }
-  if (method === 'runner.getInfo') return unavailable(method)
+  if (method === 'runner.getInfo') {
+    // 文档侧靠这一格读回"这个节点允许跑多久"（`runTimeoutMs`）。它此前被写成永远 no-provider，
+    // 于是等待策略只能在桥里写死一个常量——那正是"扫描大目录被 30 秒判失败"的成因。
+    if (caps.runner?.getInfo === undefined) return unavailable(method)
+    const [nodeId] = args as [string]
+    if (typeof nodeId !== 'string' || nodeId === '') return { ok: false, reason: 'bad-args', detail: 'runner.getInfo 第一段要是节点 id' }
+    return { ok: true, value: await caps.runner.getInfo(nodeId) }
+  }
   if (method.startsWith('config.')) return unavailable(method)
   return unavailable(method)
 }

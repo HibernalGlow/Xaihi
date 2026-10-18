@@ -69,6 +69,11 @@ export function createJournal(options: JournalOptions = {}): HostJournal {
   let droppedEvents = 0
   const events: OperationEvent[] = []
   const runs = new Map<string, ActiveRun>()
+  /**
+   * 每条在飞运行的中止键，按 runId 存。
+   * 生命周期与 `runs` 那一份概要一致：被 `maxRuns` 挤出去时一起删，不然这就是个只长不收的表。
+   */
+  const controllers = new Map<string, AbortController>()
   const runOrder: string[] = []
   const listeners = new Set<Listener>()
 
@@ -111,10 +116,15 @@ export function createJournal(options: JournalOptions = {}): HostJournal {
         lastSeq: 0,
       }
       runs.set(runId, run)
+      const controller = new AbortController()
+      controllers.set(runId, controller)
       runOrder.unshift(runId)
       while (runOrder.length > maxRuns) {
         const evicted = runOrder.pop()
-        if (evicted !== undefined) runs.delete(evicted)
+        if (evicted !== undefined) {
+          runs.delete(evicted)
+          controllers.delete(evicted)
+        }
       }
       append({ runId, nodeId: identity.nodeId, actionId: identity.actionId, kind: 'started' })
       const emit = (kind: OperationEventKind, extra: Partial<Pick<OperationEvent, 'progress' | 'payload'>>): void => {
@@ -122,12 +132,26 @@ export function createJournal(options: JournalOptions = {}): HostJournal {
       }
       const handle: OperationRun = {
         runId,
+        signal: controller.signal,
         progress: (progress: OperationProgress) => emit('progress', { progress }),
         preview: (payload: unknown) => emit('preview', { payload }),
         resultView: (payload: unknown) => emit('result_view', { payload }),
         checkpoint: (payload: unknown) => emit('checkpoint', { payload }),
       }
       return handle
+    },
+
+    cancel(runId, reason = '已取消') {
+      const run = touch(runId)
+      if (run === undefined || run.outcome !== 'running') return false
+      // 先 abort 再记账：动作实现如果在 abort 监听里同步抛错，那条 `failed` 已经落进账本了，
+      // 界面读回的是"取消已生效"，不会被一个抛错变成"没取消也没记录"。
+      controllers.get(runId)?.abort()
+      run.outcome = 'failed'
+      run.finishedAt = now()
+      run.message = reason
+      append({ runId, nodeId: run.nodeId, actionId: run.actionId, kind: 'failed', message: reason })
+      return true
     },
 
     finish(runId) {

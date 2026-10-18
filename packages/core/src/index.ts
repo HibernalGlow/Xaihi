@@ -487,7 +487,9 @@ export function apply(ctx: HostContext, config: Config): void {
     handler: hostBridgeHandler({
       settings: () => bridgeSettings,
       allowedNamespaces: () => xaihiNamespaces([...ctx.loader.entries()]),
-      runner: () => createLocalRunner(nodeRegistry),
+      // 账本一起递给运行面：`runner.run` 那条等待上界靠它续期（`onRunActivity`），
+      // 取消也靠它按下中止键（`journal.cancel`）。这一格不给，路由就退回固定 30 秒。
+      runner: () => createLocalRunner(nodeRegistry, () => journal),
     }),
   }), 'xaihi-core: host bridge route')
 

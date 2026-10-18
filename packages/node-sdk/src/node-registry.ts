@@ -9,6 +9,7 @@
 import type { NodeDefinition } from './node.ts'
 import type { NodeHandlers } from './define-node.ts'
 import type { RunFace } from './bridge-shell.ts'
+import type { OperationJournal } from './operations.ts'
 
 export interface NodeRunResult<TData = unknown> {
   success: boolean
@@ -26,6 +27,14 @@ export interface RegisteredNode {
   invoke: (actionId: string, raw?: Record<string, unknown>) => Promise<string>
   run: (actionId: string, raw?: Record<string, unknown>, onEvent?: (event: unknown) => void) => Promise<NodeRunResult>
   execute?: (input: unknown, onEvent?: (event: unknown) => void) => Promise<NodeRunResult>
+  /**
+   * 请求中止这个节点的一次在飞运行。
+   * 回 true 只表示"中止键按下了"（信号发出 + 账本记下那一笔），不表示处理器已经停下——
+   * 那半件事只有理会 `signal.aborted` 的节点做得到。
+   */
+  cancelRun?: (runId: string) => boolean
+  /** 这个节点此刻还在跑的那些运行的 runId。 */
+  inFlightRuns?: () => readonly string[]
 }
 
 /** 规范化节点名称：剥离 `@hibernalglow/` 和 `xaihi-` 前缀以便多口径命中。 */
@@ -138,8 +147,44 @@ export class NodeRegistry {
     return await entry.run(actionId, raw, onEvent)
   }
 
-  async cancel(_runId: string): Promise<boolean> {
+  /**
+   * 中止一次在飞运行。
+   *
+   * 为什么遍历而不是按 runId 直接查表：runId 是账本在 `defineNode` 里面生成的，注册表
+   * 在调用之前无从预知，所以它今天没有"runId → 节点"的索引可查（要加就得让 run 的发起方
+   * 回填，而 `execute` 那条覆盖路径不经过这里，回填会漏）。条目自己答"这条是不是我的"
+   * 才是两侧都成立的形状；表只有几十个节点，线性扫不是代价。
+   * @param runId - 要中止哪一次运行。
+   * @returns 有没有真按下中止键；未知 runId 回 false（不是回 true 假装取消了）。
+   */
+  async cancel(runId: string): Promise<boolean> {
+    for (const entry of this.list()) {
+      if (entry.cancelRun?.(runId) === true) return true
+    }
     return false
+  }
+
+  /**
+   * 取消"此刻在跑的那些"。面板上那条取消按钮走的是这一条（桥上只有 `runner.cancelCurrent`，
+   * 它不带 runId —— 见 `host-bridge.ts` 的 `BRIDGE_METHODS`）。
+   * @returns 至少按下一个中止键才回 true；一条都没在飞时回 false，而不是回 true 假装取消过。
+   */
+  async cancelCurrent(): Promise<boolean> {
+    let cancelled = false
+    for (const entry of this.list()) {
+      for (const runId of entry.inFlightRuns?.() ?? []) {
+        if (entry.cancelRun?.(runId) === true) cancelled = true
+      }
+    }
+    return cancelled
+  }
+
+  /**
+   * 这个节点声明的一次运行硬上限（毫秒）；没声明回 null = 不设上限。
+   * 与文档侧读的是同一份 `NodeDefinition.runTimeoutMs`，两侧不许各算各的。
+   */
+  runTimeoutFor(nodeId: string): number | null {
+    return this.get(nodeId)?.definition.runTimeoutMs ?? null
   }
 }
 
@@ -204,10 +249,28 @@ export const nodeRegistry = new NodeRegistry()
 /**
  * 创建对接桥 `ShellCapabilities.runner` 的本地运行面。
  * @param registry - 节点注册表实例（缺省为 core 提供的那一份）。
+ * @param activity - 现取运行账本，用于"这次运行还在动"的那条订阅（路由给 `runner.run`
+ *   的等待定时器续期就靠它）。没给 ⇒ 订阅是空操作，路由退回固定上界，而不是假装有心跳。
  */
-export function createLocalRunner(registry: NodeRegistry = nodeRegistry): RunFace {
+export function createLocalRunner(
+  registry: NodeRegistry = nodeRegistry,
+  activity?: () => OperationJournal | undefined,
+): RunFace {
   return {
     run: (nodeId: string, input: unknown, onEvent?: (event: unknown) => void) => registry.run(nodeId, input, onEvent),
     cancel: (runId: string) => registry.cancel(runId),
+    cancelCurrent: () => registry.cancelCurrent(),
+    getInfo: async (nodeId: string) => {
+      const entry = registry.get(nodeId)
+      if (entry === undefined) return null
+      // 只带运行策略这三样：整份 definition 过桥会把字段表发两遍，而界面要问的只有"能跑多久"。
+      return {
+        nodeId: entry.nodeId,
+        reportsProgress: entry.definition.reportsProgress === true,
+        runTimeoutMs: entry.definition.runTimeoutMs ?? null,
+      }
+    },
+    runTimeoutFor: (nodeId: string) => registry.runTimeoutFor(nodeId),
+    onRunActivity: (listener: () => void) => activity?.()?.subscribe(listener) ?? (() => undefined),
   }
 }

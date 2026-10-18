@@ -223,7 +223,8 @@ async function call(
   config: Config,
   runtime: ReturnType<typeof createNodeBitvRuntime>,
 ): Promise<string> {
-  const result = await runBitv(inputFrom(action, args, inputs, config), runtime, (event) => forward(event, run))
+  // 账本那条 `signal` 一路交给内核：取消要真的停在文件/目录之间，不能只让面板不再等它。
+  const result = await runBitv(inputFrom(action, args, inputs, config), runtime, (event) => forward(event, run), run.signal)
   run.resultView(viewOf(result.data))
   if (!result.success) throw new Error(`bitv ${action}: ${result.message}`)
   const summary = summarize(result.data)

@@ -72,6 +72,10 @@ function detachedBridge(): DocumentBridge {
     hello: () => {},
     receive: () => false,
     call: reject,
+    // 可续期那一形也要在：`runner.run` 走的是 `beginCall`（长任务按心跳判活，见 ADR-0022），
+    // 缺这一格时"没有宿主"会被读成 `bridge.beginCall is not a function` 这种 TypeError，
+    // 而不是那句说真话的 `NO_HOST_REASON`。
+    beginCall: () => ({ id: '', promise: reject(), renew: () => undefined }),
     abortAll: () => {},
   }
 }
