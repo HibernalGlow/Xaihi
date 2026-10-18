@@ -9,7 +9,7 @@ export const def = {
   name: "Recycleu",
   version: "0.1.0",
   category: "system",
-  description: "Empty the Windows recycle bin immediately or on a bounded timer.",
+  description: "Empty the Windows recycle bin or the macOS Trash immediately, or on a bounded timer.",
   icon: "Trash2",
   keywords: ["recycle", "trash", "clean", "timer"],
 } satisfies NodeDef

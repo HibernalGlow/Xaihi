@@ -36,3 +36,32 @@ node_modules/
 # Rust 构建编排层在仓根（见 Cargo.toml），产物缓存目录跟着它走：1.2 GB 量级，
 # 基线实测见 docs/stages/kisaki-engine-measurements.md（`target/` 占 1.2 GB）。
 /target/
+# 浏览器探针的现场转储：`.playwright-cli/` 是每次 take_snapshot 落一份 page-<时间戳>.yml，
+# `output/` 是截图与录屏的去向。2026-10-11 实测两者全仓零引用（rg 只命中自己），
+# 提交它们只会在下一轮 `but status` 里多一堆与内容无关的条目让整桶提交顺手带走。
+/.playwright-cli/
+/output/
+# vitest 的两次落盘：`.vitest-attachments/`（写附件）与 `tests/__screenshots__/`
+# （浏览器模式失败截图，目录名跟着 spec 文件名走）。搬运尺 `scripts/port-ui.mjs:155` 的
+# SKIP 里本来就含 `__screenshots__`——上游那份也没当源码搬。
+**/.vitest-attachments/
+**/tests/__screenshots__/
+# `scripts/build-kisaki-native.mjs` 的暂存缓存：产物按 sha12 落在
+# `native/artifacts/<triple>/builds/<sha12>/`，包根那份 `xaihi-kisaki.<triple>.node` 是指向
+# `xiranite-czkawka.<triple>.node` 的 34 字节符号链接，解析路径见
+# `plugins/kisaki/src/native/native-asset.ts:52`——没有任何读者走 builds/。
+# 2026-10-11 实测那一条是 21.4 MB 且 `manifest.json` 与指针都没跟上（＝无人引用的孤儿构建），
+# 留在盘上只是省一次 `cargo build`，进 git 历史就再也删不掉。
+/native/artifacts/*/builds/
+# 桌面壳的产品构建目录：`desktop/dev-shell.mjs:37` 与 `:209` 把 `PRODUCT` 的原生库与 UI
+# 都指向 `desktop/.products/<id>/`，那是 `desktop/products/<id>/` 那份源码编出来的落点。
+# 2026-10-11 实测一次 kisaki 构建在这里留下 390 个文件、29 MB。
+/desktop/.products/
+# rspack 的模块联合会话诊断（`.mf/diagnostics/latest.json`），每次起构建重写，没有读者。
+/packages/ui-host/.mf/
+# 编译器漏在源码旁边的声明文件：`tsc` 带 `declaration` 跑一次就在同目录写一份 `<name>.d.ts`。
+# 只钉 `src/` 顶层那一批——三份手写的环境声明（`packages/ui-host/src/types/*.d.ts`）与
+# `plugins/kisaki/src/native/binding.generated.d.ts` 都在更深一层，仍在 git 眼前。
+# 2026-10-11 实测一次桌面壳构建漏出 29 份，全仓「已跟踪却命中忽略」的文件数=0。
+/packages/*/src/*.d.ts
+/plugins/*/src/*.d.ts

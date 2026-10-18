@@ -14,6 +14,15 @@
  * `empty`（本来就是空的）算成功但**不**计入 `cleanCount`，那是 `core.ts` 的 `cleanOnce`
  * 里 `if (result.status === "cleaned")` 那一行在做的事，本文件只负责如实报状态。
  *
+ * **macOS 那条腿是本仓自己加的，不是搬运**（上游 `platform.ts` 只有 win32；使用者拍板要
+ * 本机可用的废纸篓，决定与实测数字见 `docs/adr/0022-*.md`）。它发的是 `osascript` 驱动
+ * Finder，一条脚本同时答出 `cleaned` / `empty`，因为 macOS 这边没有一个"本来就是空的"
+ * 专用报错可抄（Windows 那条靠 `platform.ts:83-88` 的正则，而 AppleScript 的失败文字
+ * **是本地化的**：本机实测 `… execution error: 变量“bogusPropertyZzz”没有定义。 (-2753)`，
+ * 所以 darwin 侧只认括号里的错误码，一个字面的句子都不认——与 `plugins/sleept/src/platform.ts:8-14`
+ * 那条"只信码值不信本地化标签"的纪律同源）。正因为失败文字里也可能出现 `empty` 这个词，
+ * darwin 侧**不复用** `mapEmptyFailure`：走错一步就是把"清不掉"报成"本来就是空的"（成功）。
+ *
  * @module xaihi-recycleu/exec
  */
 
@@ -77,6 +86,66 @@ export function mapEmptyFailure (message: string): EmptyRecycleBinResult {
 }
 
 /**
+ * macOS 那条腿的 AppleScript 原文。
+ *
+ * 先 `count` 再决定要不要 `empty the trash`，是为了保住上游那四种结局里的 `empty`：
+ * Finder 在空废纸篓上跑 `empty the trash` 不报错（rc=0 而什么都不说），若只看退出码，
+ * "本来就是空的"会被记成"清掉了一次"，而 `cleanOnce` 会为此加一个 `cleanCount`。
+ * 两个答案 token 是我们自己印的 ASCII，不随系统语言变。
+ */
+export const MAC_TRASH_SCRIPT = [
+  'tell application "Finder"',
+  'set n to count (items of trash)',
+  'if n is 0 then',
+  'return "empty"',
+  'end if',
+  'empty the trash',
+  'return "cleaned"',
+  'end tell',
+].join('\n')
+
+/** `osascript` 的 argv：`-e` 后面是整段脚本，不经 shell，所以没有引号注入面。 */
+export function planMacRecycleuEmpty (): PlannedCommand {
+  return { argv: ['osascript', '-e', MAC_TRASH_SCRIPT], graceMs: 5_000 }
+}
+
+/**
+ * 按平台生成"这次要发的命令"，`null` 表示这台机器上这条命令发不出去。
+ *
+ * 三个平台的分派都只在这里，`planRecycleuEmpty` 保持 win32 原形（`cli.spec.ts` 那条
+ * 逐元素钉住上游 argv 的尺照旧有效）。darwin 不认盘符：macOS 的废纸篓没有"每个盘一份"
+ * 这一层，给了盘符就不是"格式不对"而是"这件事在这里不存在"，由调用方说清是哪一种。
+ */
+export function planRecycleuEmptyFor (platform: NodeJS.Platform, driveLetter?: string): PlannedCommand | null {
+  if (platform === 'win32') return planRecycleuEmpty(driveLetter)
+  if (platform === 'darwin') return (driveLetter?.trim() ?? '') === '' ? planMacRecycleuEmpty() : null
+  return null
+}
+
+/**
+ * AppleScript 的失败文本 → 结局。只认末尾括号里的错误码。
+ *
+ * `-1743` = 没有向目标 App 发 Apple 事件的自动化权限（TCC）。这一条单独分出来是因为
+ * 它的解法不在本仓：使用者要在"系统设置 → 隐私与安全性 → 自动化"里放行，
+ * 把它咽进通用 `failed` 就是把一个可修的权限问题说成了一次普通失败。
+ * 码值本身是 Apple 文档的说法，**本机没有实测到** —— 这台机器上自动化权限早已放行，
+ * 连 `Terminal` 都直接答了话，造不出被拒的那次调用（见 ADR-0022 的"没测到的"那一节）。
+ */
+export function mapMacEmptyFailure (message: string): EmptyRecycleBinResult {
+  if (/\(-1743\)/.test(message)) {
+    return {
+      status: 'failed',
+      message: 'Failed to empty recycle bin: not authorized to control Finder (-1743). '
+        + 'Allow it under System Settings → Privacy & Security → Automation.',
+    }
+  }
+  return { status: 'failed', message: `Failed to empty recycle bin: ${message}` }
+}
+
+/** 本机废纸篓没有盘符这一层；这句是说给使用者听的，不是"参数写错了"。 */
+const MAC_DRIVE_MESSAGE = 'macOS has no per-drive recycle bin: leave the drive letter empty to empty the Trash.'
+
+/**
  * 宿主侧的 `RecycleuRuntime`：`core.ts` 只认这个接口，所以内核不必知道执行走的是哪条缝。
  *
  * @param runtime - DSH 的 `ctx.subprocess`。
@@ -88,15 +157,51 @@ export function createSubprocessRecycleuRuntime (
   cwd: string,
   platform: NodeJS.Platform = process.platform,
 ): RecycleuRuntime {
+  /** 发一条命令并取回退出码与两条收集到的流；win32 与 darwin 两条腿共用同一档 stdio 上限。 */
+  const run = async (command: PlannedCommand) => {
+    const handle = runtime.spawn({
+      argv: command.argv,
+      cwd,
+      graceMs: command.graceMs,
+      stdio: { stdin: 'ignore', stdout: { maxBytes: 8 * 1024 }, stderr: { maxBytes: 8 * 1024 } },
+    })
+    const outcome = await handle.done
+    return {
+      exitCode: outcome.exitCode,
+      stdout: handle.collected.stdout?.readFrom(0).text ?? '',
+      stderr: handle.collected.stderr?.readFrom(0).text ?? '',
+    }
+  }
+
+  /** 非零退出时那句"为什么"：没有 stderr 就只能说退出码，不替它编。 */
+  const failureDetail = (command: PlannedCommand, stderr: string, exitCode: number | null): string =>
+    stderr.trim() === '' ? `${String(command.argv[0])} exited ${String(exitCode)}` : stderr.trim()
+
   return {
     now: () => new Date(),
     sleep: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
     async emptyRecycleBin (driveLetter?: string): Promise<EmptyRecycleBinResult> {
-      // 上游 `platform.ts:57-62`：非 Windows 不是"失败"，是"这台机器上没有这件事"。
-      if (platform !== 'win32') {
-        return { status: 'unsupported', message: 'Recycle bin cleanup is only supported on Windows.' }
-      }
       const requested = driveLetter?.trim() ?? ''
+
+      if (platform === 'darwin') {
+        if (requested !== '') return { status: 'failed', message: MAC_DRIVE_MESSAGE }
+        const command = planMacRecycleuEmpty()
+        const result = await run(command)
+        if (result.exitCode === 0) {
+          const answer = result.stdout.trim()
+          if (answer === 'empty') return { status: 'empty', message: 'Recycle bin is already empty.' }
+          if (answer === 'cleaned') return { status: 'cleaned', message: 'Recycle bin emptied.' }
+          // rc=0 而答案不是本文件印的那两个 ASCII 词：脚本与预期已经不一致了，
+          // 这里替它挑一个结局就是伪造，所以如实报失败。
+          return { status: 'failed', message: `Failed to empty recycle bin: unexpected Trash answer ${JSON.stringify(answer)}` }
+        }
+        return mapMacEmptyFailure(failureDetail(command, result.stderr, result.exitCode))
+      }
+
+      // 上游 `platform.ts:57-62`：这台机器上没有这件事，不是"这台机器失败了"。
+      if (platform !== 'win32') {
+        return { status: 'unsupported', message: 'Recycle bin cleanup is supported on Windows and macOS only.' }
+      }
       if (requested !== '' && planRecycleuEmpty(requested) === null) {
         return { status: 'failed', message: `Invalid recycle bin drive letter: ${driveLetter}` }
       }
@@ -104,24 +209,14 @@ export function createSubprocessRecycleuRuntime (
       if (command === null) return { status: 'failed', message: `Invalid recycle bin drive letter: ${driveLetter}` }
       const requestedLetter = requested === '' ? undefined : requested.match(DRIVE_LETTER)?.[1]
       const scopedDrive = requestedLetter === undefined ? undefined : requestedLetter.toUpperCase()
-      const handle = runtime.spawn({
-        argv: command.argv,
-        cwd,
-        graceMs: command.graceMs,
-        stdio: { stdin: 'ignore', stdout: { maxBytes: 8 * 1024 }, stderr: { maxBytes: 8 * 1024 } },
-      })
-      const outcome = await handle.done
-      if (outcome.exitCode === 0) {
+      const result = await run(command)
+      if (result.exitCode === 0) {
         return {
           status: 'cleaned',
           message: scopedDrive ? `Recycle bin emptied for drive ${scopedDrive}:` : 'Recycle bin emptied.',
         }
       }
-      const errorText = handle.collected.stderr?.readFrom(0).text ?? ''
-      const detail = errorText.trim() === ''
-        ? `${command.argv[0]} exited ${String(outcome.exitCode)}`
-        : errorText.trim()
-      return mapEmptyFailure(detail)
+      return mapEmptyFailure(failureDetail(command, result.stderr, result.exitCode))
     },
   }
 }

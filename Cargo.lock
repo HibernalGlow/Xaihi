@@ -4970,6 +4970,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "xaihi-trash-host"
+version = "0.1.0"
+dependencies = [
+ "objc2",
+ "objc2-foundation",
+ "serde_json",
+ "trash",
+]
+
+[[package]]
 name = "xmlwriter"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
