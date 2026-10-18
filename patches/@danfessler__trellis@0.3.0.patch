@@ -1,0 +1,25 @@
+diff --git a/dist/index.js b/dist/index.js
+index a34eeef80c9e6153e3614f8621c7136a0f2b760b..50553265a8aa172308163fdc67454f496290f92f 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1301,7 +1301,10 @@ function createDragController(host) {
+     }
+     const radius = Math.max(host.inset(), MIN_SEAM_HIT_WIDTH / 2);
+     let closest = radius;
+-    if (within)
++    // A panel's own target (especially its tab bar) has priority over the
++    // adjacent split seam. Without this guard the seam pass can replace a
++    // tab merge preview with a top/side docking preview at the same pixels.
++    if (!next && within)
+       for (const [id, entry] of d.dropBase) {
+         const node = entry.node;
+         if (node.kind !== "split" || host.collapsedSplit(node.id)) continue;
+@@ -1317,7 +1320,7 @@ function createDragController(host) {
+         });
+         void id;
+       }
+-    if (within && stage && !stage.child && closest === radius) {
++    if (!next && within && stage && !stage.child && closest === radius) {
+       const world = d.dropBase.get(stage.id)?.rect;
+       if (world && inside(point, world)) {
+         const s = host.panelScreen(world);

@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from "motion/react"
-import { createPortal } from "react-dom"
+import { createPortal, flushSync } from "react-dom"
 import { useTrellisToolbarMount } from "./TrellisToolbarSlot"
 import { useContextMenu, useContextMenuBuilder } from "@/components/context-menu/context"
 import type { ContextMenuContext, ContextMenuItemDef } from "@/components/context-menu/ContextMenuProvider"
@@ -22,6 +22,8 @@ import { useWindowControls } from '@/hooks/useWindowControls'
 import { reconcileTrellisDocument, TRELLIS_NODE_TYPE, trellisViewId } from '@/lib/trellis/document'
 import { useTrellisLayout } from '@/lib/trellis/useTrellisLayout'
 import { ComponentProgressStrip } from './ComponentProgressStrip'
+import { useTrellisModuleDrag } from './TrellisModuleDragHost'
+import { useWorkspaceStore } from '@/store/workspaceStore'
 
 function nodeTitle(moduleId: string, t: ReturnType<typeof useTranslation>['t']) {
   return t(`module:${moduleId}.name`, { defaultValue: getModule(moduleId)?.name ?? moduleId })
@@ -207,6 +209,35 @@ function TrellisWorkspace({ workspaceId }: { workspaceId: string }) {
   const ws = useRef<import('@danfessler/trellis').WorkspaceHandle>(null)
   const { isModuleOver, moduleDropHandlers } = useModuleDropTarget(useCallback((id: string) => { actions.deployComponent(id, { viewMode: 'cards' }) }, [actions]))
   const ready = layout.ready && (!hosted || backendReady)
+  const moduleDrag = useTrellisModuleDrag()
+  useEffect(() => moduleDrag?.register((module, pointer) => {
+    const handle = ws.current
+    if (!ready || !handle || handle.getSnapshot().dragging) return false
+    const bounds = handle.element.getBoundingClientRect()
+    if (!bounds.width || !bounds.height) return false
+    const previous = new Set(useWorkspaceStore.getState().components.map((c) => c.id))
+    let componentId: string | undefined
+    flushSync(() => {
+      actions.deployComponent(module.id, { viewMode: 'cards' })
+      componentId = useWorkspaceStore.getState().components.find((c) => !previous.has(c.id))?.id
+      if (!componentId) return
+      handle.open(TRELLIS_NODE_TYPE, {
+        id: trellisViewId(componentId), params: { componentId, moduleId: module.id }, focus: false,
+        placement: { float: { x: (pointer.clientX - bounds.left - 240) / bounds.width,
+          y: (pointer.clientY - bounds.top - 18) / bounds.height, w: 480 / bounds.width, h: 360 / bounds.height }, layer: 'overlay' },
+      })
+    })
+    if (!componentId) return false
+    const panelId = handle.view(trellisViewId(componentId))?.panelId
+    const bar = panelId && handle.element.querySelector<HTMLElement>(`[data-trellis-part="tabbar"][data-panel="${CSS.escape(panelId)}"]`)
+    if (!bar) return false
+    const init: PointerEventInit = { bubbles: true, cancelable: true, pointerId: pointer.pointerId,
+      pointerType: pointer.pointerType, isPrimary: pointer.isPrimary, button: 0, buttons: 1,
+      clientX: pointer.clientX, clientY: pointer.clientY }
+    bar.dispatchEvent(new PointerEvent('pointerdown', { ...init, clientY: pointer.clientY + 8 }))
+    window.dispatchEvent(new PointerEvent('pointermove', init))
+    return handle.getSnapshot().dragging
+  }), [moduleDrag, ready, actions])
   const document = useMemo(() => ready ? reconcileTrellisDocument(layout.document, components) : layout.document, [layout.document, components, ready])
   useEffect(() => { if (ready && document !== layout.document) layout.change(document) }, [ready, document, layout.document, layout.change])
   const { focused, fullscreen } = useWorkspaceShallowSelector((s) => ({ focused: s.focusedComponentId, fullscreen: s.fullscreenComponentId }))

@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import { FlowView } from "./FlowView"
-import { XIRANITE_MODULE_MIME } from "@/lib/moduleDragDrop"
+import { XAIHI_MODULE_MIME } from "@/lib/moduleDragDrop"
 
 const setOverlayMock = vi.hoisted(() => vi.fn())
 const deployComponentMock = vi.hoisted(() => vi.fn())
@@ -120,11 +120,11 @@ describe("FlowView", () => {
 
 function createDataTransfer(moduleId: string) {
   return {
-    types: [XIRANITE_MODULE_MIME],
+    types: [XAIHI_MODULE_MIME],
     dropEffect: "copy",
     effectAllowed: "copy",
     getData: vi.fn((type: string) => {
-      if (type === XIRANITE_MODULE_MIME) return JSON.stringify({ moduleId })
+      if (type === XAIHI_MODULE_MIME) return JSON.stringify({ moduleId })
       if (type === "text/plain") return moduleId
       return ""
     }),

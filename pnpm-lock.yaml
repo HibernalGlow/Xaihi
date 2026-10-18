@@ -166,6 +166,9 @@ overrides:
   react: 19.2.4
   react-dom: 19.2.4
 
+patchedDependencies:
+  '@danfessler/trellis@0.3.0': 9b74a93bdda33032c5f55e0f35d58bb589063da6cb7ae8396a8f610771ec9b41
+
 importers:
 
   .:
@@ -401,10 +404,10 @@ importers:
         version: 0.51.4(@floating-ui/dom@1.8.0)(@types/hast@3.0.5)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(postcss@8.5.15)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tailwindcss@4.3.2)
       '@danfessler/trellis':
         specifier: 0.3.0
-        version: 0.3.0
+        version: 0.3.0(patch_hash=9b74a93bdda33032c5f55e0f35d58bb589063da6cb7ae8396a8f610771ec9b41)
       '@danfessler/trellis-react':
         specifier: 0.3.0
-        version: 0.3.0(@danfessler/trellis@0.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 0.3.0(@danfessler/trellis@0.3.0(patch_hash=9b74a93bdda33032c5f55e0f35d58bb589063da6cb7ae8396a8f610771ec9b41))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@deepseek-ai/cordis':
         specifier: ~4.0.4
         version: 4.0.4(@deepseek-ai/cordis-plugin-include@1.0.9)(@deepseek-ai/cordis-plugin-loader@1.0.5)
@@ -11034,13 +11037,13 @@ snapshots:
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
 
-  '@danfessler/trellis-react@0.3.0(@danfessler/trellis@0.3.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@danfessler/trellis-react@0.3.0(@danfessler/trellis@0.3.0(patch_hash=9b74a93bdda33032c5f55e0f35d58bb589063da6cb7ae8396a8f610771ec9b41))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
-      '@danfessler/trellis': 0.3.0
+      '@danfessler/trellis': 0.3.0(patch_hash=9b74a93bdda33032c5f55e0f35d58bb589063da6cb7ae8396a8f610771ec9b41)
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
-  '@danfessler/trellis@0.3.0': {}
+  '@danfessler/trellis@0.3.0(patch_hash=9b74a93bdda33032c5f55e0f35d58bb589063da6cb7ae8396a8f610771ec9b41)': {}
 
   '@date-fns/tz@1.5.0': {}
 

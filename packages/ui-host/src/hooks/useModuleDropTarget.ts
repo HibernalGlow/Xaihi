@@ -3,7 +3,7 @@
  *
  * 在工作区画布、泳道 等容器上绑定返回的 moduleDropHandlers，即可接收来自模块库的拖拽放置。
  * 内部封装与 `@/lib/moduleDragDrop` 协议的对接逻辑：
- * - 仅接受 XIRANITE_MODULE_MIME 类型的拖拽，忽略普通文本/文件拖拽；
+ * - 仅接受 XAIHI_MODULE_MIME 类型的拖拽，忽略普通文本/文件拖拽；
  * - 维护 isModuleOver 状态用于高亮放置区域；
  * - onDrop 时解析 moduleId 并调用 onDropModule 回调；
  * - 通过 relatedTarget.contains 判断避免子元素 dragLeave 误触发；
@@ -38,6 +38,7 @@ export function useModuleDropTarget(
   }, [])
 
   const onDrop = useCallback((event: ReactDragEvent<HTMLElement>) => {
+    if (!isModuleDrag(event)) return
     const payload = getModuleDragData(event)
     if (!payload) return
     event.preventDefault()

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, test, vi } from "vitest"
 import {
-  XIRANITE_MODULE_MIME,
+  XAIHI_MODULE_MIME,
   acceptModuleDragOver,
   getModuleDragData,
   isModuleDrag,
@@ -9,21 +9,21 @@ import {
 } from "./moduleDragDrop"
 
 describe("moduleDragDrop", () => {
-  test("writes and reads xiranite module payloads", () => {
+  test("writes and reads Xaihi module payloads", () => {
     const store = new Map<string, string>()
     const event = {
       preventDefault: vi.fn(),
       dataTransfer: {
         effectAllowed: "all",
         dropEffect: "none",
-        types: [XIRANITE_MODULE_MIME],
+        types: [XAIHI_MODULE_MIME],
         setData: vi.fn((type: string, value: string) => store.set(type, value)),
         getData: vi.fn((type: string) => store.get(type) ?? ""),
       },
     }
 
     setModuleDragData(event as never, "repacku")
-    event.dataTransfer.types = [XIRANITE_MODULE_MIME, "text/plain"]
+    event.dataTransfer.types = [XAIHI_MODULE_MIME, "text/plain"]
 
     expect(event.dataTransfer.effectAllowed).toBe("copy")
     expect(isModuleDrag(event as never)).toBe(true)

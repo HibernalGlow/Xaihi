@@ -47,3 +47,6 @@ minimumReleaseAgeExclude:
 overrides:
   react: 19.2.4
   react-dom: 19.2.4
+
+patchedDependencies:
+  '@danfessler/trellis@0.3.0': patches/@danfessler__trellis@0.3.0.patch

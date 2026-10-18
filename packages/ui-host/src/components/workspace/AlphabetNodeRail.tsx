@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent, type FocusEvent, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react"
 import { useReducedMotion } from "motion/react"
 import { ExternalLink } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -10,9 +10,11 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandS
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { setModuleDragData } from "@/lib/moduleDragDrop"
 import { useWindowControls } from "@/hooks/useWindowControls"
 import { useWorkspaceActions, useWorkspaceShallowSelector } from "@/store/workspaceStore"
 import { BuoyantNodeRail } from "./BuoyantNodeRail"
+import { useTrellisModuleDrag } from "./TrellisModuleDragHost"
 import type { ComponentInstance, ModuleDef } from "@/types/workspace"
 
 export const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")
@@ -78,9 +80,11 @@ export function AlphabetNodeRail() {
   const reduceMotion = useReducedMotion()
   const workspaceActions = useWorkspaceActions()
   const { openComponent } = useWindowControls()
+  const trellisModuleDrag = useTrellisModuleDrag()
   const appearance = useWorkspaceShallowSelector((state) => ({
     activeWorkspaceId: state.activeWorkspaceId,
     viewMode: state.viewMode,
+    cardLayout: state.cardLayout,
     visible: state.alphabetIndexVisible,
     opacity: state.alphabetIndexOpacity,
     style: state.alphabetIndexStyle,
@@ -97,6 +101,9 @@ export function AlphabetNodeRail() {
   const keyboardInteractionRef = useRef(false)
   const restoreTriggerFocusRef = useRef(false)
   const suppressDeployForModuleRef = useRef<string | null>(null)
+  const draggingModuleRef = useRef<ModuleDef | null>(null)
+  const pendingPointerCleanupRef = useRef<(() => void) | null>(null)
+  const trellisDrag = appearance.viewMode === "cards" && appearance.cardLayout === "trellis" && Boolean(trellisModuleDrag)
   const contributed = useContributedModules()
   const visibleInitials = useMemo(
     // `allModules()` owns the merge so no listing restates it; `contributed` is still the dependency
@@ -131,9 +138,11 @@ export function AlphabetNodeRail() {
 
   useEffect(() => () => {
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+    pendingPointerCleanupRef.current?.()
   }, [])
 
   const collapse = useCallback(() => {
+    if (draggingModuleRef.current || pendingPointerCleanupRef.current) return
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
     closeTimerRef.current = null
     setOpen(false)
@@ -157,6 +166,7 @@ export function AlphabetNodeRail() {
   }, [])
 
   const scheduleClose = useCallback(() => {
+    if (draggingModuleRef.current || pendingPointerCleanupRef.current) return
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
     closeTimerRef.current = setTimeout(() => {
       const focused = document.activeElement
@@ -211,6 +221,7 @@ export function AlphabetNodeRail() {
   }, [keepOpen, visibleIndexes])
 
   const selectInitial = useCallback((index: number) => {
+    if (draggingModuleRef.current) return
     keepOpen()
     setActiveIndex(index)
     setOpen(true)
@@ -236,12 +247,58 @@ export function AlphabetNodeRail() {
   }, [appearance.directDeploySingle, deployModule, selectInitial])
 
   const selectModule = useCallback((module: ModuleDef) => {
+    if (draggingModuleRef.current) return
     if (suppressDeployForModuleRef.current === module.id) {
       suppressDeployForModuleRef.current = null
       return
     }
     deployModule(module)
   }, [deployModule])
+
+  const startModuleDrag = useCallback((module: ModuleDef, event: ReactDragEvent<HTMLElement>) => {
+    if ((event.target as Element).closest("button")) {
+      event.preventDefault()
+      return
+    }
+    setModuleDragData(event, module.id)
+    draggingModuleRef.current = module
+    suppressDeployForModuleRef.current = module.id
+    keyboardInteractionRef.current = false
+    keepOpen()
+  }, [keepOpen])
+
+  const endModuleDrag = useCallback((event: ReactDragEvent<HTMLElement>) => {
+    const module = draggingModuleRef.current
+    draggingModuleRef.current = null
+    if (module && event.dataTransfer.dropEffect === "copy") {
+      setAnnounce(t("common:alphabetLauncher.added", { name: module.name }))
+    }
+    collapse()
+  }, [collapse, t])
+
+  const startTrellisPointer = useCallback((module: ModuleDef, event: ReactPointerEvent<HTMLElement>) => {
+    if (!trellisDrag || event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || (event.target as Element).closest("button")) return
+    pendingPointerCleanupRef.current?.()
+    keepOpen()
+    const start = { x: event.clientX, y: event.clientY, pointerId: event.pointerId }
+    const controller = new AbortController()
+    const cleanup = () => { controller.abort(); pendingPointerCleanupRef.current = null }
+    pendingPointerCleanupRef.current = cleanup
+    window.addEventListener("pointermove", (pointer) => {
+      if (pointer.pointerId !== start.pointerId || Math.hypot(pointer.clientX - start.x, pointer.clientY - start.y) < 6) return
+      cleanup()
+      suppressDeployForModuleRef.current = module.id
+      if (trellisModuleDrag?.begin(module, pointer)) {
+        pointer.preventDefault()
+        setAnnounce(t("common:alphabetLauncher.added", { name: module.name }))
+        collapse()
+      }
+    }, { signal: controller.signal })
+    const finish = (pointer: PointerEvent) => { if (pointer.pointerId === start.pointerId) cleanup() }
+    window.addEventListener("pointerup", finish, { signal: controller.signal })
+    window.addEventListener("pointercancel", finish, { signal: controller.signal })
+    window.addEventListener("blur", cleanup, { signal: controller.signal })
+  }, [trellisDrag, trellisModuleDrag, keepOpen, collapse, t])
 
   const suppressModuleDeploy = useCallback((moduleId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
     suppressDeployForModuleRef.current = moduleId
@@ -415,7 +472,13 @@ export function AlphabetNodeRail() {
                     key={module.id}
                     value={`${module.name} ${module.id}`}
                     tabIndex={0}
-                    className="group/result h-8 min-h-8 items-center py-1 text-xs"
+                    className="group/result h-8 min-h-8 cursor-grab items-center py-1 text-xs active:cursor-grabbing"
+                    draggable={!trellisDrag}
+                    title={t("registry:dragHint")}
+                    onDragStart={(event: ReactDragEvent<HTMLElement>) => startModuleDrag(module, event)}
+                    onDragEnd={endModuleDrag}
+                    onPointerDownCapture={() => { suppressDeployForModuleRef.current = null }}
+                    onPointerDown={(event: ReactPointerEvent<HTMLElement>) => startTrellisPointer(module, event)}
                     onSelect={() => selectModule(module)}
                     data-testid={`alphabet-node-result-${module.id}`}
                   >

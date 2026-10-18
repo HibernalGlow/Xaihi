@@ -1,8 +1,8 @@
 /**
  * 节点模块拖拽协议。
  *
- * 定义 Xiranite 内部模块（node module）从模块库拖到工作区画布时使用的 HTML5 拖拽数据协议：
- * - 自定义 MIME 类型 `application/x-xiranite-module` 携带结构化 JSON payload，确保只有 Xiranite
+ * 定义 Xaihi 内部模块（node module）从模块库拖到工作区画布时使用的 HTML5 拖拽数据协议：
+ * - 自定义 MIME 类型 `application/x-xaihi-module` 携带结构化 JSON payload，确保只有 Xaihi
  *   内部发起的拖拽才会被工作区接受，避免与外部文本/文件拖拽冲突；
  * - 同时写入 `text/plain` 作为降级通道，便于不支持自定义 MIME 的场景（如某些跨窗口拖拽）回退解析。
  *
@@ -11,8 +11,8 @@
  */
 import type { DragEvent as ReactDragEvent } from "react"
 
-/** 自定义 MIME 类型，用于标识 Xiranite 模块拖拽。 */
-export const XIRANITE_MODULE_MIME = "application/x-xiranite-module"
+/** 自定义 MIME 类型，用于标识 Xaihi 模块拖拽。 */
+export const XAIHI_MODULE_MIME = "application/x-xaihi-module"
 
 /** 模块拖拽数据载荷：仅包含 moduleId。 */
 export interface ModuleDragPayload {
@@ -33,7 +33,7 @@ type DragLike = Pick<ReactDragEvent<HTMLElement>, "dataTransfer" | "preventDefau
  */
 export function setModuleDragData(event: ReactDragEvent<HTMLElement>, moduleId: string): void {
   event.dataTransfer.effectAllowed = "copy"
-  event.dataTransfer.setData(XIRANITE_MODULE_MIME, JSON.stringify({ moduleId }))
+  event.dataTransfer.setData(XAIHI_MODULE_MIME, JSON.stringify({ moduleId }))
   event.dataTransfer.setData("text/plain", moduleId)
 }
 
@@ -47,7 +47,7 @@ export function setModuleDragData(event: ReactDragEvent<HTMLElement>, moduleId: 
  * @returns 解析后的 payload，失败返回 null
  */
 export function getModuleDragData(event: Pick<ReactDragEvent<HTMLElement>, "dataTransfer">): ModuleDragPayload | null {
-  const raw = event.dataTransfer.getData(XIRANITE_MODULE_MIME)
+  const raw = event.dataTransfer.getData(XAIHI_MODULE_MIME)
   if (raw) {
     try {
       const parsed = JSON.parse(raw) as Partial<ModuleDragPayload>
@@ -64,7 +64,7 @@ export function getModuleDragData(event: Pick<ReactDragEvent<HTMLElement>, "data
 }
 
 /**
- * 判断事件是否由 Xiranite 模块拖拽发起。
+ * 判断事件是否由 Xaihi 模块拖拽发起。
  *
  * 通过检查 dataTransfer.types 是否包含自定义 MIME 实现。
  * 注意：dragover 期间 dataTransfer.getData 不可用（浏览器限制），必须用 types 判断。
@@ -73,7 +73,7 @@ export function getModuleDragData(event: Pick<ReactDragEvent<HTMLElement>, "data
  */
 export function isModuleDrag(event: Pick<ReactDragEvent<HTMLElement>, "dataTransfer">): boolean {
   const types = Array.from(event.dataTransfer.types ?? [])
-  return types.includes(XIRANITE_MODULE_MIME)
+  return types.includes(XAIHI_MODULE_MIME)
 }
 
 /**

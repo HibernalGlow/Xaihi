@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react"
 import { useWorkspaceShallowSelector } from "@/store/workspaceStore"
 import { TrellisToolbarHost } from "./TrellisToolbarSlot"
+import { TrellisModuleDragHost } from "./TrellisModuleDragHost"
 import { TopBar } from "./TopBar"
 import { WorkspaceUrlState } from "./WorkspaceUrlState"
 import { BackendStatusBanner } from "./BackendStatusBanner"
@@ -47,7 +48,7 @@ export function WorkspaceLayout() {
   } as React.CSSProperties
 
   return (
-    <TrellisToolbarHost><div
+    <TrellisModuleDragHost><TrellisToolbarHost><div
       className={cn("flex h-screen flex-col overflow-hidden bg-background text-foreground", themeClass, bgClass, bgCoverClass)}
       style={bgStyles}
     >
@@ -75,6 +76,6 @@ export function WorkspaceLayout() {
           {!chrome.dashboardOpen && <><SelectionToolbar /><AlphabetNodeRail /></>}
         </Suspense>
       </main>
-    </div></TrellisToolbarHost>
+    </div></TrellisToolbarHost></TrellisModuleDragHost>
   )
 }
