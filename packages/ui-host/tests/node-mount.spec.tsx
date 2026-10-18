@@ -96,7 +96,7 @@ afterEach(() => {
  * 不是再调一次被测函数得到）。
  * 本文件所有计数都从它推，不再各写一个数字：手抄的期望只能有一处。
  */
-const REGISTERED = ['bitv', 'classf', 'classq', 'cleanf', 'crashu', 'dissolvef', 'encodeb', 'enginev', 'findz', 'formatv', 'gifu', 'kisaki', 'linedup', 'linku', 'marku', 'migratef', 'mvz', 'nameu', 'recycleu', 'repacku', 'samea', 'sleept', 'smartzip', 'timeu', 'trename']
+const REGISTERED = ['bitv', 'classf', 'classq', 'cleanf', 'crashu', 'dissolvef', 'enginev', 'findz', 'formatv', 'gifu', 'kisaki', 'linedup', 'marku', 'migratef', 'mvz', 'nameu', 'recycleu', 'repacku', 'samea', 'shellect', 'sleept', 'timeu', 'trename']
 
 describe('注册表 → 面板条目', () => {
 
@@ -207,7 +207,7 @@ describe('装载状态', () => {
       throw new Error('这一份坏了')
     }
     const view = render(createElement('div', null,
-      createElement(NodeModuleSurface, { id: 'linku', contribution: contributionOf('linku'), locale: 'zh', host: panelHost(), t, loader: bad }),
+      createElement(NodeModuleSurface, { id: 'mvz', contribution: contributionOf('mvz'), locale: 'zh', host: panelHost(), t, loader: bad }),
       createElement(NodeModuleSurface, { id: 'logx', contribution: contributionOf('logx'), locale: 'zh', host: panelHost(), t, loader: readyLoader }),
     ))
     await waitFor(() => expect(view.getByTestId('node-body').textContent).toBe('logx 界面'))
@@ -288,7 +288,7 @@ describe('装载状态', () => {
     }
     const loaders: Record<string, NodeEntryLoader> = {
       linedup: async () => ({ default: { def: {}, Component: Hooked } }),
-      linku: async () => ({ default: { def: {}, Component: Hooked } }),
+      mvz: async () => ({ default: { def: {}, Component: Hooked } }),
     }
     const byId: NodeEntryLoader = (id) => {
       const load = loaders[id]
