@@ -19,7 +19,11 @@
       "types": "./lib/bridge.d.ts",
       "default": "./lib/bridge.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./manifest": {
+      "types": "./lib/manifest.d.ts",
+      "default": "./lib/manifest.js"
+    }
   },
   "files": [
     "lib/**",

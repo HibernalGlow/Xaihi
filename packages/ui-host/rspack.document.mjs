@@ -15,11 +15,11 @@ import { fileURLToPath } from 'node:url'
  * （`type: 'css/mini-extract'` 与 `type: 'asset'` + resourceQuery）。
  * 浏览器 UI 用 rspack 也不是新机制——每个节点包自己的 `rspack.config.mjs` 就是这个仓现有的那套。
  *
- * react 走 **alias 到本包的 react-19**，不是 external、也不是 MF shared：
+ * react 走 **alias 到本包的 react-19**，不 external 给外面的 DSH React 18：
  * ADR-0009 实测过"同一次编译里外面宿主 18、里面自带 19"做不到（V2 报
  * `Cannot read properties of undefined (reading 'S')`，因为 react-dom@19 内部 require('react')
- * 被共享表解析成了宿主的 18）。这份 bundle 里没有模块联邦、没有共享表，
- * 所以 19 的 react + react-dom 是一整张闭合的图；对外只交出一个 DOM 容器。
+ * 被共享表解析成了宿主的 18）。文档内的 MF runtime 只向第三方 remote 提供本 realm 的
+ * React 19 共享表；不与外层 DSH React 18 runtime 相连，对外只交出一个 DOM 容器。
  *
  * 产物名必须与 core 那两条路由常量一致（`UI_ENTRY_SCRIPT` / `UI_ENTRY_STYLE`），
  * 否则文档壳引到 404，而症状是"界面空白"。
