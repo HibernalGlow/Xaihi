@@ -40,12 +40,6 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     description: "Dissolve subfolders of a directory up one level using nested / media / archive / direct strategies. Plan first, then apply, with an undo journal.",
   },
   {
-    id: "encodeb",
-    packageName: "@hibernalglow/xaihi-encodeb",
-    bin: "encodeb",
-    description: "Preview and recover garbled filenames by re-decoding path components.",
-  },
-  {
     id: "enginev",
     packageName: "@hibernalglow/xaihi-enginev",
     bin: "enginev",
@@ -74,12 +68,6 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     packageName: "@hibernalglow/xaihi-linedup",
     bin: "linedup",
     description: "Deduplicate multiline text and drop lines matching filters, returning kept and removed sets with counts.",
-  },
-  {
-    id: "linku",
-    packageName: "@hibernalglow/xaihi-linku",
-    bin: "linku",
-    description: "Create, move, import, restore, list, and recover symlink records.",
   },
   {
     id: "marku",
@@ -128,12 +116,6 @@ export const GENERATED_NODE_CLI_REGISTRY = [
     packageName: "@hibernalglow/xaihi-sleept",
     bin: "sleept",
     description: "Read sleep/hibernate settings and which processes hold sleep off, temporarily prevent system sleep, or put the machine to sleep now (hibernate on Windows). Covers macOS and Windows only.",
-  },
-  {
-    id: "smartzip",
-    packageName: "@hibernalglow/xaihi-smartzip",
-    bin: "smartzip",
-    description: "TypeScript archive workflows with automatic 7-Zip discovery.",
   },
   {
     id: "timeu",
