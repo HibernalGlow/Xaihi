@@ -7,7 +7,7 @@ describe("@hibernalglow/xaihi-cli registry", () => {
     expect(NODE_CLI_REGISTRY.map((entry) => entry.id)).toContain("cleanf")
     expect(NODE_CLI_REGISTRY.map((entry) => entry.id)).toContain("envuconfig")
     expect(NODE_CLI_REGISTRY.map((entry) => entry.id)).toContain("gifu")
-    expect(NODE_CLI_REGISTRY.map((entry) => entry.id)).toContain("smartzip")
+    expect(NODE_CLI_REGISTRY.map((entry) => entry.id)).toContain("mvz")
     expect(NODE_CLI_REGISTRY.map((entry) => entry.id)).toContain("samea")
     expect(NODE_CLI_REGISTRY.map((entry) => entry.id)).toContain("trename")
   })

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
   <title id="title">Xaihi — 跑在 DeepSeek Harness 上的工作台扩展框架与领域节点生态</title>
-  <desc id="desc">标题背后是 27 个真实节点名组成的排印墙。右侧斜切面上叠着两张真实产物：一份 package.json#xaihi.node 节点清单，和 xaihi-core 对外的第一条路由。不 fork DSH，不自带 runtime。</desc>
+  <desc id="desc">标题背后是 23 个真实节点名组成的排印墙。右侧斜切面上叠着两张真实产物：一份 UiFace 类型声明（legacy | md3e），和 xaihi-core 对外的工作台文档路由。不 fork DSH，不自带 runtime。</desc>
 
   <defs>
     <linearGradient id="frost" x1="0" y1="0" x2="0" y2="1">
@@ -22,7 +22,7 @@
       <rect x="0" y="0" width="1200" height="420" fill="url(#fadeG)"/>
     </mask>
     <clipPath id="cut"><rect width="1200" height="420" rx="24"/></clipPath>
-    <clipPath id="frontCard"><rect x="694" y="88" width="450" height="232" rx="14"/></clipPath>
+    <clipPath id="frontCard"><rect x="694" y="80" width="450" height="248" rx="14"/></clipPath>
     <clipPath id="sliceA"><rect x="0" y="126" width="1200" height="10"/></clipPath>
     <clipPath id="sliceB"><rect x="0" y="182" width="1200" height="4"/></clipPath>
   </defs>
@@ -37,17 +37,17 @@
     <line x1="706" y1="0" x2="566" y2="420" stroke="url(#edge)" stroke-width="1.5"/>
     <line x1="838" y1="0" x2="698" y2="420" stroke="#69B3C8" stroke-opacity="0.22" stroke-width="1"/>
 
-    <!-- typographic wall: all 27 real node ids, faded out to the right -->
-    <g mask="url(#fadeW)" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="27" fill="#69B3C8" opacity="0.085">
-      <text x="56" y="104">bandia · bitv · classf · classq · cleanf · crashu · dissolvef</text>
-      <text x="56" y="140">encodeb · enginev · findz · formatv · gifu · kisaki · linedup</text>
-      <text x="56" y="336">linku · marku · migratef · mvz · nameu · rawfilter · recycleu</text>
-      <text x="56" y="366">repacku · samea · sleept · smartzip · timeu · trename</text>
+    <!-- typographic wall: all 23 real node ids, faded out to the right -->
+    <g mask="url(#fadeW)" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="26" fill="#69B3C8" opacity="0.09">
+      <text x="56" y="104">bitv · classf · classq · cleanf · crashu · dissolvef · enginev</text>
+      <text x="56" y="140">findz · formatv · gifu · kisaki · linedup · marku · migratef</text>
+      <text x="56" y="336">mvz · nameu · recycleu · repacku · samea · shellect</text>
+      <text x="56" y="372">sleept · timeu · trename</text>
     </g>
 
     <!-- title system -->
     <g id="title-block" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans CJK SC', sans-serif">
-      <text x="56" y="72" font-size="16" letter-spacing="4" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">DSH PLUGIN-BUNDLE LAYER · 27 NODES</text>
+      <text x="56" y="72" font-size="16" letter-spacing="4" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">DSH PLUGIN-BUNDLE LAYER · 23 NODES · 2 FACES</text>
 
       <g font-size="128" font-weight="800" letter-spacing="2">
         <text x="59" y="204" fill="#D63C82" opacity="0.5">XAIHI</text>
@@ -63,36 +63,43 @@
       <text x="60" y="240" font-size="16" letter-spacing="3" fill="#5F7C93">名字来自《明日方舟：终末地》干员「赛希」</text>
       <text x="56" y="280" font-size="22" fill="#DCECF3">工作台扩展框架 + 领域节点生态</text>
       <text x="56" y="308" font-size="18" fill="#8FA6BC">不 fork DSH，不自带 runtime：一切以合法 plugin-bundle 存在</text>
+
+      <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">
+        <rect x="56" y="330" width="196" height="34" rx="17" fill="#12232F" stroke="#5DE6FE" stroke-opacity="0.45"/>
+        <text x="154" y="352" fill="#A4D2E0" text-anchor="middle">legacy | md3e</text>
+        <rect x="266" y="330" width="188" height="34" rx="17" fill="#12232F" stroke="#69B3C8" stroke-opacity="0.35"/>
+        <text x="360" y="352" fill="#8FA6BC" text-anchor="middle">23 bundles · 99 actions</text>
+      </g>
     </g>
 
-    <!-- artifact stack: two real products, offset and overlapped -->
+    <!-- artifact stack: real products, offset and overlapped -->
     <g id="artifacts">
-      <g transform="rotate(-1.6 900 204)">
-        <rect x="702" y="98" width="450" height="232" rx="14" fill="#05090D" opacity="0.5"/>
-        <g transform="translate(-8 -12)">
-          <rect x="694" y="88" width="450" height="232" rx="14" fill="#101F29" stroke="#22384A"/>
+      <g transform="rotate(-1.4 900 200)">
+        <rect x="702" y="90" width="450" height="248" rx="14" fill="#05090D" opacity="0.5"/>
+        <g transform="translate(-8 -10)">
+          <rect x="694" y="80" width="450" height="248" rx="14" fill="#101F29" stroke="#22384A"/>
           <g clip-path="url(#frontCard)">
-            <rect x="694" y="88" width="450" height="32" fill="#16293A"/>
-            <text x="716" y="110" font-size="16" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">plugins/linedup/package.json</text>
-            <circle cx="1122" cy="104" r="4" fill="#5DE6FE" opacity="0.75"/>
+            <rect x="694" y="80" width="450" height="32" fill="#16293A"/>
+            <text x="716" y="102" font-size="16" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">ui-host/src/types/workspace.ts</text>
+            <circle cx="1122" cy="96" r="4" fill="#5DE6FE" opacity="0.75"/>
           </g>
           <g xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">
-            <text x="716" y="148"><tspan fill="#A4D2E0">"xaihi"</tspan><tspan fill="#5F7C93">: { </tspan><tspan fill="#A4D2E0">"node"</tspan><tspan fill="#5F7C93">: {</tspan></text>
-            <text x="744" y="173"><tspan fill="#A4D2E0">"definitionVersion"</tspan><tspan fill="#5F7C93">: </tspan><tspan fill="#DCECF3">1</tspan><tspan fill="#5F7C93">,</tspan></text>
-            <text x="744" y="198"><tspan fill="#A4D2E0">"nodeId"</tspan><tspan fill="#5F7C93">: </tspan><tspan fill="#5DE6FE">"linedup"</tspan><tspan fill="#5F7C93">,</tspan></text>
-            <text x="744" y="223"><tspan fill="#A4D2E0">"title"</tspan><tspan fill="#5F7C93">: { </tspan><tspan fill="#A4D2E0">"zh"</tspan><tspan fill="#5F7C93">: </tspan><tspan fill="#5DE6FE">"行去重过滤"</tspan><tspan fill="#5F7C93"> },</tspan></text>
-            <text x="744" y="248"><tspan fill="#A4D2E0">"actions"</tspan><tspan fill="#5F7C93">: [{ </tspan><tspan fill="#A4D2E0">"id"</tspan><tspan fill="#5F7C93">: </tspan><tspan fill="#5DE6FE">"filter"</tspan><tspan fill="#5F7C93"> }],</tspan></text>
-            <text x="744" y="273"><tspan fill="#A4D2E0">"danger"</tspan><tspan fill="#5F7C93">: { </tspan><tspan fill="#A4D2E0">"type"</tspan><tspan fill="#5F7C93">: </tspan><tspan fill="#D63C82">"none"</tspan><tspan fill="#5F7C93"> }</tspan></text>
-            <text x="716" y="298" fill="#5F7C93">} }</text>
+            <text x="716" y="140"><tspan fill="#A4D2E0">export type</tspan><tspan fill="#5F7C93"> </tspan><tspan fill="#DCECF3">UiFace</tspan><tspan fill="#5F7C93"> =</tspan></text>
+            <text x="744" y="167"><tspan fill="#5F7C93">  | </tspan><tspan fill="#5DE6FE">"legacy"</tspan></text>
+            <text x="744" y="194"><tspan fill="#5F7C93">  | </tspan><tspan fill="#5DE6FE">"md3e"</tspan></text>
+            <text x="716" y="228"><tspan fill="#A4D2E0">export const</tspan><tspan fill="#DCECF3"> UI_FACES</tspan><tspan fill="#5F7C93"> = [</tspan><tspan fill="#5DE6FE">"legacy"</tspan><tspan fill="#5F7C93">, </tspan><tspan fill="#5DE6FE">"md3e"</tspan><tspan fill="#5F7C93">]</tspan></text>
+            <text x="716" y="255"><tspan fill="#A4D2E0">export const</tspan><tspan fill="#DCECF3"> DEFAULT_UI_FACE</tspan><tspan fill="#5F7C93"> = </tspan><tspan fill="#D63C82">"legacy"</tspan></text>
+            <text x="716" y="288" fill="#5F7C93">// 换面只换形状与配色，动作语义不动</text>
+            <text x="716" y="313" fill="#5F7C93">// ADR-0033 / ADR-0034</text>
           </g>
         </g>
       </g>
 
-      <g transform="rotate(1.4 940 326)">
-        <rect x="744" y="318" width="404" height="72" rx="14" fill="#05090D" opacity="0.5"/>
-        <rect x="736" y="310" width="404" height="72" rx="14" fill="#0E1A22" stroke="#22384A"/>
-        <text x="758" y="338" font-size="16" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">core/src/routes.ts</text>
-        <text x="758" y="366" xml:space="preserve" font-size="18" fill="#5DE6FE" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">/xaihi/ui/<tspan fill="#8FA6BC">&lt;rev&gt;</tspan>/main.js</text>
+      <g transform="rotate(1.4 940 350)">
+        <rect x="744" y="336" width="404" height="64" rx="14" fill="#05090D" opacity="0.5"/>
+        <rect x="736" y="328" width="404" height="64" rx="14" fill="#0E1A22" stroke="#22384A"/>
+        <text x="758" y="354" font-size="16" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">core/src/routes.ts</text>
+        <text x="758" y="378" xml:space="preserve" font-size="17" fill="#5DE6FE" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">/xaihi/ui/<tspan fill="#8FA6BC">&lt;rev&gt;</tspan>/index.html</text>
       </g>
     </g>
   </g>
