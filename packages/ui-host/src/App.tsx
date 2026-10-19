@@ -18,6 +18,7 @@ import { startupDebug, startupDebugAsync } from "@/lib/startupDebug"
 import { DesktopTrayBridge } from "@/desktop/tray/DesktopTrayBridge"
 import { WorkspaceWindowRestorer } from "@/components/workspace/WorkspaceWindowRestorer"
 import { WorkspaceWindowFrameSync } from "@/components/workspace/WorkspaceWindowFrameSync"
+import { isOwnedBrowserPopup } from "@/backend/browserPopup"
 
 const WorkspaceLayout = lazy(() =>
   startupDebugAsync("lazy:workspace-layout", () => import("@/components/workspace/WorkspaceLayout")).then((module) => ({
@@ -45,6 +46,51 @@ const floatingWindowParsers = {
   moduleId: parseAsString,
   workspaceId: parseAsString,
   title: parseAsString,
+  popupToken: parseAsString,
+}
+
+function hasNativeXaihiWindow(): boolean {
+  if (typeof window === "undefined") return false
+  const desktop = (window as Window & {
+    dshDesktop?: { xaihiWindow?: { open?: unknown } }
+  }).dshDesktop
+  return typeof desktop?.xaihiWindow?.open === "function"
+}
+
+export function shouldRenderFloatingWindow(
+  input: { floatingComponent?: string | null; targetModuleId?: string | null },
+  nativeShell: boolean,
+  browserPopupOwned = false,
+): boolean {
+  return Boolean(
+    (input.floatingComponent && (nativeShell || browserPopupOwned))
+    || (nativeShell && input.targetModuleId),
+  )
+}
+
+export function shouldDiscardStaleWindowAddress(
+  input: { floatingComponent?: string | null; node?: string | null; moduleId?: string | null },
+  nativeShell: boolean,
+): boolean {
+  return !nativeShell && Boolean(input.floatingComponent || input.node || input.moduleId)
+}
+
+function hasBrowserPopupOwner(componentId?: string | null, popupToken?: string | null): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    return isOwnedBrowserPopup(window.opener, window.location.origin, componentId, popupToken)
+  } catch {
+    return false
+  }
+}
+
+function clearFloatingWindowQuery(): void {
+  if (typeof window === "undefined") return
+  const url = new URL(window.location.href)
+  for (const key of ["floatingComponent", "node", "windowId", "moduleId", "workspaceId", "title", "popupToken"]) {
+    url.searchParams.delete(key)
+  }
+  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`)
 }
 
 export function App() {
@@ -71,7 +117,20 @@ export function App() {
 
     const normalizedNode = rawNode ? rawNode.trim().replace(/^xaihi-/, "") : null
     const targetModuleId = params.moduleId || normalizedNode || null
-    const isFloatingMode = Boolean(params.floatingComponent || targetModuleId)
+    const nativeShell = hasNativeXaihiWindow()
+    const browserPopupOwned = Boolean(
+      params.floatingComponent && hasBrowserPopupOwner(params.floatingComponent, params.popupToken),
+    )
+    // `node` is the native desktop child-window address. A browser can reopen a
+    // stale `?node=...` URL from its previous session, but it must remain on the
+    // workbench instead of turning that tab into a Shellect (or other node) popup.
+    // Explicit browser popups carry `floatingComponent` and a live same-origin opener;
+    // a browser-restored popup has neither and falls back to the workbench.
+    const isFloatingMode = shouldRenderFloatingWindow(
+      { floatingComponent: params.floatingComponent, targetModuleId },
+      nativeShell,
+      browserPopupOwned,
+    )
 
     const compId = params.floatingComponent || (params.windowId ?? (targetModuleId ? `window-${targetModuleId}` : "unknown"))
     const windowId = params.windowId ?? compId
@@ -83,6 +142,24 @@ export function App() {
       activeWindowId: windowId,
     }
   }, [params])
+
+  useEffect(() => {
+    const nativeShell = hasNativeXaihiWindow()
+    if (
+      !shouldDiscardStaleWindowAddress(params, nativeShell)
+      || isFloating
+      || hasBrowserPopupOwner(params.floatingComponent, params.popupToken)
+    ) return
+    // A browser can restore a previously opened component or desktop node window
+    // without its original shell/opener. Close it when possible and clear its address.
+    try {
+      window.close()
+      if (window.closed) return
+    } catch {
+      // Browsers ignore close() for ordinary tabs; continue with URL cleanup.
+    }
+    clearFloatingWindowQuery()
+  }, [isFloating, params.floatingComponent, params.moduleId, params.node, params.popupToken])
 
   useEffect(() => {
     startupDebug("react:app-committed", {

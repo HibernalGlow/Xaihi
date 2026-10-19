@@ -25,13 +25,14 @@ interface Props {
 export function FloatingComponentWindow({ compId, windowId, moduleIdFallback, workspaceIdFallback }: Props) {
   const { t } = useTranslation()
   const comp = useWorkspaceComponent(compId)
-  const { activeCustomThemeName, activeWorkspaceId, floatingWindowCaptionAutoCollapse, floatingWindowCaptionPosition, floatingWindowCaptionStyle, theme, zCounter } = useWorkspaceShallowSelector((state) => ({
+  const { activeCustomThemeName, activeWorkspaceId, floatingWindowCaptionAutoCollapse, floatingWindowCaptionPosition, floatingWindowCaptionStyle, theme, uiFace, zCounter } = useWorkspaceShallowSelector((state) => ({
     activeCustomThemeName: state.activeCustomThemeName,
     activeWorkspaceId: state.activeWorkspaceId,
     floatingWindowCaptionAutoCollapse: state.floatingWindowCaptionAutoCollapse,
     floatingWindowCaptionPosition: state.floatingWindowCaptionPosition,
     floatingWindowCaptionStyle: state.floatingWindowCaptionStyle,
     theme: state.theme,
+    uiFace: state.uiFace,
     zCounter: state.zCounter,
   }))
   const workspaceActions = useWorkspaceActions()
@@ -63,7 +64,8 @@ export function FloatingComponentWindow({ compId, windowId, moduleIdFallback, wo
     }
   }, [moduleId])
 
-  const themeClass = activeCustomThemeName ? "" : presetThemeRootClass(theme)
+  // Keep floating nodes on the same MD3E token plane as the main workspace.
+  const themeClass = uiFace === "md3e" || activeCustomThemeName ? "" : presetThemeRootClass(theme)
 
   useEffect(() => {
     if (!moduleId || comp) return

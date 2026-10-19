@@ -7,9 +7,11 @@ import { createLogger } from "@/lib/logger"
 const logger = createLogger("window.restore")
 
 export function WorkspaceWindowRestorer() {
-  const { backendReady, components } = useWorkspaceShallowSelector((state) => ({
+  const { appConfigReady, backendReady, components, restoreWorkspaceComponents } = useWorkspaceShallowSelector((state) => ({
+    appConfigReady: state.appConfigReady,
     backendReady: state.backendReady,
     components: state.components,
+    restoreWorkspaceComponents: state.restoreWorkspaceComponents,
   }))
   const windowComponents = useMemo(
     () => components.filter((component) => component.placement === "window"),
@@ -19,8 +21,11 @@ export function WorkspaceWindowRestorer() {
   const attemptedIdsRef = useRef(new Set<string>())
 
   useEffect(() => {
-    if (!backendReady || capabilitiesPending || !capabilities) return
-    if (!capabilities.supported || capabilities.componentWindows === "unsupported") return
+    if (!appConfigReady || !backendReady || !restoreWorkspaceComponents || capabilitiesPending || !capabilities) return
+    // Browser popups require a user gesture and must never be created during startup.
+    // Only a native shell can restore an independent window safely here; browser users
+    // can still open one explicitly from the workspace action.
+    if (!capabilities.supported || capabilities.componentWindows !== "native") return
 
     const pending = windowComponents.filter((component) => !attemptedIdsRef.current.has(component.id))
     if (pending.length === 0) return
@@ -41,7 +46,7 @@ export function WorkspaceWindowRestorer() {
         }
       }
     })()
-  }, [backendReady, capabilities, capabilitiesPending, openComponent, windowComponents])
+  }, [appConfigReady, backendReady, capabilities, capabilitiesPending, openComponent, restoreWorkspaceComponents, windowComponents])
 
   return null
 }

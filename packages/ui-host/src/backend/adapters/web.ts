@@ -1,5 +1,6 @@
 import { localBackendFileUrl } from "../localBackendConfig"
 import { parentLocalPath, pickLocalPaths } from "../localFilesClient"
+import { browserPopupSessionKey, createBrowserPopupToken } from "../browserPopup"
 import type {
   ComponentWindowFrameEvent,
   FilePickerRequest,
@@ -238,9 +239,17 @@ class WebWindowRuntime implements WindowRuntime {
 
   async openComponent(input: OpenComponentWindowInput): Promise<WindowCommandResult> {
     const url = new URL(window.location.href)
+    const popupToken = createBrowserPopupToken()
+    try {
+      window.sessionStorage.setItem(browserPopupSessionKey(input.componentId), popupToken)
+    } catch {
+      // A storage-disabled browser can still attempt the popup; the opener check
+      // will reject it and the new tab will fall back to the workbench safely.
+    }
     url.searchParams.set("floatingComponent", input.componentId)
     url.searchParams.set("moduleId", input.moduleId)
     url.searchParams.set("windowId", input.componentId)
+    url.searchParams.set("popupToken", popupToken)
     if (input.workspaceId) url.searchParams.set("workspaceId", input.workspaceId)
     if (input.title) url.searchParams.set("title", input.title)
 

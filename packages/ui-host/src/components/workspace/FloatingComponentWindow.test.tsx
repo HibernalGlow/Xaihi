@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   floatingWindowCaptionStyle: "windows" as "windows" | "capsule" | "traffic-light",
   nativeWindowControls: false,
   captionOwner: "renderer" as "system" | "renderer",
+  uiFace: "legacy" as "legacy" | "md3e",
   component: {
     id: "component-1",
     moduleId: "scratch",
@@ -51,6 +52,7 @@ vi.mock("@/store/workspaceStore", () => ({
     floatingWindowCaptionPosition: mocks.floatingWindowCaptionPosition,
     floatingWindowCaptionStyle: mocks.floatingWindowCaptionStyle,
     theme: "wuling",
+    uiFace: mocks.uiFace,
     zCounter: 1,
   }),
 }))
@@ -82,6 +84,7 @@ afterEach(() => {
   mocks.floatingWindowCaptionAutoCollapse = true
   mocks.floatingWindowCaptionPosition = "right"
   mocks.floatingWindowCaptionStyle = "windows"
+  mocks.uiFace = "legacy"
   mocks.ensureComponent.mockClear()
 })
 
@@ -105,6 +108,14 @@ describe("FloatingComponentWindow", () => {
     expect(screen.queryByTestId("floating-window-integrated-controls")).toBeNull()
     expect(screen.queryByTestId("floating-window-fallback-controls")).toBeNull()
     expect(screen.queryByTestId("floating-window-fallback-drag-region")).toBeNull()
+  })
+
+  test("does not mount the legacy preset class for MD3E floating nodes", () => {
+    mocks.uiFace = "md3e"
+
+    render(<FloatingComponentWindow compId="component-1" />)
+
+    expect(document.querySelector(".xiranite-floating-window")?.classList.contains("theme-wuling")).toBe(false)
   })
 
   test("overlays right-aligned Windows controls without adding a titlebar row", async () => {
