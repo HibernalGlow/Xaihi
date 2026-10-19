@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { RunningTint } from "@/nodes/shared/controls"
+import { RunningTint, useMd3eActive } from "@/nodes/shared/controls"
 import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
@@ -26,6 +26,7 @@ import {
   StatusStrip,
   TimerDial,
 } from "./controls"
+import { RecycleuMd3eView } from "./Md3eView"
 import type { RecycleuCardState, RecycleuStatusMeta } from "./types"
 
 const CONFIG_FIELDS = ["interval", "maxCycles", "driveLetter"] as const satisfies ReadonlyArray<keyof RecycleuCardState>
@@ -33,6 +34,7 @@ const CONFIG_FIELDS = ["interval", "maxCycles", "driveLetter"] as const satisfie
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("recycleu")
   const data = host.getData<RecycleuCardState>(compId) ?? {}
   const dataRef = useRef<RecycleuCardState>(data)
@@ -266,6 +268,18 @@ export function Component({ compId, host }: NodeComponentProps) {
     onExecute: execute,
     onPatch: updateSettings,
     onReset: reset,
+  }
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <RecycleuMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
   }
 
   return (

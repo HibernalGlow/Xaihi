@@ -16,8 +16,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
+import { useMd3eActive } from "@/nodes/shared/controls"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
+import { LinedupMd3eView } from "./Md3eView"
 import { LinedupDisplayTabs, StatsPanel } from "./ResultPanels"
 import { linedupCountedLines, linedupWireLines } from "./model"
 import type { LinedupCardState, LinedupPhase, LinedupStatusMeta } from "./types"
@@ -27,6 +29,7 @@ const CONFIG_FIELDS = ["caseSensitive", "sort"] as const satisfies ReadonlyArray
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("linedup")
   const data = host.getData<LinedupCardState>(compId) ?? {}
   const dataRef = useRef<LinedupCardState>(data)
@@ -201,6 +204,20 @@ export function Component({ compId, host }: NodeComponentProps) {
     onPasteSource: () => paste("sourceText"),
     onPatch: patch,
     onReset: reset,
+  }
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <LinedupMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
   }
 
   return (

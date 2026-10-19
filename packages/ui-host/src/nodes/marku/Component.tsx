@@ -5,8 +5,10 @@ import type { NodeComponentProps, NodeRunResult } from "@xiranite/contract"
 import type { MarkuAction, MarkuData, MarkuInput } from "@xiranite/node-marku/core"
 import { NodeHeroGlow } from "@/components/ui/node-hero-glow"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { useMd3eActive } from "@/nodes/shared/controls"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
 import { findModuleMeta } from "./constants"
+import { MarkuMd3eView } from "./Md3eView"
 import { actionLabel, buildInput, splitPaths, statusFromState } from "./model"
 import { CollapsedView, CompactView, FullView, PortraitCompactView } from "./normal-views"
 import type { MarkuCardState } from "./types"
@@ -17,6 +19,7 @@ type MarkuNodeConfig = Partial<MarkuCardState>
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const data = host.getData<MarkuCardState>(compId) ?? {}
   const dataRef = useRef<MarkuCardState>(data)
   dataRef.current = data
@@ -198,6 +201,20 @@ export function Component({ compId, host }: NodeComponentProps) {
     onResetOverride: resetOverride,
     onRestoreDefault: restoreDefault,
     onSaveDefault: saveAsDefault,
+  }
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <MarkuMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...viewProps}
+        />
+      </TooltipProvider>
+    )
   }
 
   return (

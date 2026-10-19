@@ -28,7 +28,7 @@ afterEach(() => {
   cleanup()
   vi.clearAllMocks()
   // Hazard 是用例级的全局开关：上一条点亮了它，下一条必须回到默认的「要确认」。
-  useWorkspaceStore.setState({ hazardMode: false })
+  useWorkspaceStore.setState({ hazardMode: false, uiFace: "legacy" })
   surfaceState.mode = "regular"
   surfaceState.height = undefined
 })
@@ -105,6 +105,25 @@ describe("app-owned recycleu Component", () => {
     expect(screen.getByText("运行日志")).toBeTruthy()
     expect(screen.getByLabelText("清理间隔秒数")).toBeTruthy()
     expect(screen.getByRole("button", { name: "启动" })).toBeTruthy()
+  })
+
+  test("uses the MD3E pulse dial and preserves the immediate-clean fuse", async () => {
+    surfaceState.mode = "regular"
+    useWorkspaceStore.setState({ uiFace: "md3e", hazardMode: false })
+    const host = createHost({ interval: 12, maxCycles: 3, driveLetter: "C", progress: 42, cleanCount: 7 })
+    render(<Component compId="comp-recycleu-md3e" host={host} />)
+    const user = userEvent.setup()
+
+    expect(screen.getByTestId("recycleu-surface").getAttribute("data-ui-variant")).toBe("md3e")
+    expect(screen.getByTestId("recycleu-surface").querySelector("[data-recycleu-md3e-dial]")).toBeTruthy()
+    expect(screen.getByRole("progressbar", { name: "清理周期进度" }).getAttribute("aria-valuenow")).toBe("42")
+    expect(screen.getByTestId("recycleu-surface").querySelector("[data-progress-arc]")?.getAttribute("stroke")).toBe("var(--md3e-primary,var(--primary))")
+
+    const trigger = screen.getByRole("button", { name: "立即清理" })
+    await user.click(trigger)
+
+    expect(trigger.closest("[data-phase]")?.getAttribute("data-phase")).toBe("armed")
+    expect(host.runCalls).toHaveLength(0)
   })
 
   test("moves logs below controls in portrait cards", () => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type {
   FindzArchiveRow,
   FindzLibrarySummary,
@@ -11,7 +11,6 @@ import {
   ArrowDown,
   ArrowUp,
   BarChart3,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Database,
@@ -19,7 +18,6 @@ import {
   Filter,
   Folder,
   FolderOpen,
-  HardDrive,
   Image,
   Layers,
   Pause,
@@ -33,7 +31,6 @@ import {
 } from "lucide-react"
 import { FloatingWindowNodeHeader } from "@/components/workspace/FloatingWindowFrame"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -41,21 +38,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils"
 import { RuleTreeEditor, type RuleFieldDef, type RuleGroup } from "@/nodes/shared/RuleTreeEditor"
 import {
-  Md3eActionGroup,
-  Md3eBentoStatGrid,
-  Md3eHeaderBanner,
-  Md3eHeroActionBar,
+  Md3eChoiceChips,
+  Md3eCommandDock,
+  Md3eExpressiveHero,
   Md3eNodeSurface,
-  Md3ePatchBackdrop,
-  Md3eSectionCard,
   Md3eShapeBadge,
-  Md3eShapePopoverButton,
+  Md3eStageLensBar,
   Md3eStatusPill,
-  Md3eWavyProgress,
+  Md3eTonalZone,
 } from "@/nodes/shared/controls"
-import { useWorkspaceActions } from "@/store/workspaceStore"
 import type { NodeSurface as NodeSurfaceState } from "@/nodes/shared/useNodeSurface"
-import { FindzSwimlaneWorkspace } from "./FindzSwimlaneWorkspace"
+import { useWorkspaceActions } from "@/store/workspaceStore"
 import { FindzTreemap } from "./Treemap"
 import { formatBytes, formatDensity, taskProgressPercent } from "./format"
 import { isTerminalTask, type FindzArchiveSort, type FindzCardState } from "./types"
@@ -107,8 +100,10 @@ export interface FindzMd3eWorkbenchProps {
 }
 
 export function FindzMd3eWorkbench(props: FindzMd3eWorkbenchProps) {
-  const { setUiFace } = useWorkspaceActions()
   const { t, library, task, busy } = props
+  const [stageLens, setStageLens] = useState<"studio" | "explorer" | "treemap" | "rules">("studio")
+  const compactActions = (props.surface.width ?? 0) < 360
+
   const taskActive = Boolean(task && !isTerminalTask(task))
   const degraded = library?.watcherHealth === "degraded"
   const taskProgress = task ? taskProgressPercent(task) : library ? 100 : 0
@@ -119,7 +114,7 @@ export function FindzMd3eWorkbench(props: FindzMd3eWorkbenchProps) {
       : t("workspace.header.watcherDegraded", "Watcher degraded")
     : t("workspace.header.noLibrary", "No library")
 
-  const statusTone = degraded ? "error" : taskActive ? "running" : library ? "success" : "idle"
+  const statusTone = degraded ? "danger" : taskActive ? "primary" : library ? "secondary" : "neutral"
   const subtitle = library
     ? t("workspace.header.librarySummary", "{{archives}} archives · {{members}} members", {
         archives: library.archiveCount.toLocaleString(),
@@ -127,7 +122,15 @@ export function FindzMd3eWorkbench(props: FindzMd3eWorkbenchProps) {
       })
     : t("workspace.header.openLibraryHint", "Open a local library to create its separate Findz index.")
 
-  const activeAreaMetric = props.areaMetrics.find((m) => m.value === (props.card.areaBy ?? "archiveSize")) ?? props.areaMetrics[0]
+  const activeAreaMetric =
+    props.areaMetrics.find((m) => m.value === (props.card.areaBy ?? "archiveSize")) ?? props.areaMetrics[0]
+
+  const stats = [
+    { label: "归档总数", value: library?.archiveCount ?? 0, tone: "primary" as const },
+    { label: "内部成员", value: library?.memberCount ?? 0, tone: "secondary" as const },
+    { label: "当前匹配", value: props.archivePage.total, tone: "tertiary" as const },
+    { label: "索引进度", value: `${taskProgress}%`, tone: "neutral" as const },
+  ]
 
   return (
     <Md3eNodeSurface
@@ -135,463 +138,381 @@ export function FindzMd3eWorkbench(props: FindzMd3eWorkbenchProps) {
       surface={props.surface}
       data-testid="findz-workspace"
       data-ui-variant="md3e"
-      className="flex h-full min-h-0 w-full flex-col gap-1.5 overflow-hidden rounded-[24px] bg-[var(--md3e-surface-low,var(--background))] p-2 text-foreground"
+      className="flex h-full min-h-0 w-full flex-col gap-2.5 overflow-hidden p-2.5 text-foreground"
     >
-      {/* 1. Rossi Compact Expressive Top Bar */}
       <FloatingWindowNodeHeader>
-        <Md3eHeaderBanner
+        <Md3eExpressiveHero
           icon={Archive}
           title="Findz"
+          domainTag="ARCHIVE SPATIAL INDEX"
+          statusLabel={watcherStatusLabel}
+          statusTone={statusTone}
           subtitle={subtitle}
-          status={{ label: watcherStatusLabel, tone: statusTone }}
-          pills={
-            <>
-              {degraded && <TriangleAlert className="size-3.5 text-destructive" />}
-              {task && (
-                <Md3eStatusPill
-                  label={`${t(`workspace.taskKinds.${task.kind}`, task.kind)} · ${t(`workspace.taskStatus.${task.status}`, task.status)}`}
-                  tone={taskActive ? "running" : "secondary"}
-                  compact
-                />
-              )}
-              <Md3eStatusPill label={`${props.archivePage.total} 匹配`} tone="primary" compact dot={false} />
-            </>
-          }
-          testId="findz-header-toolbar"
+          progress={taskProgress}
+          running={taskActive}
+          stats={stats}
+          toolbarTestId="findz-header-toolbar"
           actions={
             <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    aria-label="切换到传统界面"
-                    size="xs"
-                    variant="secondary"
-                    shapeRole="toolbar"
-                    className="gap-1 rounded-full font-bold"
-                    onClick={() => setUiFace("legacy")}
-                  >
-                    <Sparkles className="size-3 text-primary" />
-                    <span>Legacy 旧版</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>切换回 Findz 传统旧版 UI</TooltipContent>
-              </Tooltip>
-              <Md3eShapePopoverButton nodeId="findz" />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    aria-label={t("workspace.header.scanLibrary", "Scan library")}
-                    variant="outline"
-                    size="icon-sm"
-                    shapeRole="toolbar"
-                    disabled={!library || busy}
-                    onClick={props.onScan}
-                  >
-                    <RefreshCw className="size-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("workspace.header.scanTooltip", "Scan ZIP central directories")}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    aria-label={t("workspace.header.analyzeHeaders", "Analyze image headers")}
-                    variant="outline"
-                    size="icon-sm"
-                    shapeRole="toolbar"
-                    disabled={!library || busy}
-                    onClick={props.onAnalyze}
-                  >
-                    <ScanLine className="size-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{t("workspace.header.analyzeTooltip", "Analyze image headers on demand")}</TooltipContent>
-              </Tooltip>
-              {taskActive && task && (
+              <Button
+                aria-label={t("workspace.header.scanLibrary", "Scan library")}
+                variant="secondary"
+                size="icon-sm"
+                shapeRole="toolbar"
+                className="rounded-full"
+                disabled={!library || busy}
+                onClick={props.onScan}
+              >
+                <RefreshCw className="size-3.5" />
+              </Button>
+              <Button
+                aria-label={t("workspace.header.analyzeHeaders", "Analyze image headers")}
+                variant="secondary"
+                size="icon-sm"
+                shapeRole="toolbar"
+                className="rounded-full"
+                disabled={!library || busy}
+                onClick={props.onAnalyze}
+              >
+                <ScanLine className="size-3.5" />
+              </Button>
+
+              {taskActive && task ? (
                 <>
                   {task.status === "paused" ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          aria-label={t("workspace.header.resumeTask", "Resume task")}
-                          size="icon-sm"
-                          variant="outline"
-                          shapeRole="toolbar"
-                          onClick={props.onResumeTask}
-                        >
-                          <Play className="size-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{t("workspace.header.resumeTask", "Resume task")}</TooltipContent>
-                    </Tooltip>
+                    <Button
+                      aria-label={t("workspace.header.resumeTask", "Resume task")}
+                      size="icon-sm"
+                      variant="secondary"
+                      shapeRole="toolbar"
+                      className="rounded-full"
+                      onClick={props.onResumeTask}
+                    >
+                      <Play className="size-3.5" />
+                    </Button>
                   ) : (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          aria-label={t("workspace.header.pauseTask", "Pause task")}
-                          size="icon-sm"
-                          variant="outline"
-                          shapeRole="toolbar"
-                          onClick={props.onPauseTask}
-                        >
-                          <Pause className="size-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{t("workspace.header.pauseTask", "Pause task")}</TooltipContent>
-                    </Tooltip>
+                    <Button
+                      aria-label={t("workspace.header.pauseTask", "Pause task")}
+                      size="icon-sm"
+                      variant="secondary"
+                      shapeRole="toolbar"
+                      className="rounded-full"
+                      onClick={props.onPauseTask}
+                    >
+                      <Pause className="size-3.5" />
+                    </Button>
                   )}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        aria-label={t("workspace.header.cancelTask", "Cancel task")}
-                        size="icon-sm"
-                        variant="outline"
-                        shapeRole="toolbar"
-                        onClick={props.onCancelTask}
-                      >
-                        <Square className="size-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{t("workspace.header.cancelTask", "Cancel task")}</TooltipContent>
-                  </Tooltip>
+                  <Button
+                    aria-label={t("workspace.header.cancelTask", "Cancel task")}
+                    size="icon-sm"
+                    variant="destructive"
+                    shapeRole="toolbar"
+                    className="rounded-full"
+                    onClick={props.onCancelTask}
+                  >
+                    <Square className="size-3.5" />
+                  </Button>
                 </>
-              )}
+              ) : null}
             </>
           }
         />
       </FloatingWindowNodeHeader>
 
-      {/* Error Alert Banner */}
-      {props.error && (
+      {props.error ? (
         <div
           role="alert"
-          className="flex shrink-0 items-center gap-2 rounded-[16px] bg-destructive/15 px-3 py-1.5 text-xs font-bold text-destructive"
+          className="flex shrink-0 items-center gap-2 rounded-[18px] bg-destructive/15 px-3 py-1.5 text-xs font-bold text-destructive"
         >
           <TriangleAlert className="size-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate">{props.error}</span>
         </div>
-      )}
-
-      {/* Active Task Wavy Progress Strip */}
-      {task && !isTerminalTask(task) ? (
-        <Md3ePatchBackdrop
-          seed="findz-task-progress"
-          tone="primary"
-          asymmetric="sm"
-          className="flex shrink-0 items-center gap-2.5 rounded-[18px] bg-[var(--md3e-surface,var(--card))] px-3 py-1.5"
-          data-testid="findz-task-progressbar"
-        >
-          <span className="shrink-0 text-xs font-black tracking-tight text-foreground">
-            {t(`workspace.taskKinds.${task.kind}`, task.kind)} · {t(`workspace.taskStatus.${task.status}`, task.status)}
-          </span>
-          <Md3eWavyProgress value={taskProgress} active className="min-w-0 flex-1" />
-          <span className="shrink-0 rounded-full bg-[var(--md3e-primary-container,var(--secondary))] px-2 py-0.5 font-mono text-[10px] font-black tabular-nums text-[var(--md3e-on-primary-container,var(--foreground))]">
-            {taskProgress}%
-          </span>
-        </Md3ePatchBackdrop>
       ) : null}
 
-      {/* 2. Ground-up MD3E 3-Zone Swimlane Workbench (Full Vertical Height) */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[22px]">
-        <FindzSwimlaneWorkspace
-          layout={props.workspaceLayout}
-          onLayoutChange={props.onWorkspaceLayoutChange}
-          labels={{
-            enterSolo: t("workspace.laneActions.enterSolo", "Focus current lane"),
-            exitSolo: t("workspace.laneActions.exitSolo", "Show all lanes"),
-          }}
-          lanes={{
-            source: {
-              label: t("workspace.lanes.source", "Source"),
-              restoreLabel: t("workspace.laneActions.restoreSource", "Restore Source lane"),
-              collapseLabel: t("workspace.laneActions.collapseSource", "Collapse Source lane"),
-              resizeLabel: t("workspace.laneActions.resizeSource", "Resize Source lane"),
-              defaultWidth: 360,
-              content: (
-                <div className="flex h-full min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-2" data-testid="findz-source-lane">
-                  {/* Compact 2x2 Bento Stat Grid */}
-                  <Md3eBentoStatGrid
-                    className="grid-cols-2 gap-1.5"
-                    items={[
-                      { label: "归档总数", value: library?.archiveCount ?? 0, icon: Archive, tone: "primary" },
-                      { label: "内部成员", value: library?.memberCount ?? 0, icon: Layers, tone: "secondary" },
-                      { label: "当前匹配", value: props.archivePage.total, icon: Filter, tone: "tertiary" },
-                      { label: "索引进度", value: `${taskProgress}%`, icon: Database, gauge: taskProgress },
-                    ]}
-                  />
-
-                  {/* Library Mount Card */}
-                  <Md3eSectionCard
-                    seed="findz-library-mount"
-                    title="归档索引库挂载"
-                    badge="LIBRARY MOUNT"
-                    description="挂载本地 ZIP / CBZ 归档目录并初始化独立 SQLite 索引库。"
-                    icon={FolderOpen}
-                  >
-                    <div className="grid gap-2">
-                      <Input
-                        aria-label={t("workspace.header.rootLabel", "Findz library root")}
-                        value={props.root}
-                        placeholder={t("workspace.header.rootPlaceholder", "Local ZIP / CBZ library root")}
-                        className="h-8 rounded-full border-0 bg-[var(--md3e-surface-high,var(--muted))]/85 px-3 font-mono text-xs"
-                        onChange={(event) => props.onRootChange(event.target.value)}
-                      />
-                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5">
-                        <Input
-                          className="h-8 rounded-full border-0 bg-[var(--md3e-surface-high,var(--muted))]/85 px-3 font-mono text-xs"
-                          aria-label={t("workspace.header.libraryIdLabel", "Library id")}
-                          value={props.libraryIdDraft}
-                          placeholder={t("workspace.header.libraryIdPlaceholder", "Index name")}
-                          onChange={(event) => props.onLibraryIdChange(event.target.value)}
-                        />
-                        <Md3eStatusPill
-                          label={library ? `ID: ${library.libraryId}` : "未挂载"}
-                          tone={library ? "primary" : "neutral"}
-                          compact
-                        />
-                      </div>
-                      <Button
-                        size="sm"
-                        shapeRole="primary"
-                        className="w-full rounded-full font-black"
-                        disabled={!props.root.trim() || busy}
-                        onClick={props.onOpenLibrary}
-                      >
-                        <FolderOpen className="size-3.5" />
-                        {t("workspace.header.openLibrary", "Open library")}
-                      </Button>
-                    </div>
-                  </Md3eSectionCard>
-
-                  {/* Search & Rule Tree Filter Card */}
-                  <Md3eSectionCard
-                    seed="findz-query-card"
-                    title="全文检索与规则树"
-                    badge="QUERY & RULES"
-                    description="按归档/成员路径快速检索，或展开多层级布尔条件树。"
-                    icon={Search}
-                    aria-label={t("workspace.lanes.query", "Search and filters")}
-                    data-testid="findz-query-lane"
-                  >
-                    <Collapsible open={props.filtersOpen} onOpenChange={props.onFiltersOpenChange}>
-                      <div className="flex flex-col gap-2">
-                        <div className="relative">
-                          <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            aria-label={t("workspace.searchLabel", "Search Findz index")}
-                            className="h-8 rounded-full border-0 bg-[var(--md3e-surface-high,var(--muted))]/85 pl-8 pr-3 text-xs"
-                            value={props.card.text ?? ""}
-                            placeholder={t("workspace.searchPlaceholder", "Search archive and member paths")}
-                            onChange={(event) => props.onSearchTextChange(event.target.value)}
-                          />
-                        </div>
-                        <CollapsibleTrigger asChild>
-                          <Button
-                            aria-label={t("workspace.advancedFilters", "Advanced filters")}
-                            size="sm"
-                            shapeRole="secondary"
-                            variant={props.filtersOpen ? "default" : "secondary"}
-                            className="w-full justify-between rounded-full px-3 font-bold"
-                          >
-                            <span className="flex items-center gap-1.5">
-                              <Filter className="size-3.5" />
-                              {t("workspace.filters", "Filters")}
-                            </span>
-                            <ChevronDown className={cn("size-3.5 transition-transform", props.filtersOpen && "rotate-180")} />
-                          </Button>
-                        </CollapsibleTrigger>
-                      </div>
-                      <CollapsibleContent className="mt-2 rounded-[16px] bg-[var(--md3e-surface-low,var(--background))]/80 p-2.5">
-                        <RuleTreeEditor
-                          value={props.rules}
-                          fields={props.ruleFields}
-                          t={t}
-                          onValueChange={props.onRulesChange}
-                        />
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </Md3eSectionCard>
-
-                  {/* Spatial Area Metric Selector Card */}
-                  <Md3eSectionCard
-                    seed="findz-metric-selector"
-                    title="树图面积权重"
-                    badge="AREA METRIC"
-                    icon={BarChart3}
-                  >
-                    <div className="grid gap-1">
-                      {props.areaMetrics.map((metric) => (
-                        <button
-                          key={metric.value}
-                          type="button"
-                          onClick={() => props.onAreaMetricChange(metric.value)}
-                          className={cn(
-                            "flex items-center justify-between rounded-[12px] px-3 py-1.5 text-xs font-bold transition-all text-left",
-                            (props.card.areaBy ?? "archiveSize") === metric.value
-                              ? "bg-primary text-primary-foreground shadow-xs"
-                              : "bg-[var(--md3e-surface-high,var(--muted))]/60 text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          <span>{metric.label}</span>
-                          {(props.card.areaBy ?? "archiveSize") === metric.value && <Sparkles className="size-3" />}
-                        </button>
-                      ))}
-                    </div>
-                  </Md3eSectionCard>
-                </div>
-              ),
-            },
-            results: {
-              label: t("workspace.lanes.results", "Results"),
-              restoreLabel: t("workspace.laneActions.restoreResults", "Restore Results lane"),
-              collapseLabel: t("workspace.laneActions.collapseResults", "Collapse Results lane"),
-              resizeLabel: t("workspace.laneActions.resizeResults", "Resize Results lane"),
-              defaultWidth: 680,
-              content: (
-                <section
-                  aria-labelledby="findz-hierarchy-heading"
-                  className="flex h-full min-h-0 flex-col gap-1.5 p-1.5"
-                  data-testid="findz-results-lane"
-                >
-                  {/* Single-Row Compact Scope Breadcrumb & Export Bar */}
-                  <div
-                    aria-label={t("workspace.lanes.scope", "Library scope")}
-                    className="flex shrink-0 items-center gap-1 overflow-x-auto rounded-[14px] bg-[var(--md3e-surface,var(--card))] px-2.5 py-1 text-xs text-muted-foreground"
-                    data-testid="findz-scope-lane"
-                  >
-                    <h2 id="findz-hierarchy-heading" className="sr-only">
-                      {t("workspace.lanes.hierarchy", "Archive hierarchy")}
-                    </h2>
-                    <span className="shrink-0 font-black tracking-tight text-foreground">
-                      {t("workspace.lanes.scope", "Library scope")}
-                    </span>
-                    <Button
-                      size="xs"
-                      shapeRole="tab"
-                      className="h-6 rounded-full px-2 font-bold"
-                      variant={props.breadcrumb.length ? "ghost" : "secondary"}
-                      onClick={() => props.card.libraryId && props.onDrill("")}
-                    >
-                      {t("workspace.library", "Library")}
-                    </Button>
-                    {props.breadcrumb.map((segment, index) => (
-                      <span key={`${segment}-${index}`} className="flex items-center gap-0.5">
-                        <span className="opacity-50">/</span>
-                        <Button
-                          size="xs"
-                          shapeRole="tab"
-                          className="h-6 rounded-full px-2 font-bold"
-                          variant={index === props.breadcrumb.length - 1 ? "secondary" : "ghost"}
-                          onClick={() => props.card.libraryId && props.onDrill(props.breadcrumb.slice(0, index + 1).join("/"))}
-                        >
-                          {segment}
-                        </Button>
-                      </span>
-                    ))}
-                    <span className="ml-auto flex shrink-0 items-center gap-1">
-                      <Button
-                        aria-label={t("workspace.exportJson", "Export filtered archives as JSON")}
-                        size="xs"
-                        shapeRole="toolbar"
-                        variant="secondary"
-                        className="h-6 rounded-full px-2 font-bold"
-                        disabled={!props.card.libraryId || busy}
-                        onClick={() => props.onExport("json")}
-                      >
-                        <Download className="size-3" />
-                        JSON
-                      </Button>
-                      <Button
-                        aria-label={t("workspace.exportCsv", "Export filtered archives as CSV")}
-                        size="xs"
-                        shapeRole="toolbar"
-                        variant="secondary"
-                        className="h-6 rounded-full px-2 font-bold"
-                        disabled={!props.card.libraryId || busy}
-                        onClick={() => props.onExport("csv")}
-                      >
-                        <Download className="size-3" />
-                        CSV
-                      </Button>
-                    </span>
-                  </div>
-
-                  {/* Direct Full-Height Expressive Archive Explorer */}
-                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] bg-[var(--md3e-surface,var(--card))] p-1.5">
-                    <Md3eFindzArchiveExplorer
-                      t={t}
-                      archives={props.archives}
-                      members={props.members}
-                      pathPrefix={props.card.pathPrefix}
-                      selectedArchiveId={props.card.selectedArchiveId}
-                      selectionRevision={props.selectionRevision}
-                      sortBy={props.card.sortBy ?? "archiveSize"}
-                      sortDesc={props.card.sortDesc ?? true}
-                      total={props.archivePage.total}
-                      hasPreviousPage={props.hasPreviousPage}
-                      hasNextPage={props.hasNextPage}
-                      onSelectArchive={props.onSelectArchive}
-                      onDeepRetryMember={props.onDeepRetryMember}
-                      onDrillFolder={props.onDrill}
-                      onSort={props.onSort}
-                      onPreviousPage={props.onPreviousPage}
-                      onNextPage={props.onNextPage}
-                    />
-                  </div>
-                </section>
-              ),
-            },
-            analysis: {
-              label: t("workspace.lanes.analysis", "Analysis"),
-              restoreLabel: t("workspace.laneActions.restoreAnalysis", "Restore Analysis lane"),
-              collapseLabel: t("workspace.laneActions.collapseAnalysis", "Collapse Analysis lane"),
-              resizeLabel: t("workspace.laneActions.resizeAnalysis", "Resize Analysis lane"),
-              defaultWidth: 400,
-              content: (
-                <section
-                  aria-labelledby="findz-treemap-heading"
-                  className="flex h-full min-h-0 flex-col gap-1.5 p-1.5"
-                  data-testid="findz-treemap-lane"
-                >
-                  <div className="flex shrink-0 items-center justify-between gap-2 rounded-[14px] bg-[var(--md3e-surface,var(--card))] px-2.5 py-1">
-                    <h2 id="findz-treemap-heading" className="truncate text-xs font-black tracking-tight text-foreground">
-                      {t("workspace.treemap", "Treemap")} · <span className="font-normal text-muted-foreground">{activeAreaMetric?.label ?? ""}</span>
-                    </h2>
-                    <Select
-                      value={props.card.areaBy ?? "archiveSize"}
-                      onValueChange={(areaBy) => props.onAreaMetricChange(areaBy as NonNullable<FindzCardState["areaBy"]>)}
-                    >
-                      <SelectTrigger
-                        aria-label={t("workspace.areaMetricLabel", "Treemap area metric")}
-                        size="sm"
-                        className="h-7 rounded-full border-0 bg-[var(--md3e-surface-high,var(--muted))] px-2.5 text-xs font-bold"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {props.areaMetrics.map((metric) => (
-                          <SelectItem key={metric.value} value={metric.value}>
-                            {metric.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] bg-[var(--md3e-surface,var(--card))] p-1.5">
-                    <FindzTreemap
-                      projection={props.treemap}
-                      selectedArchiveId={props.card.selectedArchiveId}
-                      onSelectArchive={props.onSelectArchive}
-                      onDrill={props.onDrill}
-                    />
-                  </div>
-                </section>
-              ),
-            },
-          }}
+      {/* Top Expressive Stage Lens & Breadcrumb Ribbon */}
+      <div
+        aria-label={t("workspace.lanes.scope", "Library scope")}
+        data-testid="findz-scope-lane"
+        className="flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-[22px] bg-[var(--md3e-surface-high,var(--card))] px-3 py-1.5"
+      >
+        <Md3eStageLensBar
+          ariaLabel="Findz 空间工作台镜头"
+          items={[
+            { id: "studio", label: "双翼全景台", icon: Layers },
+            { id: "explorer", label: "归档层次流", icon: Archive, badge: props.archivePage.total },
+            { id: "treemap", label: "空间热力树图", icon: BarChart3 },
+            { id: "rules", label: "布尔规则树", icon: Filter },
+          ]}
+          value={stageLens}
+          onChange={setStageLens}
         />
+
+        <div className="flex flex-wrap items-center gap-1 text-xs">
+          <Button
+            size="xs"
+            shapeRole="tab"
+            className="h-6 rounded-full px-2.5 font-bold"
+            variant={props.breadcrumb.length ? "ghost" : "secondary"}
+            onClick={() => props.card.libraryId && props.onDrill("")}
+          >
+            {t("workspace.library", "Library")}
+          </Button>
+          {props.breadcrumb.map((segment, index) => (
+            <span key={`${segment}-${index}`} className="flex items-center gap-0.5">
+              <span className="opacity-45">/</span>
+              <Button
+                size="xs"
+                shapeRole="tab"
+                className="h-6 rounded-full px-2.5 font-bold"
+                variant={index === props.breadcrumb.length - 1 ? "secondary" : "ghost"}
+                onClick={() => props.card.libraryId && props.onDrill(props.breadcrumb.slice(0, index + 1).join("/"))}
+              >
+                {segment}
+              </Button>
+            </span>
+          ))}
+          <Button
+            aria-label={t("workspace.exportJson", "Export filtered archives as JSON")}
+            size="xs"
+            variant="secondary"
+            className="h-6 rounded-full px-2.5 font-bold"
+            disabled={!props.card.libraryId || busy}
+            onClick={() => props.onExport("json")}
+          >
+            <Download className="size-3" />
+            JSON
+          </Button>
+          <Button
+            aria-label={t("workspace.exportCsv", "Export filtered archives as CSV")}
+            size="xs"
+            variant="secondary"
+            className="h-6 rounded-full px-2.5 font-bold"
+            disabled={!props.card.libraryId || busy}
+            onClick={() => props.onExport("csv")}
+          >
+            <Download className="size-3" />
+            CSV
+          </Button>
+        </div>
       </div>
+
+      {/* Main Asymmetric Tonal Canvas (Zero Swimlane Reskin) */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-hidden @3xl/findz:grid-cols-[minmax(280px,0.92fr)_minmax(0,1.58fr)]">
+        {/* Left Tonal Control Column */}
+        {(stageLens === "studio" || stageLens === "rules") ? (
+          <div
+            data-testid="findz-source-lane"
+            className={cn(
+              "flex min-h-0 flex-col gap-2.5 overflow-auto pr-0.5",
+              stageLens === "rules" && "@3xl/findz:col-span-2",
+            )}
+          >
+            <Md3eTonalZone
+              tone="primary"
+              eyebrow="LIBRARY MOUNT"
+              title="归档索引库挂载"
+              badge={
+                <Md3eStatusPill tone={library ? "primary" : "neutral"}>
+                  {library ? `ID: ${library.libraryId}` : "未挂载"}
+                </Md3eStatusPill>
+              }
+            >
+              <div className="grid gap-2">
+                <Input
+                  aria-label={t("workspace.header.rootLabel", "Findz library root")}
+                  value={props.root}
+                  placeholder={t("workspace.header.rootPlaceholder", "Local ZIP / CBZ library root")}
+                  className="h-8 rounded-full border-0 bg-[var(--md3e-surface-lowest,var(--muted))] px-3 font-mono text-xs"
+                  onChange={(event) => props.onRootChange(event.target.value)}
+                />
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5">
+                  <Input
+                    className="h-8 rounded-full border-0 bg-[var(--md3e-surface-lowest,var(--muted))] px-3 font-mono text-xs"
+                    aria-label={t("workspace.header.libraryIdLabel", "Library id")}
+                    value={props.libraryIdDraft}
+                    placeholder={t("workspace.header.libraryIdPlaceholder", "Index name")}
+                    onChange={(event) => props.onLibraryIdChange(event.target.value)}
+                  />
+                  <Button
+                    size="sm"
+                    shapeRole="primary"
+                    className="rounded-full font-black"
+                    disabled={!props.root.trim() || busy}
+                    onClick={props.onOpenLibrary}
+                  >
+                    <FolderOpen className="size-3.5" />
+                    {t("workspace.header.openLibrary", "Open library")}
+                  </Button>
+                </div>
+              </div>
+            </Md3eTonalZone>
+
+            <Md3eTonalZone
+              tone="secondary"
+              eyebrow="QUERY & RULE MATRIX"
+              title="全文检索与条件规则树"
+              testId="findz-query-lane"
+              className="flex-1"
+              bodyClassName="flex flex-col gap-2"
+            >
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  aria-label={t("workspace.searchLabel", "Search Findz index")}
+                  className="h-8 rounded-full border-0 bg-[var(--md3e-surface-lowest,var(--muted))] pl-8 pr-3 text-xs"
+                  value={props.card.text ?? ""}
+                  placeholder={t("workspace.searchPlaceholder", "Search archive and member paths")}
+                  onChange={(event) => props.onSearchTextChange(event.target.value)}
+                />
+              </div>
+              <div className="rounded-[18px] bg-[var(--md3e-surface-lowest,var(--muted))]/80 p-2.5">
+                <RuleTreeEditor
+                  value={props.rules}
+                  fields={props.ruleFields}
+                  t={t}
+                  onValueChange={props.onRulesChange}
+                />
+              </div>
+            </Md3eTonalZone>
+
+            <Md3eTonalZone
+              tone="tertiary"
+              eyebrow="AREA WEIGHT"
+              title="空间树图面积维度"
+            >
+              <Md3eChoiceChips
+                ariaLabel="树图面积权重"
+                options={props.areaMetrics.map((m) => ({ value: m.value, label: m.label }))}
+                value={(props.card.areaBy ?? "archiveSize") as NonNullable<FindzCardState["areaBy"]>}
+                onChange={props.onAreaMetricChange}
+              />
+            </Md3eTonalZone>
+          </div>
+        ) : null}
+
+        {/* Right Tonal Explorer + Treemap Deck */}
+        {stageLens !== "rules" ? (
+          <div
+            className={cn(
+              "grid min-h-0 flex-1 gap-2.5 overflow-hidden",
+              stageLens === "studio"
+                ? "grid-rows-[minmax(0,1.15fr)_minmax(180px,0.85fr)]"
+                : "grid-rows-1 @3xl/findz:col-span-2",
+            )}
+          >
+            {(stageLens === "studio" || stageLens === "explorer") ? (
+              <Md3eTonalZone
+                tone="default"
+                eyebrow="ARCHIVE HIERARCHY"
+                title={t("workspace.lanes.hierarchy", "归档层次与成员透视")}
+                testId="findz-results-lane"
+                bodyClassName="flex min-h-0 flex-col overflow-hidden"
+              >
+                <div className="min-h-0 flex-1 overflow-hidden rounded-[18px] bg-[var(--md3e-surface-lowest,var(--muted))]/65 p-2">
+                  <Md3eFindzArchiveExplorer
+                    t={t}
+                    archives={props.archives}
+                    members={props.members}
+                    pathPrefix={props.card.pathPrefix}
+                    selectedArchiveId={props.card.selectedArchiveId}
+                    selectionRevision={props.selectionRevision}
+                    sortBy={props.card.sortBy ?? "archiveSize"}
+                    sortDesc={props.card.sortDesc ?? true}
+                    total={props.archivePage.total}
+                    hasPreviousPage={props.hasPreviousPage}
+                    hasNextPage={props.hasNextPage}
+                    onSelectArchive={props.onSelectArchive}
+                    onDeepRetryMember={props.onDeepRetryMember}
+                    onDrillFolder={props.onDrill}
+                    onSort={props.onSort}
+                    onPreviousPage={props.onPreviousPage}
+                    onNextPage={props.onNextPage}
+                  />
+                </div>
+              </Md3eTonalZone>
+            ) : null}
+
+            {(stageLens === "studio" || stageLens === "treemap") ? (
+              <Md3eTonalZone
+                tone="default"
+                eyebrow="SPATIAL TREEMAP"
+                title={`${t("workspace.treemap", "Treemap")} · ${activeAreaMetric?.label ?? ""}`}
+                testId="findz-treemap-lane"
+                actions={
+                  <Select
+                    value={props.card.areaBy ?? "archiveSize"}
+                    onValueChange={(areaBy) => props.onAreaMetricChange(areaBy as NonNullable<FindzCardState["areaBy"]>)}
+                  >
+                    <SelectTrigger
+                      aria-label={t("workspace.areaMetricLabel", "Treemap area metric")}
+                      size="sm"
+                      className="h-7 rounded-full border-0 bg-[var(--md3e-surface-lowest,var(--muted))] px-2.5 text-xs font-bold"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {props.areaMetrics.map((metric) => (
+                        <SelectItem key={metric.value} value={metric.value}>
+                          {metric.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                }
+                bodyClassName="flex min-h-0 flex-col overflow-hidden"
+              >
+                <div className="min-h-0 flex-1 overflow-hidden rounded-[18px] bg-[var(--md3e-surface-lowest,var(--muted))]/65 p-1.5">
+                  <FindzTreemap
+                    projection={props.treemap}
+                    selectedArchiveId={props.card.selectedArchiveId}
+                    onSelectArchive={props.onSelectArchive}
+                    onDrill={props.onDrill}
+                  />
+                </div>
+              </Md3eTonalZone>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      <Md3eCommandDock
+        leading={
+          <div className="flex flex-wrap items-center gap-2">
+            <Md3eStatusPill tone={library ? "primary" : "neutral"}>
+              <Database className="mr-1 inline size-3" />
+              {library ? `${library.archiveCount} 归档 · ${library.memberCount} 成员` : "等待挂载索引库"}
+            </Md3eStatusPill>
+            <span className="truncate text-xs text-muted-foreground">
+              面积维度：{activeAreaMetric?.label ?? "归档体积"}
+            </span>
+          </div>
+        }
+        trailing={
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+            <Button
+              aria-label="扫描中央目录"
+              size="sm"
+              variant="secondary"
+              className={cn("rounded-full font-bold", compactActions && "size-8 px-0")}
+              disabled={!library || busy}
+              onClick={props.onScan}
+            >
+              <RefreshCw className="size-3.5" />
+              {!compactActions ? "扫描中央目录" : null}
+            </Button>
+            <Button
+              aria-label="解析图像头"
+              size="sm"
+              className={cn("rounded-full font-extrabold", compactActions && "size-8 px-0")}
+              disabled={!library || busy}
+              onClick={props.onAnalyze}
+            >
+              <ScanLine className="size-3.5" />
+              {!compactActions ? "解析图像头" : null}
+            </Button>
+          </div>
+        }
+      />
     </Md3eNodeSurface>
   )
 }
@@ -720,232 +641,125 @@ export function Md3eFindzArchiveExplorer({
     })
   }, [archives, pathPrefix, selectedArchiveId, selectionRevision])
 
-  useEffect(() => {
-    if (selectedArchiveId === undefined) return
-    archiveRows.current.get(selectedArchiveId)?.scrollIntoView({ block: "nearest" })
-  }, [collapsedFolders, selectedArchiveId, selectionRevision])
-
-  const setArchiveRow = useCallback((archiveId: number, row: HTMLElement | null) => {
-    if (row) archiveRows.current.set(archiveId, row)
-    else archiveRows.current.delete(archiveId)
-  }, [])
-
-  const toggleFolder = useCallback((folderPath: string) => {
+  function toggleFolder(path: string) {
     setCollapsedFolders((current) => {
       const next = new Set(current)
-      if (next.has(folderPath)) next.delete(folderPath)
-      else next.add(folderPath)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
       return next
     })
-  }, [])
+  }
+
+  function renderFolder(node: FolderNode, depth: number): React.ReactNode {
+    const isCollapsed = collapsedFolders.has(node.path)
+    return (
+      <div key={`folder:${node.path}`} className="flex flex-col gap-1">
+        {node.path ? (
+          <div
+            className="flex items-center justify-between gap-2 rounded-[14px] bg-[var(--md3e-surface-high,var(--card))] px-2.5 py-1.5 text-xs"
+            style={{ marginLeft: `${depth * 12}px` }}
+          >
+            <button
+              type="button"
+              onClick={() => toggleFolder(node.path)}
+              className="flex min-w-0 flex-1 items-center gap-1.5 text-left font-bold"
+            >
+              <Folder className="size-3.5 shrink-0 text-[var(--md3e-primary,var(--primary))]" />
+              <span className="truncate">{node.name}</span>
+            </button>
+            <Button
+              size="xs"
+              variant="ghost"
+              className="h-6 rounded-full px-2 text-[10px]"
+              onClick={() => onDrillFolder(node.path)}
+            >
+              进入
+            </Button>
+          </div>
+        ) : null}
+        {!isCollapsed && (
+          <>
+            {sortedFolders(node).map((child) => renderFolder(child, node.path ? depth + 1 : depth))}
+            {node.archives.map((archive) => (
+              <Md3eArchiveCard
+                key={archive.id}
+                archive={archive}
+                depth={node.path ? depth + 1 : depth}
+                expanded={selectedArchiveId === archive.id}
+                members={selectedArchiveId === archive.id ? members : undefined}
+                onSelect={onSelectArchive}
+                onDeepRetryMember={onDeepRetryMember}
+                rowRef={(el) => {
+                  if (el) archiveRows.current.set(archive.id, el)
+                  else archiveRows.current.delete(archive.id)
+                }}
+                t={t}
+              />
+            ))}
+          </>
+        )}
+      </div>
+    )
+  }
 
   return (
-    <div
-      data-testid="findz-archive-table"
-      className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden rounded-[18px] bg-[var(--md3e-surface-low,var(--background))]/70 p-1.5"
-    >
-      {/* Expressive Sort & Pagination Pill Bar */}
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-1.5 rounded-full bg-[var(--md3e-surface-high,var(--muted))]/75 px-2.5 py-1">
-        <div className="text-[11px] font-bold text-muted-foreground">
-          {t("workspace.table.indexedSummary", "{{visible}} of {{total}} indexed archives", {
-            visible: archives.length,
-            total,
-          })}
-        </div>
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-1.5">
         <div className="flex flex-wrap items-center gap-1">
           {SORT_COLUMNS.map((col) => {
             const active = sortBy === col.id
-            const SortIcon = sortDesc ? ArrowDown : ArrowUp
             return (
               <button
                 key={col.id}
                 type="button"
                 onClick={() => onSort(col.id)}
                 className={cn(
-                  "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold transition-colors",
+                  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-all",
                   active
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-[var(--md3e-surface,var(--card))] text-muted-foreground hover:text-foreground",
+                    ? "bg-[var(--md3e-primary,var(--primary))] text-[var(--md3e-on-primary,var(--primary-foreground))]"
+                    : "bg-[var(--md3e-surface-high,var(--card))] text-muted-foreground hover:text-foreground",
                 )}
               >
                 <span>{t(col.labelKey, col.fallback)}</span>
-                {active && <SortIcon className="size-2.5" />}
+                {active ? sortDesc ? <ArrowDown className="size-3" /> : <ArrowUp className="size-3" /> : null}
               </button>
             )
           })}
         </div>
-        <Md3eActionGroup>
+        <div className="flex items-center gap-1 text-xs">
           <Button
-            aria-label={t("workspace.table.previousPage", "Previous archive page")}
+            size="icon-xs"
+            variant="secondary"
+            className="rounded-full"
             disabled={!hasPreviousPage}
             onClick={onPreviousPage}
-            size="xs"
-            shapeRole="toolbar"
-            variant="secondary"
-            className="h-6 w-6 p-0"
+            aria-label="上一页"
           >
-            <ChevronLeft className="size-3" />
+            <ChevronLeft className="size-3.5" />
           </Button>
+          <span className="font-mono text-[11px] text-muted-foreground">{total}</span>
           <Button
-            aria-label={t("workspace.table.nextPage", "Next archive page")}
+            size="icon-xs"
+            variant="secondary"
+            className="rounded-full"
             disabled={!hasNextPage}
             onClick={onNextPage}
-            size="xs"
-            shapeRole="toolbar"
-            variant="secondary"
-            className="h-6 w-6 p-0"
+            aria-label="下一页"
           >
-            <ChevronRight className="size-3" />
+            <ChevronRight className="size-3.5" />
           </Button>
-        </Md3eActionGroup>
-      </div>
-
-      {/* Expressive Hierarchy Card Stream */}
-      <ScrollArea className="h-full min-h-0 flex-1">
-        <div className="grid gap-1 p-0.5">
-          <Md3eHierarchyNodes
-            node={hierarchy}
-            depth={0}
-            collapsedFolders={collapsedFolders}
-            selectedArchiveId={selectedArchiveId}
-            members={members}
-            onToggleFolder={toggleFolder}
-            onDrillFolder={onDrillFolder}
-            onSelectArchive={onSelectArchive}
-            onDeepRetryMember={onDeepRetryMember}
-            setArchiveRow={setArchiveRow}
-            t={t}
-          />
-          {!archives.length && (
-            <div className="flex min-h-28 flex-col items-center justify-center gap-1.5 rounded-[16px] bg-[var(--md3e-surface,var(--card))]/70 p-4 text-center text-xs text-muted-foreground">
-              <Md3eShapeBadge icon={Archive} seed="findz-empty" tone="primary" size="sm" />
-              <span className="font-bold text-foreground/85">
-                {t("workspace.table.empty", "Open a library, then run a ZIP scan to populate the index.")}
-              </span>
-            </div>
-          )}
         </div>
-      </ScrollArea>
-    </div>
-  )
-}
-
-function Md3eHierarchyNodes({
-  node,
-  depth,
-  collapsedFolders,
-  selectedArchiveId,
-  members,
-  onToggleFolder,
-  onDrillFolder,
-  onSelectArchive,
-  onDeepRetryMember,
-  setArchiveRow,
-  t,
-}: {
-  node: FolderNode
-  depth: number
-  collapsedFolders: ReadonlySet<string>
-  selectedArchiveId?: number
-  members?: FindzMemberRow[]
-  onToggleFolder(path: string): void
-  onDrillFolder(path: string): void
-  onSelectArchive(archiveId: number): void
-  onDeepRetryMember(memberId: number): void
-  setArchiveRow(archiveId: number, row: HTMLElement | null): void
-  t: FindzMd3eWorkbenchProps["t"]
-}) {
-  return (
-    <>
-      {sortedFolders(node).map((folder) => {
-        const collapsed = collapsedFolders.has(folder.path)
-        return (
-          <Md3eFolderCard
-            key={folder.path}
-            folder={folder}
-            depth={depth}
-            collapsed={collapsed}
-            onToggle={onToggleFolder}
-            onDrill={onDrillFolder}
-            t={t}
-          >
-            {!collapsed && (
-              <Md3eHierarchyNodes
-                node={folder}
-                depth={depth + 1}
-                collapsedFolders={collapsedFolders}
-                selectedArchiveId={selectedArchiveId}
-                members={members}
-                onToggleFolder={onToggleFolder}
-                onDrillFolder={onDrillFolder}
-                onSelectArchive={onSelectArchive}
-                onDeepRetryMember={onDeepRetryMember}
-                setArchiveRow={setArchiveRow}
-                t={t}
-              />
-            )}
-          </Md3eFolderCard>
-        )
-      })}
-      {node.archives.map((archive) => (
-        <Md3eArchiveCard
-          key={archive.id}
-          archive={archive}
-          depth={depth}
-          expanded={selectedArchiveId === archive.id}
-          members={selectedArchiveId === archive.id ? members : undefined}
-          onSelect={onSelectArchive}
-          onDeepRetryMember={onDeepRetryMember}
-          rowRef={(row) => setArchiveRow(archive.id, row)}
-          t={t}
-        />
-      ))}
-    </>
-  )
-}
-
-function Md3eFolderCard({
-  folder,
-  depth,
-  collapsed,
-  onToggle,
-  onDrill,
-  t,
-  children,
-}: {
-  folder: FolderNode
-  depth: number
-  collapsed: boolean
-  onToggle(path: string): void
-  onDrill(path: string): void
-  t: FindzMd3eWorkbenchProps["t"]
-  children?: ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <div
-        className="flex items-center justify-between gap-1.5 rounded-[12px] bg-[var(--md3e-surface-high,var(--muted))]/55 px-2 py-1 text-xs font-bold transition-colors hover:bg-[var(--md3e-surface-high,var(--muted))]"
-        style={{ paddingLeft: `${Math.max(8, depth * 14 + 8)}px` }}
-      >
-        <button
-          type="button"
-          onClick={() => onToggle(folder.path)}
-          className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-        >
-          <ChevronDown className={cn("size-3.5 shrink-0 transition-transform text-muted-foreground", collapsed && "-rotate-90")} />
-          <Folder className="size-3.5 shrink-0 text-primary" />
-          <span className="truncate font-mono">{folder.name}</span>
-        </button>
-        <Button
-          size="xs"
-          variant="ghost"
-          className="h-5 px-1.5 text-[10px] text-muted-foreground"
-          onClick={() => onDrill(folder.path)}
-        >
-          {t("workspace.drill", "Drill")}
-        </Button>
       </div>
-      {children}
+
+      <ScrollArea className="min-h-0 flex-1">
+        {archives.length ? (
+          <div className="flex flex-col gap-1.5 pr-1">{renderFolder(hierarchy, 0)}</div>
+        ) : (
+          <div className="flex h-40 items-center justify-center text-center text-xs text-muted-foreground">
+            挂载归档库并运行扫描后，这里将展示归档层次与成员列表。
+          </div>
+        )}
+      </ScrollArea>
     </div>
   )
 }
@@ -974,10 +788,10 @@ function Md3eArchiveCard({
     <div
       ref={rowRef}
       className={cn(
-        "flex flex-col rounded-[14px] p-2 transition-all",
+        "flex flex-col rounded-[16px] p-2.5 transition-all",
         expanded
-          ? "bg-[var(--md3e-surface,var(--card))] ring-2 ring-primary/40 shadow-xs"
-          : "bg-[var(--md3e-surface-high,var(--muted))]/45 hover:bg-[var(--md3e-surface-high,var(--muted))]/75",
+          ? "bg-[var(--md3e-primary-container,var(--card))]/45 rounded-[22px]"
+          : "bg-[var(--md3e-surface-high,var(--card))] hover:rounded-[20px]",
       )}
       style={{ marginLeft: `${depth * 14}px` }}
     >
@@ -994,7 +808,7 @@ function Md3eArchiveCard({
         className="flex cursor-pointer items-center justify-between gap-2 text-left"
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Md3eShapeBadge icon={Archive} seed={archive.name} tone={expanded ? "primary" : "neutral"} size="sm" />
+          <Md3eShapeBadge icon={Archive} tone={expanded ? "primary" : "neutral"} />
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
               <span className="truncate font-mono text-xs font-bold text-foreground">{archive.name}</span>
@@ -1006,22 +820,44 @@ function Md3eArchiveCard({
             </div>
           </div>
         </div>
-        <Md3eStatusPill
-          label={archive.health === "healthy" ? "Healthy" : archive.health}
-          tone={archive.health === "healthy" ? "tertiary" : "error"}
-          compact
-        />
+        <Md3eStatusPill tone={archive.health === "healthy" ? "secondary" : "danger"}>
+          {archive.health === "healthy" ? "Healthy" : archive.health}
+        </Md3eStatusPill>
       </div>
 
       {expanded && (
-        <div className="mt-2 flex flex-col gap-1 border-t border-border/40 pt-2">
+        <div className="mt-2 flex flex-col gap-1 rounded-[14px] bg-[var(--md3e-surface-lowest,var(--muted))]/80 p-2">
           <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             {t("workspace.members", "Members")} ({archive.memberCount})
           </div>
           {members ? (
             <div className="flex flex-col gap-1">
               {members.map((member) => (
-                <Md3eMemberItem key={member.id} member={member} onDeepRetry={onDeepRetryMember} />
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between gap-1.5 rounded-[10px] bg-[var(--md3e-surface-high,var(--card))] px-2.5 py-1 text-xs"
+                >
+                  <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                    <Image className="size-3 shrink-0 text-muted-foreground" />
+                    <span className="truncate font-mono text-[11px] text-foreground">{member.name}</span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                    <span>{formatBytes(member.uncompressedSize)}</span>
+                    {member.width && member.height ? (
+                      <span>{member.width}×{member.height}</span>
+                    ) : null}
+                    {member.formatAnomaly ? (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className="h-5 rounded-full px-1.5 text-[10px] text-destructive"
+                        onClick={() => onDeepRetryMember(member.id)}
+                      >
+                        重试
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
               ))}
               {!members.length && (
                 <div className="py-1 text-[11px] text-muted-foreground">No members in archive.</div>
@@ -1032,39 +868,6 @@ function Md3eArchiveCard({
           )}
         </div>
       )}
-    </div>
-  )
-}
-
-function Md3eMemberItem({
-  member,
-  onDeepRetry,
-}: {
-  member: FindzMemberRow
-  onDeepRetry(memberId: number): void
-}) {
-  return (
-    <div className="flex items-center justify-between gap-1.5 rounded-[10px] bg-[var(--md3e-surface-low,var(--background))]/85 px-2.5 py-1 text-xs">
-      <div className="flex min-w-0 flex-1 items-center gap-1.5">
-        <Image className="size-3 shrink-0 text-muted-foreground" />
-        <span className="truncate font-mono text-[11px] text-foreground">{member.name}</span>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
-        <span>{formatBytes(member.uncompressedSize)}</span>
-        {member.width && member.height ? (
-          <span>{member.width}×{member.height}</span>
-        ) : null}
-        {member.formatAnomaly && (
-          <Button
-            size="xs"
-            variant="ghost"
-            className="h-5 px-1 text-[10px] text-destructive hover:bg-destructive/10"
-            onClick={() => onDeepRetry(member.id)}
-          >
-            重试
-          </Button>
-        )}
-      </div>
     </div>
   )
 }

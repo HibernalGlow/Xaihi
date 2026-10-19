@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
-import { RunningTint } from "@/nodes/shared/controls"
+import { RunningTint, useMd3eActive } from "@/nodes/shared/controls"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { useWorkspaceStore } from "@/store/workspaceStore"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
@@ -31,12 +31,14 @@ import {
   TimerModePicker,
   TimerSettings,
 } from "./controls"
+import { SleeptMd3eView } from "./Md3eView"
 import type { SleeptCardState, SleeptPhase, SleeptStats, SleeptStatusMeta, SleeptTimerMode } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const data = host.getData<SleeptCardState>(compId) ?? {}
   const dataRef = useRef<SleeptCardState>(data)
   dataRef.current = data
@@ -223,6 +225,20 @@ export function Component({ compId, host }: NodeComponentProps) {
     onSaveDefault: saveAsDefault,
     onTimerModeChange: (nextMode: SleeptTimerMode) => patch({ timerMode: nextMode }),
   })
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <SleeptMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>

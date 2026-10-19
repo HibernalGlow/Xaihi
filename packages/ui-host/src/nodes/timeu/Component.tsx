@@ -18,16 +18,19 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
+import { useMd3eActive } from "@/nodes/shared/controls"
 import { tNode, useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import { ACTIONS, NODE_ICON } from "./constants"
+import { TimeuMd3eView } from "./Md3eView"
 import type { TimeuCardState, TimeuStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps<TimeuCardState, Partial<TimeuCardState>>) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("timeu")
   const data = getHostData(host, compId)
   const dataRef = useRef<TimeuCardState>(data)
@@ -155,6 +158,20 @@ export function Component({ compId, host }: NodeComponentProps<TimeuCardState, P
     onReset: reset,
     onRestoreDefault: () => defaults && patch(defaults),
     onSaveDefault: saveAsDefault,
+  }
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <TimeuMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...props}
+        />
+      </TooltipProvider>
+    )
   }
 
   return (

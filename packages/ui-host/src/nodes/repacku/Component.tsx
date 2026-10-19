@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
-import { RunningTint } from "@/nodes/shared/controls"
+import { RunningTint, useMd3eActive } from "@/nodes/shared/controls"
 import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
 import { NodeRunHistoryPopover } from "@/nodes/shared/NodeRunHistoryPopover"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
@@ -34,11 +34,13 @@ import {
   StatusStrip,
 } from "./controls"
 import { FileTreePreview } from "./FileTreePreview"
+import { RepackuMd3eView } from "./Md3eView"
 import type { RepackuCardState, RepackuStatusMeta } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("repacku")
   const data = host.getData<RepackuCardState>(compId) ?? {}
   const dataRef = useRef<RepackuCardState>(data)
@@ -201,6 +203,27 @@ export function Component({ compId, host }: NodeComponentProps) {
     onOpenConfigFile: host.openConfigFile,
     onLoadDefaults: loadDefaults,
     t,
+  }
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <RepackuMd3eView
+          surface={surface}
+          componentId={compId}
+          logs={logs}
+          operationPreview={operationPreview}
+          progress={progress}
+          result={result}
+          status={status}
+          types={types}
+          onCopyLogs={copyLogs}
+          onCopyResults={copyResults}
+          onRestoreHistory={restoreFromHistory}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
   }
 
   return (

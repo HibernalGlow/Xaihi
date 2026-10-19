@@ -17,15 +17,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
+import { useMd3eActive } from "@/nodes/shared/controls"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
 import { ACTIONS, MODES, NODE_ICON } from "./constants"
+import { NameuMd3eView } from "./Md3eView"
 import type { NameuCardState, NameuStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps<NameuCardState, Partial<NameuCardState>>) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("nameu")
   const data = getHostData(host, compId)
   const dataRef = useRef<NameuCardState>(data)
@@ -184,6 +187,20 @@ export function Component({ compId, host }: NodeComponentProps<NameuCardState, P
     onReset: reset,
     onRestoreDefault: () => defaults && patch(defaults),
     onSaveDefault: saveAsDefault,
+  }
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <NameuMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...props}
+        />
+      </TooltipProvider>
+    )
   }
 
   return (

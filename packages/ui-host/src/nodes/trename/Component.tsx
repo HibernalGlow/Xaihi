@@ -15,10 +15,11 @@ import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
 import { tNode, useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
-import { RunningTint } from "@/nodes/shared/controls"
+import { RunningTint, useMd3eActive } from "@/nodes/shared/controls"
 import { FileTreePanel } from "./FileTreePanel"
 import { buildTreeModel } from "./treeModel"
 import { JsonEditorDialog } from "./JsonEditorDialog"
+import { TrenameMd3eView } from "./Md3eView"
 import { TrenameDisplayTabs } from "./ResultPanels"
 import { ActionIconButton, AdvancedOptionsPopover, KeySwitches, ModePicker, PathInput, StatusStrip } from "./controls"
 import type { TrenameCardState, TrenamePhase, TrenameStatusMeta } from "./types"
@@ -27,6 +28,7 @@ import { CONFIG_FIELDS } from "./types"
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("trename")
   const data = host.getData<TrenameCardState>(compId) ?? {}
   const dataRef = useRef<TrenameCardState>(data)
@@ -244,6 +246,20 @@ export function Component({ compId, host }: NodeComponentProps) {
     onRestoreDefault: restoreDefault,
     onSaveDefault: saveAsDefault,
   })
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <TrenameMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>

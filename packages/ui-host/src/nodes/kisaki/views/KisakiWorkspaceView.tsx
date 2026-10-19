@@ -337,26 +337,8 @@ function Collapsed(props: KisakiView) {
 
 function Header(props: KisakiView) {
   const meta = getKisakiToolMeta(props.tool, props.t)
-  const { setUiFace } = useWorkspaceActions()
   return (
     <header data-kisaki-header="full" className="flex min-w-0 shrink-0 flex-wrap items-center gap-3 border-b pb-2">
-      <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              data-testid="kisaki-ui-face-switch"
-              aria-label="切换到 MD3E 界面"
-              variant="outline"
-              size="xs"
-              className="gap-1 font-mono text-[11px]"
-              onClick={() => setUiFace("md3e")}
-            >
-              <Sparkles className="size-3" />
-              MD3E
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>切换到全新 Material 3 Expressive (MD3E) 界面</TooltipContent>
-        </Tooltip>
         <FloatingWindowNodeHeader className="min-w-0 flex-[1_1_30rem]">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <div className="grid size-9 place-items-center rounded-md border bg-muted/40">

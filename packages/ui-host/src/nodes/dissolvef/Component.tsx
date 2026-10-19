@@ -15,16 +15,19 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
+import { useMd3eActive } from "@/nodes/shared/controls"
 import { tNode, useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
 import { DEFAULT_THRESHOLD, DISSOLVE_ICON, NODE_ICON } from "./constants"
 import { ActionIconButton, AdvancedOptionsPopover, CollisionPolicy, DissolveHistoryBoard, DissolvePlanBoard, ModePicker, PathInput, PrimarySwitches, RichLogPanel, StatusStrip } from "./controls"
+import { DissolvefMd3eView } from "./Md3eView"
 import type { DissolvefAction, DissolvefCardState, DissolvefPhase, DissolvefStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("dissolvef")
   const data = host.getData<DissolvefCardState>(compId) ?? {}
   const dataRef = useRef<DissolvefCardState>(data)
@@ -210,6 +213,20 @@ export function Component({ compId, host }: NodeComponentProps) {
     onSetDirect: setDirectMode,
     onToggleMode: toggleMode,
   })
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <DissolvefMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>
@@ -440,7 +457,7 @@ function ToolbarActions(props: ViewProps & { compact?: boolean; hidePrimaryActio
   return (
     <div className={cn("flex min-w-0 items-center gap-1", props.compact && "justify-between")}>
       <ActionIconButton disabled={props.running} icon={History} label={tNode("dissolvef", "actions.history", "读取历史")} onClick={() => props.onExecute("history")} />
-      <ActionIconButton disabled={props.running || !props.result?.history.length} icon={Undo2} label={tNode("dissolvef", "actions.undoRecent", "撤销最近")} onClick={() => props.onExecute("undo")} />
+      <ActionIconButton disabled={props.running || !(props.result?.history?.length ?? 0)} icon={Undo2} label={tNode("dissolvef", "actions.undoRecent", "撤销最近")} onClick={() => props.onExecute("undo")} />
       {!props.compact && !props.hidePrimaryAction && <PrimaryActionButton props={props} />}
       <ActionIconButton icon={RotateCcw} label={tNode("dissolvef", "actions.clearState", "清空状态")} onClick={props.onReset} />
       <NodeConfigPopover
@@ -619,10 +636,10 @@ function statusFromState(data: DissolvefCardState, running: boolean, result: Dis
       iconClass: "bg-primary text-primary-foreground",
     }
   }
-  if (data.phase === "error" || result?.errors.length) {
+  if (data.phase === "error" || result?.errors?.length) {
     return {
       label: tNode("dissolvef", "status.error", "失败"),
-      description: data.progressText || result?.errors[0] || tNode("dissolvef", "desc.error", "上次任务失败，请查看计划和日志。"),
+      description: data.progressText || result?.errors?.[0] || tNode("dissolvef", "desc.error", "上次任务失败，请查看计划和日志。"),
       tone: "error",
       badgeVariant: "destructive",
       iconClass: "bg-destructive text-destructive-foreground",

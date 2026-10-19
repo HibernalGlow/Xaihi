@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
-import { RunningTint } from "@/nodes/shared/controls"
+import { RunningTint, useMd3eActive } from "@/nodes/shared/controls"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import { ACTIONS, CONFIG_FIELDS, UI_CONFIG_FIELDS } from "./constants"
 import {
@@ -33,6 +33,7 @@ import {
   StatusStrip,
   SwitchRow,
 } from "./controls"
+import { EnginevMd3eView } from "./Md3eView"
 import { ResultTabs } from "./ResultPanels"
 import type { EngineVCardState, EngineVNodeConfig, EngineVStatusMeta, EngineVUiConfig } from "./types"
 import { WallpaperGallery } from "./WallpaperGallery"
@@ -42,6 +43,7 @@ type EngineVProps = NodeComponentProps<EngineVCardState, EngineVNodeConfig>
 export function Component({ host }: EngineVProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t: tNode } = useNodeI18n("enginev")
   const data = host.state.getData() ?? {}
   const dataRef = useRef<EngineVCardState>(data)
@@ -343,6 +345,20 @@ export function Component({ host }: EngineVProps) {
     onRestoreDefault: restoreDefault,
     onSaveDefault: saveAsDefault,
     onToggleWallpaper: toggleWallpaper,
+  }
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <EnginevMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
   }
 
   return (

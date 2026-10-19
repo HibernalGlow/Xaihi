@@ -6,6 +6,7 @@ import type { NodeHostApi, NodeRunEvent, NodeRunResult } from "@xiranite/contrac
 import { NODE_SURFACE_TEST_MODES, NODE_SURFACE_TEST_SPECS } from "@/nodes/shared/nodeSurfaceTestUtils"
 import type { NodeSurfaceMode } from "@/nodes/shared/useNodeSurface"
 import { useWorkspaceStore } from "@/store/workspaceStore"
+import { initI18n } from "@/i18n"
 import type { CleanfData, CleanfInput } from "@xiranite/node-cleanf/core"
 import { Component } from "./Component"
 import type { CleanfCardState } from "./types"
@@ -134,6 +135,40 @@ describe("app-owned cleanf Component", () => {
       "Preview completed, found 2 item(s).",
     ])
     expect(screen.getAllByText(/old\.bak/).length).toBeGreaterThanOrEqual(1)
+  })
+
+  test("keeps preset, preview, and execution actions wired through the MD3E face", async () => {
+    await initI18n("zh")
+    setSurface("regular")
+    useWorkspaceStore.setState({ hazardMode: true })
+    useWorkspaceStore.setState({ uiFace: "md3e" })
+    const host = createHost({ pathText: "D:/workspace", previewMode: false, selectedPresets: ["empty_folders"], logs: [] })
+    render(<Component compId="comp-cleanf-md3e" host={host} />)
+    const user = userEvent.setup()
+
+    expect(screen.getByTestId("cleanf-surface").getAttribute("data-ui-variant")).toBe("md3e")
+    const presetGroup = screen.getByRole("group", { name: "清理预设选择" })
+    const backupPreset = screen.getByRole("button", { name: "备份文件" })
+    expect(backupPreset.getAttribute("aria-pressed")).toBe("false")
+    await user.click(backupPreset)
+    expect(host.state.selectedPresets).toEqual(["empty_folders", "backup_files"])
+    expect(presetGroup).toBeTruthy()
+
+    const previewSwitch = screen.getByRole("switch", { name: "预演模式" })
+    await user.click(previewSwitch)
+    expect(host.state.previewMode).toBe(true)
+    await user.click(screen.getByRole("button", { name: "真实清理" }))
+
+    await waitFor(() => expect(host.runCalls).toHaveLength(1))
+    expect(host.runCalls[0]).toEqual({
+      nodeId: "cleanf",
+      input: {
+        paths: ["D:/workspace"],
+        presets: ["empty_folders", "backup_files"],
+        exclude: undefined,
+        preview: true,
+      },
+    })
   })
 
   test("arms a fuse instead of executing the real cleanup on the first click", async () => {

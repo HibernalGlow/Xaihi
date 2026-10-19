@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ModulePanel } from "@/components/ui/module-panel"
 import { cn } from "@/lib/utils"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
+import { useMd3eActive } from "@/nodes/shared/controls"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
@@ -31,6 +32,7 @@ import { CONFIG_FIELDS } from "./types"
 import { BlacklistKeywordsEditor } from "./BlacklistKeywordsEditor"
 import { ClassfPlanRows, ClassfPlanTree } from "./ClassfPlanTree"
 import { ClassfQueueControls } from "./ClassfQueueControls"
+import { ClassfMd3eView } from "./Md3eView"
 import { analyzeClassfPlan } from "./planAnalysis"
 
 const SINGLE_LINE_PATH_TEXTAREA = { minHeight: 36, maxHeight: 36 }
@@ -38,6 +40,7 @@ const SINGLE_LINE_PATH_TEXTAREA = { minHeight: 36, maxHeight: 36 }
 export function Component({ compId, host }: NodeComponentProps<ClassfCardState, Partial<ClassfCardState>>) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t: tNode } = useNodeI18n("classf")
   const data = getHostData(host, compId)
   const dataRef = useRef<ClassfCardState>(data)
@@ -223,6 +226,20 @@ export function Component({ compId, host }: NodeComponentProps<ClassfCardState, 
     onOpenConfigFile: host.config?.openFile ?? host.openConfigFile,
     onRestoreDefault: () => defaults && patch(defaults),
     onSaveDefault: saveAsDefault,
+  }
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <ClassfMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...props}
+        />
+      </TooltipProvider>
+    )
   }
 
   return (

@@ -87,6 +87,7 @@ export function IntervalPresets({ disabled, value, t, onChange }: {
         type="single"
         value={String(value)}
         variant="outline"
+      className="w-full max-w-full flex-wrap justify-start"
         onValueChange={(next) => {
           const parsed = Number(next)
           if (Number.isFinite(parsed) && parsed > 0) onChange(parsed)

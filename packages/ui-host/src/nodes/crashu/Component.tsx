@@ -15,16 +15,19 @@ import { NumberTicker } from "@/components/ui/number-ticker"
 import { cn } from "@/lib/utils"
 import { tNode, useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
+import { useMd3eActive } from "@/nodes/shared/controls"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import { DEFAULT_THRESHOLD, NODE_ICON } from "./constants"
 import { ActionIconButton, AdvancedOptionsPopover, ConflictPicker, DirectionPicker, MatchPlanBoard, PrimarySwitches, RichLogPanel, SourcePathsInput, StatusStrip, TargetNamesInput } from "./controls"
+import { CrashuMd3eView } from "./Md3eView"
 import type { CrashuAction, CrashuCardState, CrashuPhase, CrashuStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("crashu")
   const data = host.getData<CrashuCardState>(compId) ?? {}
   const dataRef = useRef<CrashuCardState>(data)
@@ -202,6 +205,20 @@ export function Component({ compId, host }: NodeComponentProps) {
     onRestoreDefault: restoreDefault,
     onSaveDefault: saveAsDefault,
   })
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <CrashuMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>

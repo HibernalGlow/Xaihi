@@ -10,7 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
-import { RunningTint } from "@/nodes/shared/controls"
+import { RunningTint, RunStateIcon, useMd3eActive } from "@/nodes/shared/controls"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import { ACTIONS } from "./constants"
 import {
@@ -21,14 +21,15 @@ import {
   RuntimeOptions,
   StatusStrip,
 } from "./controls"
+import { GifuMd3eView } from "./Md3eView"
 import { GifuResultTabs, GifuStatsPanel } from "./results"
 import type { GifuCardState, GifuStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
-import { RunStateIcon } from "@/nodes/shared/controls"
 
 export function Component({ compId, host }: NodeComponentProps<GifuCardState, Partial<GifuCardState>>) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const data = getHostData(host, compId)
   const dataRef = useRef<GifuCardState>(data)
   dataRef.current = data
@@ -203,6 +204,20 @@ export function Component({ compId, host }: NodeComponentProps<GifuCardState, Pa
     onResetOverride: resetOverride,
     onRestoreDefault: restoreDefault,
     onSaveDefault: saveAsDefault,
+  }
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <GifuMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
   }
 
   return (

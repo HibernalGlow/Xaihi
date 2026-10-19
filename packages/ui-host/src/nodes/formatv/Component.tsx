@@ -23,17 +23,20 @@ import {
   Md3eShapePopoverButton,
   Md3eStatusPill,
   RunningTint,
+  useMd3eActive,
 } from "@/nodes/shared/controls"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import { ACTIONS, DEFAULT_PREFIX_NAME } from "./constants"
 import { ActionIconButton, OptionsPopover, PathInput, PrimarySwitches, StatusStrip } from "./controls"
+import { FormatvMd3eView } from "./Md3eView"
 import type { FormatvCardState, FormatvPhase, FormatvStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const data = host.getData<FormatvCardState>(compId) ?? {}
   const dataRef = useRef<FormatvCardState>(data)
   dataRef.current = data
@@ -202,6 +205,20 @@ export function Component({ compId, host }: NodeComponentProps) {
     onRestoreDefault: restoreDefault,
     onSaveDefault: saveAsDefault,
   })
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <FormatvMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>

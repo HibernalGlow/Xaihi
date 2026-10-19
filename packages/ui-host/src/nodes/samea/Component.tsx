@@ -21,7 +21,8 @@ import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import type { SameaCardState, SameaFilterTab } from "./types"
-import { RunStateIcon } from "@/nodes/shared/controls"
+import { RunStateIcon, useMd3eActive } from "@/nodes/shared/controls"
+import { SameaMd3eView } from "./Md3eView"
 
 const FILTERS: Array<{ id: SameaFilterTab; label: string; key: keyof Pick<SameaCardState, "artistBlacklist" | "pathBlacklist" | "regexBlacklist"> }> = [
   { id: "artist", label: "Artists", key: "artistBlacklist" },
@@ -33,6 +34,7 @@ const CONFIG_FIELDS = ["action", "pathsText", "ignorePathBlacklist", "minOccurre
 export function Component({ compId, host }: NodeComponentProps<SameaCardState, Partial<SameaCardState>>) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("samea")
   const data = getHostData(host, compId)
   const dataRef = useRef(data)
@@ -86,6 +88,7 @@ export function Component({ compId, host }: NodeComponentProps<SameaCardState, P
   }
   async function saveDefaults() { const next = Object.fromEntries(CONFIG_FIELDS.flatMap((field) => dataRef.current[field] === undefined ? [] : [[field, dataRef.current[field]]])) as Partial<SameaCardState>; if (host.config?.save) await host.config.save(next); else await host.saveNodeConfig?.(next); setDefaults(next) }
   const props = { action, compact, configDirty, data, defaults, filterTab, paths, result, running, onAction: execute, onAddFilter: addFilter, onDraftFilter: setDraftFilter, onFilterTab: setFilterTab, onPatch: patch, onPaste: paste, onRemoveFilter: removeFilter, onRestoreDefaults: () => defaults && patch(defaults), onSaveDefaults: saveDefaults, draftFilter }
+  if (md3e) return <TooltipProvider><SameaMd3eView surface={surface} {...props} /></TooltipProvider>
   return <TooltipProvider><div ref={surface.ref} data-testid="samea-surface" className="@container/samea flex h-full min-h-0 w-full overflow-hidden">
     {surface.mode === "collapsed" ? <Collapsed {...props} /> : compact ? <Compact {...props} /> : <Full {...props} />}
   </div></TooltipProvider>

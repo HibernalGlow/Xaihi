@@ -27,15 +27,18 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { cn } from "@/lib/utils"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
+import { useMd3eActive } from "@/nodes/shared/controls"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
 import { ACTIONS, NODE_ICON, PLAN_ICON, TRANSFER_MODES } from "./constants"
+import { ClassqMd3eView } from "./Md3eView"
 import type { ClassqCardState, ClassqStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps<ClassqCardState, Partial<ClassqCardState>>) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("classq")
   const data = getHostData(host, compId)
   const dataRef = useRef<ClassqCardState>(data)
@@ -203,6 +206,20 @@ export function Component({ compId, host }: NodeComponentProps<ClassqCardState, 
     onReset: reset,
     onRestoreDefault: () => defaults && patch(defaults),
     onSaveDefault: saveAsDefault,
+  }
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <ClassqMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...props}
+        />
+      </TooltipProvider>
+    )
   }
 
   return (

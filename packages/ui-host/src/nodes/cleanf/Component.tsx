@@ -14,16 +14,19 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
+import { useMd3eActive } from "@/nodes/shared/controls"
 import { tNode, useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
 import { DEFAULT_SELECTED_PRESETS, NODE_ICON } from "./constants"
 import { ActionIconButton, AdvancedOptionsPopover, LogPanel, PathInput, PresetPicker, PrimarySwitches, ResultList, StatusStrip } from "./controls"
+import { CleanfMd3eView } from "./Md3eView"
 import type { CleanfCardState, CleanfPhase, CleanfStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("cleanf")
   const data = host.getData<CleanfCardState>(compId) ?? {}
   const dataRef = useRef<CleanfCardState>(data)
@@ -206,6 +209,20 @@ export function Component({ compId, host }: NodeComponentProps) {
     onTogglePreset: togglePreset,
     onUndoLastCleanup: undoLastCleanup,
   })
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <CleanfMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>

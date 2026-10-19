@@ -306,10 +306,10 @@ function SwitchField({ checked, description, disabled, icon: Icon, label, onChec
   onCheckedChange: (value: boolean) => void
 }) {
   return (
-    <Field orientation="horizontal" className="min-w-44 flex-1 rounded-md bg-muted/30 p-2">
+    <Field orientation="horizontal" className="min-w-0 max-w-full flex-[1_1_16rem] rounded-md bg-muted/30 p-2">
       <Icon className="size-4 shrink-0 text-muted-foreground" />
       <Switch checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} />
-      <FieldContent>
+      <FieldContent className="min-w-0">
         <div className="flex min-w-0 items-center gap-1.5">
           <FieldTitle className="truncate">{label}</FieldTitle>
           <InfoHint label={label} description={description} />

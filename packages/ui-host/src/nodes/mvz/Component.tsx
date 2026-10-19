@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
-import { RunningTint } from "@/nodes/shared/controls"
+import { RunningTint, useMd3eActive } from "@/nodes/shared/controls"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import { findActionMeta } from "./constants"
@@ -28,12 +28,14 @@ import {
   ResultTabs,
   StatusStrip,
 } from "./controls"
+import { MvzMd3eView } from "./Md3eView"
 import type { MvzCardState, MvzPhase, MvzStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const data = host.getData<MvzCardState>(compId) ?? {}
   const dataRef = useRef<MvzCardState>(data)
   dataRef.current = data
@@ -233,6 +235,20 @@ export function Component({ compId, host }: NodeComponentProps) {
     onRestoreDefault: restoreDefault,
     onSaveDefault: saveAsDefault,
   })
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <MvzMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>

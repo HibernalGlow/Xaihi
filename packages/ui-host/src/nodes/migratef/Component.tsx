@@ -13,7 +13,7 @@ import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import { useNodeSurface } from "@/nodes/shared/useNodeSurface"
-import { RunningTint } from "@/nodes/shared/controls"
+import { RunningTint, useMd3eActive } from "@/nodes/shared/controls"
 import { ACTIONS, MODES } from "./constants"
 import {
   ActionIconButton,
@@ -26,12 +26,14 @@ import {
   StatusStrip,
   TargetInput,
 } from "./controls"
+import { MigratefMd3eView } from "./Md3eView"
 import type { MigratefActionMode, MigratefCardState, MigratefPhase, MigratefStatusMeta } from "./types"
 import { CONFIG_FIELDS } from "./types"
 
 export function Component({ compId, host }: NodeComponentProps) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const { t } = useNodeI18n("migratef")
   const data = host.getData<MigratefCardState>(compId) ?? {}
   const dataRef = useRef<MigratefCardState>(data)
@@ -224,6 +226,20 @@ export function Component({ compId, host }: NodeComponentProps) {
     onSaveDefault: saveAsDefault,
     onUndo: (batchId?: string) => execute("undo", batchId ? { result: { ...result, operationId: batchId } as MigratefData } : {}),
   })
+
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <MigratefMd3eView
+          surface={surface}
+          forceCollapsedSurface={forceCollapsedSurface}
+          compactSurface={compactSurface}
+          portraitCompact={portraitCompact}
+          {...commonProps}
+        />
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>
