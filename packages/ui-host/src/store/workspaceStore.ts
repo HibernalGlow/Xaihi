@@ -261,6 +261,7 @@ function selectWorkspaceState(store: WSStore): WSState {
     actionGlow: store.actionGlow,
     cardElevation: store.cardElevation,
     backendReady: store.backendReady,
+    appConfigReady: store.appConfigReady,
     bgMode: store.bgMode,
     bgImageUrl: store.bgImageUrl,
     bgOpacity: store.bgOpacity,
@@ -317,6 +318,7 @@ function selectWorkspaceState(store: WSStore): WSState {
  */
 export function selectWorkspaceActions(store: WSStore): WorkspaceActions {
   return {
+    setAppConfigReady: store.setAppConfigReady,
     setTheme: store.setTheme,
     setThemeSelection: store.setThemeSelection,
     hydrateUiPreferences: store.hydrateUiPreferences,

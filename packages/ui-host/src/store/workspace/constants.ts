@@ -70,6 +70,7 @@ export const INITIAL_STATE: WSState = {
   actionGlow: false,
   cardElevation: false,
   backendReady: false,
+  appConfigReady: false,
   bgMode: "image",
   bgImageUrl: "",
   bgOpacity: 100,

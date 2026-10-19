@@ -2,7 +2,8 @@
 import { afterEach, describe, expect, test, vi } from "vitest"
 import { cleanup, render, waitFor } from "@testing-library/react"
 import { useWorkspaceStore } from "@/store/workspaceStore"
-import { AppConfigSync } from "./AppConfigSync"
+import { DEFAULT_DESIGN_THEME } from "@/lib/design-theme/contract"
+import { AppConfigSync, mergeMissingWorkspacePreferences } from "./AppConfigSync"
 import { WorkspaceAppearance } from "./WorkspaceAppearance"
 
 /**
@@ -105,5 +106,41 @@ describe("app.ui font preset load", () => {
     expect(sans).toContain("霞鹜文楷 屏幕阅读版")
     // MD3 的 label/body 角色读 --font-app-mono，等宽那一路没有同族字体的话切预设看不出变化。
     expect(mono).toContain("LXGW WenKai Mono Screen")
+  })
+})
+
+describe("app.ui MD3E seed migration", () => {
+  test("moves the retired cyan migration default to expressive violet", () => {
+    const result = mergeMissingWorkspacePreferences({
+      version: 4,
+      workspace: {
+        uiFace: "md3e",
+        designTheme: {
+          ...DEFAULT_DESIGN_THEME,
+          md3: { ...DEFAULT_DESIGN_THEME.md3, seed: "#00b8d4", seedSource: "manual", variant: "fidelity" },
+        },
+      },
+    }, useWorkspaceStore.getState())
+
+    const designTheme = result.workspace?.designTheme
+    expect(designTheme?.md3.seed).toBe("#7c4dff")
+    expect(designTheme?.md3.variant).toBe("expressive")
+    expect(result.version).toBe(5)
+  })
+
+  test("preserves a user-selected manual seed", () => {
+    const result = mergeMissingWorkspacePreferences({
+      version: 4,
+      workspace: {
+        uiFace: "md3e",
+        designTheme: {
+          ...DEFAULT_DESIGN_THEME,
+          md3: { ...DEFAULT_DESIGN_THEME.md3, seed: "#d50032", seedSource: "manual", variant: "fidelity" },
+        },
+      },
+    }, useWorkspaceStore.getState())
+
+    expect(result.workspace?.designTheme?.md3.seed).toBe("#d50032")
+    expect(result.workspace?.designTheme?.md3.variant).toBe("fidelity")
   })
 })

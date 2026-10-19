@@ -33,7 +33,7 @@ import {
 import { useBridgeReady, useDocumentBridge } from "@/document/bridge-context"
 import { getActiveCustomTheme, mirrorAestivusThemeStorage, parseImportedThemeJson, type ThemeMode } from "@/lib/appearance"
 import { FONT_PRESETS } from "@/lib/appearance-fonts"
-import { normalizeDesignThemeConfig } from "@/lib/design-theme/contract"
+import { DEFAULT_DESIGN_THEME, normalizeDesignThemeConfig, type DesignThemeConfig } from "@/lib/design-theme/contract"
 import { isBackgroundImageDataUrl, normalizePersistedBackgroundImageUrl, sanitizePersistedBackgroundImageUrl, shrinkStoredBackgroundImageUrl } from "@/lib/backgroundImage"
 import { useTheme } from "@/components/use-theme"
 import { changeLanguage, getCurrentLanguage, type Language } from "@/i18n"
@@ -47,7 +47,13 @@ import { clampWheelPitch, clampWheelRadius } from "@/actions/wheelPreferences"
 
 const logger = createLogger("config.sync")
 
-const APP_UI_CONFIG_VERSION = 4
+const APP_UI_CONFIG_VERSION = 5
+/**
+ * 旧的 MD3E 迁移曾把 cyan preset 当成默认 seed 写进持久化文档。
+ * 只迁移这个已知落点；用户明确输入的其它颜色必须原样保留。
+ */
+const LEGACY_MD3E_DEFAULT_SEEDS = new Set(["#00b8d4"])
+const MD3E_DEFAULT_SEED = "#7c4dff"
 const WORKSPACE_UI_STORAGE_KEY = "xiranite-workspace-ui"
 const THEME_STORAGE_KEY = "theme"
 const AESTIVUS_THEME_NAME_STORAGE_KEY = "theme-name"
@@ -107,6 +113,7 @@ export function AppConfigSync() {
   const bridge = useDocumentBridge()
   const bridgeReady = useBridgeReady(bridge)
   const workspaceActions = useWorkspaceActions()
+  const setAppConfigReady = useWorkspaceStore((state) => state.setAppConfigReady)
   const workspace = useWorkspaceShallowSelector(selectWorkspaceUiPreferences)
   const { theme, setTheme } = useTheme()
   const { i18n } = useTranslation()
@@ -150,6 +157,7 @@ export function AppConfigSync() {
     loadedRef.current = false
     applyingRef.current = false
     lastSavedKeyRef.current = ""
+    setAppConfigReady(false)
 
     async function loadAppConfig() {
       try {
@@ -185,6 +193,7 @@ export function AppConfigSync() {
           migratedFromRef.current = migrated.migratedFrom
           lastSavedKeyRef.current = stableStringify(migrated)
           loadedRef.current = true
+          setAppConfigReady(true)
           queueMicrotask(() => {
             applyingRef.current = false
           })
@@ -227,6 +236,7 @@ export function AppConfigSync() {
           migratedFromRef.current,
         ))
         loadedRef.current = true
+        setAppConfigReady(true)
         startupDebug("config:app-ui:load:end")
         queueMicrotask(() => {
           applyingRef.current = false
@@ -247,7 +257,7 @@ export function AppConfigSync() {
     return () => {
       cancelled = true
     }
-  }, [carrier])
+  }, [carrier, setAppConfigReady])
 
   // 自定义主题是同一格里的另一段（`xaihi-core.appUi.themes`），单独加载 / 单独回写
   useEffect(() => {
@@ -603,10 +613,13 @@ function normalizeWorkspacePreferences(value: unknown): Partial<WorkspaceUiPrefe
   }
   if (typeof value.activeCustomThemeName === "string" || value.activeCustomThemeName === null) next.activeCustomThemeName = value.activeCustomThemeName
   if (isOneOf(value.fontPreset, FONT_PRESET_KEYS)) next.fontPreset = value.fontPreset
+  const uiFace = isOneOf(value.uiFace, UI_FACE_SET) ? value.uiFace : undefined
+  if (uiFace !== undefined) next.uiFace = uiFace
   // 高级主题是嵌套表（TOML 里 [app.ui.workspace.designTheme.md3]）；整份过解析器，
   // 不接受半个对象——否则一个手抖的 seed 会把整套设计语言带成半开状态。
-  if (isRecord(value.designTheme)) next.designTheme = normalizeDesignThemeConfig(value.designTheme)
-  if (isOneOf(value.uiFace, UI_FACE_SET)) next.uiFace = value.uiFace
+  if (isRecord(value.designTheme)) {
+    next.designTheme = migrateLegacyMd3eDefaultSeed(normalizeDesignThemeConfig(value.designTheme), uiFace)
+  }
   if (value.cardLayout !== undefined) next.cardLayout = normalizeCardLayout(value.cardLayout)
   if (value.viewSwitchLoop !== undefined) next.viewSwitchLoop = value.viewSwitchLoop === true
   if (value.trellisMapPosition !== undefined) next.trellisMapPosition = normalizeTrellisMapPosition(value.trellisMapPosition)
@@ -677,6 +690,19 @@ function normalizeWorkspacePreferences(value: unknown): Partial<WorkspaceUiPrefe
   const fieldTitleStyle = value.fieldTitleStyle ?? value.choiceControlLabelStyle
   if (isOneOf(fieldTitleStyle, FIELD_TITLE_STYLES)) next.fieldTitleStyle = fieldTitleStyle
   return Object.keys(next).length ? next : undefined
+}
+
+function migrateLegacyMd3eDefaultSeed(config: DesignThemeConfig, uiFace: UiFace | undefined): DesignThemeConfig {
+  if (uiFace !== "md3e" || config.md3.seedSource !== "manual") return config
+  if (!LEGACY_MD3E_DEFAULT_SEEDS.has(config.md3.seed.toLowerCase())) return config
+  return {
+    ...config,
+    md3: {
+      ...config.md3,
+      seed: MD3E_DEFAULT_SEED,
+      variant: config.md3.variant === "fidelity" ? "expressive" : config.md3.variant,
+    },
+  }
 }
 
 /**

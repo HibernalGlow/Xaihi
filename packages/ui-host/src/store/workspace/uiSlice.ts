@@ -16,6 +16,7 @@ import { currentDefaultView, normalizeDefaultView, normalizeTrellisMapPosition, 
 
 export function createUiSlice(set: SetWorkspaceStore): WorkspaceUiActions {
   return {
+    setAppConfigReady: (ready) => set({ appConfigReady: ready }, false, "SET_APP_CONFIG_READY"),
     /**
      * 切换到内置主题预设。
      *

@@ -109,6 +109,8 @@ export interface WSState {
   cardElevation: boolean
   /** 后端是否就绪（影响 persist 启用时机）。 */
   backendReady: boolean
+  /** DSH app.ui 首次读取完成；启动恢复必须等这道门打开。 */
+  appConfigReady: boolean
   /** 背景模式：grid / dot-grid / image / none。 */
   bgMode: "grid" | "dot-grid" | "image" | "none"
   /** 背景图 URL（小 URL/path；base64 数据 URL 存 SQLite kv_store）。 */
@@ -217,6 +219,7 @@ export interface OverlayFloatingMetrics {
 
 /** UI 偏好相关动作（slice 1）。 */
 export interface WorkspaceUiActions {
+  setAppConfigReady(ready: boolean): void
   setTheme(theme: AppTheme): void
   setThemeSelection(scheme: AppThemeScheme, selection: AppThemeSelection): void
   hydrateUiPreferences(preferences: Partial<WorkspaceUiPreferences>): void

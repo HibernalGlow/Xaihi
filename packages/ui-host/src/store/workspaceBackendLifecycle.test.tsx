@@ -40,7 +40,7 @@ vi.mock("@xiranite/api/client", () => ({
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })))
-  useWorkspaceStore.setState({ restoreWorkspaceComponents: true, components: [] })
+  useWorkspaceStore.setState({ appConfigReady: true, restoreWorkspaceComponents: true, components: [] })
 })
 
 afterEach(() => {
@@ -52,7 +52,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
   delete window.__XIRANITE_BACKEND__
   localStorage.clear()
-  useWorkspaceStore.setState({ restoreWorkspaceComponents: false, components: [] })
+  useWorkspaceStore.setState({ appConfigReady: false, restoreWorkspaceComponents: false, components: [] })
 })
 
 describe("WorkspaceProvider backend lifecycle", () => {

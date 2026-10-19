@@ -199,10 +199,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const hydrate = useWorkspaceStore((state) => state.hydrate)
   const setBackendReady = useWorkspaceStore((state) => state.setBackendReady)
   const backendReady = useWorkspaceStore((state) => state.backendReady)
+  const appConfigReady = useWorkspaceStore((state) => state.appConfigReady)
   const restoreWorkspaceComponents = useWorkspaceStore((state) => state.restoreWorkspaceComponents)
   const restoreComponentsForSessionRef = useRef(false)
-  if (restoreWorkspaceComponents) restoreComponentsForSessionRef.current = true
-  const restoreComponents = restoreComponentsForSessionRef.current
+  if (!appConfigReady) restoreComponentsForSessionRef.current = false
+  else if (restoreWorkspaceComponents) restoreComponentsForSessionRef.current = true
+  const restoreComponents = appConfigReady && restoreComponentsForSessionRef.current
   const { workspaces, lanes, components } = useWorkspaceStore(
     useShallow((state) => ({
       workspaces: state.workspaces,
@@ -220,6 +222,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     lanes: lanes.length,
     components: components.length,
     restoreComponents,
+    appConfigReady,
   })
 
   useEffect(() => {
