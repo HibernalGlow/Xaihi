@@ -291,7 +291,7 @@ export function Md3eStatusPill(props: {
       : tone === "running" || tone === "primary"
         ? "bg-primary animate-pulse"
         : tone === "success" || tone === "tertiary"
-          ? "bg-emerald-500"
+          ? "bg-[var(--md3e-tertiary,var(--accent))]"
           : "bg-current opacity-75"
 
   return (
@@ -802,7 +802,7 @@ export function Md3eSectionCard(props: {
               ) : null}
             </div>
           </div>
-          {props.actions ? <div className="flex shrink-0 items-center gap-1">{props.actions}</div> : null}
+          {props.actions ? <div className="flex min-w-0 max-w-full shrink-0 flex-wrap items-center justify-end gap-1 overflow-hidden">{props.actions}</div> : null}
         </div>
       ) : null}
       {props.children}
@@ -965,17 +965,18 @@ export function Md3eStepperSlider(props: {
     return Number(bounded.toFixed(decimals))
   }
   return (
-    <div className={cn("rounded-2xl border border-border/60 px-3 py-2", props.className)}>
+    <div className={cn("rounded-[18px] bg-[var(--md3e-surface-lowest,var(--muted))]/80 px-3 py-2 transition-all duration-150 hover:bg-[var(--md3e-surface-highest,var(--accent))]/60", props.className)}>
       <div className="flex min-w-0 items-center gap-2">
         <Icon className="size-4 shrink-0 text-[var(--md3e-primary,var(--primary))]" />
-        <span className="min-w-0 flex-1 truncate text-[11px] font-medium">{props.label}</span>
-        <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+        <span className="min-w-0 flex-1 truncate text-[11px] font-bold">{props.label}</span>
+        <span className="shrink-0 rounded-full bg-[var(--md3e-secondary-container,var(--secondary))] px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-[var(--md3e-on-secondary-container,var(--secondary-foreground))]">
           {props.value.toFixed(decimals)}
         </span>
         <Button
           type="button"
           size="icon-xs"
-          variant="outline"
+          variant="secondary"
+          className="rounded-full"
           aria-label={`${props.label} 减少`}
           disabled={props.disabled || props.value <= props.min}
           onClick={() => props.onChange(clamp(props.value - props.step))}
@@ -985,7 +986,8 @@ export function Md3eStepperSlider(props: {
         <Button
           type="button"
           size="icon-xs"
-          variant="outline"
+          variant="secondary"
+          className="rounded-full"
           aria-label={`${props.label} 增加`}
           disabled={props.disabled || props.value >= props.max}
           onClick={() => props.onChange(clamp(props.value + props.step))}
@@ -1026,10 +1028,10 @@ export function Md3eSwitchRow(props: {
 }) {
   const Icon = props.icon
   return (
-    <div className={cn("flex min-w-0 items-center gap-2 rounded-2xl border border-border/60 px-3 py-2", props.className)}>
+    <div className={cn("flex min-w-0 items-center gap-2.5 rounded-[18px] bg-[var(--md3e-surface-lowest,var(--muted))]/80 px-3 py-2 transition-all duration-150 hover:bg-[var(--md3e-surface-highest,var(--accent))]/60", props.className)}>
       <Icon className="size-4 shrink-0 text-[var(--md3e-primary,var(--primary))]" />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[11px] font-medium">{props.label}</div>
+        <div className="truncate text-[11px] font-bold">{props.label}</div>
         {props.description ? (
           <div className="truncate text-[10px] text-muted-foreground">{props.description}</div>
         ) : null}
@@ -1043,3 +1045,5 @@ export function Md3eSwitchRow(props: {
     </div>
   )
 }
+
+export * from "./Md3eExpressiveKit"

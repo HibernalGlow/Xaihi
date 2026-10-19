@@ -1,3 +1,4 @@
+import { tt } from "@/lib/i18nText"
 import {
   lazy,
   Suspense,
@@ -57,6 +58,19 @@ import { cn } from "@/lib/utils"
 import { useNodeRuntimeId } from "./NodeRuntimeContext"
 import { useNodeI18n } from "./useNodeI18n"
 import { useNodeUiConfig } from "./NodeUiConfigContext"
+import { Md3eShapePreviewGlyph, useMd3eShapeContext } from "./Md3eShapeContext"
+import {
+  DEFAULT_NODE_SHAPE_POLICY,
+  MD3E_BUTTON_ROLES,
+  MD3E_EXPRESSIVE_SHAPES,
+  normalizeNodeShapePolicy,
+  resolveSessionRoleShapes,
+  writeNodeShapePolicy,
+  type Md3eButtonRole,
+  type Md3eExpressiveShapeId,
+  type Md3eNodeShapePolicy,
+  type Md3eShapePolicyMode,
+} from "./md3eShapeSystem"
 
 const LazyNodeConfigHistoryPanel = lazy(() => import("./NodeConfigHistoryPanel"))
 const LazyNodeConfigSourceView = lazy(() => import("./NodeConfigSourceView"))
@@ -261,9 +275,12 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
   // "Xiranite local backend is not configured" warn 的出处。
   const nodeUiConfig = useNodeUiConfig()
   const storedPrefsRef = useRef<Record<string, unknown> | undefined>(undefined)
+  const shapeCtx = useMd3eShapeContext()
   const [autoRestore, setAutoRestore] = useState(false)
   const [autoRestoreLoaded, setAutoRestoreLoaded] = useState(false)
   const [autoRestoreSaving, setAutoRestoreSaving] = useState(false)
+  const [shapePolicy, setShapePolicy] = useState<Md3eNodeShapePolicy>(DEFAULT_NODE_SHAPE_POLICY)
+  const [shapeSaving, setShapeSaving] = useState(false)
   const autoRestoredRef = useRef(false)
   const autoRestoreNodeIdRef = useRef<string | undefined>(undefined)
   const effectiveDefaults = props.defaults && Object.keys(props.defaults).length ? props.defaults : props.fallbackDefaults
@@ -300,6 +317,9 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
         storedPrefsRef.current = stored !== null && typeof stored === "object" && !Array.isArray(stored)
           ? stored as Record<string, unknown>
           : undefined
+        if (storedPrefsRef.current?.shapePolicy !== undefined) {
+          setShapePolicy(normalizeNodeShapePolicy(storedPrefsRef.current.shapePolicy))
+        }
         const persisted = resolveAutoRestorePreference(storedPrefsRef.current as NodeConfigUiPreferences | undefined)
         const legacy = persisted === undefined
           ? readLegacyAutoRestorePreference(autoRestoreNodeId!, props.configPath)
@@ -357,6 +377,33 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
       logger.warn("Failed to save restore-on-startup preference", { nodeId: autoRestoreNodeId }, error)
     } finally {
       setAutoRestoreSaving(false)
+    }
+  }
+
+  // TODO(ADR-0033 待确认 #1): 节点控件形状策略当前随 NodeUiConfigStore 落进 xaihi-core.nodeUi[nodeId].shapePolicy，
+  // 与 restoreOnStartup 同格无损合并；保留切换至 xaihi-<node> Config 的 seam。
+  async function saveNodeShapePolicy(nextPolicy: Md3eNodeShapePolicy) {
+    if (!autoRestoreNodeId || shapeSaving) return
+    const normalized = normalizeNodeShapePolicy(nextPolicy)
+    const previous = shapePolicy
+    setShapePolicy(normalized)
+    setShapeSaving(true)
+    try {
+      if (nodeUiConfig) {
+        const next = { ...(storedPrefsRef.current ?? {}), shapePolicy: normalized }
+        await nodeUiConfig.write(autoRestoreNodeId, next)
+        storedPrefsRef.current = next
+      } else {
+        await writeNodeShapePolicy(autoRestoreNodeId, normalized, undefined)
+      }
+      if (shapeCtx && shapeCtx.nodeId === autoRestoreNodeId) {
+        await shapeCtx.setPolicyMode(normalized.mode)
+      }
+    } catch (error) {
+      setShapePolicy(previous)
+      logger.warn("Failed to save node shape policy", { nodeId: autoRestoreNodeId }, error)
+    } finally {
+      setShapeSaving(false)
     }
   }
 
@@ -434,6 +481,15 @@ export function NodeConfigPopover(props: NodeConfigPopoverProps) {
               </section>
               <aside className="flex flex-col gap-2">
                 {autoRestoreNodeId ? <Field orientation="horizontal" className="items-center justify-between rounded-md border px-3 py-2"><FieldLabel className="text-xs">{props.t("config.autoRestore", "Restore on startup")}</FieldLabel><Switch checked={autoRestore} disabled={!autoRestoreLoaded || autoRestoreSaving} onCheckedChange={(enabled) => void setAutoRestoreDefaults(enabled)} /></Field> : null}
+                {autoRestoreNodeId ? (
+                  <NodeShapePolicyAsideCard
+                    nodeId={autoRestoreNodeId}
+                    policy={shapeCtx && shapeCtx.nodeId === autoRestoreNodeId ? shapeCtx.policy : shapePolicy}
+                    disabled={!autoRestoreLoaded || shapeSaving}
+                    hasStore={Boolean(nodeUiConfig)}
+                    onChange={(next) => void saveNodeShapePolicy(next)}
+                  />
+                ) : null}
                 {showCurrentActions ? <Button disabled={disabled} size="sm" onClick={() => void perform("save", props.onSave)}><Save data-icon="inline-start" />{props.t("config.save", "Save as default")}</Button> : null}
                 {showCurrentActions ? <Button disabled={disabled || !effectiveDefaults} size="sm" variant="outline" onClick={() => void perform("restore", props.onRestore)}><RotateCcw data-icon="inline-start" />{props.t("config.restore", "Restore saved configuration")}</Button> : null}
                 <Button disabled={disabled} size="sm" variant="outline" onClick={() => void perform("reload", props.onReload)}><RefreshCw data-icon="inline-start" />{props.t("config.reload", "Reload from settings")}</Button>
@@ -740,3 +796,139 @@ function sourceLabels(t: NodeT) {
     copied: t("config.source.copied", "Copied"),
   }
 }
+
+const ROLE_SHORT_LABELS: Record<Md3eButtonRole, string> = {
+  get primary() { return tt("module:shared.skinPrimary", "主按钮") },
+  get secondary() { return tt("module:shared.skinSecondary", "次按钮") },
+  get outline() { return tt("module:shared.skinOutline", "描边") },
+  get ghost() { return tt("module:shared.skinGhost", "幽灵") },
+  get danger() { return tt("module:shared.skinDanger", "危险") },
+  get toolbar() { return tt("module:shared.skinToolbar", "工具栏") },
+}
+
+function NodeShapePolicyAsideCard({
+  nodeId,
+  policy,
+  disabled,
+  hasStore,
+  onChange,
+}: {
+  nodeId: string
+  policy: Md3eNodeShapePolicy
+  disabled: boolean
+  hasStore: boolean
+  onChange: (next: Md3eNodeShapePolicy) => void
+}) {
+  const sessionShapes = useMemo(() => resolveSessionRoleShapes(nodeId), [nodeId])
+  const effectiveShapes = policy.mode === "fixed" ? policy.fixedRoleShapes : sessionShapes
+
+  function selectMode(mode: Md3eShapePolicyMode) {
+    if (disabled || mode === policy.mode) return
+    onChange({
+      ...policy,
+      mode,
+    })
+  }
+
+  function pinCurrentSessionShapes() {
+    if (disabled) return
+    onChange({
+      mode: "fixed",
+      fixedRoleShapes: { ...effectiveShapes },
+    })
+  }
+
+  function cycleRoleShape(role: Md3eButtonRole) {
+    if (disabled) return
+    const currentId: Md3eExpressiveShapeId = effectiveShapes[role] ?? "circle"
+    const idx = MD3E_EXPRESSIVE_SHAPES.findIndex((item) => item.id === currentId)
+    const nextSpec = MD3E_EXPRESSIVE_SHAPES[(idx + 1) % MD3E_EXPRESSIVE_SHAPES.length] ?? MD3E_EXPRESSIVE_SHAPES[0]!
+    onChange({
+      mode: "fixed",
+      fixedRoleShapes: {
+        ...effectiveShapes,
+        [role]: nextSpec.id,
+      },
+    })
+  }
+
+  return (
+    <div
+      data-node-shape-policy-card={nodeId}
+      data-node-shape-persistence={hasStore ? "dsh-settings" : "local-fallback"}
+      className="space-y-2 rounded-md border bg-muted/15 p-2.5 text-xs"
+    >
+      <div className="flex items-center justify-between gap-1.5">
+        <span className="font-medium text-foreground">MD3E 控件形状</span>
+        <span className="rounded-full border border-border/60 bg-background/80 px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">
+          {hasStore ? "nodeUi" : "local"}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-0.5 rounded-[14px] bg-muted/50 p-0.5">
+        <button
+          type="button"
+          disabled={disabled}
+          data-node-shape-mode="random-on-startup"
+          aria-pressed={policy.mode === "random-on-startup"}
+          onClick={() => selectMode("random-on-startup")}
+          className={cn(
+            "rounded-l-[12px] rounded-r-[4px] px-2 py-1 text-[11px] font-medium transition-colors",
+            policy.mode === "random-on-startup"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          启动随机
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          data-node-shape-mode="fixed"
+          aria-pressed={policy.mode === "fixed"}
+          onClick={() => selectMode("fixed")}
+          className={cn(
+            "rounded-l-[4px] rounded-r-[12px] px-2 py-1 text-[11px] font-medium transition-colors",
+            policy.mode === "fixed"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          固定形状
+        </button>
+      </div>
+      {policy.mode === "random-on-startup" ? (
+        <button
+          type="button"
+          disabled={disabled}
+          data-node-shape-pin
+          onClick={pinCurrentSessionShapes}
+          className="w-full rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          固定当前会话形状组合
+        </button>
+      ) : null}
+      <div className="grid grid-cols-3 gap-1 pt-0.5">
+        {MD3E_BUTTON_ROLES.map((role) => {
+          const shapeId = effectiveShapes[role]
+          const spec = MD3E_EXPRESSIVE_SHAPES.find((item) => item.id === shapeId) ?? MD3E_EXPRESSIVE_SHAPES[0]!
+          return (
+            <button
+              key={role}
+              type="button"
+              disabled={disabled}
+              data-node-shape-role={role}
+              data-node-shape-value={spec.id}
+              onClick={() => cycleRoleShape(role)}
+              title={`${ROLE_SHORT_LABELS[role]}：${spec.labelZh}（点击切换并固定）`}
+              className="flex flex-col items-center gap-0.5 rounded-[8px] border border-border/50 bg-background/60 p-1 text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            >
+              <Md3eShapePreviewGlyph shapeId={spec.id} className="size-3.5 text-primary" />
+              <span className="w-full truncate text-center text-[9px]">{ROLE_SHORT_LABELS[role]}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
