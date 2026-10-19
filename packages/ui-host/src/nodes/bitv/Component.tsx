@@ -32,9 +32,11 @@ import {
   Md3eStepperSlider,
   Md3eSwitchRow,
   Md3eWavyProgress,
+  useMd3eActive,
 } from "@/nodes/shared/controls"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import { ACTIONS, NODE_META, type BitvActionMeta } from "./constants"
+import { BitvMd3eView } from "./Md3eView"
 import type { BitvCardState, BitvStatusMeta } from "./types"
 
 const CONFIG_FIELDS = ["action", "pathsText", "reportPath", "targetPath", "outputPath", "recursive", "bitrateStepMbps", "maxLevels", "transferMode", "dryRun"] as const
@@ -42,6 +44,7 @@ const CONFIG_FIELDS = ["action", "pathsText", "reportPath", "targetPath", "outpu
 export function Component({ compId, host }: NodeComponentProps<BitvCardState, Partial<BitvCardState>>) {
   "use no memo"
   const surface = useNodeSurface()
+  const md3e = useMd3eActive()
   const data = getHostData(host, compId)
   const dataRef = useRef(data)
   dataRef.current = data
@@ -97,6 +100,13 @@ export function Component({ compId, host }: NodeComponentProps<BitvCardState, Pa
     finally { setRunning(false) }
   }
   const props: ViewProps = { action, configDirty, data, defaults, logs, progress, result, resultTab, running, status, onCopyLogs: () => host.clipboard?.writeText?.(logs.join("\n")), onCopyResults: copyResults, onExecute: execute, onPastePaths: pastePaths, onPatch: patch, onReset: () => { patch({ logs: [], phase: "idle", progress: 0, progressText: "", result: null }); setResultTab("tree") }, onRestoreDefaults: () => defaults && patch(defaults), onSaveDefaults: saveDefaults, onResultTabChange: setResultTab }
+  if (md3e) {
+    return (
+      <TooltipProvider>
+        <BitvMd3eView surface={surface} compact={compact} {...props} />
+      </TooltipProvider>
+    )
+  }
   return (
     <TooltipProvider>
       <Md3eNodeSurface
@@ -518,7 +528,7 @@ function VideoTable({ compact, videos }: { compact?: boolean; videos: BitvVideoI
 function PlanList({ compact, operations }: { compact?: boolean; operations: BitvData["operations"] }) { return <ScrollArea className={cn("h-full", compact ? "min-h-28" : "min-h-0 flex-1")}><div className="grid gap-2 p-2">{operations.length ? operations.map((item) => <div key={`${item.sourcePath}-${item.targetPath}`} className={cn("grid gap-1 rounded-[18px] bg-[var(--md3e-surface-high,var(--muted))]/65 p-3 text-xs", !item.success && "bg-destructive/15")}><div className="flex justify-between gap-2"><Badge variant={item.success ? "secondary" : "destructive"} className="rounded-full border-0">{item.dryRun ? tt("module:shared.ui.dryRun", "预演") : item.mode === "move" ? tt("module:shared.ui.move", "移动") : tt("common:duplicate", "复制")}</Badge><span className="truncate font-bold text-muted-foreground">{item.bitrateLevel}</span></div><div className="truncate font-mono" title={item.sourcePath}>{item.sourcePath}</div><div className="truncate font-mono font-semibold text-primary" title={item.targetPath}>→ {item.targetPath}</div>{item.error && <div className="text-destructive">{item.error}</div>}</div>) : <Empty icon={Waypoints} title="暂无分类计划" description="选择分类工作流并运行预演，目标文件会显示在这里。" />}</div></ScrollArea> }
 function TextPanel({ compact, empty, icon: Icon, lines }: { compact?: boolean; empty: string; icon: LucideIcon; lines: string[] }) { return <ScrollArea className={cn("h-full", compact ? "min-h-28" : "min-h-0 flex-1")}><div className="p-2">{lines.length ? <pre className="whitespace-pre-wrap break-words rounded-[18px] bg-[var(--md3e-surface-low,var(--background))]/70 p-3 font-mono text-xs leading-5 text-muted-foreground">{lines.join("\n")}</pre> : <Empty icon={Icon} title={empty} description="" />}</div></ScrollArea> }
 function Empty({ description, icon: Icon, title }: { description: string; icon: LucideIcon; title: string }) { return <div className="flex min-h-28 flex-col items-center justify-center gap-1.5 rounded-[20px] bg-[var(--md3e-surface-low,var(--background))]/60 p-4 text-center text-xs text-muted-foreground"><Md3eShapeBadge icon={Icon} seed={`bitv-empty-${title}`} tone="neutral" size="md" /><span className="font-bold text-foreground/85">{title}</span>{description && <span>{description}</span>}</div> }
-function RunButton({ compact, props }: { compact?: boolean; props: ViewProps }) { const dangerous = (props.action === "classify" || props.action === "report") && props.data.dryRun === false; const label = props.action === "status" ? tt("module:bitv.runStatus", "检查环境") : props.action === "analyze" ? tt("module:bitv.runAnalyze", "开始分析") : (props.data.dryRun ?? true) ? tt("module:bitv.runPlan", "生成分类计划") : tt("module:bitv.classifyWithMode", "{{mode}}并分类", { mode: props.data.transferMode === "move" ? tt("module:shared.ui.move", "移动") : tt("module:shared.ui.copy", "复制") }); return <ExecuteButton size={compact ? "xs" : "default"} running={props.running} dangerous={dangerous} label={label} onExecute={() => props.onExecute(props.action)} /> }
+function RunButton({ compact, props }: { compact?: boolean; props: ViewProps }) { const dangerous = (props.action === "classify" || props.action === "report") && props.data.dryRun === false; const label = props.action === "status" ? tt("module:bitv.runStatus", "检查环境") : props.action === "analyze" ? tt("module:bitv.runAnalyze", "开始分析") : (props.data.dryRun ?? true) ? tt("module:bitv.runPlan", "生成分类计划") : `${props.data.transferMode === "move" ? tt("module:shared.ui.move", "移动") : tt("module:shared.ui.copy", "复制")}并分类`; return <ExecuteButton size={compact ? "xs" : "default"} running={props.running} dangerous={dangerous} label={label} onExecute={() => props.onExecute(props.action)} /> }
 function IconButton(props: { disabled?: boolean; icon: LucideIcon; label: string; onClick: () => void }) { const Icon = props.icon; return <Tooltip><TooltipTrigger asChild><Button aria-label={props.label} disabled={props.disabled} size="icon-sm" shapeRole="toolbar" variant="outline" onClick={props.onClick}><Icon /><span className="sr-only">{props.label}</span></Button></TooltipTrigger><TooltipContent>{props.label}</TooltipContent></Tooltip> }
 
 function getHostData(host: NodeComponentProps<BitvCardState, Partial<BitvCardState>>["host"], compId: string): BitvCardState { return host.state?.getData?.() ?? host.getData<BitvCardState>(compId) ?? {} }
