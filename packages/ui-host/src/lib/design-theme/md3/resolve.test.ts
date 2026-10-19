@@ -32,6 +32,7 @@ import {
   type DesignThemeConfig,
   type DesignThemeContext,
 } from "../contract"
+import { MD3_COLOR_SPEC_VERSION } from "./color"
 import { MD3_COMPONENT_TOKENS, MD3_SYS_TOKENS, MD3_TOKEN_SOURCE } from "./tokens.generated"
 import { MD3_EMITTED_COMPONENT_SETS } from "./mapper"
 import { MD3_SPACE_STEPS } from "./space"
@@ -73,6 +74,7 @@ function oracleRole(variant: Variant, contrastLevel: number, isDark: boolean, ro
     variant,
     contrastLevel,
     isDark,
+    specVersion: MD3_COLOR_SPEC_VERSION,
   })
   const colors = new MaterialDynamicColors() as unknown as Record<string, (s: DynamicScheme) => { getArgb(s: DynamicScheme): number }>
   return hexFromArgb(colors[role]!(scheme)!.getArgb(scheme))

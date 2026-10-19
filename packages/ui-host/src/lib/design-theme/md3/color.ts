@@ -14,8 +14,8 @@
  *   「把 scheme 传进去，多余的实参被忽略」，用一处显式 cast 收敛这个不一致，
  *   而不是给 60 个角色各写一行包装。
  * - `primaryDim` / `secondaryDim` / `tertiaryDim` / `errorDim` 的返回类型是
- *   `DynamicColor | undefined`（2025 spec 角色）；实测 0.4.0 在默认 `specVersion = "2021"`
- *   下也能解析出值，但类型上必须容错，解不出就**不 emit 这个变量**，不编一个近似色。
+ *   `DynamicColor | undefined`（2025 spec 角色）；本模块明确使用 `specVersion = "2025"`，
+ *   但类型上仍必须容错，解不出就**不 emit 这个变量**，不编一个近似色。
  * - `allColors` / `colorSpec` / `contentAccentToneDelta` 是属性不是访问器，不进角色表。
  *
  * light 与 dark 是同一个 seed 的两次 `DynamicScheme`（`isDark` 不同），不是把 hex 取反。
@@ -46,6 +46,9 @@ export const MD3_VARIANT_BY_NAME: Record<Md3SchemeVariant, Variant> = {
   rainbow: Variant.RAINBOW,
   fruitSalad: Variant.FRUIT_SALAD,
 }
+
+/** UI 颜色生成固定跟随 MCU 的 Material 3 2025 ColorSpec。 */
+export const MD3_COLOR_SPEC_VERSION = "2025" as const
 
 /**
  * 完整角色表，名字用 MCU 的 camel 访问器名（变量名由 `roleVarName()` 转 kebab）。
@@ -144,6 +147,8 @@ export interface Md3SchemeRequest {
 /**
  * 由 seed 建 scheme。`contrastLevel` 直通给 `DynamicScheme`（0.4.0 实测支持 -1…1，
  * 不是只有 0/1 两个档：见测试里 contrast 0 与 1 的角色差集非空）。
+ * `specVersion` 必须显式传 2025：MCU 的 2021 expressive 配方会把紫色 seed 的主色
+ * 旋转到青绿色，这正是工作台此前出现绿色残留的根因。
  */
 export function createMd3Scheme(request: Md3SchemeRequest): DynamicScheme {
   const variant = MD3_VARIANT_BY_NAME[request.variant]
@@ -159,6 +164,7 @@ export function createMd3Scheme(request: Md3SchemeRequest): DynamicScheme {
     variant,
     contrastLevel: request.contrastLevel,
     isDark: request.isDark,
+    specVersion: MD3_COLOR_SPEC_VERSION,
   })
 }
 

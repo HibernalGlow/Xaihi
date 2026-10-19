@@ -24,6 +24,7 @@ import {
 import { MD3_BASELINE_SEED } from "../contract"
 import {
   MD3_COLOR_ROLES,
+  MD3_COLOR_SPEC_VERSION,
   MD3_VARIANT_BY_NAME,
   createMd3Scheme,
   kebabRoleName,
@@ -45,6 +46,7 @@ function oracleScheme(variant: Variant, contrastLevel: number, isDark: boolean):
     variant,
     contrastLevel,
     isDark,
+    specVersion: MD3_COLOR_SPEC_VERSION,
   })
 }
 
@@ -127,14 +129,14 @@ describe("md3 color roles against the MCU oracle", () => {
     const maximum = resolveColorRoles(createMd3Scheme({ seed: SEED, variant: "tonalSpot", contrastLevel: 1, isDark: false }))
     const minimum = resolveColorRoles(createMd3Scheme({ seed: SEED, variant: "tonalSpot", contrastLevel: -1, isDark: false }))
 
-    expect(maximum["--md-sys-color-surface-container"]).not.toBe(standard["--md-sys-color-surface-container"])
     expect(maximum["--md-sys-color-on-surface"]).not.toBe(standard["--md-sys-color-on-surface"])
-    // 最低对比度动的是「前景/描边」这一类；实测 `surfaceContainer` 在 -1 上和 0 一样，
-    // 所以这条不能照抄上面那句 —— 拿一个真会动的角色来证明 -1 这一档不是死参数。
-    expect(minimum["--md-sys-color-on-surface"]).not.toBe(standard["--md-sys-color-on-surface"])
-    expect(minimum["--md-sys-color-outline-variant"]).not.toBe(standard["--md-sys-color-outline-variant"])
+    expect(maximum["--md-sys-color-primary"]).not.toBe(standard["--md-sys-color-primary"])
+    // 2025 spec 的最低对比度档只会收紧 dim / inverse 角色；用这两个实际变化的角色作阳性对照。
+    expect(minimum["--md-sys-color-primary-dim"]).not.toBe(standard["--md-sys-color-primary-dim"])
+    expect(minimum["--md-sys-color-inverse-primary"]).not.toBe(standard["--md-sys-color-inverse-primary"])
     // 对照：参照实现同样动，证明差异来自 MCU 的 contrastLevel 而不是我的拼接。
-    expect(maximum["--md-sys-color-surface-container"]).toBe(oracleArgb(oracleScheme(Variant.TONAL_SPOT, 1, false), "surfaceContainer"))
+    expect(maximum["--md-sys-color-on-surface"]).toBe(oracleArgb(oracleScheme(Variant.TONAL_SPOT, 1, false), "onSurface"))
+    expect(minimum["--md-sys-color-primary-dim"]).toBe(oracleArgb(oracleScheme(Variant.TONAL_SPOT, -1, false), "primaryDim"))
   })
 
   test("variant is wired: the nine names reach nine distinct MCU variants", () => {
@@ -172,5 +174,22 @@ describe("md3 color roles against the MCU oracle", () => {
 
   test("a seed that is not a color fails instead of silently becoming black", () => {
     expect(() => createMd3Scheme({ seed: "not-a-color", variant: "tonalSpot", contrastLevel: 0, isDark: false })).toThrow(/#rrggbb/)
+  })
+
+  test("expressive purple uses the 2025 ColorSpec instead of the legacy green rotation", () => {
+    const request = { seed: "#7c4dff", variant: "expressive" as const, contrastLevel: 0 as const, isDark: true }
+    const scheme = createMd3Scheme(request)
+    const primary = hexFromArgb(new MaterialDynamicColors().primary().getArgb(scheme))
+    const legacy = new DynamicScheme({
+      sourceColorHct: Hct.fromInt(argbFromHex(request.seed)),
+      variant: Variant.EXPRESSIVE,
+      contrastLevel: request.contrastLevel,
+      isDark: request.isDark,
+      specVersion: "2021",
+    })
+    const legacyPrimary = hexFromArgb(new MaterialDynamicColors().primary().getArgb(legacy))
+
+    expect(scheme.specVersion).toBe(MD3_COLOR_SPEC_VERSION)
+    expect(primary).not.toBe(legacyPrimary)
   })
 })
