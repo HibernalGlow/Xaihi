@@ -11,8 +11,9 @@ import { createRequire } from 'node:module'
 import { dirname } from 'node:path'
 import type { Context, Volatile } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
-import { defineNode, OPERATIONS_SERVICE, type OperationJournal } from '@hibernalglow/xaihi-sdk'
+import { defineNode, OPERATIONS_SERVICE, SHELLECT_SERVICE, type OperationJournal, type ShellectService } from '@hibernalglow/xaihi-sdk'
 import { runDissolvef, type DissolvefAction, type DissolvefConflictMode, type DissolvefInput, type DissolvefMode } from './core.ts'
+import { dissolvefProgressPercent } from './contract.ts'
 import { createNodeDissolvefRuntime } from './platform.ts'
 
 export const name = '@hibernalglow/xaihi-dissolvef'
@@ -92,9 +93,9 @@ export function apply(ctx: Context, config: Config): void {
    */
   const historyPathOf = (inputs: Record<string, unknown>): string => {
     const fromRun = typeof inputs.historyPath === 'string' ? inputs.historyPath.trim() : ''
-    return fromRun === '' ? config.historyPath.get() : fromRun
+    return fromRun === '' ? String(config.historyPath.get() ?? '').trim() : fromRun
   }
-  defineNode(ctx, {
+  const node = defineNode(ctx, {
     definition: ownNodeDefinition(),
     // 每次调用现取：core 的 fiber 可能比本节点晚激活。
     journal: () => ctx.get(OPERATIONS_SERVICE) as OperationJournal | undefined,
@@ -107,11 +108,14 @@ export function apply(ctx: Context, config: Config): void {
           ...flagsFrom(inputs),
           preview: true,
           exclude: String(inputs.exclude ?? ''),
+          protectFirstLevel: inputs.protectFirstLevel !== false,
+          enableSimilarity: inputs.enableSimilarity !== false,
+          similarityThreshold: Number(inputs.similarityThreshold ?? 0.6),
           fileConflict: conflict(inputs.fileConflict, 'auto'),
           dirConflict: conflict(inputs.dirConflict, 'auto'),
           ...(historyPath === '' ? {} : { historyPath }),
         }, createNodeDissolvefRuntime())
-        run.resultView({ plan: result.data?.plan ?? [], counts: result.data?.totalCount ?? 0 })
+        run.resultView(result.data ?? {})
         if (!result.success) throw new Error(`dissolvef plan: ${result.message}`)
         return result.message
       },
@@ -132,22 +136,19 @@ export function apply(ctx: Context, config: Config): void {
           ...flagsFrom(inputs),
           preview,
           exclude: String(inputs.exclude ?? ''),
+          protectFirstLevel: inputs.protectFirstLevel !== false,
+          enableSimilarity: inputs.enableSimilarity !== false,
+          similarityThreshold: Number(inputs.similarityThreshold ?? 0.6),
           fileConflict: conflict(inputs.fileConflict, 'auto'),
           dirConflict: conflict(inputs.dirConflict, 'auto'),
           ...(historyPath === '' ? {} : { historyPath }),
         }, runtime, (event) => {
-          // 内核的 progress 是 0..1；接到运行账本时同时带上它说的话，界面才有可读进度。
-          if (event.type === 'progress') run.progress({ done: Math.round((event.progress ?? 0) * 100), total: 100 })
+          if (event.type === 'progress') run.progress({ done: dissolvefProgressPercent(event.progress), total: 100 })
           if (event.message !== '') run.preview({ message: event.message })
         })
         // 撤销这次需要的东西：历史文件 + 本次 operationId。这就是耐久账目里的 checkpoint。
         if (historyPath !== '') run.checkpoint({ historyPath, operationId: result.data?.operationId ?? null })
-        run.resultView({
-          success: result.success,
-          moved: result.data?.successCount ?? 0,
-          skipped: result.data?.skippedCount ?? 0,
-          errors: result.data?.errors ?? [],
-        })
+        run.resultView(result.data ?? {})
         if (!result.success) throw new Error(`dissolvef: ${result.message}`)
         return result.message
       },
@@ -161,7 +162,7 @@ export function apply(ctx: Context, config: Config): void {
           historyPath,
           ...(undoId === '' ? {} : { undoId }),
         }, createNodeDissolvefRuntime({ historyDir: dirname(historyPath) }))
-        run.resultView({ restored: result.data?.successCount ?? 0, errors: result.data?.errors ?? [] })
+        run.resultView(result.data ?? {})
         if (!result.success) throw new Error(`dissolvef undo: ${result.message}`)
         return result.message
       },
@@ -171,12 +172,71 @@ export function apply(ctx: Context, config: Config): void {
         if (historyPath === '') throw new Error('dissolvef: config.historyPath is unset')
         const result = await runDissolvef({ action: 'history', historyPath }, createNodeDissolvefRuntime())
         const records = result.data?.history ?? []
-        run.resultView({ records })
+        run.resultView(result.data ?? { history: records })
         if (records.length === 0) return 'no dissolvef operations are recorded in this journal'
         return records.map((record) => `${record.id} ${record.timestamp} ${record.mode} ${record.operations.length} operation(s)`).join('\n')
       },
     },
   })
+
+  ctx.inject([SHELLECT_SERVICE], (scoped) => {
+    const shellect = scoped.get(SHELLECT_SERVICE) as ShellectService | undefined
+    if (!shellect) return
+
+    const runSelected = async (paths: string[], values: Record<string, unknown>, preview: boolean) => {
+      const historyPath = historyPathOf(values)
+      const results = []
+      for (const path of paths) {
+        results.push(await node.run('dissolve', {
+          path,
+          direct: true,
+          nested: false,
+          media: false,
+          archive: false,
+          preview,
+          historyPath,
+          protectFirstLevel: values.protectFirstLevel !== false,
+          enableSimilarity: values.enableSimilarity !== false,
+          similarityThreshold: Number(values.similarityThreshold ?? 0.6),
+          fileConflict: conflict(values.fileConflict, 'auto'),
+          dirConflict: conflict(values.dirConflict, 'auto'),
+        }))
+      }
+      const failed = results.filter((result) => !result.success)
+      return {
+        success: failed.length === 0,
+        message: results.map((result) => result.message).join('\n'),
+        data: results.map((result) => result.data),
+      }
+    }
+
+    return shellect.register({
+      id: 'dissolvef.direct',
+      nodeId: 'dissolvef',
+      title: '解散文件夹',
+      selection: 'directories',
+      mutates: true,
+      platforms: ['win32', 'darwin', 'linux'],
+      fields: [
+        { key: 'protectFirstLevel', label: '保护一级文件夹', type: 'boolean', value: true },
+        { key: 'enableSimilarity', label: '启用相似度检查', type: 'boolean', value: true },
+        { key: 'similarityThreshold', label: '相似度阈值', type: 'number', value: 0.6, min: 0, max: 1 },
+        { key: 'fileConflict', label: '文件冲突策略', type: 'select', value: 'auto', choices: conflictChoices() },
+        { key: 'dirConflict', label: '目录冲突策略', type: 'select', value: 'auto', choices: conflictChoices() },
+      ],
+      preview: (paths, values) => runSelected(paths, values, true),
+      execute: (paths, values) => runSelected(paths, values, false),
+    })
+  })
+}
+
+function conflictChoices() {
+  return [
+    { value: 'auto', label: '自动' },
+    { value: 'skip', label: '跳过' },
+    { value: 'overwrite', label: '覆盖' },
+    { value: 'rename', label: '改名' },
+  ]
 }
 
 export type { DissolvefAction }

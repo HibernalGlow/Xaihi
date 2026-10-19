@@ -366,6 +366,129 @@
           }
         },
         {
+          "id": "preview",
+          "kind": "boolean",
+          "label": {
+            "zh": "仅预演",
+            "en": "Preview only"
+          },
+          "default": true,
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "protectFirstLevel",
+          "kind": "boolean",
+          "label": {
+            "zh": "保护一级文件夹",
+            "en": "Protect first-level folders"
+          },
+          "default": true,
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "enableSimilarity",
+          "kind": "boolean",
+          "label": {
+            "zh": "启用相似度检查",
+            "en": "Enable similarity check"
+          },
+          "default": true,
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "plan",
+                  "dissolve"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "similarityThreshold",
+          "kind": "number",
+          "label": {
+            "zh": "相似度阈值",
+            "en": "Similarity threshold"
+          },
+          "range": {
+            "min": 0,
+            "max": 1
+          },
+          "default": 0.6,
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "all",
+                "predicates": [
+                  {
+                    "type": "actionIs",
+                    "allowed": [
+                      "plan",
+                      "dissolve"
+                    ]
+                  },
+                  {
+                    "type": "fieldTrue",
+                    "fieldId": "enableSimilarity"
+                  }
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
+          "id": "historyPath",
+          "kind": "text",
+          "label": {
+            "zh": "撤销账本路径",
+            "en": "Undo journal path"
+          },
+          "visible": {
+            "type": "single",
+            "predicate": {
+              "test": {
+                "type": "actionIs",
+                "allowed": [
+                  "dissolve",
+                  "undo",
+                  "history"
+                ]
+              },
+              "negated": false
+            }
+          }
+        },
+        {
           "id": "undoId",
           "kind": "text",
           "label": {
@@ -400,6 +523,11 @@
             "exclude",
             "fileConflict",
             "dirConflict",
+            "preview",
+            "protectFirstLevel",
+            "enableSimilarity",
+            "similarityThreshold",
+            "historyPath",
             "undoId"
           ]
         }
@@ -473,6 +601,31 @@
           "fieldId": "dirConflict",
           "slot": "dirConflict",
           "transform": "identity"
+        },
+        {
+          "fieldId": "preview",
+          "slot": "preview",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "protectFirstLevel",
+          "slot": "protectFirstLevel",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "enableSimilarity",
+          "slot": "enableSimilarity",
+          "transform": "asBoolean"
+        },
+        {
+          "fieldId": "similarityThreshold",
+          "slot": "similarityThreshold",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "historyPath",
+          "slot": "historyPath",
+          "transform": "trimOrOmit"
         },
         {
           "fieldId": "undoId",

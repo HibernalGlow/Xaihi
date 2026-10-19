@@ -178,6 +178,10 @@ export async function runDissolvef(
       return success(`Collected ${archivePaths.length} archive path(s).`, { archivePaths })
     }
 
+    if (!normalized.preview && ["dissolve", "nested", "media", "archive", "direct"].includes(normalized.action) && !normalized.historyPath) {
+      throw new Error("dissolvef: historyPath is required for a mutating run")
+    }
+
     const plan = await buildDissolvefPlan(normalized, runtime)
     if (normalized.action === "plan" || normalized.preview) {
       return success(`Plan generated: ${plan.filter((item) => item.status === "pending").length} operation(s).`, dataFromPlan(plan))

@@ -4,6 +4,7 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { calculateDissolvefSimilarity, parseDissolveHistory, runDissolvef } from "../src/core.ts"
+import { dissolvefProgressPercent } from "../src/contract.ts"
 import { createNodeDissolvefRuntime } from "../src/platform.ts"
 
 const tempRoots: string[] = []
@@ -18,6 +19,12 @@ describe("dissolvef core", () => {
   test("calculates useful filename similarity", () => {
     expect(calculateDissolvefSimilarity("series_a", "series_a.zip")).toBe(1)
     expect(calculateDissolvefSimilarity("alpha", "beta")).toBeLessThan(0.9)
+  })
+
+  test("normalizes core and host progress values to percentages", () => {
+    expect(dissolvefProgressPercent(0.5)).toBe(50)
+    expect(dissolvefProgressPercent(50)).toBe(50)
+    expect(dissolvefProgressPercent(5000)).toBe(100)
   })
 
   test("collects single archive paths with similarity filtering", async () => {
@@ -63,6 +70,36 @@ describe("dissolvef core", () => {
     expect(result.success).toBe(true)
     expect(result.data?.directFiles).toBe(1)
     expect(result.data?.plan.find((item) => item.operation === "move")?.targetPath.endsWith("a_1.txt")).toBe(true)
+  })
+
+  test("deletes an empty selected folder in direct mode", async () => {
+    const root = await tempRoot()
+    const empty = join(root, "empty")
+    const historyPath = join(root, "history.json")
+    await mkdir(empty)
+
+    const result = await runDissolvef({
+      action: "direct",
+      path: empty,
+      historyPath,
+    }, createNodeDissolvefRuntime())
+
+    expect(result.success).toBe(true)
+    expect(result.data?.successCount).toBe(1)
+    expect(existsSync(empty)).toBe(false)
+    expect(existsSync(historyPath)).toBe(true)
+  })
+
+  test("refuses a live direct run without an undo journal", async () => {
+    const root = await tempRoot()
+    const empty = join(root, "empty")
+    await mkdir(empty)
+
+    const result = await runDissolvef({ action: "direct", path: empty }, createNodeDissolvefRuntime())
+
+    expect(result.success).toBe(false)
+    expect(result.message).toContain("historyPath is required")
+    expect(existsSync(empty)).toBe(true)
   })
 
   test("does not double-plan archive folders in bundle mode", async () => {
