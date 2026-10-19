@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType, type MouseEvent, type Ref } from "react"
+import { useEffect, useState, type ComponentType, type CSSProperties, type MouseEvent, type Ref } from "react"
 import { CompactViewSwitch } from "./CompactViewSwitch"
 import { TrellisToolbarSlot } from "./TrellisToolbarSlot"
 import { useTranslation } from "react-i18next"
@@ -53,6 +53,24 @@ const TITLEBAR_NO_DRAG_SELECTOR = [
 export function isNoDragTarget(target: EventTarget | null): boolean {
   return target instanceof Element && !!target.closest(TITLEBAR_NO_DRAG_SELECTOR)
 }
+
+/** Below this width the bar has no room for the island padding, so it drops to the compact face. */
+const TOP_BAR_TIGHT_WIDTH = 380
+
+/**
+ * `useNodeSurface` grades density by panel area — its lowest non-collapsed rung needs 96px of height —
+ * so a caption bar measures `collapsed`/`tight` at every window size. That pinned the MD3E face to the
+ * narrow layout: `h-11` is shorter than the 48px action island, so the pills crossed the bar's top edge
+ * and its bottom hairline, and the 8px side padding jammed them into the window corners. Horizontal
+ * chrome has one axis that decides its room: width.
+ */
+export function isTopBarTightSurface(width: number): boolean {
+  return width > 0 && width <= TOP_BAR_TIGHT_WIDTH
+}
+
+/** 岛形分区与窗口左右边之间必须看得见的一段空白；窄档只留一半。 */
+const TOP_BAR_INSET_PX = 24
+const TOP_BAR_INSET_TIGHT_PX = 12
 
 export const VIEW_OPTIONS: { key: ViewMode; labelKey: string; hintKey: string; icon: ComponentType<{ className?: string }> }[] = [
   { key: "cards",    labelKey: "topbar:viewMode.cards",    hintKey: "topbar:viewMode.cardsHint",    icon: LayoutDashboard },
@@ -110,12 +128,24 @@ export function TopBar() {
 
   const activeScheme = resolveThemeScheme((colorMode ?? "system") as "system" | "light" | "dark", resolvedTheme === "dark")
   const isMd3e = state.uiFace === "md3e"
-  const isTightSurface = surface.density === "tight" || (surface.width > 0 && surface.width <= 380)
+  const isTightSurface = isTopBarTightSurface(surface.width)
+  // 视图胶囊保持改动前的读数（面板面积口径），不跟着顶栏松紧一起放开：使用者要的是图标式模式切换，
+  // 不是把同一组视图再摊成一排带文字的胶囊。顶栏自身的松紧才由 isTopBarTightSurface 决定。
   const showDirectViewStrip =
     isMd3e &&
     state.viewMode !== "dashboard" &&
-    !isTightSurface &&
+    surface.density !== "tight" &&
     (surface.width === 0 || surface.width >= 560)
+
+  // 左右留白走 inline，不走 `px-*`：宿主的无层规则压在 @layer utilities 之上时能把 class 上的
+  // padding 抹平（真实 Chromium 实测：注入 `header{padding:0}` 后 class 版归零、inline 版仍是 24px）。
+  const md3eInsetPx = isTightSurface ? TOP_BAR_INSET_TIGHT_PX : TOP_BAR_INSET_PX
+  const md3eCaptionStyle: CSSProperties = {
+    paddingLeft: systemOwnsCaption && capabilities?.captionInset
+      ? captionBandInlinePx(capabilities.captionInset)
+      : `${md3eInsetPx}px`,
+    paddingRight: `${md3eInsetPx}px`,
+  }
 
   async function controlMainWindow(action: "minimize" | "maximize" | "close") {
     const result = await controlMain(action)
@@ -197,7 +227,7 @@ export function TopBar() {
         onDoubleClick={handleTitleBarDoubleClick}
         data-topbar-face="legacy"
         data-topbar-surface-mode={surface.mode}
-        data-topbar-surface-density={surface.density}
+        data-topbar-surface-density={isTightSurface ? "tight" : "normal"}
         data-topbar-caption={systemOwnsCaption ? "system" : "renderer"}
         style={systemOwnsCaption && capabilities?.captionInset ? { paddingLeft: captionBandInlinePx(capabilities.captionInset) } : undefined}
         className={cn(
@@ -288,14 +318,14 @@ export function TopBar() {
       onDoubleClick={handleTitleBarDoubleClick}
       data-topbar-face="md3e"
       data-topbar-surface-mode={surface.mode}
-      data-topbar-surface-density={surface.density}
+      data-topbar-surface-density={isTightSurface ? "tight" : "normal"}
       data-topbar-caption={systemOwnsCaption ? "system" : "renderer"}
-      style={systemOwnsCaption && capabilities?.captionInset ? { paddingLeft: captionBandInlinePx(capabilities.captionInset) } : undefined}
+      style={md3eCaptionStyle}
       className={cn(
         "xaihi-app-region-drag",
         "xaihi-topbar",
         "@container/topbar relative z-[1500] flex min-w-0 flex-shrink-0 select-none items-center justify-between overflow-visible border-b border-border/50 bg-[var(--md-sys-color-surface-container,var(--background))] text-foreground transition-colors",
-        isTightSurface ? "h-11 gap-1 px-2" : "h-13 gap-2 px-3.5",
+        isTightSurface ? "h-11 gap-1" : "h-13 gap-2",
       )}
     >
       {/* ── 分区 1（Leading Island）：品牌菜单 + Hazard 状态胶囊 ── */}
@@ -319,68 +349,83 @@ export function TopBar() {
 
       {hazardDialog}
 
-      {/* ── 分区 2（Center Connected Hub）：视图切换与 Trellis 工具槽（外 24 / 内 6 磁吸连接式分组） ── */}
+      {/* ── 分区 2（Center Hub）：模式切换与分形视图控制各自成岛，中间只留一条间隙，不再共用一块背景 ── */}
       <div
         data-topbar-partition="navigation"
-        className={cn(
-          "xaihi-app-region-no-drag flex min-w-0 shrink items-center gap-1 rounded-[24px] bg-[var(--md-sys-color-surface-container-high,var(--muted))] px-1.5 py-0.5 shadow-2xs",
-          isTightSurface && "px-1",
-        )}
+        className="xaihi-app-region-no-drag flex min-w-0 shrink items-center gap-1.5"
       >
-        {state.viewMode !== "dashboard" && (
-          <CompactViewSwitch
-            viewMode={state.viewMode}
-            cardLayout={state.cardLayout}
-            views={VIEW_OPTIONS}
-            layouts={CARD_LAYOUT_OPTIONS}
-            loop={state.viewSwitchLoop}
-            onLoopChange={workspaceActions.setViewSwitchLoop}
-            defaultView={state.defaultView}
-            navigation={state.trellisNavigation}
-            saveStatus={state.uiPreferenceSave}
-            onSetDefault={workspaceActions.setCurrentViewAsDefault}
-            onView={workspaceActions.setViewMode}
-            onLayout={workspaceActions.setCardLayout}
-          />
-        )}
-        {showDirectViewStrip ? (
+        {state.viewMode !== "dashboard" ? (
           <div
-            role="group"
-            aria-label={t("topbar:compactView.views")}
-            data-topbar-md3e-view-strip
-            className="flex items-center gap-0.5 border-l border-border/50 pl-1"
+            data-topbar-group="view"
+            className={cn(
+              "flex min-w-0 shrink items-center gap-1 rounded-[24px] bg-[var(--md-sys-color-surface-container-high,var(--muted))] shadow-2xs",
+              isTightSurface ? "p-0.5" : "min-h-12 p-1",
+            )}
           >
-            {VIEW_OPTIONS.map((option, index) => {
-              const Icon = option.icon
-              const active = state.viewMode === option.key
-              const isFirst = index === 0
-              const isLast = index === VIEW_OPTIONS.length - 1
-              return (
-                <button
-                  key={option.key}
-                  type="button"
-                  data-topbar-md3e-view-pill={option.key}
-                  aria-pressed={active}
-                  title={t(option.labelKey)}
-                  onClick={() => workspaceActions.setViewMode(option.key)}
-                  className={cn(
-                    "inline-flex h-7 items-center gap-1 px-2.5 text-[11px] font-medium transition-all duration-200 ease-[var(--md3-spring-spatial,cubic-bezier(0.2,0,0,1))] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none",
-                    active
-                      ? "rounded-full bg-[var(--md-sys-color-secondary-container,var(--secondary))] text-[var(--md-sys-color-on-secondary-container,var(--secondary-foreground))] shadow-2xs"
-                      : cn(
-                          "bg-background/45 text-muted-foreground hover:bg-background/80 hover:text-foreground",
-                          isFirst ? "rounded-l-full rounded-r-[6px]" : isLast ? "rounded-l-[6px] rounded-r-full" : "rounded-[6px]",
-                        ),
-                  )}
-                >
-                  <Icon className="size-3.5 shrink-0" />
-                  <span className="truncate">{t(option.labelKey)}</span>
-                </button>
-              )
-            })}
+            <CompactViewSwitch
+              viewMode={state.viewMode}
+              cardLayout={state.cardLayout}
+              views={VIEW_OPTIONS}
+              layouts={CARD_LAYOUT_OPTIONS}
+              loop={state.viewSwitchLoop}
+              onLoopChange={workspaceActions.setViewSwitchLoop}
+              defaultView={state.defaultView}
+              navigation={state.trellisNavigation}
+              saveStatus={state.uiPreferenceSave}
+              onSetDefault={workspaceActions.setCurrentViewAsDefault}
+              onView={workspaceActions.setViewMode}
+              onLayout={workspaceActions.setCardLayout}
+            />
+            {showDirectViewStrip ? (
+              <div
+                role="group"
+                aria-label={t("topbar:compactView.views")}
+                data-topbar-md3e-view-strip
+                className="flex items-center gap-0.5 border-l border-border/50 pl-1"
+              >
+                {VIEW_OPTIONS.map((option, index) => {
+                  const Icon = option.icon
+                  const active = state.viewMode === option.key
+                  const isFirst = index === 0
+                  const isLast = index === VIEW_OPTIONS.length - 1
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      data-topbar-md3e-view-pill={option.key}
+                      aria-pressed={active}
+                      title={t(option.labelKey)}
+                      onClick={() => workspaceActions.setViewMode(option.key)}
+                      className={cn(
+                        "inline-flex h-7 items-center gap-1 px-2.5 text-[11px] font-medium transition-all duration-200 ease-[var(--md3-spring-spatial,cubic-bezier(0.2,0,0,1))] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none",
+                        active
+                          ? "rounded-full bg-[var(--md-sys-color-secondary-container,var(--secondary))] text-[var(--md-sys-color-on-secondary-container,var(--secondary-foreground))] shadow-2xs"
+                          : cn(
+                              "bg-background/45 text-muted-foreground hover:bg-background/80 hover:text-foreground",
+                              isFirst ? "rounded-l-full rounded-r-[6px]" : isLast ? "rounded-l-[6px] rounded-r-full" : "rounded-[6px]",
+                            ),
+                      )}
+                    >
+                      <Icon className="size-3.5 shrink-0" />
+                      <span className="truncate">{t(option.labelKey)}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
           </div>
         ) : null}
-        {state.viewMode === "cards" && state.cardLayout === "trellis" && <TrellisToolbarSlot />}
+        {state.viewMode === "cards" && state.cardLayout === "trellis" ? (
+          <div
+            data-topbar-group="trellis"
+            className={cn(
+              "flex min-w-0 shrink items-center rounded-[24px] bg-[var(--md-sys-color-surface-container-high,var(--muted))] shadow-2xs",
+              isTightSurface ? "p-0.5" : "min-h-12 p-1",
+            )}
+          >
+            <TrellisToolbarSlot />
+          </div>
+        ) : null}
       </div>
 
       {/* ── 分区 3（Trailing Actions & Window Controls）：快捷形态徽章 + 动作/外观弹层 + 窗口控制 ── */}
@@ -389,19 +434,6 @@ export function TopBar() {
         className="xaihi-app-region-no-drag flex shrink-0 items-center gap-1"
       >
         <div className="flex items-center gap-0.5 rounded-full bg-[var(--md-sys-color-surface-container-high,var(--muted))] p-1 shadow-2xs">
-          {!isTightSurface ? (
-            <button
-              type="button"
-              data-topbar-ui-face-toggle
-              onClick={() => workspaceActions.setUiFace("legacy")}
-              title="当前为 MD3E 界面形态，点击切回经典 Legacy 形态"
-              aria-label="切换界面形态为经典模式"
-              className="inline-flex h-7 items-center gap-1 rounded-full bg-[var(--md-sys-color-tertiary-container,var(--accent))] px-2.5 text-[10px] font-semibold tracking-wide text-[var(--md-sys-color-on-tertiary-container,var(--accent-foreground))] transition-transform duration-150 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            >
-              <Sparkles className="size-3 shrink-0" />
-              <span>MD3E</span>
-            </button>
-          ) : null}
           <ActionCompactMenu context={actionContext} />
           <ThemeCompactMenu
             theme={state.theme}

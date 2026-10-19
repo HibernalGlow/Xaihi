@@ -26,6 +26,7 @@ const LaneView = lazy(() => import("./lane/LaneView").then((module) => ({ defaul
 export function WorkspaceLayout() {
   const chrome = useWorkspaceShallowSelector((state) => ({
     theme: state.theme,
+    uiFace: state.uiFace,
     activeCustomThemeName: state.activeCustomThemeName,
     viewMode: state.viewMode,
     dashboardOpen: state.overlay === "dashboard",
@@ -35,7 +36,9 @@ export function WorkspaceLayout() {
     bgBlur: state.bgBlur,
     bgCoverTopBar: state.bgCoverTopBar,
   }))
-  const themeClass = chrome.activeCustomThemeName ? "" : presetThemeRootClass(chrome.theme)
+  // MD3E owns the semantic color layer. The legacy preset class must not be
+  // mounted on this subtree or its old tokens will override MD3 roles.
+  const themeClass = chrome.uiFace === "md3e" || chrome.activeCustomThemeName ? "" : presetThemeRootClass(chrome.theme)
   const bgClass = `theme-bg-${chrome.bgMode || "dot-grid"}`
   const bgCoverClass = chrome.bgMode === "image" && chrome.bgCoverTopBar ? "theme-bg-cover-topbar" : ""
 

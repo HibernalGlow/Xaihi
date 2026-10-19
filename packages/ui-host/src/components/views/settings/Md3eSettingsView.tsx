@@ -57,6 +57,7 @@ import {
   Md3eWavyProgress,
   useMd3eShapeContext,
 } from "@/nodes/shared/Md3eShapeContext"
+import { Md3eStepperSlider, Md3eSwitchRow } from "@/nodes/shared/controls"
 import {
   MD3E_BUTTON_ROLES,
   MD3E_EXPRESSIVE_SHAPES,
@@ -273,14 +274,27 @@ export function Md3eSettingsView({
     bgMode: s.bgMode,
     bgOpacity: s.bgOpacity,
     bgBlur: s.bgBlur,
+    bgCoverTopBar: s.bgCoverTopBar,
     grainEnabled: s.grainEnabled,
+    grainIntensity: s.grainIntensity,
+    vignetteDepth: s.vignetteDepth,
     actionGlow: s.actionGlow,
     cardElevation: s.cardElevation,
+    liquidGlassEnabled: s.liquidGlassEnabled,
+    liquidGlassOpacity: s.liquidGlassOpacity,
+    liquidGlassBlur: s.liquidGlassBlur,
+    liquidGlassDisplacement: s.liquidGlassDisplacement,
     chromeVisible: s.chromeVisible,
     chromePosition: s.chromePosition,
     chromeStyle: s.chromeStyle,
+    chromeIslandScale: s.chromeIslandScale,
+    chromeIslandMotion: s.chromeIslandMotion,
+    chromeIslandDelay: s.chromeIslandDelay,
+    chromeIslandIdleOffset: s.chromeIslandIdleOffset,
     alphabetIndexVisible: s.alphabetIndexVisible,
+    alphabetIndexOpacity: s.alphabetIndexOpacity,
     alphabetIndexStyle: s.alphabetIndexStyle,
+    alphabetIndexWaveIntensity: s.alphabetIndexWaveIntensity,
     alphabetIndexHideEmpty: s.alphabetIndexHideEmpty ?? false,
     alphabetIndexDirectDeploySingle: s.alphabetIndexDirectDeploySingle ?? true,
     cardClickAction: s.cardClickAction,
@@ -1000,34 +1014,84 @@ export function Md3eSettingsView({
 
                     <SettingsRowItem
                       title="画布背景肌理与表面高程阴影"
-                      description="控制工作区网格/图片背景、M3 高程阴影及动作微光。"
+                      description="背景图、透明度、模糊、顶栏覆盖、颗粒、暗角和交互微光都会实时作用于工作台。"
                       scope="画布氛围"
                     >
-                      <div className="flex flex-wrap items-center gap-2">
-                        {(["dot-grid", "grid", "image", "none"] as const).map((mode) => (
-                          <button
-                            key={mode}
-                            type="button"
-                            data-settings-bg-mode={mode}
-                            aria-pressed={state.bgMode === mode}
-                            onClick={() => actions.setBgMode(mode)}
-                            className={cn(
-                              "rounded-full px-2.5 py-1 text-[11px] font-medium",
-                              state.bgMode === mode
-                                ? "bg-[var(--md-sys-color-secondary-container,var(--secondary))] text-[var(--md-sys-color-on-secondary-container,var(--secondary-foreground))]"
-                                : "border border-border/60 bg-background/70 text-muted-foreground hover:text-foreground",
-                            )}
-                          >
-                            {mode === "dot-grid" ? "点阵" : mode === "grid" ? "网格" : mode === "image" ? "壁纸图" : "纯色表面"}
-                          </button>
-                        ))}
-                        <label className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1 text-xs">
-                          <span>M3 阴影</span>
-                          <Switch
-                            aria-label="M3 高程阴影"
-                            checked={state.designTheme.md3.elevationShadows}
-                            onCheckedChange={(checked) => patchMd3({ elevationShadows: checked })}
-                          />
+                      <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+                        <div className="flex min-w-0 flex-wrap gap-1 sm:col-span-2">
+                          {["dot-grid", "grid", "image", "none"].map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              data-settings-bg-mode={mode}
+                              aria-pressed={state.bgMode === mode}
+                              onClick={() => actions.setBgMode(mode as typeof state.bgMode)}
+                              className={cn(
+                                "rounded-full px-2.5 py-1 text-[11px] font-medium",
+                                state.bgMode === mode
+                                  ? "bg-[var(--md-sys-color-secondary-container,var(--secondary))] text-[var(--md-sys-color-on-secondary-container,var(--secondary-foreground))]"
+                                  : "border border-border/60 bg-background/70 text-muted-foreground hover:text-foreground",
+                              )}
+                            >
+                              {mode === "dot-grid" ? "点阵" : mode === "grid" ? "网格" : mode === "image" ? "壁纸图" : "纯色表面"}
+                            </button>
+                          ))}
+                        </div>
+                        <Md3eStepperSlider
+                          icon={Eye}
+                          label="背景透明度"
+                          value={state.bgOpacity}
+                          min={0}
+                          max={100}
+                          step={1}
+                          onChange={(value) => actions.setBgOpacity(value)}
+                        />
+                        <Md3eStepperSlider
+                          icon={Sliders}
+                          label="背景模糊"
+                          value={state.bgBlur}
+                          min={0}
+                          max={32}
+                          step={1}
+                          onChange={(value) => actions.setBgBlur(value)}
+                        />
+                        <Md3eStepperSlider
+                          icon={Sparkles}
+                          label="颗粒强度"
+                          value={state.grainIntensity}
+                          min={0}
+                          max={100}
+                          step={1}
+                          onChange={(value) => actions.setGrainIntensity(value)}
+                        />
+                        <Md3eStepperSlider
+                          icon={Moon}
+                          label="暗角深度"
+                          value={state.vignetteDepth}
+                          min={0}
+                          max={100}
+                          step={1}
+                          onChange={(value) => actions.setVignette(value)}
+                        />
+                        <div className="grid min-w-0 gap-1 sm:col-span-2 sm:grid-cols-3">
+                          <Md3eSwitchRow icon={Sparkles} label="颗粒" checked={state.grainEnabled} onCheckedChange={(value) => actions.setGrain(value)} />
+                          <Md3eSwitchRow icon={Sun} label="交互微光" checked={state.actionGlow} onCheckedChange={(value) => actions.setActionGlow(value)} />
+                          <Md3eSwitchRow icon={Layers} label="卡片高程" checked={state.cardElevation} onCheckedChange={(value) => actions.setCardElevation(value)} />
+                        </div>
+                        <div className="grid min-w-0 gap-1 sm:col-span-2 sm:grid-cols-2">
+                          <Md3eSwitchRow icon={LayoutGrid} label="背景覆盖顶栏" checked={state.bgCoverTopBar} onCheckedChange={(value) => actions.setBgCoverTopBar(value)} />
+                          <Md3eSwitchRow icon={Sparkles} label="液态玻璃" checked={state.liquidGlassEnabled} onCheckedChange={(value) => actions.setLiquidGlassEnabled(value)} />
+                        </div>
+                        {state.liquidGlassEnabled ? (
+                          <div className="grid min-w-0 gap-2 sm:col-span-2 sm:grid-cols-3">
+                            <Md3eStepperSlider icon={Eye} label="玻璃不透明度" value={state.liquidGlassOpacity} min={0} max={100} step={1} onChange={(value) => actions.setLiquidGlassOpacity(value)} />
+                            <Md3eStepperSlider icon={Sliders} label="玻璃模糊" value={state.liquidGlassBlur} min={0} max={32} step={1} onChange={(value) => actions.setLiquidGlassBlur(value)} />
+                            <Md3eStepperSlider icon={Wand2} label="玻璃位移" value={state.liquidGlassDisplacement} min={0} max={100} step={1} onChange={(value) => actions.setLiquidGlassDisplacement(value)} />
+                          </div>
+                        ) : null}
+                        <label className="flex min-w-0 items-center justify-between gap-2 rounded-2xl border border-border/60 px-3 py-2 text-[11px] sm:col-span-2">
+                          <span className="min-w-0 truncate font-medium">M3E 高程阴影（主题契约）</span>
+                          <Switch aria-label="M3 高程阴影" checked={state.designTheme.md3.elevationShadows} onCheckedChange={(checked) => patchMd3({ elevationShadows: checked })} />
                         </label>
                       </div>
                     </SettingsRowItem>
@@ -1296,6 +1360,21 @@ export function Md3eSettingsView({
                       </div>
                     </SettingsRowItem>
 
+                    {state.chromePosition === "island" ? (
+                      <SettingsRowItem
+                        title="灵动岛参数"
+                        description="控制浮动操作栏的尺寸、运动幅度、延迟和空闲偏移，数值变化立即回读到工作台。"
+                        scope="灵动岛"
+                      >
+                        <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+                          <Md3eStepperSlider icon={LayoutGrid} label="缩放" value={state.chromeIslandScale} min={60} max={130} step={1} onChange={(value) => actions.setChromeIslandScale(value)} />
+                          <Md3eStepperSlider icon={Sparkles} label="运动幅度" value={state.chromeIslandMotion} min={0} max={200} step={1} onChange={(value) => actions.setChromeIslandMotion(value)} />
+                          <Md3eStepperSlider icon={Sliders} label="动画延迟" value={state.chromeIslandDelay} min={0} max={100} step={1} onChange={(value) => actions.setChromeIslandDelay(value)} />
+                          <Md3eStepperSlider icon={Layers} label="空闲偏移" value={state.chromeIslandIdleOffset} min={-40} max={40} step={1} onChange={(value) => actions.setChromeIslandIdleOffset(value)} />
+                        </div>
+                      </SettingsRowItem>
+                    ) : null}
+
                     <SettingsRowItem
                       title="卡片单击 / 双击交互动作"
                       description="配置在分形卡片视图下单击或双击卡片时触发聚焦或全屏。"
@@ -1322,7 +1401,7 @@ export function Md3eSettingsView({
                       description="控制 A-Z 节点快速检索轨显隐、隐藏空字母与单节点字母一键直投。"
                       scope="快速投放"
                     >
-                      <div className="flex flex-wrap items-center gap-3 text-xs">
+                      <div className="grid min-w-0 gap-2 text-xs sm:grid-cols-2">
                         <label className="inline-flex items-center gap-1.5">
                           <span>显示</span>
                           <Switch
@@ -1347,7 +1426,25 @@ export function Md3eSettingsView({
                             onCheckedChange={(checked) => actions.setAlphabetIndexDirectDeploySingle(checked)}
                           />
                         </label>
+                        <Md3eStepperSlider icon={Eye} label="索引不透明度" value={state.alphabetIndexOpacity} min={0} max={100} step={1} onChange={(value) => actions.setAlphabetIndexOpacity(value)} />
+                        <Md3eStepperSlider icon={Sparkles} label="波浪强度" value={state.alphabetIndexWaveIntensity} min={0} max={100} step={1} onChange={(value) => actions.setAlphabetIndexWaveIntensity(value)} />
+                        <div className="flex min-w-0 flex-wrap items-center gap-1 sm:col-span-2">
+                          <span className="shrink-0 text-[11px] text-muted-foreground">索引皮肤</span>
+                          <SkinPillRow options={["glass", "solid", "minimal"] as const} value={state.alphabetIndexStyle} onChange={(value) => actions.setAlphabetIndexStyle(value)} />
+                        </div>
                       </div>
+                    </SettingsRowItem>
+
+                    <SettingsRowItem
+                      title="滚动条预览"
+                      description="滚动条使用同一套 MD3E 轨道和 thumb 视觉语言，节点内部滚动区域会实时跟随。"
+                      scope="滚动条"
+                    >
+                      <SkinPillRow
+                        options={["minimal", "soft", "solid", "none"] as const}
+                        value={state.scrollbarDisplayStyle}
+                        onChange={(value) => actions.setScrollbarDisplayStyle(value)}
+                      />
                     </SettingsRowItem>
 
                     <SettingsRowItem

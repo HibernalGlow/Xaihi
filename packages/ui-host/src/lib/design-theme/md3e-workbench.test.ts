@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { NodeSurfaceMode } from "@/nodes/shared/useNodeSurface"
+import { resolveNodeSurfaceDensity, resolveNodeSurfaceMode } from "@/nodes/shared/useNodeSurface"
 import { NODE_SURFACE_TEST_SPECS } from "@/nodes/shared/nodeSurfaceTestUtils"
 
 const surfaceMockState = vi.hoisted(() => ({
@@ -402,6 +403,63 @@ describe("ADR-0033 MD3E 工作台半边重设计验证套件", () => {
       rerender(createElement(QueryClientProvider, { client: queryClient, children: createElement(TopBar) }))
       expect(document.querySelector("header[data-topbar-face]")?.getAttribute("data-topbar-surface-mode")).toBe("compact")
       expect(document.querySelector("[data-topbar-md3e-view-strip]")).toBeNull()
+    })
+
+    it("MD3E 顶栏按自身宽度判定紧凑档，岛形分区不溢出上下边界且左右留白读得回来", () => {
+      // 阳性对照：顶栏实测盒（2396×44）在面板面积口径下就是 tight——顶栏若沿用这个读数会永久停在窄档。
+      const captionBox = { width: 2396, height: 44 }
+      expect(resolveNodeSurfaceDensity(resolveNodeSurfaceMode(captionBox))).toBe("tight")
+
+      const queryClient = createTestQueryClient()
+      useWorkspaceStore.getState().setUiFace("md3e")
+      setMockSurface("collapsed", captionBox.width, captionBox.height)
+      const { rerender } = render(createElement(QueryClientProvider, { client: queryClient, children: createElement(TopBar) }))
+
+      const header = document.querySelector("header[data-topbar-face]") as HTMLElement
+      expect(header.getAttribute("data-topbar-face")).toBe("md3e")
+      expect(header.getAttribute("data-topbar-surface-density")).toBe("normal")
+      expect(header.classList.contains("h-13")).toBe(true)
+      expect(header.classList.contains("h-11")).toBe(false)
+      // 左右留白必须是 inline style，且不许再挂 `px-*` class（宿主的无层规则能抹平 class 上的 padding）。
+      expect(header.style.paddingLeft).toBe("24px")
+      expect(header.style.paddingRight).toBe("24px")
+      expect(Array.from(header.classList).some((token) => token.startsWith("px-"))).toBe(false)
+      // 窄档必须换值：留白若写死在一处，这里读不回 12px。
+      setMockSurface("collapsed", 320, 44)
+      rerender(createElement(QueryClientProvider, { client: queryClient, children: createElement(TopBar) }))
+      const tightHeader = document.querySelector("header[data-topbar-face]") as HTMLElement
+      expect(tightHeader.classList.contains("h-11")).toBe(true)
+      expect(tightHeader.style.paddingLeft).toBe("12px")
+      expect(tightHeader.style.paddingRight).toBe("12px")
+      // 宽顶栏不许把模式切换再摊成一排带文字的视图胶囊。
+      expect(document.querySelector("[data-topbar-md3e-view-strip]")).toBeNull()
+    })
+
+    it("模式切换与分形视图控制栏各自成岛，不共用一块圆角背景", () => {
+      const queryClient = createTestQueryClient()
+      const store = useWorkspaceStore.getState()
+      store.setUiFace("md3e")
+      store.setViewMode("cards")
+      store.setCardLayout("trellis")
+      setMockSurface("collapsed", 2396, 44)
+      render(createElement(QueryClientProvider, { client: queryClient, children: createElement(TopBar) }))
+
+      const viewGroup = document.querySelector('[data-topbar-group="view"]') as HTMLElement | null
+      const trellisGroup = document.querySelector('[data-topbar-group="trellis"]') as HTMLElement | null
+      expect(viewGroup).toBeTruthy()
+      expect(trellisGroup).toBeTruthy()
+      expect(viewGroup!.parentElement).toBe(trellisGroup!.parentElement)
+      expect(viewGroup!.parentElement?.getAttribute("data-topbar-partition")).toBe("navigation")
+      // 两条岛彼此独立：谁也不把对方的背景包进来。
+      expect(viewGroup!.contains(trellisGroup!)).toBe(false)
+      expect(trellisGroup!.contains(viewGroup!)).toBe(false)
+      for (const group of [viewGroup!, trellisGroup!]) {
+        expect(group.className).toContain("bg-[var(--md-sys-color-surface-container-high,var(--muted))]")
+      }
+
+      expect(viewGroup!.querySelector('[data-testid="compact-view-switch"], .xaihi-view-switch')).toBeTruthy()
+      expect(trellisGroup!.querySelector(".xaihi-toolbar-slot")).toBeTruthy()
+      expect(viewGroup!.querySelector(".xaihi-toolbar-slot")).toBeNull()
     })
   })
 
