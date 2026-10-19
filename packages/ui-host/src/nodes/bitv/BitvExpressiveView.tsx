@@ -28,17 +28,20 @@ import { Input } from "@/components/ui/input"
 import { PathInput, PathTextarea } from "@/components/ui/path-input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Switch } from "@/components/ui/switch"
+import { formatBytes } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ExecuteButton } from "@/nodes/shared/ExecuteButton"
 import { NodeConfigButton } from "@/nodes/shared/NodeConfigPopover"
 import {
   ActionIconButton,
   Md3eCollapsedCapsule,
+  Md3eConnectedGroup,
   Md3eNodeShapePolicyPanel,
   Md3eNodeSurface,
   Md3ePatchBackdrop,
   Md3eShapeBadge,
   Md3eShapePopoverButton,
+  Md3eStageLensBar,
   Md3eStatusPill,
   Md3eWavyProgress,
   useMd3eShapeContext,
@@ -237,6 +240,26 @@ function BitvExpressiveShell({
     />
   )
 
+  const floatingDock = (
+    <div
+      className="absolute right-3 bottom-3 z-20 flex max-w-[calc(100%-1.5rem)] min-w-0 items-center gap-1.5"
+      data-testid="bitv-floating-dock"
+    >
+      <Md3eStatusPill compact label={dangerous ? "LIVE" : "DRY-RUN"} tone={dangerous ? "error" : props.status.tone} />
+      {props.action === "classify" || props.action === "report" ? (
+        <ActionIconButton
+          active={!isDryRun}
+          disabled={props.running}
+          icon={isDryRun ? Eye : Sparkles}
+          label={isDryRun ? "当前为预演模式" : "当前为真实执行模式"}
+          shapeRole="secondary"
+          onClick={() => props.onPatch({ dryRun: !isDryRun })}
+        />
+      ) : null}
+      {execute()}
+    </div>
+  )
+
   if (mode === "narrow") {
     return (
       <div
@@ -280,10 +303,10 @@ function BitvExpressiveShell({
         data-bitv-layout="tablet"
         data-bitv-role-shapes={roleShapes ? JSON.stringify(roleShapes) : undefined}
         data-testid="bitv-tablet-view"
-        className="flex h-full min-h-0 w-full min-w-0 flex-col gap-2 overflow-hidden p-2"
+        className="relative flex h-full min-h-0 w-full min-w-0 flex-col gap-2 overflow-hidden p-2"
       >
         <FloatingWindowNodeHeader>{masthead}</FloatingWindowNodeHeader>
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pb-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pb-14">
           <ActionDeck
             action={props.action}
             mode={mode}
@@ -311,21 +334,7 @@ function BitvExpressiveShell({
           </div>
           {results}
         </div>
-        <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-[26px_18px_26px_18px] bg-[var(--md3e-surface-high,var(--card))] px-2.5 py-2">
-          <Md3eStatusPill tone={dangerous ? "error" : props.status.tone}>{dangerous ? "LIVE" : "DRY-RUN"}</Md3eStatusPill>
-          <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">{props.data.progressText || props.status.description}</span>
-          {props.action === "classify" || props.action === "report" ? (
-            <ActionIconButton
-              active={!isDryRun}
-              disabled={props.running}
-              icon={isDryRun ? Eye : Sparkles}
-              label={isDryRun ? "当前为预演模式" : "当前为真实执行模式"}
-              shapeRole="secondary"
-              onClick={() => props.onPatch({ dryRun: !isDryRun })}
-            />
-          ) : null}
-          {execute()}
-        </div>
+        {floatingDock}
       </div>
     )
   }
@@ -335,7 +344,7 @@ function BitvExpressiveShell({
       data-bitv-layout="desktop"
       data-bitv-role-shapes={roleShapes ? JSON.stringify(roleShapes) : undefined}
       data-testid="bitv-full-view"
-      className="flex h-full min-h-0 w-full min-w-0 flex-col gap-2 p-2"
+      className="relative flex h-full min-h-0 w-full min-w-0 flex-col gap-2 p-2"
     >
       <FloatingWindowNodeHeader>{masthead}</FloatingWindowNodeHeader>
       <div
@@ -343,24 +352,10 @@ function BitvExpressiveShell({
         className="grid min-h-0 min-w-0 flex-1 gap-2"
         style={{ gridTemplateColumns: "minmax(0, 0.94fr) minmax(0, 1.06fr)" }}
       >
-        <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-y-auto overscroll-contain pr-0.5">{decks}</div>
+        <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-y-auto overscroll-contain pr-0.5 pb-14">{decks}</div>
         {results}
       </div>
-      <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-[26px_18px_26px_18px] bg-[var(--md3e-surface-high,var(--card))] px-2.5 py-2">
-        <Md3eStatusPill tone={dangerous ? "error" : props.status.tone}>{dangerous ? "LIVE" : "DRY-RUN"}</Md3eStatusPill>
-        <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">{props.data.progressText || props.status.description}</span>
-        {props.action === "classify" || props.action === "report" ? (
-          <ActionIconButton
-            active={!isDryRun}
-            disabled={props.running}
-            icon={isDryRun ? Eye : Sparkles}
-            label={isDryRun ? "当前为预演模式" : "当前为真实执行模式"}
-            shapeRole="secondary"
-            onClick={() => props.onPatch({ dryRun: !isDryRun })}
-          />
-        ) : null}
-        {execute()}
-      </div>
+      {floatingDock}
     </div>
   )
 }
@@ -387,6 +382,8 @@ function ExpressiveMasthead({
   status: BitvStatusMeta
 }) {
   const compact = mode === "narrow"
+  const desktop = mode === "desktop"
+  const telemetry = telemetryFor(result)
   return (
     <Md3ePatchBackdrop
       seed="bitv-expressive-masthead"
@@ -394,38 +391,66 @@ function ExpressiveMasthead({
       active
       corner="lg"
       data-testid="bitv-expressive-masthead"
-      className="shrink-0 overflow-hidden rounded-[32px_20px_32px_18px] px-3 py-2.5"
+      className="shrink-0 overflow-hidden rounded-[32px_20px_32px_18px] px-3 py-2"
     >
-      <div className="relative z-10 flex min-w-0 flex-col gap-2">
+      <div className="relative z-10 flex min-w-0 flex-col gap-1.5">
         <div className="flex min-w-0 items-start gap-2.5">
           <Md3eShapeBadge icon={meta.icon} shapeId={primaryShape} tone="primary" active size={compact ? "md" : "lg"} />
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-              <h1 className={cn("truncate font-black leading-none tracking-[-0.04em] text-foreground", compact ? "text-xl" : "text-3xl")}>BitV</h1>
-              {compact ? null : (
-                <span className="rounded-full bg-[var(--md3e-surface,var(--card))]/60 px-2 py-0.5 font-mono text-[9px] font-bold tracking-[0.18em] text-foreground/80">
-                  BITRATE SPECTRUM
-                </span>
-              )}
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-[var(--md3e-primary,var(--primary))]" />
+              <span className="truncate font-mono text-[9px] font-black tracking-[0.22em] text-foreground/60">BITRATE SPECTRUM</span>
+            </div>
+            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2">
+              <h1 className={cn("truncate font-black leading-none tracking-[-0.045em] text-foreground", compact ? "text-xl" : "text-3xl")}>BitV</h1>
               <Md3eStatusPill label={status.label} tone={status.tone} compact />
             </div>
             <p className={cn("mt-1 text-[11px] leading-snug text-foreground/75", compact ? "line-clamp-1" : "line-clamp-2")}>{progressText || meta.description}</p>
           </div>
-          {compact ? null : (
-            <div data-testid="bitv-header-toolbar" className="flex shrink-0 items-center gap-1">
-              {actions}
-            </div>
-          )}
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            {compact ? null : (
+              <div data-testid="bitv-header-toolbar" className="flex shrink-0 items-center gap-1">
+                {actions}
+              </div>
+            )}
+            {desktop ? (
+              <div data-testid="bitv-stats-dashboard" className="flex max-w-[460px] min-w-0 flex-wrap items-center justify-end gap-1">
+                {telemetry.map((item) => (
+                  <div key={item.label} className="flex min-w-0 flex-col rounded-[12px_8px_12px_8px] bg-[var(--md3e-surface,var(--card))]/55 px-2 py-0.5">
+                    <span className="truncate text-[8px] font-bold tracking-wide text-foreground/65">{item.label}</span>
+                    <span className="truncate font-mono text-[12px] font-black tabular-nums text-foreground">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
 
-        <div data-testid="bitv-stats-dashboard" className={cn("grid min-w-0 gap-1.5", compact ? "grid-cols-2" : "grid-cols-4", compact && !result && "hidden")}>
-          {telemetryFor(result).map((item) => (
-            <div key={item.label} className="flex min-w-0 flex-col rounded-[14px_10px_14px_10px] bg-[var(--md3e-surface,var(--card))]/55 px-2 py-1">
-              <span className="truncate text-[9px] font-bold tracking-wide text-foreground/65">{item.label}</span>
-              <span className="truncate font-mono text-sm font-black tabular-nums text-foreground">{item.value}</span>
-            </div>
-          ))}
-        </div>
+        {desktop ? null : (
+          <div
+            data-testid="bitv-stats-dashboard"
+            className={cn("min-w-0", compact ? "grid grid-cols-2 gap-1" : "flex gap-0.5", compact && !result && "hidden")}
+          >
+            {telemetry.map((item, index, items) => (
+              <div
+                key={item.label}
+                className={cn(
+                  "flex min-w-0 flex-col bg-[var(--md3e-surface,var(--card))]/55 px-2 py-1.5",
+                  compact
+                    ? "rounded-[14px_10px_14px_10px]"
+                    : index === 0
+                      ? "flex-1 rounded-l-[16px] rounded-r-[4px]"
+                      : index === items.length - 1
+                        ? "flex-1 rounded-l-[4px] rounded-r-[16px]"
+                        : "flex-1 rounded-[4px]",
+                )}
+              >
+                <span className="truncate text-[9px] font-bold tracking-wide text-foreground/65">{item.label}</span>
+                <span className="truncate font-mono text-sm font-black tabular-nums text-foreground">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {progress > 0 ? (
           <div className="min-w-0">
@@ -871,6 +896,7 @@ function ExpressiveDeck({
   icon: Icon,
   title,
   tone,
+  trailing,
 }: {
   children: ReactNode
   className?: string
@@ -878,6 +904,7 @@ function ExpressiveDeck({
   icon?: LucideIcon
   title: string
   tone: Tone
+  trailing?: ReactNode
 }) {
   const toneClass =
     tone === "primary"
@@ -887,14 +914,15 @@ function ExpressiveDeck({
         : "bg-[var(--md3e-surface-high,var(--muted))]"
   return (
     <section className={cn("flex min-w-0 shrink-0 flex-col overflow-hidden rounded-[28px_18px_28px_18px] p-3", toneClass, className)}>
-      <div className="mb-2 flex min-w-0 items-center gap-2">
-        {Icon ? <Md3eShapeBadge icon={Icon} size="sm" tone={tone === "secondary" ? "secondary" : "primary"} /> : null}
+      <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
+        {Icon ? <Md3eShapeBadge icon={Icon} seed={`deck-${title}`} size="sm" tone={tone === "secondary" ? "secondary" : "primary"} /> : null}
         <div className="min-w-0 flex-1">
           <div className="truncate text-[9px] font-bold tracking-[0.16em] text-foreground/55">{eyebrow}</div>
           <div className="truncate text-sm font-black tracking-tight text-foreground">{title}</div>
         </div>
+        {trailing ? <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">{trailing}</div> : null}
       </div>
-      <div className="min-w-0">{children}</div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
     </section>
   )
 }
@@ -928,6 +956,9 @@ function ResultDeck({
     { id: "logs", label: tt("module:shared.ui.log", "日志"), icon: Terminal, badge: logs.length },
     { id: "shapes", label: "形状", icon: Sparkles },
   ]
+  const activeTab = tabs.find((tab) => tab.id === resultTab) ?? tabs[0]!
+  const inputCount = (pathsText ?? "").split(/\r?\n/).filter((line) => line.trim()).length
+  const activeCount = activeTab.id === "tree" ? inputCount : activeTab.badge
   return (
     <ExpressiveDeck
       className={cn(
@@ -936,50 +967,94 @@ function ResultDeck({
       )}
       eyebrow="SPECTRUM DECK"
       icon={BarChart3}
-      title="结果与谱系"
+      title="结果谱系"
       tone="plain"
+      trailing={
+        <>
+          <Md3eStatusPill compact label={`视频 ${result?.videos.length ?? 0}`} tone="primary" />
+          <Md3eStatusPill compact label={`计划 ${result?.operations.length ?? 0}`} tone="secondary" />
+          <Md3eStatusPill compact label={`问题 ${result?.errors.length ?? 0}`} tone={(result?.errors.length ?? 0) > 0 ? "error" : "neutral"} />
+        </>
+      }
     >
-      <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-1.5">
-          <div aria-label="BitV 结果视图" className="flex min-w-0 flex-wrap items-center gap-1 rounded-[20px] bg-[var(--md3e-surface-lowest,var(--card))] p-1" role="tablist">
-            {tabs.map((tab) => {
-              const selected = tab.id === resultTab
-              const Icon = tab.icon
-              return (
-                <button key={tab.id} aria-selected={selected} data-state={selected ? "active" : "inactive"} role="tab" style={{ transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)" }} className={cn("inline-flex min-w-0 items-center gap-1 px-2.5 py-1.5 text-[10px] leading-none transition-[background-color,border-radius,color] duration-250", selected ? "rounded-full bg-[var(--md3e-primary,var(--primary))] font-black text-[var(--md3e-on-primary,var(--primary-foreground))] shadow-xs" : "rounded-[10px] font-semibold text-muted-foreground hover:rounded-[16px] hover:text-foreground")} type="button" onClick={() => onResultTabChange(tab.id)}>
-                  <Icon className="size-3.5 shrink-0" />
-                  <span className="truncate">{tab.label}</span>
-                  {tab.badge ? <span className={cn("rounded-full px-1.5 py-0.5 font-mono text-[9px] tabular-nums", selected ? "bg-black/20 text-inherit" : "bg-[var(--md3e-surface-high,var(--muted))] text-foreground/75")}>{tab.badge}</span> : null}
-                </button>
-              )
-            })}
-          </div>
+          <Md3eStageLensBar
+            ariaLabel="BitV 结果视图"
+            className="min-w-0"
+            items={tabs.map(({ badge, icon, id, label }) => ({ badge: badge ? badge : undefined, icon, id, label }))}
+            onChange={onResultTabChange}
+            value={resultTab}
+          />
           <div className="flex min-w-0 items-center gap-1">
             <ActionIconButton disabled={!(result?.videos.length || result?.operations.length)} icon={Copy} label="复制结果" shapeRole="secondary" onClick={() => void onCopyResults()} />
             <ActionIconButton disabled={!logs.length} icon={Clipboard} label={tt("module:shared.ui.copyLog", "复制日志")} shapeRole="toolbar" onClick={() => void onCopyLogs()} />
           </div>
         </div>
 
-        <div className="flex min-h-[220px] min-w-0 flex-1 flex-col overflow-hidden rounded-[20px] bg-[var(--md3e-surface-lowest,var(--card))]/75 p-2">
-          {resultTab === "tree" ? (
-            <BitvPathTree pathsText={pathsText} />
-          ) : resultTab === "videos" ? (
-            <BitvVideoList videos={result?.videos ?? []} />
-          ) : resultTab === "plan" ? (
-            <BitvPlanList operations={result?.operations ?? []} />
-          ) : resultTab === "issues" ? (
-            <TextResult empty="未发现问题。" lines={result?.errors ?? []} tone="error" />
-          ) : resultTab === "logs" ? (
-            <TextResult empty="运行事件会显示在这里。" lines={logs} />
-          ) : (
-            <ScrollArea className="h-full">
-              <Md3eNodeShapePolicyPanel compact={mode === "narrow"} nodeId="bitv" />
-            </ScrollArea>
+        <div className={cn("flex min-h-[220px] min-w-0 flex-1 flex-col gap-2 overflow-hidden rounded-[24px_16px_24px_16px] bg-[var(--md3e-surface-lowest,var(--card))]/75 p-2", mode === "desktop" && "pb-14")}>
+          {mode !== "desktop" ? null : (
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-[18px_12px_18px_12px] bg-[var(--md3e-surface-high,var(--muted))] px-2.5 py-1.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <Md3eShapeBadge active icon={activeTab.icon} seed={`bitv-result-stage-${activeTab.id}`} size="sm" tone="primary" />
+                <div className="min-w-0">
+                  <div className="truncate text-[8px] font-bold tracking-[0.16em] text-foreground/55">RESULT STAGE</div>
+                  <div className="truncate text-[12px] font-black tracking-tight text-foreground">{activeTab.label}</div>
+                </div>
+              </div>
+              <div className="flex min-w-0 flex-wrap items-center gap-1">
+                <Md3eStatusPill compact label={`${activeCount ?? 0} 项`} tone="secondary" />
+                {activeTab.id === "videos" ? <Md3eStatusPill compact label="按码率分档" tone="primary" /> : null}
+                {activeTab.id === "shapes" ? <Md3eStatusPill compact label="节点形状偏好" tone="neutral" /> : null}
+              </div>
+            </div>
           )}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            {resultTab === "tree" ? (
+              <BitvPathTree pathsText={pathsText} />
+            ) : resultTab === "videos" ? (
+              <BitvVideoSpectrum videos={result?.videos ?? []} />
+            ) : resultTab === "plan" ? (
+              <BitvPlanList operations={result?.operations ?? []} />
+            ) : resultTab === "issues" ? (
+              <TextResult description="分析完成后，无法探测或写入失败的文件会列在这里。" hint="状态正常" icon={AlertTriangle} lines={result?.errors ?? []} title="未发现问题" tone="error" />
+            ) : resultTab === "logs" ? (
+              <TextResult description="执行时会实时追加分析、计划与传输日志。" hint="等待运行" icon={Terminal} lines={logs} title="暂无运行事件" />
+            ) : (
+              <ScrollArea className="h-full">
+                <Md3eNodeShapePolicyPanel compact={mode === "narrow"} nodeId="bitv" />
+              </ScrollArea>
+            )}
+          </div>
         </div>
         {action === "status" ? <p className="truncate px-1 text-[9px] text-muted-foreground">环境检查不会修改文件。</p> : null}
       </div>
     </ExpressiveDeck>
+  )
+}
+
+function ResultEmptyStage({
+  description,
+  hint,
+  icon,
+  seed,
+  title,
+}: {
+  description: string
+  hint: string
+  icon: LucideIcon
+  seed: string
+  title: string
+}) {
+  return (
+    <div className="flex h-full min-h-[160px] min-w-0 items-center justify-center p-1.5">
+      <Md3ePatchBackdrop active className="flex w-full max-w-[480px] flex-col items-center gap-2 px-5 py-6 text-center" seed={seed} tone="primary">
+        <Md3eShapeBadge active icon={icon} seed={`${seed}-badge`} size="lg" tone="primary" />
+        <div className="text-sm font-black tracking-tight text-foreground">{title}</div>
+        <p className="max-w-[340px] text-[10px] leading-4 text-muted-foreground">{description}</p>
+        <Md3eStatusPill compact label={hint} tone="secondary" />
+      </Md3ePatchBackdrop>
+    </div>
   )
 }
 
@@ -991,13 +1066,25 @@ function BitvPathTree({ pathsText }: { pathsText?: string }) {
     <div className="flex h-full min-h-0 min-w-0 flex-col" data-testid="bitv-path-tree">
       <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2 px-1">
         <span className="truncate text-[10px] font-bold text-muted-foreground">{tt("module:bitv.analysisInput", "视频分析输入")}</span>
-        <Md3eStatusPill compact tone="primary">{roots.length} 项</Md3eStatusPill>
+        <Md3eStatusPill compact label={`${roots.length} 项`} tone="primary" />
       </div>
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="flex min-w-0 flex-col gap-1 p-1">
-          {roots.length ? roots.map((node) => <TreeRow key={node.path} node={node} />) : <div className="py-8 text-center text-[11px] text-muted-foreground">{tt("module:bitv.addedHere", "添加文件或目录后会显示在这里。")}</div>}
+      {roots.length ? (
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="flex w-full min-w-0 flex-col gap-1 p-1">
+            {roots.map((node) => <TreeRow key={node.path} node={node} />)}
+          </div>
+        </ScrollArea>
+      ) : (
+        <div className="min-h-0 flex-1">
+          <ResultEmptyStage
+            description={tt("module:bitv.addedHere", "在左侧添加视频文件或目录，执行分析后会在这里展开路径树。")}
+            hint="等待输入"
+            icon={FolderOutput}
+            seed="bitv-empty-tree"
+            title="还没有视频输入"
+          />
         </div>
-      </ScrollArea>
+      )}
     </div>
   )
 }
@@ -1006,8 +1093,8 @@ function TreeRow({ depth = 0, node }: { depth?: number; node: TreeNode }) {
   const Icon = node.kind === "video" ? FileVideo : Folder
   return (
     <div className="min-w-0">
-      <div className="flex min-w-0 items-center gap-1.5 rounded-[12px] bg-[var(--md3e-surface-high,var(--card))] px-2 py-1 text-[11px]" style={{ marginLeft: `${Math.min(depth, 6) * 10}px` }}>
-        <Icon className="size-3.5 shrink-0 text-[var(--md3e-primary,var(--primary))]" />
+      <div className="flex min-w-0 items-center gap-1.5 rounded-[16px_10px_16px_10px] bg-[var(--md3e-surface-high,var(--card))] px-2 py-1 text-[11px]" style={{ marginLeft: `${Math.min(depth, 6) * 10}px` }}>
+        <Md3eShapeBadge icon={Icon} seed={node.path} size="sm" tone={node.kind === "video" ? "primary" : "neutral"} />
         <span className="truncate font-mono font-semibold" title={node.path}>{node.name}</span>
       </div>
       {node.children.map((child) => <TreeRow key={child.path} depth={depth + 1} node={child} />)}
@@ -1039,72 +1126,262 @@ function buildPathTree(pathsText?: string): TreeNode[] {
   return roots
 }
 
-function BitvVideoList({ videos }: { videos: BitvVideoInfo[] }) {
-  const maxBitrate = Math.max(1, ...videos.map((video) => video.bitrateMbps))
+type SpectrumTone = "primary" | "secondary" | "tertiary"
+
+interface SpectrumBand {
+  level: string
+  videos: BitvVideoInfo[]
+  averageBitrate: number
+  peakBitrate: number
+  tone: SpectrumTone
+}
+
+const SPECTRUM_TONES: readonly SpectrumTone[] = ["primary", "secondary", "tertiary"]
+
+const SPECTRUM_FILL_CLASS: Record<SpectrumTone, string> = {
+  primary: "bg-[var(--md3e-primary,var(--primary))]",
+  secondary: "bg-[var(--md3e-secondary,var(--secondary))]",
+  tertiary: "bg-[var(--md3e-tertiary,var(--accent))]",
+}
+
+const SPECTRUM_MARKER_CLASS: Record<SpectrumTone, string> = {
+  primary: "bg-[var(--md3e-on-primary,var(--primary-foreground))]",
+  secondary: "bg-[var(--md3e-on-secondary,var(--secondary-foreground))]",
+  tertiary: "bg-[var(--md3e-on-tertiary,var(--accent-foreground))]",
+}
+
+function bitrateThresholdFor(level: string): number {
+  const match = /([\d.]+)\s*Mbps/i.exec(level)
+  if (!match) return Number.POSITIVE_INFINITY
+  const value = Number(match[1])
+  return Number.isFinite(value) ? value : Number.POSITIVE_INFINITY
+}
+
+function formatClock(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds))
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const rest = total % 60
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`
+    : `${minutes}:${String(rest).padStart(2, "0")}`
+}
+
+function buildSpectrumBands(videos: readonly BitvVideoInfo[]): SpectrumBand[] {
+  const grouped = new Map<string, BitvVideoInfo[]>()
+  for (const video of videos) {
+    const items = grouped.get(video.bitrateLevel) ?? []
+    items.push(video)
+    grouped.set(video.bitrateLevel, items)
+  }
+  return [...grouped.entries()]
+    .map(([level, items]) => ({
+      level,
+      videos: [...items].sort((a, b) => b.bitrateMbps - a.bitrateMbps),
+      averageBitrate: items.reduce((total, video) => total + video.bitrateMbps, 0) / items.length,
+      peakBitrate: Math.max(...items.map((video) => video.bitrateMbps)),
+      tone: "primary" as SpectrumTone,
+    }))
+    .sort((a, b) => bitrateThresholdFor(a.level) - bitrateThresholdFor(b.level) || a.averageBitrate - b.averageBitrate)
+    .map((band, index) => ({
+      ...band,
+      tone: SPECTRUM_TONES[index % SPECTRUM_TONES.length] ?? "primary",
+    }))
+}
+
+function SpectrumTrack({ maxBitrate, tone, value }: { maxBitrate: number; tone: SpectrumTone; value: number }) {
+  const pct = Math.max(4, Math.min(100, (value / Math.max(0.001, maxBitrate)) * 100))
   return (
-    <ScrollArea className="h-full">
-      {videos.length ? (
-        <div className="flex min-w-0 flex-col gap-1.5 p-1">
-          {videos.map((video) => (
-            <div key={video.path} className="flex min-w-0 flex-col gap-1.5 rounded-[18px_12px_18px_12px] bg-[var(--md3e-surface-high,var(--card))] px-2.5 py-2">
-              <div className="flex min-w-0 items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-mono text-[11px] font-bold" title={video.path}>{video.filename}</div>
-                  <div className="truncate font-mono text-[9px] text-muted-foreground">{video.resolution} · {video.durationSeconds.toFixed(0)}s</div>
-                </div>
-                <Md3eStatusPill compact tone="secondary">{video.bitrateLevel}</Md3eStatusPill>
-              </div>
-              <div className="flex min-w-0 items-center gap-2">
-                <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-foreground/10">
-                  <div className="h-full rounded-full bg-[var(--md3e-primary,var(--primary))] transition-[width] duration-500" style={{ width: `${Math.max(6, (video.bitrateMbps / maxBitrate) * 100)}%` }} />
-                </div>
-                <span className="shrink-0 font-mono text-[10px] font-black tabular-nums text-foreground">{video.bitrateMbps.toFixed(2)} Mbps</span>
-              </div>
-            </div>
+    <div
+      aria-label={`${value.toFixed(2)} Mbps`}
+      aria-valuemax={Math.round(maxBitrate)}
+      aria-valuemin={0}
+      aria-valuenow={Math.round(value)}
+      className="relative mt-1.5 h-4 min-w-0 overflow-hidden rounded-full bg-[var(--md3e-surface-highest,var(--muted))]"
+      role="meter"
+    >
+      <div
+        className={cn("absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ease-[var(--md3e-spring,cubic-bezier(0.34,1.56,0.64,1))]", SPECTRUM_FILL_CLASS[tone])}
+        style={{ width: `${pct}%` }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-30 [background-image:radial-gradient(circle,var(--md3e-on-surface,var(--foreground))_1px,transparent_1px)] [background-size:12px_100%]"
+      />
+      <div
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute top-1/2 h-2.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-[0_0_0_2px_var(--md3e-surface-lowest,var(--card))]",
+          SPECTRUM_MARKER_CLASS[tone],
+        )}
+        style={{ left: `calc(${Math.min(pct, 97)}% )` }}
+      />
+    </div>
+  )
+}
+
+function SpectrumVideoRow({ maxBitrate, tone, video }: { maxBitrate: number; tone: SpectrumTone; video: BitvVideoInfo }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5 overflow-hidden rounded-[inherit] bg-[var(--md3e-surface-high,var(--card))] px-2.5 py-2">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-bold text-foreground" title={video.path}>{video.filename}</span>
+        <Md3eStatusPill compact label={`${video.bitrateMbps.toFixed(2)} Mbps`} tone={tone} />
+      </div>
+      <SpectrumTrack maxBitrate={maxBitrate} tone={tone} value={video.bitrateMbps} />
+      <div className="flex min-w-0 items-center justify-between gap-2 font-mono text-[8px] text-muted-foreground">
+        <span className="truncate">{video.resolution} · {video.fps.toFixed(0)}fps · {formatClock(video.durationSeconds)}</span>
+        <span className="shrink-0 tabular-nums">{formatBytes(video.sizeBytes)}</span>
+      </div>
+    </div>
+  )
+}
+
+function SpectrumBandSection({ band, maxBitrate }: { band: SpectrumBand; maxBitrate: number }) {
+  return (
+    <Md3ePatchBackdrop
+      className="min-w-0 p-2"
+      data-testid={`bitv-spectrum-band-${band.level}`}
+      seed={`bitv-spectrum-${band.level}`}
+      tone={band.tone}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <Md3eShapeBadge active icon={Gauge} seed={`bitv-spectrum-badge-${band.level}`} size="sm" tone={band.tone} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-mono text-[11px] font-black text-foreground">{band.level}</div>
+          <div className="truncate text-[9px] text-muted-foreground">{band.videos.length} 条 · 均值 {band.averageBitrate.toFixed(2)} Mbps</div>
+        </div>
+        <Md3eStatusPill compact label={`峰值 ${band.peakBitrate.toFixed(1)}`} tone={band.tone} />
+      </div>
+      <Md3eConnectedGroup className="mt-2" orientation="vertical">
+        {band.videos.map((video) => (
+          <SpectrumVideoRow key={video.path} maxBitrate={maxBitrate} tone={band.tone} video={video} />
+        ))}
+      </Md3eConnectedGroup>
+    </Md3ePatchBackdrop>
+  )
+}
+
+function BitvVideoSpectrum({ videos }: { videos: BitvVideoInfo[] }) {
+  const bands = buildSpectrumBands(videos)
+  const averageBitrate = videos.length ? videos.reduce((total, video) => total + video.bitrateMbps, 0) / videos.length : 0
+  const peakBitrate = videos.length ? Math.max(...videos.map((video) => video.bitrateMbps)) : 0
+
+  if (!videos.length) {
+    return (
+      <div className="flex h-full min-h-[180px] flex-col items-center justify-center gap-2 p-3 text-center" data-testid="bitv-spectrum">
+        <Md3eShapeBadge icon={BarChart3} seed="bitv-spectrum-empty" size="lg" tone="primary" />
+        <div className="text-[12px] font-black tracking-tight text-foreground">码率谱系待生成</div>
+        <p className="max-w-[240px] text-[10px] leading-4 text-muted-foreground">执行「分析码率」后，这里会按分档显示每条视频的码率、时长与占比。</p>
+        <Md3eStatusPill compact label="等待分析" tone="neutral" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-full min-w-0 flex-col" data-testid="bitv-spectrum">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-1.5 px-1 pb-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Md3eShapeBadge active icon={BarChart3} seed="bitv-spectrum-header" size="sm" tone="primary" />
+          <div className="min-w-0">
+            <div className="truncate text-[9px] font-bold tracking-[0.16em] text-foreground/55">BITRATE SPECTRUM</div>
+            <div className="truncate text-[13px] font-black tracking-tight text-foreground">码率谱系</div>
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
+          <Md3eStatusPill compact label={`${videos.length} 条`} tone="primary" />
+          <Md3eStatusPill compact label={`均值 ${averageBitrate.toFixed(2)}`} tone="secondary" />
+          <Md3eStatusPill compact label={`峰值 ${peakBitrate.toFixed(2)}`} tone="tertiary" />
+        </div>
+      </div>
+
+      <div aria-label="码率分布" className="px-1 pb-2">
+        <div className="flex h-3 min-w-0 gap-0.5 overflow-hidden rounded-full bg-[var(--md3e-surface-highest,var(--muted))]">
+          {bands.map((band) => (
+            <div
+              className={cn("h-full min-w-[8px] first:rounded-l-full last:rounded-r-full", SPECTRUM_FILL_CLASS[band.tone])}
+              key={band.level}
+              style={{ flexGrow: band.videos.length }}
+              title={`${band.level}：${band.videos.length} 条`}
+            />
           ))}
         </div>
-      ) : (
-        <div className="flex h-40 flex-col items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
-          <BarChart3 className="size-5 opacity-50" />
-          <span>执行分析后，这里会列出视频码率和分级。</span>
+        <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1">
+          {bands.map((band) => (
+            <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-[var(--md3e-surface-high,var(--muted))] px-2 py-0.5" key={band.level}>
+              <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", SPECTRUM_FILL_CLASS[band.tone])} />
+              <span className="truncate font-mono text-[8px] font-bold text-foreground">{band.level}</span>
+              <span className="font-mono text-[8px] tabular-nums text-muted-foreground">{band.videos.length}</span>
+            </span>
+          ))}
         </div>
-      )}
-    </ScrollArea>
+      </div>
+
+      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+        <div className="flex w-full min-w-0 flex-col gap-2 p-1">
+          {bands.map((band) => (
+            <SpectrumBandSection band={band} key={band.level} maxBitrate={peakBitrate} />
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 
 function BitvPlanList({ operations }: { operations: BitvData["operations"] }) {
+  if (!operations.length) {
+    return (
+      <ResultEmptyStage
+        description="执行分析并生成分类计划后，按码率档位排列的复制/移动操作会出现在这里。"
+        hint="等待计划"
+        icon={Waypoints}
+        seed="bitv-empty-plan"
+        title="还没有分类计划"
+      />
+    )
+  }
   return (
-    <ScrollArea className="h-full">
-      {operations.length ? (
-        <div className="flex min-w-0 flex-col gap-1.5 p-1">
-          {operations.map((op) => (
-            <div key={`${op.sourcePath}-${op.targetPath}`} className="flex min-w-0 flex-col gap-1 rounded-[18px_12px_18px_12px] bg-[var(--md3e-surface-high,var(--card))] px-2.5 py-2 text-[11px]">
-              <div className="flex min-w-0 items-center justify-between gap-2">
-                <Md3eStatusPill compact tone={op.success ? "primary" : "error"}>{op.dryRun ? "预演" : op.mode === "move" ? "移动" : "复制"}</Md3eStatusPill>
-                <span className="truncate font-mono text-[9px] font-bold text-muted-foreground">{op.bitrateLevel}</span>
+    <div className="h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto">
+      <Md3eConnectedGroup className="w-full p-1" orientation="vertical">
+        {operations.map((op) => (
+          <div key={`${op.sourcePath}-${op.targetPath}`} className="flex min-w-0 flex-col gap-1 overflow-hidden rounded-[inherit] bg-[var(--md3e-surface-high,var(--card))] px-2.5 py-2 text-[11px]">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <Md3eShapeBadge icon={op.success ? FolderOutput : AlertTriangle} seed={`${op.sourcePath}-${op.targetPath}`} size="sm" tone={op.success ? "primary" : "error"} />
+                <Md3eStatusPill compact label={op.dryRun ? "预演" : op.mode === "move" ? "移动" : "复制"} tone={op.success ? "primary" : "error"} />
               </div>
-              <div className="truncate font-mono text-[10px] text-muted-foreground" title={op.sourcePath}>{op.sourcePath}</div>
-              <div className="truncate font-mono font-bold text-foreground" title={op.targetPath}>→ {op.targetPath}</div>
-              {op.error ? <div className="break-words text-destructive">{op.error}</div> : null}
+              <span className="truncate font-mono text-[9px] font-bold text-muted-foreground">{op.bitrateLevel}</span>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex h-40 items-center justify-center text-center text-[11px] text-muted-foreground">暂无分类计划</div>
-      )}
-    </ScrollArea>
+            <div className="truncate font-mono text-[10px] text-muted-foreground" title={op.sourcePath}>{op.sourcePath}</div>
+            <div className="truncate font-mono font-bold text-foreground" title={op.targetPath}>→ {op.targetPath}</div>
+            {op.error ? <div className="break-words text-destructive">{op.error}</div> : null}
+          </div>
+        ))}
+      </Md3eConnectedGroup>
+    </div>
   )
 }
 
-function TextResult({ empty, lines, tone }: { empty: string; lines: string[]; tone?: "error" }) {
+function TextResult({
+  description,
+  hint,
+  icon,
+  lines,
+  title,
+  tone,
+}: {
+  description: string
+  hint: string
+  icon: LucideIcon
+  lines: string[]
+  title: string
+  tone?: "error"
+}) {
+  if (!lines.length) {
+    return <ResultEmptyStage description={description} hint={hint} icon={icon} seed={`bitv-empty-${title}`} title={title} />
+  }
   return (
-    <ScrollArea className="h-full">
-      {lines.length ? (
-        <pre className={cn("whitespace-pre-wrap break-words rounded-[16px] bg-[var(--md3e-surface-high,var(--card))] p-2.5 font-mono text-[11px] leading-5", tone === "error" ? "text-destructive" : "text-muted-foreground")}>{lines.join("\n")}</pre>
-      ) : (
-        <div className="flex h-40 items-center justify-center text-center text-[11px] text-muted-foreground">{empty}</div>
-      )}
-    </ScrollArea>
+    <div className="h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto">
+      <pre className={cn("whitespace-pre-wrap break-words rounded-[16px] bg-[var(--md3e-surface-high,var(--card))] p-2.5 font-mono text-[11px] leading-5", tone === "error" ? "text-destructive" : "text-muted-foreground")}>{lines.join("\n")}</pre>
+    </div>
   )
 }

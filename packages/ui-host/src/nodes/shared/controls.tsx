@@ -677,11 +677,12 @@ export function ConfigDefaultsPopover(props: {
 }
 
 export function Md3eShapePopoverButton(props: {
-  nodeId: string
+  nodeId?: string
   label?: string
   className?: string
 }) {
-  const triggerLabel = props.label ?? `${props.nodeId} 控件形状策略`
+  const nodeId = props.nodeId ?? "workspace"
+  const triggerLabel = props.label ?? `${nodeId} 控件形状策略`
   return (
     <Popover>
       <Tooltip>
@@ -702,7 +703,7 @@ export function Md3eShapePopoverButton(props: {
         <TooltipContent>{triggerLabel}</TooltipContent>
       </Tooltip>
       <PopoverContent align="end" className="w-80 rounded-[28px] border-0 bg-[var(--md3e-surface-high,var(--popover))] p-3.5 shadow-xl">
-        <Md3eNodeShapePolicyPanel nodeId={props.nodeId} compact />
+        <Md3eNodeShapePolicyPanel nodeId={nodeId} compact />
       </PopoverContent>
     </Popover>
   )

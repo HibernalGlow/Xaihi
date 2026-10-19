@@ -9,6 +9,7 @@ import {
   Md3eShapePopoverButton,
   Md3eStatusPill,
   Md3eWavyProgress,
+  useMd3eShapeContext,
   type Md3eBentoStatItem,
 } from "./controls"
 
@@ -239,6 +240,7 @@ export function Md3eExpressiveHero({
   toolbarTestId?: string
   className?: string
 }) {
+  const shapeContext = useMd3eShapeContext()
   return (
     <header
       data-slot="md3e-expressive-hero"
@@ -282,7 +284,7 @@ export function Md3eExpressiveHero({
           className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-1.5"
         >
           {actions}
-          <Md3eShapePopoverButton />
+          <Md3eShapePopoverButton nodeId={shapeContext?.nodeId} />
         </div>
       </div>
 
@@ -292,6 +294,7 @@ export function Md3eExpressiveHero({
           className="relative z-10 mt-2 flex flex-wrap items-center gap-1.5"
         >
           {stats.map((st) => {
+            const StatIcon = st.icon
             const toneBg =
               st.tone === "primary"
                 ? "bg-[var(--md3e-primary-container,var(--primary))]/85 text-[var(--md3e-on-primary-container,var(--primary-foreground))]"
@@ -306,10 +309,11 @@ export function Md3eExpressiveHero({
               <div
                 key={st.label}
                 className={cn(
-                  "inline-flex min-w-0 items-baseline gap-1.5 rounded-[14px_18px_14px_16px] px-2.5 py-1 text-[11px]",
+                  "inline-flex min-w-0 items-center gap-1.5 rounded-[14px_18px_14px_16px] px-2.5 py-1 text-[11px]",
                   toneBg,
                 )}
               >
+                {StatIcon ? <StatIcon aria-hidden="true" className="size-3 shrink-0 opacity-75" /> : null}
                 <span className="truncate text-[10px] font-semibold opacity-75">
                   {st.label}
                 </span>

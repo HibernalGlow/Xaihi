@@ -5,19 +5,46 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { CollapseButton, Tree, type TreeViewElement } from "@/components/ui/file-tree"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 
 type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string
 type RunningItem = { sourcePath: string; stage: ClassfStage } | null | undefined
 type RouteStage = "already" | "wait" | "del"
 
-export function ClassfPlanRows(props: { items: ClassfPlanItem[]; paths: string[]; runningItem?: RunningItem; t: Translate }) {
+export function ClassfPlanRows(props: { items: ClassfPlanItem[]; paths: string[]; compact?: boolean; runningItem?: RunningItem; t: Translate }) {
   if (!props.items.length) {
     const text = props.paths.length ? props.t("empty.ready", "Build a plan to list every source and target before execution.") : props.t("empty.noSources", "Add source paths to preview the full classification result.")
     return <div className="flex min-h-32 flex-1 items-center justify-center p-4 text-center text-sm text-muted-foreground">{text}</div>
   }
 
+  if (props.compact) {
+    return <div className="min-h-0 flex-1 overflow-y-auto">{props.items.slice(0, 180).map((item, index) => {
+      const running = props.runningItem?.sourcePath === item.sourcePath && props.runningItem?.stage === item.stage
+      const meta = itemStatusMeta(running ? "running" : item.status, props.t)
+      const StatusIcon = meta.icon
+      const KindIcon = item.kind === "folder" ? Folder : File
+      const target = item.targetRelative || item.targetPath
+      return <div key={`${item.sourcePath}:${index}`} className={cn("flex min-w-0 items-start gap-2 border-b border-[var(--md3e-surface-high,var(--border))]/70 px-2 py-2.5 last:border-0", (item.status === "conflict" || item.status === "error") && "bg-destructive/5")}>
+        <KindIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-[12px] font-medium">{item.sourceName}</span>
+            <ArrowRight className="size-3 shrink-0 text-muted-foreground" />
+            <span className="truncate text-[12px] font-medium text-primary" title={item.targetPath}>{target}</span>
+          </div>
+          <div className="truncate font-mono text-[10px] text-muted-foreground" title={item.sourcePath}>{item.sourcePath}</div>
+          {item.reason ? <div className="mt-0.5 truncate text-[10px] text-destructive">{item.reason}</div> : null}
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
+            <Badge variant="outline" className="text-[10px]">{props.t(`stages.${item.stage}`, item.stage)}</Badge>
+            <Badge variant={meta.variant} className="gap-1 text-[10px]"><StatusIcon />{meta.label}</Badge>
+          </div>
+        </div>
+      </div>
+    })}</div>
+  }
+
   return <ScrollArea className="min-h-0 flex-1"><Table className="min-w-[420px] text-xs"><TableHeader><TableRow><TableHead>{props.t("table.mapping", "Source to destination")}</TableHead><TableHead className="w-24 text-right">{props.t("table.status", "Status")}</TableHead></TableRow></TableHeader><TableBody>{props.items.slice(0, 180).map((item, index) => {
-    const running = props.runningItem?.sourcePath === item.sourcePath && props.runningItem.stage === item.stage
+    const running = props.runningItem?.sourcePath === item.sourcePath && props.runningItem?.stage === item.stage
     const meta = itemStatusMeta(running ? "running" : item.status, props.t)
     const StatusIcon = meta.icon
     const KindIcon = item.kind === "folder" ? Folder : File
@@ -25,11 +52,18 @@ export function ClassfPlanRows(props: { items: ClassfPlanItem[]; paths: string[]
   })}</TableBody></Table></ScrollArea>
 }
 
-export function ClassfPlanTree(props: { onRevealPath?: (path: string) => Promise<void> | void; planCurrent: boolean; result: ClassfData | null; runningItem?: RunningItem; t: Translate }) {
+export function ClassfPlanTree(props: { onRevealPath?: (path: string) => Promise<void> | void; planCurrent: boolean; result: ClassfData | null; runningItem?: RunningItem; showStaleBadge?: boolean; t: Translate }) {
   const elements = buildPlanTree(props.result, props.runningItem, props.t, props.onRevealPath)
   const expandedItems = elements.flatMap(collectTreeFolderIds)
   if (!elements.length) return <Empty className="h-full border-0 p-4 md:p-6"><EmptyHeader><EmptyMedia variant="icon"><FolderTree /></EmptyMedia><EmptyTitle className="text-sm">{props.t("tree.empty", "Waiting for a classification plan")}</EmptyTitle><EmptyDescription className="text-xs">{props.t("tree.emptyDescription", "Build a plan to preview the exact target directory structure here.")}</EmptyDescription></EmptyHeader></Empty>
-  return <div className="relative h-full min-h-0">{!props.planCurrent ? <Badge variant="destructive" className="absolute right-3 top-2">{props.t("status.stale", "Plan stale")}</Badge> : null}<Tree key={`${props.result?.items.length ?? 0}:${props.result?.movedCount ?? 0}:${props.result?.copiedCount ?? 0}`} actions={<CollapseButton elements={elements}><Maximize2 data-icon="inline-start" />{props.t("tree.toggle", "Expand/collapse")}</CollapseButton>} className="py-2 text-xs" elements={elements} initialExpandedItems={expandedItems} sort="none" /></div>
+  const stale = (props.showStaleBadge ?? true) && !props.planCurrent
+  const footer = (
+    <div className="mt-2 flex min-w-0 items-center justify-between gap-2 border-t border-[var(--md3e-surface-high,var(--border))]/70 pt-2">
+      <span className="min-w-0 truncate font-mono text-[10px] text-muted-foreground" {...(props.result?.baseDir ? { title: props.result.baseDir } : {})}>{props.result?.baseDir}</span>
+      <CollapseButton className="shrink-0" style={{ position: "static" }} elements={elements}><Maximize2 data-icon="inline-start" />{props.t("tree.toggle", "Expand/collapse")}</CollapseButton>
+    </div>
+  )
+  return <div className="relative flex h-full min-h-0 flex-col">{stale ? <Badge variant="destructive" className="absolute right-3 top-2">{props.t("status.stale", "Plan stale")}</Badge> : null}<Tree key={`${props.result?.items.length ?? 0}:${props.result?.movedCount ?? 0}:${props.result?.copiedCount ?? 0}`} actions={footer} className="py-2" elements={elements} initialExpandedItems={expandedItems} sort="none" /></div>
 }
 
 interface MutablePlanTreeElement extends TreeViewElement { children?: MutablePlanTreeElement[] }
@@ -51,12 +85,12 @@ function buildPlanTree(result: ClassfData | null, runningItem: RunningItem, t: T
       if (!child) { child = { id, name: part, type: "folder", children: [] }; parent.children.push(child) }
       parent = child
     }
-    const running = runningItem?.sourcePath === item.sourcePath && runningItem.stage === item.stage
+    const running = runningItem?.sourcePath === item.sourcePath && runningItem?.stage === item.stage
     const targetName = pathParts.at(-1) ?? item.sourceName
     const mappingLabel = item.kind === "folder" ? `${t("tree.source", "Source")}: ${item.sourceName}` : item.sourceName === targetName ? targetName : `${item.sourceName} to ${targetName}`
     const revealPath = item.status === "moved" || item.status === "copied" ? item.targetPath || item.sourcePath : item.sourcePath || item.targetPath
     parent.children ??= []
-    parent.children.push({ id: `classf-plan:item:${item.stage}:${item.sourcePath}:${itemIndex}`, name: `${mappingLabel} · ${itemStatusMeta(running ? "running" : item.status, t).label}`, type: "file", isSelectable: true, onOpen: revealPath && onRevealPath ? () => void onRevealPath(revealPath) : undefined })
+    parent.children.push({ id: `classf-plan:item:${item.stage}:${item.sourcePath}:${itemIndex}`, name: `${mappingLabel} · ${itemStatusMeta(running ? "running" : item.status, t).label}`, type: "file", isSelectable: true, ...(revealPath && onRevealPath ? { onOpen: () => void onRevealPath(revealPath) } : {}) })
   }
   return root.children?.length ? [root] : []
 }

@@ -269,10 +269,10 @@ const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
           direction,
         }}
       >
-        <div className={cn("size-full", className)}>
+        <div className={cn("flex size-full min-h-0 flex-col", className)}>
           <ScrollArea
             ref={ref}
-            className="relative h-full px-2"
+            className="relative min-h-0 flex-1 px-2"
             dir={dir as Direction}
           >
             <AccordionPrimitive.Root
