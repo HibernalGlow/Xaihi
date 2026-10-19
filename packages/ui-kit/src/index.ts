@@ -5,3 +5,5 @@
 
 export * from './tokens.ts'
 export * from './components.tsx'
+export * from './md3e.tsx'
+export * from './shapes.ts'

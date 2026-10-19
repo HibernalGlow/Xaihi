@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { ALIAS, KIT_CSS } from '../src/tokens.ts'
+import { ALIAS, KIT_CSS, MD3E_ALIAS, XAIHI_UI_KIT_THEME_TOKENS } from '../src/tokens.ts'
 
 /** 剥掉所有 `var(...)` 表达式（含一层嵌套），剩下的内容里不该再有颜色值。 */
 function stripVars(css: string): string {
@@ -21,6 +21,13 @@ function stripVars(css: string): string {
 }
 
 describe('颜色出口纪律', () => {
+  it('exports every semantic token slot consumed by the stylesheet', () => {
+    expect(XAIHI_UI_KIT_THEME_TOKENS).toHaveLength(22)
+    for (const token of XAIHI_UI_KIT_THEME_TOKENS) {
+      expect(KIT_CSS).toContain(`var(${token}`)
+    }
+  })
+
   /**
    * 形状尺：`var(--xaihi-<slot>, var(--dsw-alias-<实测名>, 兜底))`。
    * 名字表是实机从 CSSOM 里读出来的（`--dsw-alias-bg-layer-1` 这类**带数字**的名字），
@@ -49,8 +56,33 @@ describe('颜色出口纪律', () => {
 
   it('不许出现第三方命名空间的自定义属性', () => {
     const custom = [...KIT_CSS.matchAll(/--[a-z][a-z0-9-]*/g)].map((match) => match[0])
+    const hostSemanticAliases = new Set([
+      '--background', '--card', '--primary', '--primary-foreground', '--secondary', '--secondary-foreground',
+      '--accent', '--accent-foreground', '--destructive', '--foreground', '--muted', '--muted-foreground',
+    ])
     for (const name of new Set(custom)) {
-      expect(name.startsWith('--xaihi-') || name.startsWith('--dsw-'), name).toBe(true)
+      expect(
+        name.startsWith('--xaihi-')
+        || name.startsWith('--dsw-')
+        || name.startsWith('--md3e-')
+        || name.startsWith('--md-sys-color-')
+        || hostSemanticAliases.has(name),
+        name,
+      ).toBe(true)
     }
+  })
+
+  it('MD3E 不读取通用宿主色变量，优先走 MD3E 和 Material 系统色桥', () => {
+    const md3eCss = Object.values(MD3E_ALIAS).join('\n')
+    expect(md3eCss).toContain('--md3e-')
+    expect(md3eCss).toContain('--md-sys-color-')
+    expect(md3eCss).toContain('--xaihi-')
+    expect(md3eCss).toContain('--dsw-alias-')
+    expect(md3eCss).not.toMatch(/var\(--(?:background|card|primary|primary-foreground|secondary|secondary-foreground|accent|accent-foreground|destructive|foreground|muted|muted-foreground)\b/)
+
+    // 阳性对照：只要重新接回通用变量，这把尺必须立刻变红。
+    expect('var(--xaihi-md3e-primary, var(--primary, currentColor))').toMatch(
+      /var\(--(?:background|card|primary|primary-foreground|secondary|secondary-foreground|accent|accent-foreground|destructive|foreground|muted|muted-foreground)\b/,
+    )
   })
 })

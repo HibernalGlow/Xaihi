@@ -5,7 +5,7 @@ import { defineConfig } from 'tsdown'
  * （宿主模块表里 React 是真单例，内联第二份就是双 React 事故的旧路）。
  */
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/tokens.ts', 'src/components.tsx', 'src/md3e.tsx', 'src/shapes.ts'],
   outDir: 'lib',
   format: ['esm'],
   platform: 'neutral',
