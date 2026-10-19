@@ -1,0 +1,405 @@
+{
+  "name": "@hibernalglow/xaihi-shellect",
+  "version": "0.0.0",
+  "description": "Shellect: Xaihi Cordis selection actions, platform management node and npm system menu CLI.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./cli": {
+      "types": "./lib/cli.d.ts",
+      "default": "./lib/cli.js"
+    }
+  },
+  "files": [
+    "lib/**",
+    "dist/**",
+    "cordis.patch.yml",
+    "package.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "tsdown && node scripts/package-native.mjs && rspack build",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@hibernalglow/xaihi-sdk": "workspace:*",
+    "@hibernalglow/xaihi-ui-kit": "workspace:*",
+    "@types/node": "^22.20.0",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11",
+    "@rspack/cli": "2.2.8",
+    "@rspack/core": "2.2.8",
+    "@module-federation/enhanced": "2.9.2",
+    "react": "^18.3.1",
+    "@types/react": "19.2.10",
+    "react-dom": "^18.3.1",
+    "@types/react-dom": "^18.3.7",
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "bin": {
+    "shellect": "./lib/cli.js"
+  },
+  "xaihi": {
+    "schema": "xaihi.manifest/1",
+    "id": "xaihi-shellect",
+    "title": {
+      "zh": "Shellect 系统菜单",
+      "en": "Shellect"
+    },
+    "ui": {
+      "remote": "shellect",
+      "entry": "./dist/remoteEntry.js"
+    },
+    "panels": [
+      {
+        "id": "shellect",
+        "title": {
+          "zh": "Shellect 系统菜单",
+          "en": "Shellect"
+        },
+        "area": "workspace",
+        "remote": "shellect",
+        "export": "Panel"
+      }
+    ],
+    "node": {
+      "definitionVersion": 1,
+      "nodeId": "shellect",
+      "title": {
+        "zh": "Shellect 系统菜单",
+        "en": "Shellect"
+      },
+      "description": {
+        "zh": "按 Windows、macOS、Linux 管理插件注册的系统菜单动作。",
+        "en": "Manage registered file actions separately for Windows, macOS and Linux."
+      },
+      "icon": "MousePointerClick",
+      "category": "system",
+      "actions": [
+        {
+          "id": "catalog",
+          "label": {
+            "zh": "读取注册目录",
+            "en": "Catalog"
+          },
+          "description": {
+            "zh": "读取注册目录",
+            "en": "Read registry folders"
+          }
+        },
+        {
+          "id": "configure",
+          "label": {
+            "zh": "保存分平台配置",
+            "en": "Configure"
+          },
+          "description": {
+            "zh": "保存分平台配置",
+            "en": "Save per-platform settings"
+          }
+        },
+        {
+          "id": "reset",
+          "label": {
+            "zh": "恢复平台或动作配置",
+            "en": "Reset"
+          },
+          "description": {
+            "zh": "恢复平台或动作配置",
+            "en": "Restore platform or action settings"
+          }
+        },
+        {
+          "id": "install_menu",
+          "label": {
+            "zh": "安装系统菜单",
+            "en": "install_menu"
+          },
+          "description": {
+            "zh": "安装系统菜单",
+            "en": "install_menu"
+          }
+        },
+        {
+          "id": "uninstall_menu",
+          "label": {
+            "zh": "卸载系统菜单",
+            "en": "uninstall_menu"
+          },
+          "description": {
+            "zh": "卸载系统菜单",
+            "en": "uninstall_menu"
+          }
+        },
+        {
+          "id": "sync_menu",
+          "label": {
+            "zh": "同步系统菜单",
+            "en": "sync_menu"
+          },
+          "description": {
+            "zh": "同步系统菜单",
+            "en": "sync_menu"
+          }
+        }
+      ],
+      "fields": [
+        {
+          "id": "action",
+          "kind": "select",
+          "isActionSelector": true,
+          "label": {
+            "zh": "动作",
+            "en": "Action"
+          },
+          "options": [
+            {
+              "value": "catalog",
+              "label": {
+                "zh": "catalog",
+                "en": "catalog"
+              }
+            },
+            {
+              "value": "configure",
+              "label": {
+                "zh": "configure",
+                "en": "configure"
+              }
+            },
+            {
+              "value": "reset",
+              "label": {
+                "zh": "reset",
+                "en": "reset"
+              }
+            },
+            {
+              "value": "install_menu",
+              "label": {
+                "zh": "安装系统菜单",
+                "en": "install_menu"
+              }
+            },
+            {
+              "value": "uninstall_menu",
+              "label": {
+                "zh": "卸载系统菜单",
+                "en": "uninstall_menu"
+              }
+            },
+            {
+              "value": "sync_menu",
+              "label": {
+                "zh": "同步系统菜单",
+                "en": "sync_menu"
+              }
+            }
+          ]
+        },
+        {
+          "id": "platform",
+          "kind": "select",
+          "label": {
+            "zh": "平台",
+            "en": "Platform"
+          },
+          "options": [
+            {
+              "value": "win32",
+              "label": {
+                "zh": "Windows",
+                "en": "Windows"
+              }
+            },
+            {
+              "value": "darwin",
+              "label": {
+                "zh": "macOS",
+                "en": "macOS"
+              }
+            },
+            {
+              "value": "linux",
+              "label": {
+                "zh": "Linux",
+                "en": "Linux"
+              }
+            }
+          ]
+        },
+        {
+          "id": "id",
+          "kind": "text",
+          "label": {
+            "zh": "动作标识（空为平台设置）",
+            "en": "Action id (omit for platform settings)"
+          }
+        },
+        {
+          "id": "enabled",
+          "kind": "boolean",
+          "label": {
+            "zh": "启用",
+            "en": "Enabled"
+          }
+        },
+        {
+          "id": "title",
+          "kind": "text",
+          "label": {
+            "zh": "菜单名称",
+            "en": "Menu title"
+          }
+        },
+        {
+          "id": "order",
+          "kind": "number",
+          "label": {
+            "zh": "排序",
+            "en": "Order"
+          }
+        },
+        {
+          "id": "expectedRevision",
+          "kind": "number",
+          "label": {
+            "zh": "预期设置版本",
+            "en": "Expected settings revision"
+          }
+        },
+        {
+          "id": "directory",
+          "kind": "text",
+          "label": {
+            "zh": "系统菜单导出目录",
+            "en": "directory"
+          }
+        },
+        {
+          "id": "node",
+          "kind": "text",
+          "label": {
+            "zh": "Node 可执行路径",
+            "en": "node"
+          }
+        },
+        {
+          "id": "endpoint",
+          "kind": "text",
+          "label": {
+            "zh": "宿主地址",
+            "en": "endpoint"
+          }
+        }
+      ],
+      "approval": {
+        "actions": [],
+        "note": {
+          "zh": "配置变更通过 DSH 设置修订检查。",
+          "en": "Settings writes use DSH revision checks."
+        }
+      },
+      "resultExport": "result_view",
+      "inputBindings": [
+        {
+          "fieldId": "action",
+          "slot": "action",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "platform",
+          "slot": "platform",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "id",
+          "slot": "id",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "enabled",
+          "slot": "enabled",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "title",
+          "slot": "title",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "order",
+          "slot": "order",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "expectedRevision",
+          "slot": "expectedRevision",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "directory",
+          "slot": "directory",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "node",
+          "slot": "node",
+          "transform": "identity"
+        },
+        {
+          "fieldId": "endpoint",
+          "slot": "endpoint",
+          "transform": "identity"
+        }
+      ],
+      "groups": [
+        {
+          "id": "registration",
+          "label": {
+            "zh": "注册配置",
+            "en": "Registration settings"
+          },
+          "fieldIds": [
+            "action",
+            "platform",
+            "id",
+            "enabled",
+            "title",
+            "order",
+            "expectedRevision",
+            "directory",
+            "node",
+            "endpoint"
+          ]
+        }
+      ]
+    }
+  }
+}

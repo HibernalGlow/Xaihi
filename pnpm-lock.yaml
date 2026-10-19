@@ -735,12 +735,21 @@ importers:
 
   packages/ui-kit:
     devDependencies:
+      '@testing-library/react':
+        specifier: 16.3.2
+        version: 16.3.2(@testing-library/dom@10.4.2)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@testing-library/user-event':
+        specifier: 14.6.1
+        version: 14.6.1(@testing-library/dom@10.4.2)
       '@types/react':
         specifier: ^18.3.0
         version: 18.3.31
       '@types/react-dom':
         specifier: ^18.3.7
         version: 18.3.7(@types/react@18.3.31)
+      happy-dom:
+        specifier: ^20.10.6
+        version: 20.14.5
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -1033,52 +1042,6 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/browser-playwright@4.1.11)(happy-dom@20.14.5)(vite@8.3.2(@types/node@22.20.5)(jiti@2.4.2)(yaml@2.9.1))
 
-  plugins/encodeb:
-    dependencies:
-      '@deepseek-ai/schemastery':
-        specifier: ~3.18.4
-        version: 3.18.4
-    devDependencies:
-      '@deepseek-ai/cordis':
-        specifier: ~4.0.4
-        version: 4.0.4(@deepseek-ai/cordis-plugin-include@1.0.9)(@deepseek-ai/cordis-plugin-loader@1.0.5)
-      '@deepseek-ai/dsh-tools':
-        specifier: 0.2.0-rc.2
-        version: 0.2.0-rc.2(52b5a8ab481be2b3d891c22a71641755)
-      '@hibernalglow/xaihi-sdk':
-        specifier: workspace:*
-        version: link:../../packages/node-sdk
-      '@module-federation/enhanced':
-        specifier: 2.9.2
-        version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
-      '@rspack/cli':
-        specifier: 2.2.8
-        version: 2.2.8(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
-      '@rspack/core':
-        specifier: 2.2.8
-        version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
-      '@types/react':
-        specifier: ^18.3.0
-        version: 18.3.31
-      '@types/react-dom':
-        specifier: ^18.3.7
-        version: 18.3.7(@types/react@18.3.31)
-      react:
-        specifier: 19.2.4
-        version: 19.2.4
-      react-dom:
-        specifier: 19.2.4
-        version: 19.2.4(react@19.2.4)
-      tsdown:
-        specifier: ^0.22.2
-        version: 0.22.14(@tsdown/css@0.22.14)(typescript@6.0.3)
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-      vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/browser-playwright@4.1.11)(happy-dom@20.14.5)(vite@8.3.2(@types/node@22.20.5)(jiti@2.4.2)(yaml@2.9.1))
-
   plugins/enginev:
     dependencies:
       '@deepseek-ai/schemastery':
@@ -1277,6 +1240,9 @@ importers:
 
   plugins/kisaki:
     dependencies:
+      '@deepseek-ai/dsh-tools':
+        specifier: 0.2.0-rc.2
+        version: 0.2.0-rc.2(52b5a8ab481be2b3d891c22a71641755)
       '@deepseek-ai/schemastery':
         specifier: ~3.18.4
         version: 3.18.4
@@ -1284,9 +1250,6 @@ importers:
       '@deepseek-ai/cordis':
         specifier: ~4.0.4
         version: 4.0.4(@deepseek-ai/cordis-plugin-include@1.0.9)(@deepseek-ai/cordis-plugin-loader@1.0.5)
-      '@deepseek-ai/dsh-tools':
-        specifier: 0.2.0-rc.2
-        version: 0.2.0-rc.2(52b5a8ab481be2b3d891c22a71641755)
       '@hibernalglow/xaihi-cli-runtime':
         specifier: workspace:*
         version: link:../../packages/cli-runtime
@@ -1328,52 +1291,6 @@ importers:
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/browser-playwright@4.1.11)(happy-dom@20.14.5)(vite@8.3.2(@types/node@22.20.5)(jiti@2.4.2)(yaml@2.9.1))
 
   plugins/linedup:
-    dependencies:
-      '@deepseek-ai/schemastery':
-        specifier: ~3.18.4
-        version: 3.18.4
-    devDependencies:
-      '@deepseek-ai/cordis':
-        specifier: ~4.0.4
-        version: 4.0.4(@deepseek-ai/cordis-plugin-include@1.0.9)(@deepseek-ai/cordis-plugin-loader@1.0.5)
-      '@deepseek-ai/dsh-tools':
-        specifier: 0.2.0-rc.2
-        version: 0.2.0-rc.2(52b5a8ab481be2b3d891c22a71641755)
-      '@hibernalglow/xaihi-sdk':
-        specifier: workspace:*
-        version: link:../../packages/node-sdk
-      '@module-federation/enhanced':
-        specifier: 2.9.2
-        version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
-      '@rspack/cli':
-        specifier: 2.2.8
-        version: 2.2.8(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
-      '@rspack/core':
-        specifier: 2.2.8
-        version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
-      '@types/react':
-        specifier: ^18.3.0
-        version: 18.3.31
-      '@types/react-dom':
-        specifier: ^18.3.7
-        version: 18.3.7(@types/react@18.3.31)
-      react:
-        specifier: 19.2.4
-        version: 19.2.4
-      react-dom:
-        specifier: 19.2.4
-        version: 19.2.4(react@19.2.4)
-      tsdown:
-        specifier: ^0.22.2
-        version: 0.22.14(@tsdown/css@0.22.14)(typescript@6.0.3)
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-      vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/browser-playwright@4.1.11)(happy-dom@20.14.5)(vite@8.3.2(@types/node@22.20.5)(jiti@2.4.2)(yaml@2.9.1))
-
-  plugins/linku:
     dependencies:
       '@deepseek-ai/schemastery':
         specifier: ~3.18.4
@@ -1486,12 +1403,24 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: 0.2.0-rc.2
         version: 0.2.0-rc.2(52b5a8ab481be2b3d891c22a71641755)
+      '@hibernalglow/xaihi-cli-runtime':
+        specifier: workspace:*
+        version: link:../../packages/cli-runtime
+      '@hibernalglow/xaihi-contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@hibernalglow/xaihi-sdk':
         specifier: workspace:*
         version: link:../../packages/node-sdk
       '@module-federation/enhanced':
         specifier: 2.9.2
         version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
+      '@opentui/core':
+        specifier: 0.4.5
+        version: 0.4.5(typescript@6.0.3)(web-tree-sitter@0.25.10)
+      '@opentui/react':
+        specifier: 0.4.5
+        version: 0.4.5(react-devtools-core@7.0.1)(react@19.2.4)(typescript@6.0.3)(web-tree-sitter@0.25.10)(ws@8.22.0)
       '@rspack/cli':
         specifier: 2.2.8
         version: 2.2.8(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
@@ -1499,11 +1428,11 @@ importers:
         specifier: 2.2.8
         version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
       '@types/react':
-        specifier: ^18.3.0
-        version: 18.3.31
+        specifier: 19.2.10
+        version: 19.2.10
       '@types/react-dom':
         specifier: ^18.3.7
-        version: 18.3.7(@types/react@18.3.31)
+        version: 18.3.7(@types/react@19.2.10)
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -1759,6 +1688,58 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/browser-playwright@4.1.11)(happy-dom@20.14.5)(vite@8.3.2(@types/node@22.20.5)(jiti@2.4.2)(yaml@2.9.1))
 
+  plugins/shellect:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: ~3.18.4
+        version: 3.18.4
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: ~4.0.4
+        version: 4.0.4(@deepseek-ai/cordis-plugin-include@1.0.9)(@deepseek-ai/cordis-plugin-loader@1.0.5)
+      '@deepseek-ai/dsh-tools':
+        specifier: 0.2.0-rc.2
+        version: 0.2.0-rc.2(52b5a8ab481be2b3d891c22a71641755)
+      '@hibernalglow/xaihi-sdk':
+        specifier: workspace:*
+        version: link:../../packages/node-sdk
+      '@hibernalglow/xaihi-ui-kit':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit
+      '@module-federation/enhanced':
+        specifier: 2.9.2
+        version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
+      '@rspack/cli':
+        specifier: 2.2.8
+        version: 2.2.8(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
+      '@rspack/core':
+        specifier: 2.2.8
+        version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
+      '@types/node':
+        specifier: ^22.20.0
+        version: 22.20.5
+      '@types/react':
+        specifier: 19.2.10
+        version: 19.2.10
+      '@types/react-dom':
+        specifier: ^18.3.7
+        version: 18.3.7(@types/react@19.2.10)
+      react:
+        specifier: 19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: 19.2.4
+        version: 19.2.4(react@19.2.4)
+      tsdown:
+        specifier: ^0.22.2
+        version: 0.22.14(@tsdown/css@0.22.14)(typescript@6.0.3)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/browser-playwright@4.1.11)(happy-dom@20.14.5)(vite@8.3.2(@types/node@22.20.5)(jiti@2.4.2)(yaml@2.9.1))
+
   plugins/sleept:
     dependencies:
       '@deepseek-ai/dsh-commands':
@@ -1798,52 +1779,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.14
         version: 19.3.0(@types/react@19.3.0)
-      react:
-        specifier: 19.2.4
-        version: 19.2.4
-      react-dom:
-        specifier: 19.2.4
-        version: 19.2.4(react@19.2.4)
-      tsdown:
-        specifier: ^0.22.2
-        version: 0.22.14(@tsdown/css@0.22.14)(typescript@6.0.3)
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-      vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/browser-playwright@4.1.11)(happy-dom@20.14.5)(vite@8.3.2(@types/node@22.20.5)(jiti@2.4.2)(yaml@2.9.1))
-
-  plugins/smartzip:
-    dependencies:
-      '@deepseek-ai/schemastery':
-        specifier: ~3.18.4
-        version: 3.18.4
-    devDependencies:
-      '@deepseek-ai/cordis':
-        specifier: ~4.0.4
-        version: 4.0.4(@deepseek-ai/cordis-plugin-include@1.0.9)(@deepseek-ai/cordis-plugin-loader@1.0.5)
-      '@deepseek-ai/dsh-tools':
-        specifier: 0.2.0-rc.2
-        version: 0.2.0-rc.2(52b5a8ab481be2b3d891c22a71641755)
-      '@hibernalglow/xaihi-sdk':
-        specifier: workspace:*
-        version: link:../../packages/node-sdk
-      '@module-federation/enhanced':
-        specifier: 2.9.2
-        version: 2.9.2(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))(typescript@6.0.3)
-      '@rspack/cli':
-        specifier: 2.2.8
-        version: 2.2.8(@rspack/core@2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23))
-      '@rspack/core':
-        specifier: 2.2.8
-        version: 2.2.8(@module-federation/runtime-tools@2.9.2)(@swc/helpers@0.5.23)
-      '@types/react':
-        specifier: ^18.3.0
-        version: 18.3.31
-      '@types/react-dom':
-        specifier: ^18.3.7
-        version: 18.3.7(@types/react@18.3.31)
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -14916,6 +14851,26 @@ snapshots:
   '@opentui/core-win32-x64@0.4.5':
     optional: true
 
+  '@opentui/core@0.4.5(typescript@6.0.3)(web-tree-sitter@0.25.10)':
+    dependencies:
+      bun-ffi-structs: 0.2.4(typescript@6.0.3)
+      diff: 9.0.0
+      marked: 17.0.1
+      string-width: 7.2.0
+      strip-ansi: 7.1.2
+      web-tree-sitter: 0.25.10
+    optionalDependencies:
+      '@opentui/core-darwin-arm64': 0.4.5
+      '@opentui/core-darwin-x64': 0.4.5
+      '@opentui/core-linux-arm64': 0.4.5
+      '@opentui/core-linux-arm64-musl': 0.4.5
+      '@opentui/core-linux-x64': 0.4.5
+      '@opentui/core-linux-x64-musl': 0.4.5
+      '@opentui/core-win32-arm64': 0.4.5
+      '@opentui/core-win32-x64': 0.4.5
+    transitivePeerDependencies:
+      - typescript
+
   '@opentui/core@0.4.5(typescript@7.0.2)(web-tree-sitter@0.25.10)':
     dependencies:
       bun-ffi-structs: 0.2.4(typescript@7.0.2)
@@ -14935,6 +14890,17 @@ snapshots:
       '@opentui/core-win32-x64': 0.4.5
     transitivePeerDependencies:
       - typescript
+
+  '@opentui/react@0.4.5(react-devtools-core@7.0.1)(react@19.2.4)(typescript@6.0.3)(web-tree-sitter@0.25.10)(ws@8.22.0)':
+    dependencies:
+      '@opentui/core': 0.4.5(typescript@6.0.3)(web-tree-sitter@0.25.10)
+      react: 19.2.4
+      react-devtools-core: 7.0.1
+      react-reconciler: 0.33.0(react@19.2.4)
+      ws: 8.22.0
+    transitivePeerDependencies:
+      - typescript
+      - web-tree-sitter
 
   '@opentui/react@0.4.5(react-devtools-core@7.0.1)(react@19.2.4)(typescript@7.0.2)(web-tree-sitter@0.25.10)(ws@8.22.0)':
     dependencies:
@@ -16992,6 +16958,10 @@ snapshots:
     dependencies:
       '@types/react': 18.3.31
 
+  '@types/react-dom@18.3.7(@types/react@19.2.10)':
+    dependencies:
+      '@types/react': 19.2.10
+
   '@types/react-dom@19.3.0(@types/react@19.3.0)':
     dependencies:
       '@types/react': 19.3.0
@@ -17450,6 +17420,10 @@ snapshots:
   buffer-image-size@0.6.4:
     dependencies:
       '@types/node': 22.20.5
+
+  bun-ffi-structs@0.2.4(typescript@6.0.3):
+    dependencies:
+      typescript: 6.0.3
 
   bun-ffi-structs@0.2.4(typescript@7.0.2):
     dependencies:
