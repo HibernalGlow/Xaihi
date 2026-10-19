@@ -2,7 +2,6 @@ import { createServer } from 'node:http'
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawn } from 'node:child_process'
 import { uiBundleHandler, UI_PATH_PREFIX } from '../packages/core/lib/routes.js'
 import { computeRev } from '../packages/core/lib/registry.js'
 
@@ -108,8 +107,4 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`[Xaihi 工作台服务已启动]`)
   console.log(`- 访问地址: ${targetUrl}`)
   console.log(`- 快捷地址: http://127.0.0.1:${PORT}/`)
-
-  try {
-    spawn('open', [targetUrl], { detached: true, stdio: 'ignore' }).unref()
-  } catch {}
 })

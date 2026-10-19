@@ -95,7 +95,9 @@ function ensureBundles (needed) {
   return { added: missing, bundles: manifest.dsh.profile.bundles }
 }
 
+const NO_BROWSER_ENTRY = '- id: web-runtime\n  config:\n    openBrowser: false\n'
 const PATCH_ENTRY = '# dev-shell 装配：工作台文档的产物目录必须显式给 core（默认空串 ⇒ 503）。\n'
+  + NO_BROWSER_ENTRY
   + '- id: xaihi-core\n  config:\n    verbose: false\n'
   + `    uiBundleDir: ${JSON.stringify(UI_BUNDLE_DIR)}\n`
 
@@ -110,9 +112,12 @@ function ensureProfilePatch () {
   if (current.includes('uiBundleDir')) {
     const matches = current.match(/^[ \t]+uiBundleDir:.*$/gmu) ?? []
     if (matches.length !== 1) fail('uiBundleDir 出现多次或不是标准字段，无法自动更新产品入口')
-    const updated = current.replace(/(^[ \t]+uiBundleDir:).*$/mu, `$1 ${JSON.stringify(UI_BUNDLE_DIR)}`)
+    let updated = current.replace(/(^[ \t]+uiBundleDir:).*$/mu, `$1 ${JSON.stringify(UI_BUNDLE_DIR)}`)
+    if (!/(?:^|\n)- id: web-runtime\n[ \t]+config:\n[ \t]+openBrowser: false(?:\n|$)/u.test(updated)) {
+      updated = `${updated.trimEnd()}\n\n${NO_BROWSER_ENTRY.trimEnd()}\n`
+    }
     if (updated !== current) writeFileSync(patch, updated)
-    return 'uiBundleDir 已对齐当前产品产物'
+    return 'uiBundleDir 与浏览器自动打开策略已对齐'
   }
   const trimmed = current.trimEnd()
   const written = /^\[\s*\]\s*$/mu.test(trimmed)
@@ -198,6 +203,11 @@ if (mode === 'launch') {
     for (const line of lines) console.error(`  - ${line}`)
     process.exit(1)
   }
+  if (!existsSync(profileManifest())) fail(`profile ${PROFILE} 不存在，先跑 node desktop/dev-shell.mjs profile`)
+  console.log(`dev-shell: ${ensureProfilePatch()}`)
+  const verdict = validateProfile()
+  console.log(`dev-shell: ${verdict}`)
+  if (!verdict.includes('解析通过')) fail('profile 配置未通过 DSH 解析，已阻止启动')
   const stuck = [...portBusy(9229), ...portBusy(9222)]
   if (stuck.length > 0) {
     console.error(`dev-shell launch: 调试端口已被占（${[...new Set(stuck)].join(', ')}）⇒ 上一个壳还活着。`

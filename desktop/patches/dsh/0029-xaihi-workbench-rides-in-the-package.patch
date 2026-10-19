@@ -118,7 +118,8 @@ index 270d87d..9c7bb9a 100644
 +  const patchPath = join(projectDir, 'cordis.patch.yml')
 +  const current = existsSync(patchPath) ? readFileSync(patchPath, 'utf8') : ''
 +  if (current.includes('uiBundleDir')) return
-+  const row = '# Xaihi workbench: the shipped document directory must be explicit, otherwise the route answers 503.\n'
++  const row = '# Xaihi workbench: startup must stay inside the selected shell; the Web runtime must not open a second browser window.\n'
++    + '- id: web-runtime\n  config:\n    openBrowser: false\n'
 +    + `- id: xaihi-core\n  config:\n    verbose: ${String(shipped.payload.coreConfig.verbose)}\n`
 +    + `    uiBundleDir: ${JSON.stringify(join(shipped.dir, 'ui'))}\n`
 +  writeFileSync(patchPath, current.trimEnd().length === 0 ? row : `${current.trimEnd()}\n\n${row}`)

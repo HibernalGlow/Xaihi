@@ -36,7 +36,7 @@
     "serve:workspace": "node scripts/serve-workspace.mjs",
     "dev:ui": "pnpm --filter @hibernalglow/xaihi-ui dev",
     "dev": "node scripts/dev.mjs",
-    "host:web": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh --profile xaihi",
+    "host:web": "DSH_HOME=$PWD/../.scratch/dsh-xaihi-home pnpm exec dsh --profile xaihi --no-open",
     "desktop:profile": "node desktop/dev-shell.mjs profile",
     "desktop:check": "node desktop/dev-shell.mjs check",
     "desktop:launch": "node desktop/dev-shell.mjs launch",

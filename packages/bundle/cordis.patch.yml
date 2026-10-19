@@ -5,6 +5,9 @@
 # （见 packages/ui-host/tsdown.config.ts 的握手 id）。
 # 每个节点插件自带自己的 cordis.patch.yml，不写在这里——那样才能在 Plugins 页
 # 单独开关而不影响工作台。
+- id: web-runtime
+  config:
+    openBrowser: false
 - insert:
     - id: xaihi-core
       name: '@hibernalglow/xaihi-core'
