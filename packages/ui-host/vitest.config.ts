@@ -29,6 +29,7 @@ export default defineConfig({
       // `@xiranite/*` 与 `@/` 都按同一张表解析（表本身由 build-aliases.mjs 自检：
       // 每一条都指得到真源码）。三处共用一张表，改一处就会在另一处红。
       ...XIRANITE_ALIASES,
+      '@hibernalglow/xaihi-ui-kit': fileURLToPath(new URL('../ui-kit/src/index.ts', import.meta.url)),
       '@hibernalglow/xaihi-kisaki': fileURLToPath(new URL('../../plugins/kisaki/src', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       'zod': fileURLToPath(import.meta.resolve('zod')),
@@ -67,6 +68,8 @@ export default defineConfig({
       'src/nodes/kisaki/source-inputs.test.tsx',
       'src/nodes/kisaki/views/KisakiAppearance.test.tsx',
       'src/nodes/shared/useNodeSurface.test.ts',
+      // Shellect keeps a legacy face and an MD3E face; both share the DSH revision contract.
+      'src/nodes/shellect/Component.test.tsx',
       // 2026-10-07 加：`workspaceContext.tsx` 从 REST 换成桥之后，这一份是**唯一**在 React 层
       // 量 `WorkspaceProvider` 新契约的文件（握手门控 / 宿主读写 `state.getData|patchData` /
       // 防抖 / 竞态保护；11 条实测绿，假桥 `fakeHost` 在文件内）。静态那条（入口起桥、快照该走
@@ -101,6 +104,13 @@ export default defineConfig({
       'src/store/persistedUiPreferences.test.ts',
       // Explicit links must not swallow the first view change after a remount.
       'src/components/workspace/WorkspaceUrlState.test.tsx',
+      'src/components/workspace/FloatingComponentWindow.test.tsx',
+      'src/components/workspace/WorkspaceWindowRestorer.test.tsx',
+      'src/backend/browserPopup.test.ts',
+      // MD3E node surfaces must resolve each expressive color role from its matching MD system token.
+      'src/nodes/shared/Md3eNodeSurfaceTokens.test.ts',
+      // MD3E migration coverage: every migrated node must mount both faces.
+      'src/nodes/shared/all-nodes-md3e-views.test.tsx',
     ],
     server: {
       deps: {

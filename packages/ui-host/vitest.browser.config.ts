@@ -9,6 +9,9 @@ export default defineConfig({
   resolve: {
     alias: {
       ...XIRANITE_ALIASES,
+      '@hibernalglow/xaihi-sdk/bridge': fileURLToPath(new URL('../node-sdk/src/bridge.ts', import.meta.url)),
+      '@hibernalglow/xaihi-sdk/operations': fileURLToPath(new URL('../node-sdk/src/operations.ts', import.meta.url)),
+      '@hibernalglow/xaihi-sdk/manifest': fileURLToPath(new URL('../node-sdk/src/manifest.ts', import.meta.url)),
       ...BROWSER_GRAPH_ALIASES,
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       'zod': fileURLToPath(import.meta.resolve('zod')),
@@ -46,7 +49,11 @@ export default defineConfig({
       ],
       headless: true,
     },
-    include: ['tests/workspace-app-render.spec.tsx'],
+    include: [
+      'tests/workspace-app-render.spec.tsx',
+      'tests/shellect-md3e-layout.spec.tsx',
+      'tests/all-nodes-md3e-layout.spec.tsx',
+    ],
     server: {
       deps: {
         inline: ['@material/material-color-utilities'],

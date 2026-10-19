@@ -56,8 +56,8 @@ describe('工作台 App 根组件渲染', () => {
     expect(container.innerHTML).not.toBe('')
   })
 
-  it('当带有 node=sleept 参数时渲染独立节点窗口而不是工作台', async () => {
-    // 模拟原生桌面子窗口 URL 参数: ?node=sleept
+  it('浏览器忽略残留的 node 参数并继续渲染工作台', async () => {
+    // 普通浏览器不能把 node 参数当成独立窗口指令；该能力只由原生桌面壳提供。
     window.history.replaceState({}, '', '/xaihi/ui/rev/index.html?node=sleept')
 
     const queryClient = new QueryClient({
@@ -76,15 +76,12 @@ describe('工作台 App 根组件渲染', () => {
       </StrictMode>,
     )
 
-    // 等待浮窗组件挂载并确认类名 .xiranite-floating-window
+    // 等待工作台保留画布与顶栏，而不是把旧节点 URL 误判成 popup。
     await waitFor(() => {
-      const floatingWindow = container.querySelector('.xiranite-floating-window')
-      expect(floatingWindow).not.toBeNull()
+      expect(container.querySelector('[data-context-menu="workspace-canvas"]')).not.toBeNull()
     }, { timeout: 3000 })
 
-    // 独立窗口中不应该存在完整工作区画布与 TopBar
-    expect(container.querySelector('[data-context-menu="workspace-canvas"]')).toBeNull()
-    expect(container.querySelector('header')).toBeNull()
-    expect(container.querySelector('[data-testid="compact-action-switch"]')).toBeNull()
+    expect(container.querySelector('header')).not.toBeNull()
+    expect(container.querySelector('[data-testid="compact-action-switch"]')).not.toBeNull()
   })
 })
