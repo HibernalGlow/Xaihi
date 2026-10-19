@@ -1397,12 +1397,24 @@ var ShellectManager = class {
 //#endregion
 //#region src/index.ts
 const name = "@hibernalglow/xaihi-shellect";
-const actionPolicy = Schema.object({
+interface ShellectActionPolicy {
+	enabled: boolean;
+	title: string;
+	order: number;
+}
+interface ShellectPlatformPolicy {
+	enabled: boolean;
+	title: string;
+	actions: Record<string, ShellectActionPolicy>;
+}
+// Schema.dict 的返回类型引用 cosmokit 的 Dict，声明文件里指不到（TS2883）。
+// 与 packages/core 同一处理：标注内层两份，Config 的推断就不再带出 Dict。
+const actionPolicy: Schema<ShellectActionPolicy> = Schema.object({
 	enabled: Schema.boolean().default(true),
 	title: Schema.string().default(""),
 	order: Schema.number().default(0)
 });
-const platformPolicy = Schema.object({
+const platformPolicy: Schema<ShellectPlatformPolicy> = Schema.object({
 	enabled: Schema.boolean().default(true),
 	title: Schema.string().default(""),
 	actions: Schema.dict(actionPolicy).default({})
