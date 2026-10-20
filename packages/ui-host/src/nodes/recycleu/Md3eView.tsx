@@ -1,5 +1,5 @@
 import type { RecycleuInput } from "@xiranite/node-recycleu/core"
-import { Activity, Gauge, HardDrive, Infinity as InfinityIcon, Play, RotateCcw, ShieldCheck, Square, Trash2 } from "lucide-react"
+import { Play, RotateCcw, ShieldCheck, Square, Trash2 } from "lucide-react"
 import { FloatingWindowNodeHeader } from "@/components/workspace/FloatingWindowFrame"
 import { Button } from "@/components/ui/button"
 import { NodeConfigPopover } from "@/nodes/shared/NodeConfigPopover"
@@ -8,13 +8,9 @@ import {
   Md3eCollapsedCapsule,
   Md3eCommandDock,
   Md3eExpressiveHero,
-  Md3eNodeShapePolicyPanel,
   Md3eNodeSurface,
-  Md3eShapePreviewGlyph,
   Md3eStatusPill,
   Md3eTonalZone,
-  Md3eWavyProgress,
-  useMd3eShapeContext,
 } from "@/nodes/shared/controls"
 import type { useNodeI18n } from "@/nodes/shared/useNodeI18n"
 import type { NodeSurface } from "@/nodes/shared/useNodeSurface"
@@ -88,10 +84,10 @@ export function RecycleuMd3eView(props: RecycleuMd3eViewProps) {
   }
 
   const stats = [
-    { label: props.t("metrics.target", "清理范围"), value: target, tone: "primary" as const, icon: HardDrive },
-    { label: props.t("metrics.interval", "执行间隔"), value: `${props.interval}s`, tone: "secondary" as const, icon: Gauge },
-    { label: props.t("metrics.cycles", "循环上限"), value: props.maxCycles === 0 ? "∞" : props.maxCycles, tone: "tertiary" as const, icon: Activity },
-    { label: "已清理", value: props.cleanCount, tone: "danger" as const, icon: Trash2 },
+    { label: props.t("metrics.target", "清理范围"), value: target, tone: "primary" as const },
+    { label: props.t("metrics.interval", "执行间隔"), value: `${props.interval}s`, tone: "secondary" as const },
+    { label: props.t("metrics.cycles", "循环上限"), value: props.maxCycles === 0 ? "∞" : props.maxCycles, tone: "tertiary" as const },
+    { label: "已清理", value: props.cleanCount, tone: "danger" as const },
   ]
 
   const statusTone =
@@ -201,15 +197,6 @@ export function RecycleuMd3eView(props: RecycleuMd3eViewProps) {
             </div>
           </Md3eTonalZone>
 
-          <Md3eTonalZone
-            className="hidden @md/recycleu:flex"
-            tone="tertiary"
-            eyebrow="SHAPE LANGUAGE"
-            title="按钮形状策略"
-            badge={<Md3eStatusPill label="节点级" tone="tertiary" compact />}
-          >
-            <Md3eNodeShapePolicyPanel nodeId="recycleu" compact />
-          </Md3eTonalZone>
         </div>
 
         <Md3eTonalZone
@@ -232,10 +219,9 @@ export function RecycleuMd3eView(props: RecycleuMd3eViewProps) {
       <Md3eCommandDock
         leading={
           <div className="flex flex-wrap items-center gap-2">
-            <Md3eStatusPill
-              label={props.maxCycles === 0 ? "无限循环模式" : `最多 ${props.maxCycles} 轮`}
-              tone={props.maxCycles === 0 ? "danger" : "secondary"}
-            />
+            <Md3eStatusPill tone={props.maxCycles === 0 ? "danger" : "secondary"}>
+              {props.maxCycles === 0 ? "无限循环模式" : `最多 ${props.maxCycles} 轮`}
+            </Md3eStatusPill>
             <span className="truncate text-xs text-muted-foreground">
               上次清理：{props.lastCleanTime ?? props.t("common.none", "暂无")}
             </span>
@@ -306,27 +292,20 @@ function RecycleuPulseDial({ cleanCount, interval, maxCycles, progress, remainin
   status: RecycleuStatusMeta
   t: RecycleuMd3eViewProps["t"]
 }) {
-  const shapeContext = useMd3eShapeContext()
-  const shapeId = shapeContext?.activeRoleShapes.primary ?? "cookie-8"
   const value = Math.max(0, Math.min(100, progress))
   const radius = 43
   const circumference = 2 * Math.PI * radius
   const activeLength = circumference * value / 100
 
   return (
-    <div data-recycleu-md3e-dial data-md3e-recycleu-shape={shapeId} className="grid min-w-0 shrink-0 place-items-center py-1">
-      <div className="relative grid size-36 place-items-center @sm/recycleu:size-44 @lg/recycleu:size-52">
-        <Md3eShapePreviewGlyph
-          shapeId={shapeId}
-          className="pointer-events-none absolute inset-0 size-full fill-[var(--md3e-primary-container,var(--secondary))] opacity-90"
-        />
-        <div className="absolute inset-[13%] rounded-full bg-[var(--md3e-surface-lowest,var(--card))]/90 shadow-[0_10px_28px_color-mix(in_oklab,var(--md3e-primary,var(--primary))_18%,transparent)]" />
+    <div data-recycleu-md3e-dial className="grid shrink-0 place-items-center py-1">
+      <div className="relative grid size-32 place-items-center">
         <svg
           aria-label={t("dial.aria", "清理周期进度")}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={value}
-          className="absolute inset-[13%] size-[74%] -rotate-90 overflow-visible"
+          className="absolute inset-0 size-full -rotate-90 overflow-visible"
           role="progressbar"
           viewBox="0 0 100 100"
         >
@@ -361,26 +340,19 @@ function RecycleuPulseDial({ cleanCount, interval, maxCycles, progress, remainin
             )
           })}
         </svg>
-        <div className="relative z-10 flex min-w-0 max-w-[72%] flex-col items-center gap-0.5 text-center">
+        <div className="relative z-10 flex min-w-0 flex-col items-center gap-0.5 text-center">
           {running ? (
             <span className="text-2xl font-black tabular-nums leading-none">{remainingSeconds}<span className="ml-0.5 text-xs font-bold">{t("units.secondsShort", "秒")}</span></span>
           ) : (
             <Trash2 aria-hidden="true" className="size-7 text-[var(--md3e-primary,var(--primary))]" />
           )}
-          <span className="max-w-full truncate text-[10px] font-bold text-muted-foreground">{status.label}</span>
+          <span className="max-w-20 truncate text-[10px] font-bold text-muted-foreground">{status.label}</span>
         </div>
       </div>
-      <Md3eWavyProgress
-        className="mt-2 max-w-[15rem]"
-        label={t("dial.aria", "清理周期进度")}
-        value={value}
-      />
-      <div className="mt-1 flex max-w-full flex-wrap items-center justify-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
-        <Md3eStatusPill
-          label={maxCycles === 0 ? t("common.unlimited", "无限") : t("dial.cycleLimit", "上限 {{count}} 次", { count: maxCycles })}
-          tone={maxCycles === 0 ? "danger" : "secondary"}
-          icon={maxCycles === 0 ? InfinityIcon : undefined}
-        />
+      <div className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
+        <Md3eStatusPill tone={maxCycles === 0 ? "danger" : "secondary"}>
+          {maxCycles === 0 ? t("common.unlimited", "无限") : t("dial.cycleLimit", "上限 {{count}} 次", { count: maxCycles })}
+        </Md3eStatusPill>
         <span>{t("dial.cleaned", "已清理 {{count}} 次", { count: cleanCount })}</span>
         <span aria-hidden="true">·</span>
         <span>{interval}{t("units.secondsShort", "秒")}</span>

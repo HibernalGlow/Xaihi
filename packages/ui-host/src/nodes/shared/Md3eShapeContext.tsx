@@ -20,7 +20,6 @@ import {
   DEFAULT_NODE_SHAPE_POLICY,
   detectHostClipPathSupport,
   getMd3eShapeSpec,
-  MD3E_EXPRESSIVE_SHAPES,
   MD3E_BUTTON_ROLES,
   readNodeShapePolicy,
   resolveMd3eButtonShape,
@@ -610,24 +609,14 @@ export function Md3eNodeShapePolicyPanel({
   if (!ctx) return null
   const { policy, activeRoleShapes, setPolicyMode, pinCurrentShapes, setRoleShape } = ctx
   return (
-    <div
-      className={cn("flex min-w-0 flex-col gap-2.5 p-2", className)}
-      data-md3e-shape-mode={policy.mode}
-      data-testid={`shape-policy-panel-${nodeId}`}
-    >
+    <div className={cn("flex flex-col gap-2.5 p-2", className)} data-testid={`shape-policy-panel-${nodeId}`}>
       <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <span className="block truncate text-xs font-semibold">节点按钮形状策略 ({nodeId})</span>
-          <span className="block truncate text-[10px] text-muted-foreground">
-            {policy.mode === "random-on-startup" ? "启动时抽取，会话内保持一致" : "当前组合已固定"}
-          </span>
-        </div>
-        <div className="flex shrink-0 items-center gap-1" role="group" aria-label="形状策略">
+        <span className="text-xs font-semibold">节点按钮形状策略 ({nodeId})</span>
+        <div className="flex items-center gap-1">
           <button
             type="button"
-            aria-pressed={policy.mode === "random-on-startup"}
             className={cn(
-              "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+              "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
               policy.mode === "random-on-startup"
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:text-foreground"
@@ -638,9 +627,8 @@ export function Md3eNodeShapePolicyPanel({
           </button>
           <button
             type="button"
-            aria-pressed={policy.mode === "fixed"}
             className={cn(
-              "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+              "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
               policy.mode === "fixed"
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:text-foreground"
@@ -651,33 +639,20 @@ export function Md3eNodeShapePolicyPanel({
           </button>
         </div>
       </div>
-      <div className="grid min-w-0 grid-cols-2 gap-1.5 @[360px]:grid-cols-3">
+      <div className="grid grid-cols-3 gap-1.5">
         {MD3E_BUTTON_ROLES.map((role) => {
           const shapeId = activeRoleShapes[role] ?? "circle"
           const spec = getMd3eShapeSpec(shapeId)
           return (
             <div
               key={role}
-              className="flex min-w-0 items-center gap-1.5 rounded-[14px] border border-border/50 bg-muted/20 px-2 py-1.5 text-[10px]"
+              className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-muted/20 px-2 py-1 text-[10px]"
             >
               <Md3eShapePreviewGlyph shapeId={shapeId} className="size-3.5 text-primary" />
               <div className="min-w-0 flex-1 truncate">
                 <div className="font-mono text-[9px] uppercase text-muted-foreground">{role}</div>
                 <div className="truncate font-medium text-foreground">{spec.labelZh}</div>
               </div>
-              <select
-                aria-label={`${role} 图标按钮形状`}
-                className="h-7 max-w-20 min-w-0 rounded-full border border-border/60 bg-background px-2 text-[10px] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={shapeId}
-                onChange={(event) => {
-                  const next = MD3E_EXPRESSIVE_SHAPES.find((shape) => shape.id === event.currentTarget.value)
-                  if (next) void setRoleShape(role, next.id)
-                }}
-              >
-                {MD3E_EXPRESSIVE_SHAPES.map((shape) => (
-                  <option key={shape.id} value={shape.id}>{shape.labelZh}</option>
-                ))}
-              </select>
             </div>
           )
         })}
