@@ -36,6 +36,20 @@ rebuild anything DSH already provides.
   development host plus a headless browser with a debugging port. Like `check:cliface` and
   `check:tuiface` it is field forensics and is **deliberately not wired into `pnpm test`**.
 
+## Screens
+
+<p align="center">
+  <img src="./assets/readme/screenshots/trellis.webp" width="100%" alt="Xaihi's trellis workspace with three nodes open side by side: Kisaki's forensic console, Gifu's animation compiler and ClassF's classification queue.">
+</p>
+
+The trellis view lays multiple nodes out at once. Here **Kisaki**, **Gifu** and **ClassF** share one workspace, each keeping its own panel and controls.
+
+<p align="center">
+  <img src="./assets/readme/screenshots/module-library.webp" width="100%" alt="Xaihi's module library in light mode: installed node bundles and the workbench's built-in views, each with a description, category and version.">
+</p>
+
+The module library lists the installed node bundles alongside the workbench's four built-in views.
+
 ## How it works
 
 <p align="center">

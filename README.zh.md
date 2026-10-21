@@ -31,6 +31,20 @@ Xaihi 是给 **DeepSeek Harness（DSH）** 加的一层工作台：**27 个领�
   五条判据全部读自界面与对面，前置是一个在跑的开发宿主加一个开了调试端口的无窗口浏览器。
   它和 `check:cliface`、`check:tuiface` 一样属于现场取证，**故意还没接进 `pnpm test`**。
 
+## 界面
+
+<p align="center">
+  <img src="./assets/readme/screenshots/trellis.webp" width="100%" alt="Xaihi 的分形工作台同时铺开三个节点：Kisaki 的取证控制台、Gifu 的动画编译台和 ClassF 的分类队列。">
+</p>
+
+分形视图把多个节点同时铺在一个工作台里。这里 **Kisaki**、**Gifu**、**ClassF** 各占一块，各自保留自己的面板与控件。
+
+<p align="center">
+  <img src="./assets/readme/screenshots/module-library.webp" width="100%" alt="Xaihi 的模块库（浅色）：已安装的节点包与工作台内置视图，逐项列出说明、分类与版本。">
+</p>
+
+模块库把已安装的节点包和工作台的四个内置视图列在一起。
+
 ## 怎么运作
 
 <p align="center">
