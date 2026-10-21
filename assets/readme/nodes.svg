@@ -11,7 +11,6 @@
   </defs>
 
   <rect width="1200" height="640" rx="24" fill="#0A1218"/>
-  <polygon points="900,0 1200,0 1200,150 1010,300 880,220" fill="#5DE6FE" opacity="0.04"/>
 
   <g id="head" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
     <text x="56" y="52" font-size="16" letter-spacing="3" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">plugins/* · xaihi.node/v1</text>
@@ -49,7 +48,7 @@
       <text x="800" y="146" font-size="19" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">enginev</text>
       <text x="800" y="172" font-size="15" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">5</text>
       <text x="800" y="192" font-size="11" fill="#7095AD" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" opacity="0.85">file</text>
-      <path d="M916 88 L969.7 119 L969.7 181 L916 212 L862.3 181 L862.3 119 Z" fill="#3E9CB8" stroke="#69B3C8" stroke-opacity="0.5" stroke-opacity="0.85" stroke-dasharray="5 4"/>
+      <path d="M916 88 L969.7 119 L969.7 181 L916 212 L862.3 181 L862.3 119 Z" fill="#3E9CB8" stroke="#69B3C8" stroke-opacity="0.85" stroke-dasharray="5 4"/>
       <text x="916" y="146" font-size="19" fill="#DCECF3" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">findz</text>
       <text x="916" y="172" font-size="15" fill="#9FC0D2" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">13</text>
       <text x="916" y="192" font-size="11" fill="#7095AD" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" opacity="0.85">file</text>
@@ -116,6 +115,7 @@
   </g>
 
   <g id="legend" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
+    <path d="M 966.00 91.00 C 966.29 91.00 966.59 91.06 966.87 91.17 C 967.15 91.27 967.42 91.44 967.66 91.64 C 967.91 91.83 968.13 92.09 968.32 92.34 C 968.52 92.60 968.58 93.08 968.82 93.18 C 969.07 93.28 969.45 92.99 969.77 92.94 C 970.09 92.90 970.43 92.88 970.74 92.91 C 971.05 92.94 971.36 93.02 971.63 93.14 C 971.90 93.26 972.16 93.43 972.36 93.64 C 972.57 93.84 972.74 94.10 972.86 94.37 C 972.98 94.64 973.06 94.95 973.09 95.26 C 973.12 95.57 973.10 95.91 973.06 96.23 C 973.01 96.55 972.72 96.93 972.82 97.18 C 972.92 97.42 973.40 97.48 973.66 97.68 C 973.91 97.87 974.17 98.09 974.36 98.34 C 974.56 98.58 974.73 98.85 974.83 99.13 C 974.94 99.41 975.00 99.71 975.00 100.00 C 975.00 100.29 974.94 100.59 974.83 100.87 C 974.73 101.15 974.56 101.42 974.36 101.66 C 974.17 101.91 973.91 102.13 973.66 102.32 C 973.40 102.52 972.92 102.58 972.82 102.82 C 972.72 103.07 973.01 103.45 973.06 103.77 C 973.10 104.09 973.12 104.43 973.09 104.74 C 973.06 105.05 972.98 105.36 972.86 105.63 C 972.74 105.90 972.57 106.16 972.36 106.36 C 972.16 106.57 971.90 106.74 971.63 106.86 C 971.36 106.98 971.05 107.06 970.74 107.09 C 970.43 107.12 970.09 107.10 969.77 107.06 C 969.45 107.01 969.07 106.72 968.82 106.82 C 968.58 106.92 968.52 107.40 968.32 107.66 C 968.13 107.91 967.91 108.17 967.66 108.36 C 967.42 108.56 967.15 108.73 966.87 108.83 C 966.59 108.94 966.29 109.00 966.00 109.00 C 965.71 109.00 965.41 108.94 965.13 108.83 C 964.85 108.73 964.58 108.56 964.34 108.36 C 964.09 108.17 963.87 107.91 963.68 107.66 C 963.48 107.40 963.42 106.92 963.18 106.82 C 962.93 106.72 962.55 107.01 962.23 107.06 C 961.91 107.10 961.57 107.12 961.26 107.09 C 960.95 107.06 960.64 106.98 960.37 106.86 C 960.10 106.74 959.84 106.57 959.64 106.36 C 959.43 106.16 959.26 105.90 959.14 105.63 C 959.02 105.36 958.94 105.05 958.91 104.74 C 958.88 104.43 958.90 104.09 958.94 103.77 C 958.99 103.45 959.28 103.07 959.18 102.82 C 959.08 102.58 958.60 102.52 958.34 102.32 C 958.09 102.13 957.83 101.91 957.64 101.66 C 957.44 101.42 957.27 101.15 957.17 100.87 C 957.06 100.59 957.00 100.29 957.00 100.00 C 957.00 99.71 957.06 99.41 957.17 99.13 C 957.27 98.85 957.44 98.58 957.64 98.34 C 957.83 98.09 958.09 97.87 958.34 97.68 C 958.60 97.48 959.08 97.42 959.18 97.18 C 959.28 96.93 958.99 96.55 958.94 96.23 C 958.90 95.91 958.88 95.57 958.91 95.26 C 958.94 94.95 959.02 94.64 959.14 94.37 C 959.26 94.10 959.43 93.84 959.64 93.64 C 959.84 93.43 960.10 93.26 960.37 93.14 C 960.64 93.02 960.95 92.94 961.26 92.91 C 961.57 92.88 961.91 92.90 962.23 92.94 C 962.55 92.99 962.93 93.28 963.18 93.18 C 963.42 93.08 963.48 92.60 963.68 92.34 C 963.87 92.09 964.09 91.83 964.34 91.64 C 964.58 91.44 964.85 91.27 965.13 91.17 C 965.41 91.06 965.71 91.00 966.00 91.00 Z" fill="#5DE6FE" opacity="0.7"/>
     <text x="984" y="104" font-size="16" letter-spacing="2" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">填充 = action 数</text>
       <path d="M1008 120 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#3E9CB8" stroke="#69B3C8" stroke-opacity="0.7"/>
       <text x="1042" y="142" font-size="15" fill="#8FA6BC" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">9+ 个 action</text>
@@ -130,19 +130,16 @@
 
     <text x="984" y="308" font-size="17" fill="#DCECF3">三处例外</text>
     <path d="M1014 322 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#2E7E99" stroke="#69B3C8" stroke-opacity="0.85" stroke-dasharray="5 4"/>
-    <text x="1042" y="344" font-size="15" fill="#8FA6BC" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">findz · 无 bin</text>
+    <text x="1036" y="344" font-size="12" fill="#8FA6BC" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">findz · 无 bin</text>
     <path d="M1014 358 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#2E7E99" stroke="#D63C82" stroke-width="2"/>
-    <text x="1042" y="380" font-size="15" fill="#8FA6BC" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">kisaki · Rust 内核</text>
+    <text x="1036" y="380" font-size="12" fill="#8FA6BC" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">kisaki · Rust 内核</text>
     <path d="M1014 394 l13 8 l0 15 l-13 8 l-13 -8 l0 -15 Z" fill="#2E7E99" stroke="#E0B84C" stroke-width="2"/>
-    <text x="1042" y="416" font-size="15" fill="#8FA6BC" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">shellect · approval</text>
+    <text x="1036" y="416" font-size="12" fill="#8FA6BC" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">shellect · approval</text>
 
-    <text x="984" y="470" font-size="15" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">99 actions · 22 / 23 有 bin</text>
-    <text x="984" y="494" font-size="15" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">registry.ts</text>
   </g>
 
   <g id="ribbon">
     <line x1="56" y1="600" x2="1144" y2="600" stroke="#22384A"/>
     <text x="56" y="628" font-size="16" fill="#69B3C8" opacity="0.45" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">01111000 01100001 01101001 01101000 01101001 00101110 01101110 01101111 01100100 01100101</text>
-    <text x="1144" y="628" font-size="16" fill="#7095AD" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">= xaihi.node…</text>
   </g>
 </svg>

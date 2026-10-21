@@ -1,70 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="548" viewBox="0 0 1200 548" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="548" viewBox="0 0 1200 548"
+     role="img" aria-labelledby="title desc">
   <title id="title">pnpm test 的 14 步门禁链，以及一步故意还没接线的 check:brand</title>
-  <desc id="desc">按执行顺序编号的 14 个步骤：版本钉死、技能可发现、bundle 可安装、词表、vendored 漂移、CLI 与节点注册表、契约、构建、产物、CLI 面、TUI 面、类型、单测。第 15 格是 check:brand，用玫红虚线标出它能跑也能证伪，但按 AGENTS.md 故意还没接进链里。</desc>
-
-  <defs>
-    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#5DE6FE" stop-opacity="0"/>
-      <stop offset="0.5" stop-color="#5DE6FE" stop-opacity="0.7"/>
-      <stop offset="1" stop-color="#5DE6FE" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-
-  <rect width="1200" height="548" rx="24" fill="#0A1218"/>
-  <polygon points="0,548 0,360 230,548" fill="#5DE6FE" opacity="0.04"/>
-
-  <g id="head" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
-    <text x="56" y="52" font-size="16" letter-spacing="3" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">pnpm test · package.json:25</text>
-    <text x="56" y="94" font-size="40" fill="#DCECF3">14 步门禁链</text>
-    <text x="300" y="94" font-size="20" fill="#8FA6BC">每条尺都要配阳性对照：关掉防御就必须变红</text>
-  </g>
-  <line x1="56" y1="116" x2="1144" y2="116" stroke="url(#rule)" stroke-width="1"/>
-
-  <g id="chain" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">
-    <g>
-      <rect x="56" y="140" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="76" y="178" font-size="16" fill="#5F7C93">01</text><text x="110" y="178" fill="#DCECF3">check:pins</text>
-      <rect x="331" y="140" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="351" y="178" font-size="16" fill="#5F7C93">02</text><text x="385" y="178" fill="#DCECF3">check:skills</text>
-      <rect x="606" y="140" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="626" y="178" font-size="16" fill="#5F7C93">03</text><text x="660" y="178" fill="#DCECF3">check:installable</text>
-      <rect x="881" y="140" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="901" y="178" font-size="16" fill="#5F7C93">04</text><text x="935" y="178" fill="#DCECF3">check:vocab</text>
-    </g>
-    <g>
-      <rect x="56" y="224" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="76" y="262" font-size="16" fill="#5F7C93">05</text><text x="110" y="262" fill="#DCECF3">check:vendored</text>
-      <rect x="331" y="224" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="351" y="262" font-size="16" fill="#5F7C93">06</text><text x="385" y="262" fill="#DCECF3">check:cliregistry</text>
-      <rect x="606" y="224" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="626" y="262" font-size="16" fill="#5F7C93">07</text><text x="660" y="262" fill="#DCECF3">check:noderegistry</text>
-      <rect x="881" y="224" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="901" y="262" font-size="16" fill="#5F7C93">08</text><text x="935" y="262" fill="#DCECF3">test:contract</text>
-    </g>
-    <g>
-      <rect x="56" y="308" width="260" height="64" rx="12" fill="#12232F" stroke="#69B3C8" stroke-opacity="0.5"/>
-      <text x="76" y="346" font-size="16" fill="#5F7C93">09</text><text x="110" y="346" fill="#A4D2E0">-r run build</text>
-      <rect x="331" y="308" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="351" y="346" font-size="16" fill="#5F7C93">10</text><text x="385" y="346" fill="#DCECF3">check:nodebundle</text>
-      <rect x="606" y="308" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="626" y="346" font-size="16" fill="#5F7C93">11</text><text x="660" y="346" fill="#DCECF3">check:cliface</text>
-      <rect x="881" y="308" width="260" height="64" rx="12" fill="#0E1A22" stroke="#22384A"/>
-      <text x="901" y="346" font-size="16" fill="#5F7C93">12</text><text x="935" y="346" fill="#DCECF3">check:tuiface</text>
-    </g>
-    <g>
-      <rect x="56" y="392" width="260" height="64" rx="12" fill="#12232F" stroke="#69B3C8" stroke-opacity="0.5"/>
-      <text x="76" y="430" font-size="16" fill="#5F7C93">13</text><text x="110" y="430" fill="#A4D2E0">-r run typecheck</text>
-      <rect x="331" y="392" width="260" height="64" rx="12" fill="#12232F" stroke="#69B3C8" stroke-opacity="0.5"/>
-      <text x="351" y="430" font-size="16" fill="#5F7C93">14</text><text x="385" y="430" fill="#A4D2E0">-r test:unit</text>
-      <rect x="606" y="392" width="260" height="64" rx="12" fill="none" stroke="#D63C82" stroke-dasharray="6 5"/>
-      <text x="626" y="430" font-size="16" fill="#E58AA8">未接线</text><text x="700" y="430" fill="#D63C82">check-brand.mjs</text>
-    </g>
-  </g>
-
-  <g id="notes" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
-    <text x="881" y="418" font-size="16" fill="#7095AD">CI 只跑 6 步：</text>
-    <text x="881" y="440" font-size="16" fill="#7095AD">01 02 03 09 13 14</text>
-    <text x="881" y="462" font-size="16" fill="#5F7C93" font-family="ui-monospace, Menlo, Consolas, monospace">.github/workflows/ci.yml</text>
-    <text x="56" y="500" font-size="16" fill="#E58AA8">scripts/check-brand.mjs 能跑、也能证伪（它不是 pnpm script），但按 AGENTS.md 故意还没接进链里 —— 看见它不在 CI 里，不要去「补上」。</text>
+  <desc id="desc">克制的 MD3 Expressive 门禁图：14 步统一用 arch 卡，只有 09/13/14 用高亮描边；第 15 格 check:brand 用同一轮廓的玫红虚线标出它故意未接线。</desc>
+  <defs><clipPath id="frameClip"><rect width="1200" height="548" rx="28"/></clipPath></defs>
+  <g clip-path="url(#frameClip)">
+<rect width="1200" height="548" fill="#0A1218"/>
+<text x="56" y="52" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#7095AD" letter-spacing="3">pnpm test · package.json:25</text>
+<text x="56" y="94" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="40" font-weight="500" fill="#DCECF3">14 步门禁链</text>
+<text x="300" y="94" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="400" fill="#8FA6BC">每条尺都要配阳性对照：关掉防御就必须变红</text>
+<text x="1144" y="94" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="96" font-weight="800" fill="#5DE6FE" letter-spacing="-2" text-anchor="end">14</text>
+<line x1="56" y1="116" x2="1144" y2="116" stroke="#22384A" stroke-width="1"/>
+<path d="M 56.00 204.00 L 56.00 166.00 Q 56.00 140.00 82.00 140.00 L 290.00 140.00 Q 316.00 140.00 316.00 166.00 L 316.00 204.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="78" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">01</text>
+<text x="112" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">check:pins</text>
+<path d="M 331.00 204.00 L 331.00 166.00 Q 331.00 140.00 357.00 140.00 L 565.00 140.00 Q 591.00 140.00 591.00 166.00 L 591.00 204.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="353" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">02</text>
+<text x="387" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">check:skills</text>
+<path d="M 606.00 204.00 L 606.00 166.00 Q 606.00 140.00 632.00 140.00 L 840.00 140.00 Q 866.00 140.00 866.00 166.00 L 866.00 204.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="628" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">03</text>
+<text x="662" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">check:installable</text>
+<path d="M 881.00 204.00 L 881.00 166.00 Q 881.00 140.00 907.00 140.00 L 1115.00 140.00 Q 1141.00 140.00 1141.00 166.00 L 1141.00 204.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="903" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">04</text>
+<text x="937" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">check:vocab</text>
+<path d="M 56.00 288.00 L 56.00 250.00 Q 56.00 224.00 82.00 224.00 L 290.00 224.00 Q 316.00 224.00 316.00 250.00 L 316.00 288.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="78" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">05</text>
+<text x="112" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">check:vendored</text>
+<path d="M 331.00 288.00 L 331.00 250.00 Q 331.00 224.00 357.00 224.00 L 565.00 224.00 Q 591.00 224.00 591.00 250.00 L 591.00 288.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="353" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">06</text>
+<text x="387" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">check:cliregistry</text>
+<path d="M 606.00 288.00 L 606.00 250.00 Q 606.00 224.00 632.00 224.00 L 840.00 224.00 Q 866.00 224.00 866.00 250.00 L 866.00 288.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="628" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">07</text>
+<text x="662" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">check:noderegistry</text>
+<path d="M 881.00 288.00 L 881.00 250.00 Q 881.00 224.00 907.00 224.00 L 1115.00 224.00 Q 1141.00 224.00 1141.00 250.00 L 1141.00 288.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="903" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">08</text>
+<text x="937" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">test:contract</text>
+<path d="M 56.00 372.00 L 56.00 334.00 Q 56.00 308.00 82.00 308.00 L 290.00 308.00 Q 316.00 308.00 316.00 334.00 L 316.00 372.00 Z" fill="#12232F" stroke="#69B3C8" stroke-opacity="0.55" stroke-width="1.5"/>
+<text x="78" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">09</text>
+<text x="112" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#A4D2E0">-r run build</text>
+<path d="M 331.00 372.00 L 331.00 334.00 Q 331.00 308.00 357.00 308.00 L 565.00 308.00 Q 591.00 308.00 591.00 334.00 L 591.00 372.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="353" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">10</text>
+<text x="387" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">check:nodebundle</text>
+<path d="M 606.00 372.00 L 606.00 334.00 Q 606.00 308.00 632.00 308.00 L 840.00 308.00 Q 866.00 308.00 866.00 334.00 L 866.00 372.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="628" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">11</text>
+<text x="662" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">check:cliface</text>
+<path d="M 881.00 372.00 L 881.00 334.00 Q 881.00 308.00 907.00 308.00 L 1115.00 308.00 Q 1141.00 308.00 1141.00 334.00 L 1141.00 372.00 Z" fill="#0E1A22" stroke="#22384A" stroke-opacity="1" stroke-width="1.5"/>
+<text x="903" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">12</text>
+<text x="937" y="348" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#DCECF3">check:tuiface</text>
+<path d="M 56.00 456.00 L 56.00 418.00 Q 56.00 392.00 82.00 392.00 L 290.00 392.00 Q 316.00 392.00 316.00 418.00 L 316.00 456.00 Z" fill="#12232F" stroke="#69B3C8" stroke-opacity="0.55" stroke-width="1.5"/>
+<text x="78" y="432" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">13</text>
+<text x="112" y="432" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#A4D2E0">-r run typecheck</text>
+<path d="M 331.00 456.00 L 331.00 418.00 Q 331.00 392.00 357.00 392.00 L 565.00 392.00 Q 591.00 392.00 591.00 418.00 L 591.00 456.00 Z" fill="#12232F" stroke="#69B3C8" stroke-opacity="0.55" stroke-width="1.5"/>
+<text x="353" y="432" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93">14</text>
+<text x="387" y="432" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" font-weight="500" fill="#A4D2E0">-r test:unit</text>
+<path d="M 606.00 456.00 L 606.00 418.00 Q 606.00 392.00 632.00 392.00 L 840.00 392.00 Q 866.00 392.00 866.00 418.00 L 866.00 456.00 Z" fill="none" stroke="#D63C82" stroke-width="1.8" stroke-dasharray="7 6"/>
+<text x="628" y="432" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="500" fill="#E58AA8">未接线</text>
+<text x="692" y="432" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" font-weight="500" fill="#D63C82">check-brand.mjs</text>
+<text x="881" y="418" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="400" fill="#7095AD">CI 只跑 6 步：</text>
+<text x="881" y="440" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="400" fill="#7095AD">01 02 03 09 13 14</text>
+<text x="881" y="462" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="400" fill="#5F7C93">.github/workflows/ci.yml</text>
+<text x="56" y="500" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="400" fill="#E58AA8">scripts/check-brand.mjs 能跑、也能证伪（它不是 pnpm script），但按 AGENTS.md 故意还没接进链里 —— 看见它不在 CI 里，不要去「补上」。</text>
   </g>
 </svg>

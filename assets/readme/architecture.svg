@@ -1,93 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="560" viewBox="0 0 1200 560"
+     role="img" aria-labelledby="title desc">
   <title id="title">Xaihi 的机制：27 个 plugin-bundle 装进 DSH 宿主，由 xaihi-core 聚合成三条对外路由</title>
-  <desc id="desc">左侧是 DSH 宿主与 27 个 plugin-bundle，中间 xaihi-core 负责发现与登记，右侧是它对外的三条路由：工作台文档、节点 remote、操作事件流。每条路由后面都注了源码行号。</desc>
-
-  <defs>
-    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#5DE6FE" stop-opacity="0"/>
-      <stop offset="0.5" stop-color="#5DE6FE" stop-opacity="0.7"/>
-      <stop offset="1" stop-color="#5DE6FE" stop-opacity="0"/>
-    </linearGradient>
-    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0 L10 5 L0 10 Z" fill="#69B3C8"/>
-    </marker>
-  </defs>
-
-  <rect width="1200" height="560" rx="24" fill="#0A1218"/>
-  <polygon points="1040,0 1200,0 1200,190 1080,90" fill="#5DE6FE" opacity="0.04"/>
-
-  <g id="head" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
-    <text x="56" y="52" font-size="16" letter-spacing="3" fill="#7095AD" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">HOW IT WORKS · packages/core/src</text>
-    <text x="56" y="94" font-size="40" fill="#DCECF3">一次装载，三条对外路由</text>
-    <text x="500" y="94" font-size="20" fill="#8FA6BC">Xaihi 不 fork DSH，也不重建它已有的能力</text>
-  </g>
-  <line x1="56" y1="116" x2="1144" y2="116" stroke="url(#rule)" stroke-width="1"/>
-
-  <g id="boxes" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif">
-    <!-- A: host -->
-    <g>
-      <rect x="56" y="150" width="280" height="120" rx="14" fill="#0E1A22" stroke="#22384A"/>
-      <text x="80" y="184" font-size="20" fill="#DCECF3">DSH 宿主</text>
-      <text x="80" y="212" font-size="18" fill="#8FA6BC">dsh 0.2.0-rc.2</text>
-      <text x="80" y="238" font-size="18" fill="#8FA6BC">--profile xaihi</text>
-    </g>
-
-    <!-- B: bundles -->
-    <g>
-      <rect x="56" y="392" width="280" height="120" rx="14" fill="#0E1A22" stroke="#22384A"/>
-      <text x="80" y="426" font-size="20" fill="#DCECF3">27 × plugin-bundle</text>
-      <text x="80" y="454" font-size="18" fill="#8FA6BC">package.json#xaihi.node</text>
-      <text x="80" y="480" font-size="18" fill="#8FA6BC">+ dsh.bundle.patch</text>
-    </g>
-
-    <!-- C: core hub -->
-    <g>
-      <rect x="440" y="262" width="280" height="150" rx="14" fill="#12232F" stroke="#D63C82" stroke-opacity="0.65" stroke-width="1.5"/>
-      <text x="464" y="296" font-size="20" fill="#DCECF3">xaihi-core</text>
-      <text x="464" y="324" font-size="18" fill="#8FA6BC">发现 bundle 并登记</text>
-      <text x="464" y="350" font-size="18" fill="#8FA6BC">聚合清单与产物指纹</text>
-      <text x="464" y="376" font-size="18" fill="#8FA6BC">把动作挂到 tools 上</text>
-      <text x="700" y="296" font-size="16" fill="#E58AA8" text-anchor="end" font-family="ui-monospace, Menlo, Consolas, monospace">registry.ts:83</text>
-    </g>
-
-    <!-- D: workbench document -->
-    <g>
-      <rect x="800" y="150" width="344" height="120" rx="14" fill="#0E1A22" stroke="#22384A"/>
-      <text x="824" y="184" font-size="20" fill="#DCECF3">工作台文档</text>
-      <text x="824" y="212" font-size="18" fill="#5DE6FE" font-family="ui-monospace, Menlo, Consolas, monospace">/xaihi/ui/&lt;rev&gt;/index.html</text>
-      <text x="824" y="238" font-size="18" fill="#8FA6BC">27 个面板 · 6 套设计语言</text>
-      <text x="1120" y="184" font-size="16" fill="#5F7C93" text-anchor="end" font-family="ui-monospace, Menlo, Consolas, monospace">routes.ts:106</text>
-    </g>
-
-    <!-- E: node remotes -->
-    <g>
-      <rect x="800" y="290" width="344" height="120" rx="14" fill="#0E1A22" stroke="#22384A"/>
-      <text x="824" y="324" font-size="20" fill="#DCECF3">节点 remote</text>
-      <text x="824" y="352" font-size="18" fill="#5DE6FE" font-family="ui-monospace, Menlo, Consolas, monospace">/xaihi/remotes/&lt;slug&gt;/&lt;rev&gt;/</text>
-      <text x="824" y="378" font-size="18" fill="#8FA6BC">只留给第三方 · ADR-0014</text>
-      <text x="1120" y="324" font-size="16" fill="#5F7C93" text-anchor="end" font-family="ui-monospace, Menlo, Consolas, monospace">registry.ts:152</text>
-    </g>
-
-    <!-- F: operations stream -->
-    <g>
-      <rect x="800" y="430" width="344" height="110" rx="14" fill="#0E1A22" stroke="#22384A"/>
-      <text x="824" y="464" font-size="20" fill="#DCECF3">操作事件流</text>
-      <text x="824" y="492" font-size="18" fill="#5DE6FE" font-family="ui-monospace, Menlo, Consolas, monospace">/xaihi/operations/stream</text>
-      <text x="824" y="518" font-size="18" fill="#8FA6BC">SSE，不再开第二条</text>
-      <text x="1120" y="464" font-size="16" fill="#5F7C93" text-anchor="end" font-family="ui-monospace, Menlo, Consolas, monospace">operations.ts:238</text>
-    </g>
-  </g>
-
-  <g id="traces" fill="none" stroke="#69B3C8" stroke-width="1.5">
-    <path d="M196 392 L196 270" marker-end="url(#arw)"/>
-    <path d="M336 210 L388 210 L388 300 L434 300" marker-end="url(#arw)"/>
-    <path d="M720 300 L760 300 L760 210 L794 210" marker-end="url(#arw)"/>
-    <path d="M720 337 L794 337" marker-end="url(#arw)"/>
-    <path d="M720 374 L760 374 L760 470 L794 470" marker-end="url(#arw)"/>
-  </g>
-  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', sans-serif" font-size="16" fill="#7095AD">
-    <text x="208" y="340">pnpm plugin:add</text>
-    <text x="352" y="196">装载</text>
-    <text x="726" y="286">serves</text>
+  <desc id="desc">克制的 MD3 Expressive 机制图：宿主与 bundle、xaihi-core、三条路由都用统一的 arch 面板；xaihi-core 后面只放一个 flower-8 形状作为焦点，没有多余形状堆叠。</desc>
+  <defs><clipPath id="frameClip"><rect width="1200" height="560" rx="28"/></clipPath></defs>
+  <g clip-path="url(#frameClip)">
+<rect width="1200" height="560" fill="#0A1218"/>
+<text x="56" y="52" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="600" fill="#7095AD" letter-spacing="3">HOW IT WORKS · packages/core/src</text>
+<text x="56" y="94" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="40" font-weight="500" fill="#DCECF3">一次装载，三条对外路由</text>
+<text x="548" y="94" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="400" fill="#8FA6BC">Xaihi 不 fork DSH，也不重建它已有的能力</text>
+<text x="1144" y="94" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="96" font-weight="800" fill="#5DE6FE" letter-spacing="-2" text-anchor="end">03</text>
+<line x1="56" y1="116" x2="1144" y2="116" stroke="#22384A" stroke-width="1"/>
+<path d="M 580.00 168.00 C 586.61 168.00 593.50 169.13 599.82 171.14 C 606.13 173.15 612.37 176.35 617.89 180.06 C 623.40 183.77 628.49 188.54 632.90 193.40 C 637.30 198.26 638.83 207.32 644.33 209.21 C 649.83 211.10 658.64 205.58 665.90 204.73 C 673.16 203.88 680.83 203.49 687.89 204.10 C 694.95 204.71 702.09 206.11 708.27 208.39 C 714.45 210.67 720.29 213.92 724.96 217.79 C 729.63 221.67 733.54 226.51 736.30 231.63 C 739.05 236.75 740.73 242.68 741.46 248.53 C 742.20 254.39 741.73 260.75 740.70 266.77 C 739.68 272.79 733.03 280.09 735.30 284.65 C 737.58 289.22 748.52 290.48 754.37 294.14 C 760.23 297.79 765.99 302.01 770.46 306.58 C 774.93 311.15 778.79 316.33 781.22 321.57 C 783.64 326.80 785.00 332.52 785.00 338.00 C 785.00 343.48 783.64 349.20 781.22 354.43 C 778.79 359.67 774.93 364.85 770.46 369.42 C 765.99 373.99 760.23 378.21 754.37 381.86 C 748.52 385.52 737.58 386.78 735.30 391.35 C 733.03 395.91 739.68 403.21 740.70 409.23 C 741.73 415.25 742.20 421.61 741.46 427.47 C 740.73 433.32 739.05 439.25 736.30 444.37 C 733.54 449.49 729.63 454.33 724.96 458.21 C 720.29 462.08 714.45 465.33 708.27 467.61 C 702.09 469.89 694.95 471.29 687.89 471.90 C 680.83 472.51 673.16 472.12 665.90 471.27 C 658.64 470.42 649.83 464.90 644.33 466.79 C 638.83 468.68 637.30 477.74 632.90 482.60 C 628.49 487.46 623.40 492.23 617.89 495.94 C 612.37 499.65 606.13 502.85 599.82 504.86 C 593.50 506.87 586.61 508.00 580.00 508.00 C 573.39 508.00 566.50 506.87 560.18 504.86 C 553.87 502.85 547.63 499.65 542.11 495.94 C 536.60 492.23 531.51 487.46 527.10 482.60 C 522.70 477.74 521.17 468.68 515.67 466.79 C 510.17 464.90 501.36 470.42 494.10 471.27 C 486.84 472.12 479.17 472.51 472.11 471.90 C 465.05 471.29 457.91 469.89 451.73 467.61 C 445.55 465.33 439.71 462.08 435.04 458.21 C 430.37 454.33 426.46 449.49 423.70 444.37 C 420.95 439.25 419.27 433.32 418.54 427.47 C 417.80 421.61 418.27 415.25 419.30 409.23 C 420.32 403.21 426.97 395.91 424.70 391.35 C 422.42 386.78 411.48 385.52 405.63 381.86 C 399.77 378.21 394.01 373.99 389.54 369.42 C 385.07 364.85 381.21 359.67 378.78 354.43 C 376.36 349.20 375.00 343.48 375.00 338.00 C 375.00 332.52 376.36 326.80 378.78 321.57 C 381.21 316.33 385.07 311.15 389.54 306.58 C 394.01 302.01 399.77 297.79 405.63 294.14 C 411.48 290.48 422.42 289.22 424.70 284.65 C 426.97 280.09 420.32 272.79 419.30 266.77 C 418.27 260.75 417.80 254.39 418.54 248.53 C 419.27 242.68 420.95 236.75 423.70 231.63 C 426.46 226.51 430.37 221.67 435.04 217.79 C 439.71 213.92 445.55 210.67 451.73 208.39 C 457.91 206.11 465.05 204.71 472.11 204.10 C 479.17 203.49 486.84 203.88 494.10 204.73 C 501.36 205.58 510.17 211.10 515.67 209.21 C 521.17 207.32 522.70 198.26 527.10 193.40 C 531.51 188.54 536.60 183.77 542.11 180.06 C 547.63 176.35 553.87 173.15 560.18 171.14 C 566.50 169.13 573.39 168.00 580.00 168.00 Z" fill="none" stroke="#69B3C8" stroke-opacity="0.22" stroke-width="1.5"/>
+<path d="M 56.00 270.00 L 56.00 176.00 Q 56.00 150.00 82.00 150.00 L 310.00 150.00 Q 336.00 150.00 336.00 176.00 L 336.00 270.00 Z" fill="#0E1A22" stroke="#22384A" stroke-width="1.5"/>
+<text x="80" y="190" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="500" fill="#DCECF3">DSH 宿主</text>
+<text x="80" y="216" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="400" fill="#8FA6BC">dsh 0.2.0-rc.2</text>
+<text x="80" y="242" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="400" fill="#8FA6BC">--profile xaihi</text>
+<path d="M 56.00 512.00 L 56.00 418.00 Q 56.00 392.00 82.00 392.00 L 310.00 392.00 Q 336.00 392.00 336.00 418.00 L 336.00 512.00 Z" fill="#0E1A22" stroke="#22384A" stroke-width="1.5"/>
+<text x="80" y="432" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="500" fill="#DCECF3">27 × plugin-bundle</text>
+<text x="80" y="458" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="400" fill="#8FA6BC">package.json#xaihi.node</text>
+<text x="80" y="484" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="400" fill="#8FA6BC">+ dsh.bundle.patch</text>
+<path d="M 440.00 412.00 L 440.00 288.00 Q 440.00 262.00 466.00 262.00 L 694.00 262.00 Q 720.00 262.00 720.00 288.00 L 720.00 412.00 Z" fill="#12232F" stroke="#D63C82" stroke-opacity="0.65" stroke-width="1.5"/>
+<text x="464" y="302" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="600" fill="#DCECF3">xaihi-core</text>
+<text x="464" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="400" fill="#8FA6BC">发现 bundle 并登记</text>
+<text x="464" y="356" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="400" fill="#8FA6BC">聚合清单与产物指纹</text>
+<text x="464" y="382" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="400" fill="#8FA6BC">把动作挂到 tools 上</text>
+<text x="700" y="302" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#E58AA8" text-anchor="end">registry.ts:83</text>
+<path d="M 800.00 270.00 L 800.00 176.00 Q 800.00 150.00 826.00 150.00 L 1118.00 150.00 Q 1144.00 150.00 1144.00 176.00 L 1144.00 270.00 Z" fill="#0E1A22" stroke="#22384A" stroke-width="1.5"/>
+<text x="824" y="190" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="500" fill="#DCECF3">工作台文档</text>
+<text x="824" y="216" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#5DE6FE">/xaihi/ui/&lt;rev&gt;/index.html</text>
+<text x="824" y="242" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="400" fill="#8FA6BC">27 个面板 · 6 套设计语言</text>
+<text x="1120" y="190" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93" text-anchor="end">routes.ts:106</text>
+<path d="M 800.00 410.00 L 800.00 316.00 Q 800.00 290.00 826.00 290.00 L 1118.00 290.00 Q 1144.00 290.00 1144.00 316.00 L 1144.00 410.00 Z" fill="#0E1A22" stroke="#22384A" stroke-width="1.5"/>
+<text x="824" y="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="500" fill="#DCECF3">节点 remote</text>
+<text x="824" y="356" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#5DE6FE">/xaihi/remotes/&lt;slug&gt;/&lt;rev&gt;/</text>
+<text x="824" y="382" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="400" fill="#8FA6BC">只留给第三方 · ADR-0014</text>
+<text x="1120" y="330" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93" text-anchor="end">registry.ts:152</text>
+<path d="M 800.00 540.00 L 800.00 456.00 Q 800.00 430.00 826.00 430.00 L 1118.00 430.00 Q 1144.00 430.00 1144.00 456.00 L 1144.00 540.00 Z" fill="#0E1A22" stroke="#22384A" stroke-width="1.5"/>
+<text x="824" y="470" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="20" font-weight="500" fill="#DCECF3">操作事件流</text>
+<text x="824" y="496" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#5DE6FE">/xaihi/operations/stream</text>
+<text x="824" y="522" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="18" font-weight="400" fill="#8FA6BC">SSE，不再开第二条</text>
+<text x="1120" y="470" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" font-weight="500" fill="#5F7C93" text-anchor="end">operations.ts:238</text>
+<g fill="none" stroke="#69B3C8" stroke-width="2" stroke-linecap="round">
+<path d="M196 392 L196 276"/>
+<path d="M336 210 L388 210 L388 300 L434 300"/>
+<path d="M720 300 L760 300 L760 210 L794 210"/>
+<path d="M720 337 L794 337"/>
+<path d="M720 374 L760 374 L760 470 L794 470"/>
+</g>
+<g fill="#69B3C8"><circle cx="196" cy="276" r="4"/><circle cx="434" cy="300" r="4"/><circle cx="794" cy="210" r="4"/><circle cx="794" cy="337" r="4"/><circle cx="794" cy="470" r="4"/></g>
+<text x="208" y="340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="400" fill="#7095AD">pnpm plugin:add</text>
+<text x="352" y="196" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="400" fill="#7095AD">装载</text>
+<text x="726" y="286" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="16" font-weight="400" fill="#7095AD">serves</text>
   </g>
 </svg>
